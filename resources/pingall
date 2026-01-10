@@ -1,0 +1,7 @@
+#!/bin/bash
+
+network="10.24.29"
+for i in {202..254}; do
+    ping -c 1 -W 0.2 "$network.$i" &   # 1 ping with 200ms timeout, runs in background
+done
+wait  # Wait for all background processes to finish

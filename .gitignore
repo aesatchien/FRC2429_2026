@@ -1,0 +1,63 @@
+# CJH FRC gitignore
+
+
+# -----  don't allow any logs - CJH
+**/logs
+*.wpilog
+
+# -----  in case we decide to store and serialize our own logs  - CJH
+*.pkl
+
+# -----  sim gui leaves a lot of stuff  - CJH
+# looks like all the old ini files are jsons now
+**/sim/data/*.pkl
+**/simg*
+*.ini
+
+# -----  advantage scope stuff  - CJH
+**/AdvantageScope_userAssets/Robot_2429_Reefscape/*
+
+# -----  not ready to publish RT
+/robot/subsystems/questnav_2429.py  
+
+# ----  ignore .vscode dir anywhere in the base
+**/.vscode/
+
+
+# ----- all the gui and deploy stuff
+*eploy_cfg
+*nstaller_config
+networktables.json
+
+# ----  IDES  ------
+
+# ignore .vscode dir anywhere in the base
+**/.vscode/
+
+# pycharm directory
+**/.idea/
+
+# jupyter stuff
+**/.ipynb_checkpoints
+
+# pycache stuff
+__pycache__/
+*.py[cod]
+
+# Distribution / packaging
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg

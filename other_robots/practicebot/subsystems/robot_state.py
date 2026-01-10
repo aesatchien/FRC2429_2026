@@ -1,0 +1,195 @@
+import math
+from enum import Enum
+import commands2
+from wpilib import Timer
+from wpimath.geometry import Rotation2d
+import ntcore
+import constants
+from helpers.apriltag_utils import k_useful_robot_poses_blue
+from constants import LedConstants
+
+# TODO - do something better than putting a callback in LED
+
+
+class RobotState(commands2.Subsystem):
+    """ Robot state
+        One place to store our current goals (maybe should go into LED?)
+
+        Need to know target (e.g. processor, L3, etc)
+        Need to know left or right scoring for coral
+
+        From this you can calculate:
+        Target height
+        Target angle
+        Left or right - Wrist orientation or
+    """
+
+    class ReefGoal(Enum):
+        """Class for storing position information"""
+        # todo - see if i can get the offset in here, because it's not the same y offset for left and right
+        AB = {'name': 'ab', 'left_pose': k_useful_robot_poses_blue['a'], 'right_pose': k_useful_robot_poses_blue['b'],
+              'lr_flip': False}
+        CD = {'name': 'cd', 'left_pose': k_useful_robot_poses_blue['c'], 'right_pose': k_useful_robot_poses_blue['d'],
+              'lr_flip': False}
+        EF = {'name': 'ef', 'left_pose': k_useful_robot_poses_blue['f'], 'right_pose': k_useful_robot_poses_blue['e'],
+              'lr_flip': True}
+        GH = {'name': 'gh', 'left_pose': k_useful_robot_poses_blue['h'], 'right_pose': k_useful_robot_poses_blue['g'],
+              'lr_flip': True}
+        IJ = {'name': 'ij', 'left_pose': k_useful_robot_poses_blue['j'], 'right_pose': k_useful_robot_poses_blue['i'],
+              'lr_flip': True}
+        KL = {'name': 'kl', 'left_pose': k_useful_robot_poses_blue['k'], 'right_pose': k_useful_robot_poses_blue['l'],
+              'lr_flip': False}
+
+
+    class Target(Enum):
+        """ Target class is for showing current goal """
+        # can I generate this programmatically from the constants file's list of positions? Some of it.
+        STOW = {'name': 'stow', 'lit_leds': LedConstants.k_led_count, 'mode': 'keep'}
+        GROUND = {'name': 'ground', 'lit_leds': LedConstants.k_led_count, 'mode': 'keep'}
+        # coral modes
+        L1 = {'name': 'l1', 'lit_leds': -1 + LedConstants.k_led_count // 8, 'mode': 'coral'}
+        L2 = {'name': 'l2', 'lit_leds': -2 + 1 * LedConstants.k_led_count // 4, 'mode': 'coral'}
+        L3 = {'name': 'l3', 'lit_leds': -3 + 3 * LedConstants.k_led_count // 8, 'mode': 'coral'}
+        L4 = {'name': 'l4', 'lit_leds': -4 + LedConstants.k_led_count // 2, 'mode': 'coral'}
+        CORAL_STATION = {'name': 'coral station', 'lit_leds': LedConstants.k_led_count, 'mode': 'coral'}
+        # algae modes
+        PROCESSOR = {'name': 'processor', 'lit_leds': -1 + LedConstants.k_led_count // 8, 'mode': 'algae'}
+        BARGE = {'name': 'barge', 'lit_leds': -2 + LedConstants.k_led_count // 2, 'mode': 'algae'}
+        ALGAE_LOW = {'name': 'algae low', 'lit_leds': -3 + LedConstants.k_led_count // 4, 'mode': 'algae'}
+        ALGAE_HIGH = {'name': 'algae high', 'lit_leds': 3 * LedConstants.k_led_count // 8, 'mode': 'algae'}
+
+        NONE = {'name': 'NONE', 'lit_leds': LedConstants.k_led_count, 'mode': 'none'}
+
+    class Side(Enum):
+        """ Mode class is for showing robot's current scoring mode and is the default during teleop """
+        RIGHT = {'name': "RIGHT", }
+        LEFT = {'name': "LEFT", }
+        NONE = {'name': "NONE", }
+
+    def __init__(self):
+        super().__init__()
+        self.setName('Mode')
+        # try to start all the subsystems on a different count so they don't all do the periodic updates at the same time
+        self.counter = constants.RobotStateConstants.k_counter_offset
+
+        self._init_networktables()
+
+        self._callbacks = []  # Store functions to notify
+
+        # initialize modes and indicators
+        self.target = self.Target.L3  # This now calls the setter
+
+        # try to set the side based on the joystick in RobotContainer and override this
+        print('Temporary robot state until joysticks initialized...')
+        self.side = self.Side.RIGHT  # This now calls the setter
+
+        self.reef_goal = self.ReefGoal.AB  # This now calls the setter
+
+        # this should auto-update the lists for the dashboard.  you can iterate over enums
+        self.targets_dict = {target.value["name"]: target for target in self.Target}
+        self.sides_dict = {side.value["name"]: side for side in self.Side}
+        self.reef_goal_dict = {reef_goal.value["name"]: reef_goal for reef_goal in self.ReefGoal}
+
+    def _init_networktables(self):
+        self.inst = ntcore.NetworkTableInstance.getDefault()
+        self.reef_goal_pub = self.inst.getStringTopic(f"{constants.status_prefix}/_reef_goal").publish()
+        self.target_pub = self.inst.getStringTopic(f"{constants.status_prefix}/_target").publish()
+        self.side_pub = self.inst.getStringTopic(f"{constants.status_prefix}/_side").publish()
+
+    def set_reef_goal_by_tag(self, tag):
+        if tag in [7,18]:
+            self.reef_goal = self.ReefGoal.AB
+        elif tag in [8,17]:
+            self.reef_goal = self.ReefGoal.CD
+        elif tag in [9,22]:
+            self.reef_goal = self.ReefGoal.EF
+        elif tag in [10,21]:
+            self.reef_goal = self.ReefGoal.GH
+        elif tag in [11,20]:
+            self.reef_goal = self.ReefGoal.IJ
+        elif tag in [6,19]:
+            self.reef_goal = self.ReefGoal.KL
+
+    # put in a callback so the logic to LED is not circular
+    def register_callback(self, callback):
+        """ Allow external systems (like LED) to register for updates. """
+        self._callbacks.append(callback)
+
+    def _notify_callbacks(self):
+        """ Notify all registered callbacks when RobotState updates. """
+        for callback in self._callbacks:
+            callback(self.target, self.side)
+
+    # The @property decorator lets us use `robot_state.reef_goal` as if it were a
+    # simple variable, while still running this function to get the value.
+    # It's a "getter" that looks like a variable.
+    @property
+    def reef_goal(self):
+        return self._reef_goal
+
+    @reef_goal.setter
+    def reef_goal(self, new_goal: ReefGoal):
+        self._reef_goal = new_goal
+        # This setter allows us to run extra logic (like printing and publishing to NT)
+        # whenever `robot_state.reef_goal = ...` is assigned.
+        print(f'ReefGoal set to {self._reef_goal.value["name"]} at {Timer.getFPGATimestamp():.1f}s')
+        self.reef_goal_pub.set(self._reef_goal.value['name'])
+
+    def set_reef_goal_cmd(self, reef_goal: ReefGoal) -> commands2.InstantCommand:
+        return commands2.InstantCommand(lambda: setattr(self, 'reef_goal', reef_goal)).ignoringDisable(True)
+
+    @property
+    def reef_goal_pose(self):
+        if self.is_right:
+            return self._reef_goal.value['right_pose']
+        else:
+            return self._reef_goal.value['left_pose']
+
+    @property
+    def target(self):
+        return self._target
+    
+    @target.setter
+    def target(self, new_target: Target):
+        # getattr() is a safe way to get an attribute. If `self._target` doesn't exist
+        # on the first run, it will use `self.Target.NONE` as a default value
+        # instead of crashing.
+        self.prev_target = getattr(self, '_target', self.Target.NONE)
+        self._target = new_target
+        self._notify_callbacks()  # Call all registered callbacks
+        print(f'Target set to {new_target.value["name"]} at {Timer.getFPGATimestamp():.1f}s')
+        self.target_pub.set(self._target.value['name'])
+
+    @property
+    def side(self):
+        return self._side
+
+    @side.setter
+    def side(self, new_side: Side):
+        self._side = new_side
+        self._notify_callbacks()  # Call all registered callbacks
+        print(f'Side set to {new_side.value["name"]} at {Timer.getFPGATimestamp():.1f}s')
+        self.side_pub.set(self._side.value['name'])
+
+    # answer if we are on the left or the right for the wrist
+    @property
+    def is_right(self):
+        return self.side == self.Side.RIGHT
+
+    @property
+    def is_left(self):
+        return self.side == self.Side.LEFT
+
+    # return elevator and pivot targets based on current mode
+    # @property
+    # def elevator_goal(self):
+    #     return k_positions[self.target.value['name']]['elevator']
+    #
+    # @property
+    # def pivot_goal(self):
+    #     return k_positions[self.target.value['name']]['shoulder_pivot']
+
+    def periodic(self):
+        self.counter += 1  # Increment the main counter
+        if self.counter % 10 == 0:  # Execute every 5 cycles (10Hz update rate)
+            pass
