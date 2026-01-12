@@ -40,13 +40,14 @@ k_practicebot_cameras = {
 }
 
 k_sim_cameras = {
+    'front_sim': {'topic_name': 'LocalTest', 'type': 'tags', 'rotation': 0, 'fov': fov},
     'genius_low': {'topic_name': 'GeniusLow', 'type': 'tags', 'rotation':-90, 'fov': fov},
     'arducam_back': {'topic_name': 'ArducamBack', 'type': 'tags', 'rotation':180, 'fov': fov},
     'logitech_reef': {'topic_name': 'LogitechReef', 'type': 'tags', 'rotation':0, 'fov': fov},
     'logitech_reef_hsv': {'topic_name': 'LogitechReef', 'type': 'hsv', 'label': 'orange', 'rotation':0, 'fov': fov},
     'arducam_high': {'topic_name': 'ArducamHigh', 'type': 'tags', 'rotation':90, 'fov': fov},}
 
-k_cameras = k_practicebot_cameras
+k_cameras = k_sim_cameras
 
 # systems inside/from the robot
 status_prefix = r'/SmartDashboard/RobotStatus'  # the default for any status message
@@ -78,7 +79,7 @@ class SimConstants:
 
     k_disable_vision_sim = False  # Hard disable.  Set to stop all vision simulation (e.g. ONLY using real coprocessors)
     k_draw_camera_fovs = True  # Set to draw camera FOV triangles - should always want this
-    k_use_external_cameras = False  # override the vision sim to only take targets from real cams - squashes blink_test
+    k_use_external_cameras = True  # override the vision sim to only take targets from real cams - squashes blink_test
     k_do_blink_test = False  # Set to test dashboard connection handling (e.g. dropping camera connections)
     k_use_live_tags_in_sim = True  # Set to True to snap the robot's swerve sim to live AprilTag data
 
