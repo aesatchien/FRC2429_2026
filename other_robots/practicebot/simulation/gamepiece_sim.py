@@ -9,7 +9,7 @@ class GamepieceSim:
         # Initial locations
         # self.gamepiece_locations = [(2.89, 7.0), (2.89, 5.57), (2.89, 4.1), (8.28, 7.46), (8.28, 5.76), (8.28, 4.1),
         #                             (8.28, 2.42), (8.28, 0.76), (13.68, 7.0), (13.68, 5.57), (13.68, 4.1)]
-        self.gamepiece_locations = [(x/10, y/10) for x in range(80, 100, 5) for y in range(20, 70, 5) ]  # rebuild
+        self.gamepiece_locations = [(x/10, y/10) for x in range(75, 95, 5) for y in range(20, 63, 5) ]  # rebuild
         self.gamepieces = [{'pos': Translation2d(gl), 'active': True} for gl in self.gamepiece_locations]
         
         self.gamepiece_obj = self.field.getObject("Gamepieces")
