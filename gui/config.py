@@ -64,7 +64,17 @@ base_prefix    = r'/SmartDashboard'  #  TODO - eventually nothing should be in h
 
 # FIELD CONFIGURATION
 SHOW_APRILTAGS = True
-TAG_LAYOUT = robotpy_apriltag.AprilTagField.k2025ReefscapeWelded
+TAG_LAYOUT = robotpy_apriltag.AprilTagField.k2024Crescendo
+
+# Field Calibration Constants
+FIELD_LENGTH = 16.54  # meters
+FIELD_WIDTH = 8.05    # meters
+# Reference Image Dimensions (The resolution of the image in ui exactly covered by the qgroupbox_field)
+REF_IMG_WIDTH = 567
+REF_IMG_HEIGHT = 278
+# Pixel coordinates of the field corners on the reference image (Origin is Bottom-Left)
+REF_BL_PX = (33, 260)      # Bottom-Left pixel (Field X=0, Y=0) -> The Origin
+REF_TR_PX = (532, 16)      # Top-Right pixel (Field X=17.6, Y=8.2)
 
 # A list of command names used to generate widget configurations for simple, clickable indicators.
 # Commands with special properties (e.g., custom topics, flash behavior) are defined separately.

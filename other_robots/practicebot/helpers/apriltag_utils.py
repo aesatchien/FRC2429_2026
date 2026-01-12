@@ -3,7 +3,9 @@ import robotpy_apriltag
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 
 # This data is initialized once when the module is first imported.
-layout = robotpy_apriltag.AprilTagFieldLayout.loadField(robotpy_apriltag.AprilTagField.k2025ReefscapeWelded)
+# layout = robotpy_apriltag.AprilTagFieldLayout.loadField(robotpy_apriltag.AprilTagField.k2025ReefscapeWelded)
+layout = robotpy_apriltag.AprilTagFieldLayout.loadField(robotpy_apriltag.AprilTagField.k2024Crescendo)
+
 
 # Mapping from letter to tag ID and which side of the tag it corresponds to.
 # Note: 'e' is the right side of tag 22, 'f' is the left side, etc.
