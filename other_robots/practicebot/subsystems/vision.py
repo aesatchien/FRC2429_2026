@@ -25,6 +25,8 @@ class Vision(SubsystemBase):
             self.camera_values[key] = {}
             self.camera_values[key].update({'id': 0, 'targets': 0, 'distance': 0, 'rotation': 0, 'strafe': 0})
 
+        self.last_stale_warning_time = {key: 0 for key in constants.k_cameras.keys()}
+
         self._init_networktables()
 
     def _init_networktables(self):
@@ -80,7 +82,9 @@ class Vision(SubsystemBase):
         time_stamp_good = latency_us < 1000000
 
         if target_exists and not time_stamp_good:
-            print(f"Vision Warning: Stale target on '{camera_key}'. Latency: {latency_us / 1000:.1f} ms")
+            if self.last_stale_warning_time.get(camera_key, 0) != atomic_targets.time:
+                print(f"Vision Warning: Stale target on '{camera_key}'. Latency: {latency_us / 1000:.1f} ms")
+                self.last_stale_warning_time[camera_key] = atomic_targets.time
 
         return target_exists and time_stamp_good
 
