@@ -1,0 +1,396 @@
+{
+  "HALProvider": {
+    "Addressable LEDs": {
+      "0": {
+        "columns": 20
+      },
+      "window": {
+        "visible": true
+      }
+    },
+    "Other Devices": {
+      "navX-Sensor[4]": {
+        "header": {
+          "open": true
+        }
+      },
+      "window": {
+        "visible": false
+      }
+    },
+    "PowerDistributions": {
+      "window": {
+        "visible": true
+      }
+    }
+  },
+  "NTProvider": {
+    "types": {
+      "/FMSInfo": "FMSInfo",
+      "/SmartDashboard//Command/LED Indicator": "String Chooser",
+      "/SmartDashboard//Command/LED Mode": "String Chooser",
+      "/SmartDashboard//Command/Quest/EnableToggle": "Command",
+      "/SmartDashboard//Command/Quest/ResetOdometry": "Command",
+      "/SmartDashboard//Command/Quest/SyncOdometry": "Command",
+      "/SmartDashboard//Command/Quest/SyncToggle": "Command",
+      "/SmartDashboard//Command/QuestEnableToggle": "Command",
+      "/SmartDashboard//Command/QuestResetOdometry": "Command",
+      "/SmartDashboard//Command/QuestSyncOdometry": "Command",
+      "/SmartDashboard//Command/QuestSyncToggle": "Command",
+      "/SmartDashboard//Command/RobotScoringMode": "String Chooser",
+      "/SmartDashboard//Command/SetSuccess": "Command",
+      "/SmartDashboard/Command/CANStatus": "Command",
+      "/SmartDashboard/Command/CalElevatorDown": "Command",
+      "/SmartDashboard/Command/CalElevatorUp": "Command",
+      "/SmartDashboard/Command/CalWristDown": "Command",
+      "/SmartDashboard/Command/CalWristUp": "Command",
+      "/SmartDashboard/Command/CanStatus": "Command",
+      "/SmartDashboard/Command/GoToL1": "Command",
+      "/SmartDashboard/Command/GoToL2": "Command",
+      "/SmartDashboard/Command/GoToL3": "Command",
+      "/SmartDashboard/Command/GoToL4": "Command",
+      "/SmartDashboard/Command/GoToStow": "Command",
+      "/SmartDashboard/Command/GyroReset": "Command",
+      "/SmartDashboard/Command/IntakeOff": "Command",
+      "/SmartDashboard/Command/IntakeOn": "Command",
+      "/SmartDashboard/Command/IntakeReverse": "Command",
+      "/SmartDashboard/Command/LED Indicator": "String Chooser",
+      "/SmartDashboard/Command/LED Mode": "String Chooser",
+      "/SmartDashboard/Command/MoveClimberDown": "Command",
+      "/SmartDashboard/Command/MoveClimberUp": "Command",
+      "/SmartDashboard/Command/MoveElevatorDown": "Command",
+      "/SmartDashboard/Command/MoveElevatorTop": "Command",
+      "/SmartDashboard/Command/MoveElevatorUp": "Command",
+      "/SmartDashboard/Command/MovePivotDown": "Command",
+      "/SmartDashboard/Command/MovePivotUp": "Command",
+      "/SmartDashboard/Command/MoveWristDown": "Command",
+      "/SmartDashboard/Command/MoveWristUp": "Command",
+      "/SmartDashboard/Command/QuestEnableToggle": "Command",
+      "/SmartDashboard/Command/QuestResetOdometry": "Command",
+      "/SmartDashboard/Command/QuestSyncOdometry": "Command",
+      "/SmartDashboard/Command/QuestSyncToggle": "Command",
+      "/SmartDashboard/Command/RecalWrist": "Command",
+      "/SmartDashboard/Command/ResetFlex": "Command",
+      "/SmartDashboard/Command/RobotScoringMode": "String Chooser",
+      "/SmartDashboard/Command/SetSuccess": "Command",
+      "/SmartDashboard/Field": "Field2d",
+      "/SmartDashboard/LED Indicator": "String Chooser",
+      "/SmartDashboard/LED Mode": "String Chooser",
+      "/SmartDashboard/QUEST_FIELD": "Field2d",
+      "/SmartDashboard/Quest/EnableToggle": "Command",
+      "/SmartDashboard/Quest/Field": "Field2d",
+      "/SmartDashboard/Quest/ResetOdometry": "Command",
+      "/SmartDashboard/Quest/SyncOdometry": "Command",
+      "/SmartDashboard/Quest/SyncToggle": "Command",
+      "/SmartDashboard/QuestEnableToggle": "Command",
+      "/SmartDashboard/QuestResetOdometry": "Command",
+      "/SmartDashboard/QuestSyncOdometry": "Command",
+      "/SmartDashboard/QuestSyncToggle": "Command",
+      "/SmartDashboard/RobotScoringMode": "String Chooser",
+      "/SmartDashboard/SetSuccess": "Command",
+      "/SmartDashboard/SimField": "Field2d",
+      "/SmartDashboard/autonomous routines": "String Chooser"
+    },
+    "windows": {
+      "/SmartDashboard/Command/LED Indicator": {
+        "window": {
+          "visible": true
+        }
+      },
+      "/SmartDashboard/Field": {
+        "AprilTags": {
+          "arrowColor": [
+            0.0,
+            0.0,
+            0.0,
+            255.0
+          ],
+          "color": [
+            0.7510548830032349,
+            0.7510548830032349,
+            0.7510548830032349,
+            255.0
+          ],
+          "length": 0.25,
+          "selectable": false,
+          "width": 0.20000000298023224
+        },
+        "FOV": {
+          "color": [
+            1.0,
+            1.0,
+            1.0,
+            255.0
+          ],
+          "style": "Line",
+          "weight": 1.0
+        },
+        "FOV_0": {
+          "arrows": false,
+          "color": [
+            1.0,
+            1.0,
+            1.0,
+            255.0
+          ],
+          "selectable": false,
+          "style": "Line (Closed)",
+          "weight": 1.0
+        },
+        "FOV_1": {
+          "arrows": false,
+          "color": [
+            1.0,
+            1.0,
+            1.0,
+            255.0
+          ],
+          "selectable": false,
+          "style": "Line (Closed)",
+          "weight": 1.0
+        },
+        "FOV_2": {
+          "arrows": false,
+          "color": [
+            1.0,
+            1.0,
+            1.0,
+            255.0
+          ],
+          "selectable": false,
+          "style": "Line (Closed)",
+          "weight": 1.0
+        },
+        "FOV_3": {
+          "arrows": false,
+          "color": [
+            1.0,
+            1.0,
+            1.0,
+            255.0
+          ],
+          "selectable": false,
+          "style": "Line (Closed)",
+          "weight": 1.0
+        },
+        "FOV_4": {
+          "arrows": false,
+          "color": [
+            1.0,
+            1.0,
+            1.0,
+            255.0
+          ],
+          "selectable": false,
+          "style": "Line (Closed)",
+          "weight": 1.0
+        },
+        "Gamepieces": {
+          "arrows": false,
+          "color": [
+            200.12660217285156,
+            255.0,
+            0.0,
+            255.0
+          ],
+          "length": 0.4000000059604645,
+          "style": "Box/Image",
+          "weight": 2.0,
+          "width": 0.4000000059604645
+        },
+        "Target": {
+          "arrowColor": [
+            1.0,
+            1.0,
+            1.0,
+            255.0
+          ],
+          "color": [
+            1.0,
+            1.0,
+            1.0,
+            255.0
+          ],
+          "weight": 2.0
+        },
+        "arducam_back_FOV": {
+          "color": [
+            1.0,
+            1.0,
+            1.0,
+            255.0
+          ],
+          "selectable": false,
+          "style": "Line (Closed)"
+        },
+        "bottom": 743,
+        "builtin": "",
+        "height": 8.051901817321777,
+        "image": "C:\\CJH\\python\\FRC\\2026\\resources\\sim\\2026-field_crop.png",
+        "left": 95,
+        "logitech_reef_FOV": {
+          "color": [
+            1.0,
+            1.0,
+            1.0,
+            255.0
+          ],
+          "style": "Line (Closed)",
+          "weight": 1.0
+        },
+        "right": 1521,
+        "top": 48,
+        "width": 17.54825210571289,
+        "window": {
+          "name": "Practicebot 2026beta",
+          "visible": true
+        }
+      },
+      "/SmartDashboard/SimField": {
+        "bottom": 1638,
+        "height": 8.051901817321777,
+        "left": 534,
+        "right": 3466,
+        "top": 291,
+        "width": 17.54825210571289,
+        "window": {
+          "visible": true
+        }
+      }
+    }
+  },
+  "NetworkTables": {
+    "Persistent Values": {
+      "open": false
+    },
+    "transitory": {
+      "Cameras": {
+        "ArducamLeft": {
+          "open": true,
+          "tags": {
+            "open": true
+          }
+        },
+        "ArducamRight": {
+          "open": true
+        },
+        "BottomC920": {
+          "open": true
+        },
+        "GeniusLow": {
+          "tags": {
+            "open": true
+          }
+        },
+        "LogiTechLeft": {
+          "open": true
+        },
+        "LogitechFront": {
+          "poses": {
+            "double[]##v_/Cameras/LogitechFront/poses/tag2": {
+              "open": true
+            },
+            "open": true
+          },
+          "tags": {
+            "open": true
+          }
+        },
+        "LogitechLeft": {
+          "poses": {
+            "double[]##v_/Cameras/LogitechLeft/poses/tag1": {
+              "open": true
+            },
+            "double[]##v_/Cameras/LogitechLeft/poses/tag2": {
+              "open": true
+            }
+          },
+          "tags": {
+            "open": true
+          }
+        },
+        "LogitechReef": {
+          "orange": {
+            "open": true
+          },
+          "tags": {
+            "open": true
+          }
+        },
+        "TopC920": {
+          "open": true,
+          "yellow": {
+            "open": true
+          }
+        },
+        "double[]##v_/Cameras/_training_box": {
+          "open": true
+        },
+        "open": true
+      },
+      "LiveWindow": {
+        ".status": {
+          "open": true
+        }
+      },
+      "SmartDashboard": {
+        "Swerve": {
+          "Pose2d##v_/SmartDashboard/Swerve/drive_pose2d": {
+            "Rotation2d##v_rotation": {
+              "open": true
+            },
+            "Translation2d##v_translation": {
+              "open": true
+            },
+            "open": true
+          },
+          "double[]##v_/SmartDashboard/Swerve/drive_pose": {
+            "open": true
+          }
+        },
+        "open": true
+      },
+      "Smartdashboard": {
+        "Swerve": {
+          "open": true
+        },
+        "open": true
+      }
+    }
+  },
+  "NetworkTables Info": {
+    "CJHpi5@1": {
+      "open": true
+    },
+    "CJHpi@1": {
+      "open": true
+    },
+    "Clients": {
+      "open": true
+    },
+    "Connections": {
+      "open": true
+    },
+    "Server": {
+      "open": true
+    },
+    "launcher@1": {
+      "Publishers": {
+        "open": true
+      },
+      "Subscribers": {
+        "open": true
+      }
+    },
+    "proc-logitech_c920_bottom_front@3": {
+      "open": true
+    },
+    "proc-logitech_c920_top_left@2": {
+      "Subscribers": {
+        "open": true
+      },
+      "open": true
+    },
+    "visible": true
+  }
+}

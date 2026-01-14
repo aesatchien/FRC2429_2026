@@ -5,6 +5,7 @@ import math
 import numpy as np
 import wpimath.geometry as geo
 import ntcore
+import config
 from PyQt6 import QtGui, QtCore, QtWidgets
 
 class UIUpdater:
@@ -226,9 +227,20 @@ class UIUpdater:
         widget.setPixmap(pixmap_rotated)
 
         # Convert pose (meters) to widget coordinates (pixels)
-        # Field dimensions in meters: 17.6 x 8.2
-        widget_x = int(-new_size / 2 + width * x / 17.6)
-        widget_y = int(-new_size / 2 + height * (1 - y / 8.2))
+        # Calculate scale factors based on current widget size vs reference image size
+        scale_x = width / config.REF_IMG_WIDTH
+        scale_y = height / config.REF_IMG_HEIGHT
+
+        # Map Field X (0 to FIELD_LENGTH) to Pixel X
+        field_x_frac = x / config.FIELD_LENGTH
+        ref_px_x = config.REF_BL_PX[0] + field_x_frac * (config.REF_TR_PX[0] - config.REF_BL_PX[0])
+        widget_x = int(-new_size / 2 + ref_px_x * scale_x)
+
+        # Map Field Y (0 to FIELD_WIDTH) to Pixel Y
+        field_y_frac = y / config.FIELD_WIDTH
+        ref_px_y = config.REF_BL_PX[1] + field_y_frac * (config.REF_TR_PX[1] - config.REF_BL_PX[1])
+        widget_y = int(-new_size / 2 + ref_px_y * scale_y)
+
         widget.move(widget_x, widget_y)
 
     def _update_command_list(self):

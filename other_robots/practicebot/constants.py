@@ -40,11 +40,13 @@ k_practicebot_cameras = {
 }
 
 k_sim_cameras = {
+    'front_sim': {'topic_name': 'LocalTest', 'type': 'tags', 'rotation': 0, 'fov': fov},
     'genius_low': {'topic_name': 'GeniusLow', 'type': 'tags', 'rotation':-90, 'fov': fov},
-    'arducam_back': {'topic_name': 'ArducamBack', 'type': 'tags', 'rotation':180, 'fov': fov},
-    'logitech_reef': {'topic_name': 'LogitechReef', 'type': 'tags', 'rotation':0, 'fov': fov},
-    'logitech_reef_hsv': {'topic_name': 'LogitechReef', 'type': 'hsv', 'label': 'orange', 'rotation':0, 'fov': fov},
-    'arducam_high': {'topic_name': 'ArducamHigh', 'type': 'tags', 'rotation':90, 'fov': fov},}
+    #'arducam_back': {'topic_name': 'ArducamBack', 'type': 'tags', 'rotation':180, 'fov': fov},
+    #'logitech_reef': {'topic_name': 'LogitechReef', 'type': 'tags', 'rotation':0, 'fov': fov},
+    #'logitech_reef_hsv': {'topic_name': 'LogitechReef', 'type': 'hsv', 'label': 'orange', 'rotation':0, 'fov': fov},
+    #'arducam_high': {'topic_name': 'ArducamHigh', 'type': 'tags', 'rotation':90, 'fov': fov},
+    }
 
 k_cameras = k_practicebot_cameras
 
