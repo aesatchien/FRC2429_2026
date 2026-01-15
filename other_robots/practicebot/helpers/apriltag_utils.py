@@ -6,8 +6,50 @@ from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 # layout = robotpy_apriltag.AprilTagFieldLayout.loadField(robotpy_apriltag.AprilTagField.k2025ReefscapeWelded)
 layout = robotpy_apriltag.AprilTagFieldLayout('2026-rebuilt-welded_json')
 
+# Pre-calculate tag positions for plotting or other uses
+tag_positions = {tag_id: layout.getTagPose(tag_id).translation().toTranslation2d()
+                 for tag_id in range(17, 23) if layout.getTagPose(tag_id) is not None}
 
-# Mapping from letter to tag ID and which side of the tag it corresponds to.
+def get_tag_distance(current_pose, tag_id):
+    """ Return the distance from the current pose to the given tag ID """
+    tag_pose = layout.getTagPose(tag_id).toPose2d()
+    distance = current_pose.translation().distance(tag_pose.translation())
+    return distance
+
+def get_nearest_tag(current_pose, destination='stage'):
+    """ Return the nearest allowed tag to a given pose """
+    if destination == 'reef':
+        # get all distances to the stage tags
+        tags = [6, 7, 8, 9, 10, 11, 17, 18, 19, 20, 21,
+                22]  # the ones we can see from driver's station - does not matter if red or blue
+        x_offset, y_offset = -0.10, 0.10  # subtracting translations below makes +x INTO the tage, +y LEFT of tag
+        robot_offset = Pose2d(Translation2d(x_offset, y_offset), Rotation2d(0))
+        face_tag = True  # do we want to face the tag?
+    else:
+        raise ValueError('  location for get_nearest tag must be in ["stage", "amp"] etc')
+
+    poses = [field_layout.getTagPose(tag).toPose2d() for tag in tags]
+    distances = [current_pose.translation().distance(pose.translation()) for pose in poses]
+
+    # sort the distances
+    combined = list(zip(tags, distances))
+    combined.sort(key=lambda x: x[1])  # sort on the distances
+    sorted_tags, sorted_distances = zip(*combined)
+    nearest_pose = field_layout.getTagPose(sorted_tags[0])  # get the pose of the nearest stage tag
+
+    # transform the tag pose to our specific needs
+    tag_pose = nearest_pose.toPose2d()  # work with a 2D pose
+    tag_rotation = tag_pose.rotation()  # we are either going to match this or face opposite
+    robot_offset_corrected = robot_offset.rotateBy(tag_rotation)  # rotate our offset so we align with the tag
+    updated_translation = tag_pose.translation() - robot_offset_corrected.translation()  # careful with these signs
+    updated_rotation = tag_rotation + Rotation2d(math.pi) if face_tag else tag_rotation  # choose if we flip
+    updated_pose = Pose2d(translation=updated_translation, rotation=updated_rotation)  # drive to here
+
+    return sorted_tags[0]  # changed this in 2025 instead of updated_pose
+
+
+#  ---------   DEPRECATED REEFSCAPE STUFF
+# Mapping from letter to tag ID and which side of the reef face it corresponds to.
 # Note: 'e' is the right side of tag 22, 'f' is the left side, etc.
 letter_map = {
     'a': {'tag_id': 18, 'side': 'left'}, 'b': {'tag_id': 18, 'side': 'right'},
@@ -18,9 +60,6 @@ letter_map = {
     'k': {'tag_id': 19, 'side': 'left'}, 'l': {'tag_id': 19, 'side': 'right'},
 }
 
-# Pre-calculate tag positions for plotting or other uses
-tag_positions = {tag_id: layout.getTagPose(tag_id).translation().toTranslation2d()
-                 for tag_id in range(17, 23) if layout.getTagPose(tag_id) is not None}
 
 def get_reefscape_scoring_pose(letter: str) -> Pose2d:
     """
@@ -66,3 +105,5 @@ def get_reefscape_scoring_pose(letter: str) -> Pose2d:
 
 # Dictionary to store robot poses for reefscape autos
 k_useful_robot_poses_blue = {letter: get_reefscape_scoring_pose(letter) for letter in 'abcdefghijkl'}
+
+

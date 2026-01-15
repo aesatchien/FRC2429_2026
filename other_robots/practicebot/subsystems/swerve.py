@@ -20,7 +20,7 @@ import constants
 from .swervemodule_2429 import SwerveModule
 from .swerve_constants import DriveConstants as dc, AutoConstants as ac, ModuleConstants as mc
 from helpers.utilities import compare_motors
-import helpers.apriltag_utils
+import helpers.apriltag_utils as atu
 from subsystems.quest import Questnav
 import urcl # unofficial rev compatible logger for advantagescope
 
@@ -360,7 +360,7 @@ class Swerve (Subsystem):
                         continue
 
                     # make sure it's not a training tag not intended for odometry (returns None if not in layout)
-                    if helpers.apriltag_utils.layout.getTagPose(int(tag_data[0])) is None:
+                    if atu.layout.getTagPose(int(tag_data[0])) is None and tag_data[0] != -1:
                         continue
 
                     tx, ty, tz = tag_data[1], tag_data[2], tag_data[3]
@@ -374,6 +374,8 @@ class Swerve (Subsystem):
                         # Standard deviations tell the pose estimator how much to "trust" this measurement.
                         # Smaller numbers = more trust. We trust vision more when disabled and stationary.
                         # Units are (x_meters, y_meters, rotation_radians).
+                        tag_distance = atu.get_tag_distance(tag_pose, current_pose)
+                        # TODO - adjust stdevs based on distance to tag.  Likely just multiply by distance, which will always be 1-5 meters
                         sdevs = constants.DrivetrainConstants.k_pose_stdevs_large if DriverStation.isEnabled() else constants.DrivetrainConstants.k_pose_stdevs_disabled
                         self.pose_estimator.addVisionMeasurement(tag_pose, timestamp_us / 1e6, sdevs)
 
