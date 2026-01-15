@@ -1,7 +1,7 @@
 import math
 import typing
 
-
+import rev
 from wpilib import AnalogPotentiometer, SmartDashboard
 from wpimath.geometry import Rotation2d
 from wpimath.kinematics import SwerveModuleState, SwerveModulePosition
@@ -61,8 +61,9 @@ class SwerveModule:
         # we already passed in a config template - just use it here
         config = config_template
 
-        reset_mode = SparkFlex.ResetMode.kResetSafeParameters  # always use a clean slate
-        persist_mode = SparkFlex.PersistMode.kPersistParameters if constants.k_burn_flash else SparkFlex.PersistMode.kNoPersistParameters
+
+        reset_mode = rev.ResetMode.kResetSafeParameters  # always use a clean slate
+        persist_mode = rev.PersistMode.kPersistParameters if constants.k_burn_flash else SparkFlex.PersistMode.kNoPersistParameters
         error = spark.configure(config=config, resetMode=reset_mode, persistMode=persist_mode)
         print(f"Reconfigured sparkmax {can_id} ({self.label}). Controller status: {error}")
 

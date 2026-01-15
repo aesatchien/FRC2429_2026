@@ -2252,16 +2252,16 @@ background-color:rgb(10, 10, 227);</string>
        <string/>
       </property>
       <property name="pixmap">
-       <pixmap>png/field_small_2025.png</pixmap>
+       <pixmap>png/field_small_2026.png</pixmap>
       </property>
      </widget>
      <widget class="QGroupBox" name="qgroupbox_field">
       <property name="geometry">
        <rect>
-        <x>26</x>
-        <y>19</y>
-        <width>516</width>
-        <height>241</height>
+        <x>0</x>
+        <y>0</y>
+        <width>567</width>
+        <height>278</height>
        </rect>
       </property>
       <property name="title">

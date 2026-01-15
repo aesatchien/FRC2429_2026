@@ -18,6 +18,7 @@ import robotpy_apriltag
 
 # logical chunking of the gui's functional components
 from config import WIDGET_CONFIG, CAMERA_CONFIG, SHOW_APRILTAGS, TAG_LAYOUT
+import config
 from nt_manager import NTManager
 from camera_manager import CameraManager
 from ui_updater import UIUpdater
@@ -275,6 +276,9 @@ class Ui(QtWidgets.QMainWindow):
 
         field_width = self.qgroupbox_field.width()
         field_height = self.qgroupbox_field.height()
+
+        scale_x = field_width / config.REF_IMG_WIDTH
+        scale_y = field_height / config.REF_IMG_HEIGHT
         
         # Iterate through all tags in the layout
         for tag in layout.getTags():
@@ -295,9 +299,16 @@ class Ui(QtWidgets.QMainWindow):
             label.setPixmap(pixmap_rotated)
 
             # Convert field coordinates (meters) to widget coordinates (pixels)
-            # Using fixed field dimensions 17.6m x 8.2m to match ui_updater logic
-            widget_x = int(-new_size / 2 + field_width * x / 17.6)
-            widget_y = int(-new_size / 2 + field_height * (1 - y / 8.2))
+            # Map Field X (0 to FIELD_LENGTH) to Pixel X
+            field_x_frac = x / config.FIELD_LENGTH
+            ref_px_x = config.REF_BL_PX[0] + field_x_frac * (config.REF_TR_PX[0] - config.REF_BL_PX[0])
+            widget_x = int(-new_size / 2 + ref_px_x * scale_x)
+
+            # Map Field Y (0 to FIELD_WIDTH) to Pixel Y
+            field_y_frac = y / config.FIELD_WIDTH
+            ref_px_y = config.REF_BL_PX[1] + field_y_frac * (config.REF_TR_PX[1] - config.REF_BL_PX[1])
+            widget_y = int(-new_size / 2 + ref_px_y * scale_y)
+
             label.move(widget_x, widget_y)
 
     def keyPressEvent(self, event):
