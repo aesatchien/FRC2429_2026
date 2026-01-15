@@ -4,7 +4,7 @@ from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 
 # This data is initialized once when the module is first imported.
 # layout = robotpy_apriltag.AprilTagFieldLayout.loadField(robotpy_apriltag.AprilTagField.k2025ReefscapeWelded)
-layout = robotpy_apriltag.AprilTagFieldLayout.loadField(robotpy_apriltag.AprilTagField.k2024Crescendo)
+layout = robotpy_apriltag.AprilTagFieldLayout('2026-rebuilt-welded_json')
 
 
 # Mapping from letter to tag ID and which side of the tag it corresponds to.
