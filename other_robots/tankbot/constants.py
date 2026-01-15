@@ -30,6 +30,9 @@ def set_config_defaults(configs: Union[SparkMaxConfig, List[SparkMaxConfig]]) ->
 k_burn_flash = True  # whether to burn the configurations into the spark maxes
 k_driver_controller_port = 0  # USB index for the driver's joystick
 
+k_enable_logging = True  # allow logging from Advantagescope (in swerve.py), but really we may as well start it here
+
+
 class TestSubsystemConstants:
     # demonstrates the simplest class for holding a group of constants
     k_my_constant = 1  # sample constant

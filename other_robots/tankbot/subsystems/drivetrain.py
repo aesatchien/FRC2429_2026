@@ -2,7 +2,8 @@ import wpilib
 import navx
 import ntcore
 from commands2 import Subsystem
-from wpilib import SmartDashboard, DriverStation
+from wpilib import SmartDashboard, DriverStation, DataLogManager
+import urcl # unofficial rev compatible logger for advantagescope
 from ntcore import NetworkTableInstance
 import rev
 from rev import SparkBase, SparkMaxConfig  # trying to save some typing
@@ -10,7 +11,6 @@ from wpilib.drive import DifferentialDrive
 
 import constants
 from constants import DriveConstants as dc
-
 
 class Drivetrain(Subsystem):
     def __init__(self) -> None:
@@ -51,6 +51,12 @@ class Drivetrain(Subsystem):
         # networktables
         self.inst = ntcore.NetworkTableInstance.getDefault()
         self.table = self.inst.getTable("datatable")  # for example
+
+        # ------------- Advantagescope section -------------
+        if constants.k_enable_logging:
+            DataLogManager.start()  # start wpilib datalog for AdvantageScope
+            DriverStation.startDataLog(DataLogManager.getLog())  # Record both DS control and joystick data
+            urcl.URCL.start()  # start the unofficial rev urcl logger for AdvantageScope
 
     # give access to wpilib's tankdrive and arcadedrive methods
     def tank_drive(self, leftSpeed, rightSpeed):
