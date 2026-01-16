@@ -28,14 +28,14 @@ def get_nearest_tag(current_pose, destination='stage'):
     else:
         raise ValueError('  location for get_nearest tag must be in ["stage", "amp"] etc')
 
-    poses = [field_layout.getTagPose(tag).toPose2d() for tag in tags]
+    poses = [layout.getTagPose(tag).toPose2d() for tag in tags]
     distances = [current_pose.translation().distance(pose.translation()) for pose in poses]
 
     # sort the distances
     combined = list(zip(tags, distances))
     combined.sort(key=lambda x: x[1])  # sort on the distances
     sorted_tags, sorted_distances = zip(*combined)
-    nearest_pose = field_layout.getTagPose(sorted_tags[0])  # get the pose of the nearest stage tag
+    nearest_pose = layout.getTagPose(sorted_tags[0])  # get the pose of the nearest stage tag
 
     # transform the tag pose to our specific needs
     tag_pose = nearest_pose.toPose2d()  # work with a 2D pose
