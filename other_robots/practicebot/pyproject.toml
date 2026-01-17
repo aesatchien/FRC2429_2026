@@ -72,3 +72,19 @@ requires = [
 # pip check may warn about navX pinning wpilib~=2026.1.1; this is expected
 # and acceptable because the WPILib ABI is stable within the 2026 season.
 # ---------------------------------------------------------------------------
+
+# shell command to find all stable releases
+# for p in robotpy robotpy-navx robotpy-pathplannerlib robotpy-urcl wpilib; do echo "==== $p ===="; python -m pip index versions --pre "$p"; done
+
+# python script to show all pre-releases - execute in a shell
+
+#python - <<'EOF'
+#import requests, sys
+#pkgs = ["robotpy-navx","robotpy","robotpy-pathplannerlib","robotpy-urcl","wpilib"]
+#for p in pkgs:
+#    print(f"==== {p} ====")
+#    data = requests.get(f"https://pypi.org/pypi/{p}/json").json()
+#    for v in sorted(data["releases"], reverse=True):
+#        if any(c.isalpha() for c in v):
+#            print(v)
+#EOF
