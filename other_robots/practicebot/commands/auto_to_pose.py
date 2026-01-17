@@ -15,7 +15,7 @@ from subsystems.swerve import Swerve
 from subsystems.led import Led
 from subsystems.vision import Vision
 from helpers.decorators import log_command, deprecated
-from helpers.utilities import get_nearest_tag
+from helpers.apriltag_utils import get_nearest_tag
 
 
 @deprecated("Use AutoToPoseClean instead. This class is for instruction only.")

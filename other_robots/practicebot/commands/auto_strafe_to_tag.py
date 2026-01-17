@@ -11,7 +11,7 @@ from subsystems.swerve import Swerve
 from subsystems.led import Led
 from subsystems.vision import Vision
 from helpers.decorators import log_command
-from helpers.utilities import get_nearest_tag
+from helpers.apriltag_utils import get_nearest_tag
 
 
 @log_command(console=True, nt=False, print_init=True, print_end=True)
