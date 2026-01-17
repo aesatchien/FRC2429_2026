@@ -25,7 +25,7 @@ class Vision(SubsystemBase):
             self.camera_values[key] = {}
             self.camera_values[key].update({'id': 0, 'targets': 0, 'distance': 0, 'rotation': 0, 'strafe': 0})
 
-        self.last_stale_warning_time = {}
+        self.last_stale_warning_time = {key: 0 for key in constants.k_cameras.keys()}
 
         self._init_networktables()
 

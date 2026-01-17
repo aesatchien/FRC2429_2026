@@ -1,32 +1,89 @@
 #
-# Use this configuration file to control what RobotPy packages are installed
-# on your RoboRIO
+# Use this config file to control what RobotPy packages are installed on the RoboRIO
 #
 
 [tool.robotpy]
-
-# Version of robotpy this project depends on
+team_number = 2429
 robotpy_version = "2026.2.1"
+# note you also have robot_name as an option here, changes the deploy path from default
+# good for multiple robots on one roborio - makes redeploying faster
+#
+# ---------------------------------------------------------------------------
+# VERSIONING MODEL (IMPORTANT):
+#
+# RobotPy / WPILib has a *single ABI (Application Binary Interface) boundary* per season.
+#
+# - The *core* packages (robotpy, wpilib, ntcore, wpimath, wpinet, wpiutil,
+#   hal, and all robotpy-native-* wheels) MUST match *exact micro versions*
+#   (e.g. all at 2026.2.1). These define the ABI.
+#
+# - Component wrappers (navx, pathplannerlib, urcl, vendor libs, etc.) sit
+#   *on top* of the core and do NOT introduce a new ABI boundary.
+#
+# - Therefore, it is acceptable for component wrappers to have *different
+#   micro versions* (e.g. navx 2026.0.0b1) as long as the underlying WPILib
+#   ABI is unchanged within the season.
+#
+# - Some vendor packages pin older micro versions conservatively
+#   (e.g. wpilib~=2026.1.1). This does NOT imply incompatibility with newer
+#   2026.x cores (such as 2026.2.1); it simply reflects lagging release cadence.
+#
+# Rule of thumb:
+#   * Core ABI: exact match required
+#   * Component wrappers: mixed micro versions are acceptable
+# ---------------------------------------------------------------------------
 
-# Which extra RobotPy components should be installed
-# -> equivalent to `pip install robotpy[extra1, ...]
 components = [
-    # "all",
     "apriltag",
     "commands2",
-    # "cscore",
     "navx",
-    "pathplannerlib",
-    # "phoenix5",
+    "rev",
+    # "ctre",
+    # "playingwithfusion",
     # "phoenix6",
     # "photonvision",
-    # "playingwithfusion",
-    "rev",
     # "romi",
     # "sim",
     # "xrp",
-    # "urcl",
 ]
 
-# Other pip packages to install
-requires = ['protobuf==6.33.2', 'robotpy-urcl']
+# version pins are ok here for non-core packages
+requires = [
+    "protobuf>=6.0,<7",
+    "robotpy-urcl",
+    "robotpy-pathplannerlib==2026.1.1",
+]
+
+# ---------------------------------------------------------------------------
+# DEV ENVIRONMENT MIRROR (DOCUMENTATION ONLY)
+#
+# To reproduce the roboRIO dependency layout on a development machine:
+#
+# Core RobotPy / WPILib (exact ABI match for the season):
+#   python -m pip install -U --upgrade-strategy eager "robotpy[all]>=2026,<2027"
+#
+# Vendor / wrapper packages that intentionally override conservative pins:
+#   python -m pip install -U --no-deps \
+#     "robotpy-navx>=2026,<2027" \
+#     "robotpy-pathplannerlib>=2026,<2027" \
+#     "robotpy-urcl>=2026,<2027"
+#
+# pip check may warn about navX pinning wpilib~=2026.1.1; this is expected
+# and acceptable because the WPILib ABI is stable within the 2026 season.
+# ---------------------------------------------------------------------------
+
+# shell command to find all stable releases
+# for p in robotpy robotpy-navx robotpy-pathplannerlib robotpy-urcl wpilib; do echo "==== $p ===="; python -m pip index versions --pre "$p"; done
+
+# python script to show all pre-releases - execute in a shell
+
+#python - <<'EOF'
+#import requests, sys
+#pkgs = ["robotpy-navx","robotpy","robotpy-pathplannerlib","robotpy-urcl","wpilib"]
+#for p in pkgs:
+#    print(f"==== {p} ====")
+#    data = requests.get(f"https://pypi.org/pypi/{p}/json").json()
+#    for v in sorted(data["releases"], reverse=True):
+#        if any(c.isalpha() for c in v):
+#            print(v)
+#EOF
