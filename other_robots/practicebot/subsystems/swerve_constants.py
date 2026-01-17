@@ -9,6 +9,9 @@ from wpimath.trajectory import TrapezoidProfileRadians
 from rev import SparkMax, SparkFlex, SparkFlexConfig, SparkMaxConfig
 from pathplannerlib.config import DCMotor, PIDConstants
 
+import constants
+
+
 class DriveConstants:
 
     k_robot_id = 'practice'  # used to switch between the two configs - different controllers, IDs, and abs encoder offsets
@@ -85,7 +88,12 @@ class DriveConstants:
                     'RF':{'driving_can': 25, 'turning_can': 24, 'port': 2, 'turning_offset': sf *  0.745},  # billet out
                     'RB':{'driving_can': 27, 'turning_can': 26, 'port': 0, 'turning_offset': sf *  0.869}}  # billet out
 
-    swerve_dict = practice_bot_dict if k_robot_id == 'practice' else  comp_bot_dict # set this to one or the other
+    if constants.k_swerve_config == "practice":
+        swerve_dict = practice_bot_dict
+
+    else:
+        swerve_dict = comp_bot_dict # set this to one or the other
+
     # print(f'swerve_dict: {swerve_dict}')
 
     # need the absolute encoder values when wheels facing forward  - 20230322 CJH

@@ -83,7 +83,7 @@ class ShooterConstants:
     k_flywheel_left_leader_config, k_flywheel_right_follower_config = SparkMaxConfig(), SparkMaxConfig()
     k_flywheel_configs = [k_flywheel_left_leader_config, k_flywheel_right_follower_config]
     k_test_speed = 4000
-    k_fastest_speed = 5500
+    k_fastest_speed = 6500
     k_test_rpm = 20
     k_fastest_rpm = 60
 
