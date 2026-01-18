@@ -63,10 +63,8 @@ requires = [
 #   python -m pip install -U --upgrade-strategy eager "robotpy[all]>=2026,<2027"
 #
 # Vendor / wrapper packages that intentionally override conservative pins:
-#   python -m pip install -U --no-deps \
-#     "robotpy-navx>=2026,<2027" \
-#     "robotpy-pathplannerlib>=2026,<2027" \
-#     "robotpy-urcl>=2026,<2027"
+#   python -m pip install -U --no-deps "robotpy-navx>=2026,<2027" "robotpy-pathplannerlib>=2026,<2027" \
+#   "robotpy-urcl>=2026,<2027" "robotpy-rev>=2026,<2027" "robotpy-playingwithfusion>=2026,<2027"
 #
 # pip check may warn about navX pinning wpilib~=2026.1.1; this is expected
 # and acceptable because the WPILib ABI is stable within the 2026 season.
