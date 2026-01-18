@@ -4,7 +4,7 @@
 
 [tool.robotpy]
 team_number = 2429
-robotpy_version = "2026.2.1"
+robotpy_version = "2026.1.1"
 # note you also have robot_name as an option here, changes the deploy path from default
 # good for multiple robots on one roborio - makes redeploying faster
 #
@@ -36,8 +36,6 @@ robotpy_version = "2026.2.1"
 components = [
     "apriltag",
     "commands2",
-    "navx",
-    "rev",
     # "ctre",
     # "playingwithfusion",
     # "phoenix6",
@@ -52,6 +50,9 @@ requires = [
     "protobuf>=6.0,<7",
     "robotpy-urcl",
     "robotpy-pathplannerlib==2026.1.1",
+    "robotpy-navx==2026.0.0b1",
+    "robotpy-rev==2026.0.1",
+
 ]
 
 # ---------------------------------------------------------------------------

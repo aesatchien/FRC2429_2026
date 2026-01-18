@@ -1,10 +1,16 @@
 import math
 import robotpy_apriltag
+import wpilib
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 
 # This data is initialized once when the module is first imported.
-# layout = robotpy_apriltag.AprilTagFieldLayout.loadField(robotpy_apriltag.AprilTagField.k2025ReefscapeWelded)
-layout = robotpy_apriltag.AprilTagFieldLayout('2026-rebuilt-welded_json')
+#layout = robotpy_apriltag.AprilTagFieldLayout.loadField(robotpy_apriltag.AprilTagField.k2026RebuiltWelded)
+if wpilib.RobotBase.isSimulation():
+    layout = robotpy_apriltag.AprilTagFieldLayout('2026-rebuilt-welded_json')
+else:
+    #layout = robotpy_apriltag.AprilTagFieldLayout.loadField(robotpy_apriltag.AprilTagField.k2025ReefscapeWelded)
+    layout = robotpy_apriltag.AprilTagFieldLayout('/home/lvuser/py/2026-rebuilt-welded_json')
+
 
 # Pre-calculate tag positions for plotting or other uses
 tag_positions = {tag_id: layout.getTagPose(tag_id).translation().toTranslation2d()

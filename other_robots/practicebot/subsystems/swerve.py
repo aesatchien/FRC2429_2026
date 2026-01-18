@@ -359,8 +359,9 @@ class Swerve (Subsystem):
                     if ntcore._now() - timestamp_us > 500000:
                         continue
 
+                    tag_id = int(tag_data[0])
                     # make sure it's not a training tag not intended for odometry (returns None if not in layout)
-                    if atu.layout.getTagPose(int(tag_data[0])) is None and tag_data[0] != -1:
+                    if atu.layout.getTagPose(tag_id) is None and tag_data[0] != -1:
                         continue
 
                     tx, ty, tz = tag_data[1], tag_data[2], tag_data[3]
@@ -374,7 +375,7 @@ class Swerve (Subsystem):
                         # Standard deviations tell the pose estimator how much to "trust" this measurement.
                         # Smaller numbers = more trust. We trust vision more when disabled and stationary.
                         # Units are (x_meters, y_meters, rotation_radians).
-                        tag_distance = atu.get_tag_distance(tag_pose, current_pose)
+                        tag_distance = atu.get_tag_distance(current_pose, tag_id)
                         # TODO - adjust stdevs based on distance to tag.  Likely just multiply by distance, which will always be 1-5 meters
                         sdevs = constants.DrivetrainConstants.k_pose_stdevs_large if DriverStation.isEnabled() else constants.DrivetrainConstants.k_pose_stdevs_disabled
                         self.pose_estimator.addVisionMeasurement(tag_pose, timestamp_us / 1e6, sdevs)

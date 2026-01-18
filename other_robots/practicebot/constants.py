@@ -47,7 +47,7 @@ k_sim_cameras = {
     'logi_left': {'topic_name': 'LogitechLeft', 'type': 'tags', 'rotation': 90, 'fov': fov},
     }
 
-k_cameras = k_sim_cameras
+k_cameras = k_practicebot_cameras
 
 # systems inside/from the robot
 status_prefix = r'/SmartDashboard/RobotStatus'  # the default for any status message
