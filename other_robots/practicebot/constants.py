@@ -6,7 +6,7 @@ from rev import ClosedLoopSlot, SparkClosedLoopController, SparkFlexConfig, Spar
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d, Transform2d
 from wpimath.units import inchesToMeters, lbsToKilograms
 
-k_swerve_config = "practice"
+k_swerve_config = "comp"
 
 # TODO - organize this better
 k_enable_logging = False  # allow logging from Advantagescope (in swerve.py), but really we may as well start it here
