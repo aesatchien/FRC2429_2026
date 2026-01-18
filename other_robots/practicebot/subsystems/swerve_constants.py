@@ -90,7 +90,6 @@ class DriveConstants:
 
     if constants.k_swerve_config == "practice":
         swerve_dict = practice_bot_dict
-
     else:
         swerve_dict = comp_bot_dict # set this to one or the other
 
