@@ -6,7 +6,7 @@ from rev import ClosedLoopSlot, SparkClosedLoopController, SparkFlexConfig, Spar
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d, Transform2d
 from wpimath.units import inchesToMeters, lbsToKilograms
 
-k_swerve_config = "comp"
+k_swerve_config = "practice"
 
 # TODO - organize this better
 k_enable_logging = False  # allow logging from Advantagescope (in swerve.py), but really we may as well start it here
@@ -47,7 +47,7 @@ k_sim_cameras = {
     'logi_left': {'topic_name': 'LogitechLeft', 'type': 'tags', 'rotation': 90, 'fov': fov},
     }
 
-k_cameras = k_sim_cameras
+k_cameras = k_practicebot_cameras
 
 # systems inside/from the robot
 status_prefix = r'/SmartDashboard/RobotStatus'  # the default for any status message
