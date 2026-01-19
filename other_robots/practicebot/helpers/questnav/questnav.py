@@ -318,7 +318,7 @@ class QuestNav:
             True if Quest is connected and sending data, False otherwise
         """
         current_time = time.time()
-        return (current_time - self._last_frame_timestamp) < 0.1  # 100ms timeout
+        return (current_time - self._last_frame_timestamp) < 0.2  # 100ms timeout, relaxed to 200ms
     
     def get_frame_count(self) -> int:  #was Optional[int]:
         """
