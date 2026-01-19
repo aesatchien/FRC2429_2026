@@ -207,7 +207,7 @@ class RobotContainer:
 
         self.triggerLB.whileTrue(SimShowFOV(self))
         self.triggerRB.onTrue(MoveTrainingBox(self))
-        # self.triggerRB.whileTrue(SwerveTest(self, self.swerve))
+        self.triggerRB.whileTrue(SwerveTest(self, self.swerve))
 
 
         if wpilib.RobotBase.isSimulation():
