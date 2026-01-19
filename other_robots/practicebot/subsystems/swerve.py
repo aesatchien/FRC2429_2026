@@ -375,7 +375,7 @@ class Swerve (Subsystem):
                         # Standard deviations tell the pose estimator how much to "trust" this measurement.
                         # Smaller numbers = more trust. We trust vision more when disabled and stationary.
                         # Units are (x_meters, y_meters, rotation_radians).
-                        tag_distance = atu.get_tag_distance(current_pose, tag_id)
+                        tag_distance = atu.get_tag_distance(tag_id, current_pose)  # also available from NT
                         # TODO - adjust stdevs based on distance to tag.  Likely just multiply by distance, which will always be 1-5 meters
                         sdevs = constants.DrivetrainConstants.k_pose_stdevs_large if DriverStation.isEnabled() else constants.DrivetrainConstants.k_pose_stdevs_disabled
                         self.pose_estimator.addVisionMeasurement(tag_pose, timestamp_us / 1e6, sdevs)

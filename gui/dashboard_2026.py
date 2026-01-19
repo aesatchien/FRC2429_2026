@@ -269,7 +269,7 @@ class Ui(QtWidgets.QMainWindow):
             return
 
         try:
-            layout = robotpy_apriltag.AprilTagFieldLayout.loadField(TAG_LAYOUT)
+            layout = TAG_LAYOUT
         except Exception as e:
             print(f"Error loading AprilTag layout: {e}")
             return

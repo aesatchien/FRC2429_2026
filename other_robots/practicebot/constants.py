@@ -26,29 +26,6 @@ k_burn_flash = True
 camera_prefix = r'/Cameras'  # from the pis
 quest_prefix = r'/QuestNav'  # putting this on par with the cameras as an external system
 
-# Dictionary mapping Logical Name -> NetworkTables Camera Name in /Cameras
-# Each camera has a purpose, which can be 'tags' (apriltags) or 'orange' (hsv-filtered objects)
-# If one physical camera does both, we treat it as two cameras but with the same topic
-# ordering is nice to align with the IP and order they are on the pis, but not required
-# rotation angle is CCW positive from the front of the robot
-fov = 45 #  sim testing fov, no effect on real robot yet
-
-k_practicebot_cameras = {
-    'logi_front': {'topic_name': 'LogitechFront', 'type': 'tags', 'rotation': 0, 'fov': fov},
-    'logi_front_hsv': {'topic_name': 'LogitechFront', 'type': 'hsv', 'label': 'yellow', 'rotation': 0, 'fov': fov},
-    'logi_left': {'topic_name': 'LogitechLeft', 'type': 'tags', 'rotation': 90, 'fov': fov},
-    'logi_left_hsv': {'topic_name': 'LogitechLeft', 'type': 'hsv', 'label': 'yellow', 'rotation': 90, 'fov': fov},
-}
-
-k_sim_cameras = {
-    'front_sim': {'topic_name': 'LocalTest', 'type': 'tags', 'rotation': 0, 'fov': fov},
-    'logi_front_hsv': {'topic_name': 'LogitechFront', 'type': 'hsv', 'label': 'yellow', 'rotation': 0, 'fov': fov},
-    'genius_low': {'topic_name': 'GeniusLow', 'type': 'tags', 'rotation':-90, 'fov': fov},
-    'logi_left': {'topic_name': 'LogitechLeft', 'type': 'tags', 'rotation': 90, 'fov': fov},
-    }
-
-k_cameras = k_practicebot_cameras
-
 # systems inside/from the robot
 status_prefix = r'/SmartDashboard/RobotStatus'  # the default for any status message
 vision_prefix = r'/SmartDashboard/Vision'  # from the robot
@@ -70,6 +47,40 @@ k_swerve_rate_limited = True
 k_field_oriented = True  # is there any reason for this at all?
 
 
+class CameraConstants:
+    #  ----------  camera configuration (may need its own class eventually)  ----------
+    # Dictionary mapping Logical Name -> NetworkTables Camera Name in /Cameras
+    # Each camera has a purpose, which can be 'tags' (apriltags) or 'orange' (hsv-filtered objects)
+    # If one physical camera does both, we treat it as two cameras but with the same topic
+    # ordering is nice to align with the IP and order they are on the pis, but not required
+    # rotation angle is CCW positive from the front of the robot
+    fov = 45  # sim testing fov, no effect on real robot yet
+
+    k_practicebot_cameras = {
+        'logi_front': {'topic_name': 'LogitechFront', 'type': 'tags', 'rotation': 0, 'fov': fov},
+        'logi_front_hsv': {'topic_name': 'LogitechFront', 'type': 'hsv', 'label': 'yellow', 'rotation': 0, 'fov': fov},
+        'logi_left': {'topic_name': 'LogitechLeft', 'type': 'tags', 'rotation': 90, 'fov': fov},
+        'logi_left_hsv': {'topic_name': 'LogitechLeft', 'type': 'hsv', 'label': 'yellow', 'rotation': 90, 'fov': fov},
+    }
+
+    k_comp_cameras = {
+        'arducam_right': {'topic_name': 'ArducamRight', 'type': 'tags', 'rotation': 0, 'fov': fov},
+        'arducam_left': {'topic_name': 'ArducamLeft', 'type': 'tags', 'rotation': 0, 'fov': fov},
+    }
+
+    k_sim_cameras = {
+        'logi_front_hsv': {'topic_name': 'LogitechFront', 'type': 'hsv', 'label': 'yellow', 'rotation': 0, 'fov': fov},
+        'genius_low': {'topic_name': 'GeniusLow', 'type': 'tags', 'rotation': -90, 'fov': fov},
+        'logi_left': {'topic_name': 'LogitechLeft', 'type': 'tags', 'rotation': 90, 'fov': fov},
+    }
+
+    k_cameras = k_practicebot_cameras
+
+    # add local_tester.py's sim camera if in sim - allows for testing without pis
+    if wpilib.RobotBase.isSimulation():
+        k_cameras.update({'front_sim': {'topic_name': 'LocalTest', 'type': 'tags', 'rotation': 0, 'fov': fov},})
+
+
 class SimConstants:
     k_counter_offset = 1
     k_cam_distance_limit = 4  # sim testing how far targets can be - usually 3 to 3.5m on the real cameras
@@ -77,7 +88,7 @@ class SimConstants:
 
     k_print_config = True  # use for debugging the camera config
 
-    k_disable_vision_sim = False  # Hard disable.  Set to stop all vision simulation (e.g. ONLY using real coprocessors)
+    k_disable_vision_sim = True  # Hard disable.  Set to stop all vision simulation (e.g. ONLY using real coprocessors)
     k_draw_camera_fovs = True  # Set to draw camera FOV triangles - should always want this
     k_use_external_cameras = True  # override the vision sim to only take targets from real cams - squashes blink_test
     k_do_blink_test = False  # Set to test dashboard connection handling (e.g. dropping camera connections)

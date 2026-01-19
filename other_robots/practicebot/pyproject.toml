@@ -72,7 +72,7 @@ requires = [
 # ---------------------------------------------------------------------------
 
 # shell command to find all stable releases
-# for p in robotpy robotpy-navx robotpy-pathplannerlib robotpy-urcl wpilib; do echo "==== $p ===="; python -m pip index versions --pre "$p"; done
+# for p in robotpy robotpy-rev robotpy-navx robotpy-pathplannerlib robotpy-urcl wpilib; do echo -e "\n==== $p ===="; python -m pip index versions --pre "$p"; done
 
 # python script to show all pre-releases - execute in a shell
 

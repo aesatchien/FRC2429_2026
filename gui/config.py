@@ -64,7 +64,9 @@ base_prefix    = r'/SmartDashboard'  #  TODO - eventually nothing should be in h
 
 # FIELD CONFIGURATION
 SHOW_APRILTAGS = True
-TAG_LAYOUT = robotpy_apriltag.AprilTagField.k2024Crescendo
+TAG_LAYOUT = robotpy_apriltag.AprilTagFieldLayout('2026-rebuilt-welded_json')  # hack until they fix the navx
+# TAG_LAYOUT = robotpy_apriltag.AprilTagFieldLayout.loadField(robotpy_apriltag.AprilTagField.k2024Crescendo)
+
 
 # Field Calibration Constants
 FIELD_LENGTH = 16.54  # meters

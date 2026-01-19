@@ -4,6 +4,7 @@ import wpilib
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 
 # This data is initialized once when the module is first imported.
+# TODO -  right now all the libraries are messed up, so we have to do this manually  - 20260118 CJH
 #layout = robotpy_apriltag.AprilTagFieldLayout.loadField(robotpy_apriltag.AprilTagField.k2026RebuiltWelded)
 if wpilib.RobotBase.isSimulation():
     layout = robotpy_apriltag.AprilTagFieldLayout('2026-rebuilt-welded_json')
@@ -16,7 +17,7 @@ else:
 tag_positions = {tag_id: layout.getTagPose(tag_id).translation().toTranslation2d()
                  for tag_id in range(17, 23) if layout.getTagPose(tag_id) is not None}
 
-def get_tag_distance(current_pose, tag_id):
+def get_tag_distance(tag_id, current_pose):
     """ Return the distance from the current pose to the given tag ID """
     tag_pose = layout.getTagPose(tag_id).toPose2d()
     distance = current_pose.translation().distance(tag_pose.translation())
