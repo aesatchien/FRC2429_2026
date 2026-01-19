@@ -68,13 +68,15 @@ class CameraConstants:
         'arducam_left': {'topic_name': 'ArducamLeft', 'type': 'tags', 'rotation': 0, 'fov': fov},
     }
 
+    # for testing hsv pickup
     k_sim_cameras = {
         'logi_front_hsv': {'topic_name': 'LogitechFront', 'type': 'hsv', 'label': 'yellow', 'rotation': 0, 'fov': fov},
         'genius_low': {'topic_name': 'GeniusLow', 'type': 'tags', 'rotation': -90, 'fov': fov},
         'logi_left': {'topic_name': 'LogitechLeft', 'type': 'tags', 'rotation': 90, 'fov': fov},
+        'logi_left_hsv': {'topic_name': 'LogitechLeft', 'type': 'hsv', 'label': 'yellow', 'rotation': 90, 'fov': fov},
     }
 
-    k_cameras = k_practicebot_cameras
+    k_cameras = k_sim_cameras
 
     # add local_tester.py's sim camera if in sim - allows for testing without pis
     if wpilib.RobotBase.isSimulation():
@@ -88,9 +90,9 @@ class SimConstants:
 
     k_print_config = True  # use for debugging the camera config
 
-    k_disable_vision_sim = True  # Hard disable.  Set to stop all vision simulation (e.g. ONLY using real coprocessors)
+    k_disable_vision_sim = False  # Hard disable.  Set to stop all vision simulation (e.g. ONLY using real coprocessors)
     k_draw_camera_fovs = True  # Set to draw camera FOV triangles - should always want this
-    k_use_external_cameras = True  # override the vision sim to only take targets from real cams - squashes blink_test
+    k_use_external_cameras = False  # override the vision sim to only take targets from real cams - squashes blink_test
     k_do_blink_test = False  # Set to test dashboard connection handling (e.g. dropping camera connections)
     k_use_live_tags_in_sim = True  # Set to True to snap the robot's swerve sim to live AprilTag data
 

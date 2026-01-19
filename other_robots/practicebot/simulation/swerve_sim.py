@@ -23,7 +23,7 @@ class SwerveSim:
         self.swerve_target_subs = [self.inst.getDoubleArrayTopic(f"/SmartDashboard/{v}").subscribe([0, 0]) for v in dash_values]
 
         # Live Tag Subscribers (for snapping sim to reality)
-        self.camera_names = [config['topic_name'] for config in constants.k_cameras.values() if config['type'] == 'tags']
+        self.camera_names = [config['topic_name'] for config in constants.CameraConstants.k_cameras.values() if config['type'] == 'tags']
         self.pose_subscribers = [self.inst.getDoubleArrayTopic(f"/Cameras/{cam}/poses/tag1").subscribe([0] * 7) for cam in self.camera_names]
         self.count_subscribers = [self.inst.getDoubleTopic(f"/Cameras/{cam}/tags/targets").subscribe(0) for cam in self.camera_names]
 

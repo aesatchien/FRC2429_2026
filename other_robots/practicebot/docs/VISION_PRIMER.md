@@ -35,7 +35,7 @@ Located in `simulation/vision_sim.py`. This is the "Virtual Coprocessor".
 ### How it works
 It takes the **Robot's Truth Pose** (from the physics engine) and the list of **Active Gamepieces**.
 
-For each camera defined in `constants.k_cameras`:
+For each camera defined in `constants.CameraConstants.k_cameras`:
 1. **Geometry Check**: It calculates the vector from the robot to every gamepiece.
 2. **Filtering**:
    - **Distance**: Is the gamepiece closer than `k_cam_distance_limit`?
@@ -62,7 +62,7 @@ This is the code that runs on the real robot. It does **not** do any simulation 
 - `get_distance(...)`, `get_strafe(...)`: Returns the raw numbers from NetworkTables.
 - `nearest_to_cam(...)`: Converts the camera-relative data (Distance/Rotation) back into a **Field-Relative Pose** or **Robot-Relative Pose** so the robot knows where to drive.
 
-> **Crucial Concept**: The subsystem uses the `k_cameras` dictionary in `constants.py` to know which NetworkTables topics to listen to. This configuration is the "Source of Truth" for both the Sim and the Real Robot.
+> **Crucial Concept**: The subsystem uses the `CameraConstants.k_cameras` dictionary in `constants.py` to know which NetworkTables topics to listen to. This configuration is the "Source of Truth" for both the Sim and the Real Robot.
 
 ---
 
