@@ -60,7 +60,7 @@ class DriveConstants:
     # THIS IS THE FIRST CHECK - DRIVE WITH DPAD (robot relative) AND MAKE SURE DIRECTION IS CORRECT
     k_drive_motors_inverted = False  # drive forward and reverse correct?  If not, invert this.
     # THIS IS THE SECOND CHECK - HOW DO YOU TEST IT?
-    k_turn_motors_inverted = True  # True for 2023 - motors below
+    # k_turn_motors_inverted = True  # True for 2023 - motors below are true, above are false
     # incorrect gyro inversion will make the pose odometry have the wrong sign on rotation
     # IF DRIVE MOTORS ARE CORRECT AND TURN MOTORS ARE CORRECT, THEN CCW IS POSITIVE OR YOU REVERSE GYRO?
     kGyroReversed = True  # False for 2023 (was upside down), True for 2024/2025
@@ -81,17 +81,21 @@ class DriveConstants:
     # I meant to have billet out on the right side, but it looks like i had that opposite for reefbot
     comp_bot_dict = {'LF':{'driving_can': 27, 'turning_can': 26, 'port': 3, 'turning_offset': sf * 0.484},
                     'LB':{'driving_can': 25, 'turning_can': 24, 'port': 1, 'turning_offset': sf * 0.437},
-                    'RF':{'driving_can': 23, 'turning_can': 22, 'port': 2, 'turning_offset': sf *  0.068},
+                    'RF':{'driving_can': 23, 'turning_can': 22, 'port': 2, 'turning_offset': sf *  0.078},
                     'RB':{'driving_can': 21, 'turning_can': 20, 'port': 0, 'turning_offset': sf *  0.030}}
+    comp_bot_motor_inversions = {'drive_motors_inverted':True, 'turn_motors_inverted': False, }
     practice_bot_dict = {'LF':{'driving_can': 21, 'turning_can': 20, 'port': 3, 'turning_offset': sf *  0.498},
                     'LB':{'driving_can': 23, 'turning_can': 22, 'port': 1, 'turning_offset': sf *  0.113},
                     'RF':{'driving_can': 25, 'turning_can': 24, 'port': 2, 'turning_offset': sf *  0.091},  # billet out
                     'RB':{'driving_can': 27, 'turning_can': 26, 'port': 0, 'turning_offset': sf *  0.466}}  # billet out
+    practice_bot_motor_inversions = {'drive_motors_inverted':False, 'k_turn_motors_inverted': True}
 
     if constants.k_swerve_config == "practice":
         swerve_dict = practice_bot_dict
+        swerve_motor_inversions = practice_bot_motor_inversions
     else:
         swerve_dict = comp_bot_dict # set this to one or the other
+        swerve_motor_inversions = comp_bot_motor_inversions
 
     # print(f'swerve_dict: {swerve_dict}')
 
@@ -146,7 +150,7 @@ class ModuleConstants:
     kTurningMotorCurrentLimit = 40  # amp
 
     k_driving_config = SparkFlexConfig() if DriveConstants.k_robot_id == 'comp' else SparkMaxConfig()
-    k_driving_config.inverted(DriveConstants.k_drive_motors_inverted)
+    k_driving_config.inverted(DriveConstants.swerve_motor_inversions['drive_motors_inverted'])
     k_driving_config.closedLoop.pidf(p=0, i=0, d=0, ff=1/kDriveWheelFreeSpeedRps)
     k_driving_config.closedLoop.minOutput(-0.96)
     k_driving_config.closedLoop.maxOutput(0.96)
@@ -162,7 +166,7 @@ class ModuleConstants:
 
     # note: we don't use any spark pid or ff for turning
     k_turning_config = SparkFlexConfig() if DriveConstants.k_robot_id == 'comp' else SparkMaxConfig()
-    k_turning_config.inverted(DriveConstants.k_turn_motors_inverted)
+    k_turning_config.inverted(DriveConstants.swerve_motor_inversions['turn_motors_inverted'])
     k_turning_config.setIdleMode(SparkMaxConfig.IdleMode.kBrake)
     k_turning_config.smartCurrentLimit(stallLimit=kTurningMotorCurrentLimit, freeLimit=kTurningMotorCurrentLimit, limitRpm=5700)
     k_turning_config.voltageCompensation(12)
