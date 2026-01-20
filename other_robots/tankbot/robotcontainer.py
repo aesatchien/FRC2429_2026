@@ -10,10 +10,12 @@ from constants import ShooterConstants as sc
 
 from commands.drive_by_joystick import DriveByJoystick
 from commands.shooting_log_command import ShootingCommandLogging
+from commands.intake_log_command import IntakeCommandLogging
 from commands.log_test import LogTest
 
 from subsystems.drivetrain import Drivetrain
 from subsystems.shooter import Shooter
+from subsystems.intake import Intake
 
 wpilib.DriverStation.silenceJoystickConnectionWarning(True)  # stop annoying "no joystick" messages
 
@@ -67,6 +69,7 @@ class RobotContainer:
 
     def bind_driver_buttons(self):
 
+        self.triggerX.whileTrue(IntakeCommandLogging(container=self, intake=self.intake))
 
         self.triggerA.whileTrue(ShootingCommandLogging(container=self, shooter=self.shooter, continuous=True, balls=0))
 

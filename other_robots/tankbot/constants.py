@@ -72,7 +72,22 @@ class DriveConstants:
     k_follower_config_r2.follow(k_CANID_r1, invert=False)
     k_follower_config_l2.follow(k_CANID_l1, invert=False)
 
+class IntakeConstants:
+    k_intake_counter_offset = 3
+    k_CANID_intake = 9 #IDK
 
+    k_intake_config = SparkMaxConfig()
+    k_intake_configs = [k_intake_config]
+    k_test_speed = 2500
+    k_fastest_speed = 4500
+    k_test_rpm = 20
+    k_fastest_rpm = 60
+
+    k_intake_config.inverted(False)
+
+    set_config_defaults(k_intake_configs)
+
+#random comment for leo
 class ShooterConstants:
     k_flywheel_counter_offset = 2
     k_CANID_indexer = 5
