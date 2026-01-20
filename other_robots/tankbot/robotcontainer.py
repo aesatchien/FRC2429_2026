@@ -35,6 +35,7 @@ class RobotContainer:
         # The robot's subsystems
         self.drive = Drivetrain()
         self.shooter = Shooter()
+        self.intake = Intake()
 
         # Configure joysticks and buttons
         self.configure_joysticks()
