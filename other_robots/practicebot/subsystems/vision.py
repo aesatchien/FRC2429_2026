@@ -19,11 +19,13 @@ class Vision(SubsystemBase):
         # Initialize dictionary with logical keys from constants
         # set up a dictionary of cams to go through
         # If one physical camera does both, we treat it as two cameras but with the same topic
-        self.camera_dict = {key: {} for key in constants.k_cameras.keys()}
+        self.camera_dict = {key: {} for key in constants.CameraConstants.k_cameras.keys()}
         self.camera_values = {}
         for key in self.camera_dict.keys():
             self.camera_values[key] = {}
             self.camera_values[key].update({'id': 0, 'targets': 0, 'distance': 0, 'rotation': 0, 'strafe': 0})
+
+        self.last_stale_warning_time = {key: 0 for key in constants.CameraConstants.k_cameras.keys()}
 
         self._init_networktables()
 
@@ -39,7 +41,7 @@ class Vision(SubsystemBase):
 
         # Status Publishers - Map internal keys to dashboard names for all the allowed cameras
         self.status_pubs = {}
-        for ix, key in enumerate(constants.k_cameras.keys()):
+        for ix, key in enumerate(constants.CameraConstants.k_cameras.keys()):
             self.status_pubs[key] = self.inst.getBooleanTopic(f"{vision_prefix}/{key}_targets_exist").publish()
             if constants.VisionConstants.k_print_config:
                 print(f"vision's status pubs {ix}: {key}: {self.status_pubs[key]}")
@@ -50,7 +52,7 @@ class Vision(SubsystemBase):
 
         # ------------- Subscribers -------------
         # Explicit mapping of camera keys to NetworkTable paths
-        for key, config in constants.k_cameras.items():
+        for key, config in constants.CameraConstants.k_cameras.items():
             cam_name = config['topic_name']
             cam_type = config.get('label', config['type'])
             table_path = f"{constants.camera_prefix}/{cam_name}"
@@ -80,12 +82,14 @@ class Vision(SubsystemBase):
         time_stamp_good = latency_us < 1000000
 
         if target_exists and not time_stamp_good:
-            print(f"Vision Warning: Stale target on '{camera_key}'. Latency: {latency_us / 1000:.1f} ms")
+            if self.last_stale_warning_time.get(camera_key, 0) != atomic_targets.time:
+                print(f"Vision Warning: Stale target on '{camera_key}'. Latency: {latency_us / 1000:.1f} ms")
+                self.last_stale_warning_time[camera_key] = atomic_targets.time
 
         return target_exists and time_stamp_good
 
     def get_strafe(self, camera_key: str) -> float:
-        if wpilib.RobotBase.isSimulation() and constants.k_cameras[camera_key]['type'] == 'tags':  # trick the sim into thinking we are on tag 18
+        if wpilib.RobotBase.isSimulation() and constants.CameraConstants.k_cameras[camera_key]['type'] == 'tags':  # trick the sim into thinking we are on tag 18
             drive_y = SmartDashboard.getNumber('drive_y', 0)
             y_dist = drive_y - 4.025900  # will be positive if we are left of tag,right if center
             # pretend that we get 100% change over a meter
@@ -124,7 +128,7 @@ class Vision(SubsystemBase):
             return None
 
         # Get camera rotation from constants
-        cam_config = constants.k_cameras.get(camera_key)
+        cam_config = constants.CameraConstants.k_cameras.get(camera_key)
         if not cam_config:
             return None
 
@@ -134,7 +138,7 @@ class Vision(SubsystemBase):
         nt_rot = self.get_rotation(camera_key)
 
         # 1. Define where the camera is relative to the robot center
-        # TODO: Add x/y offsets to k_cameras so this is accurate!
+        # TODO: Add x/y offsets to CameraConstants.k_cameras so this is accurate!
         camera_to_robot = Transform2d(Translation2d(0, 0), Rotation2d.fromDegrees(cam_rot_deg))
 
         # 2. Define where the target is relative to the camera

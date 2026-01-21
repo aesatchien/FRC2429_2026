@@ -5,6 +5,7 @@ from wpimath.kinematics import SwerveModulePosition
 import ntcore
 import constants
 from subsystems.swerve_constants import DriveConstants as dc
+import helpers.apriltag_utils
 
 class SwerveSim:
     def __init__(self, physics_controller, robot):
@@ -22,7 +23,7 @@ class SwerveSim:
         self.swerve_target_subs = [self.inst.getDoubleArrayTopic(f"/SmartDashboard/{v}").subscribe([0, 0]) for v in dash_values]
 
         # Live Tag Subscribers (for snapping sim to reality)
-        self.camera_names = [config['topic_name'] for config in constants.k_cameras.values() if config['type'] == 'tags']
+        self.camera_names = [config['topic_name'] for config in constants.CameraConstants.k_cameras.values() if config['type'] == 'tags']
         self.pose_subscribers = [self.inst.getDoubleArrayTopic(f"/Cameras/{cam}/poses/tag1").subscribe([0] * 7) for cam in self.camera_names]
         self.count_subscribers = [self.inst.getDoubleTopic(f"/Cameras/{cam}/tags/targets").subscribe(0) for cam in self.camera_names]
 
@@ -94,6 +95,10 @@ class SwerveSim:
                 # vision_sim.py updates 'targets' but NOT the 'poses' topic.
                 # Therefore, simulated tags will have stale timestamps here and be ignored.
                 if ntcore._now() - timestamp_us < 100000: 
+                    # make sure it's not a training tag not intended for odometry (returns None if not in layout)
+                    if helpers.apriltag_utils.layout.getTagPose(int(tag_data[0])) is None and int(tag_data[0]) != -1:
+                        return
+
                     tx, ty, tz = tag_data[1], tag_data[2], tag_data[3]
                     rx, ry, rz = tag_data[4], tag_data[5], tag_data[6]
                     

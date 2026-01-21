@@ -16,7 +16,7 @@ class SimShowFOV(commands2.Command):  # change the name for your command
         self.extra_log_info = None
 
         if cameras is None:
-            self.cameras = list(constants.k_cameras.keys())
+            self.cameras = list(constants.CameraConstants.k_cameras.keys())
         else:
             self.cameras = cameras
 

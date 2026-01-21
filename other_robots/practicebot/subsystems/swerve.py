@@ -20,7 +20,7 @@ import constants
 from .swervemodule_2429 import SwerveModule
 from .swerve_constants import DriveConstants as dc, AutoConstants as ac, ModuleConstants as mc
 from helpers.utilities import compare_motors
-import helpers.apriltag_utils
+import helpers.apriltag_utils as atu
 from subsystems.quest import Questnav
 import urcl # unofficial rev compatible logger for advantagescope
 
@@ -92,7 +92,7 @@ class Swerve (Subsystem):
         self.inst = ntcore.NetworkTableInstance.getDefault()
         self.use_CJH_apriltags = constants.k_use_CJH_tags  # down below we decide which one to use in the periodic method
         
-        self.camera_names = [config['topic_name'] for config in constants.k_cameras.values() if config['type'] == 'tags']
+        self.camera_names = [config['topic_name'] for config in constants.CameraConstants.k_cameras.values() if config['type'] == 'tags']
         self.pose_subscribers = [self.inst.getDoubleArrayTopic(f"/Cameras/{cam}/poses/tag1").subscribe([0] * 7) for cam in self.camera_names]
         self.count_subscribers = [self.inst.getDoubleTopic(f"/Cameras/{cam}/tags/targets").subscribe(0) for cam in self.camera_names]
 
@@ -359,8 +359,9 @@ class Swerve (Subsystem):
                     if ntcore._now() - timestamp_us > 500000:
                         continue
 
+                    tag_id = int(tag_data[0])
                     # make sure it's not a training tag not intended for odometry (returns None if not in layout)
-                    if helpers.apriltag_utils.layout.getTagPose(int(tag_data[0])) is None:
+                    if atu.layout.getTagPose(tag_id) is None and tag_data[0] != -1:
                         continue
 
                     tx, ty, tz = tag_data[1], tag_data[2], tag_data[3]
@@ -374,6 +375,8 @@ class Swerve (Subsystem):
                         # Standard deviations tell the pose estimator how much to "trust" this measurement.
                         # Smaller numbers = more trust. We trust vision more when disabled and stationary.
                         # Units are (x_meters, y_meters, rotation_radians).
+                        tag_distance = atu.get_tag_distance(tag_id, current_pose)  # also available from NT
+                        # TODO - adjust stdevs based on distance to tag.  Likely just multiply by distance, which will always be 1-5 meters
                         sdevs = constants.DrivetrainConstants.k_pose_stdevs_large if DriverStation.isEnabled() else constants.DrivetrainConstants.k_pose_stdevs_disabled
                         self.pose_estimator.addVisionMeasurement(tag_pose, timestamp_us / 1e6, sdevs)
 

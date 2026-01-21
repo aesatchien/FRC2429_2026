@@ -8,9 +8,10 @@ from wpimath.units import inchesToMeters, lbsToKilograms
 from typing import Union, List
 
 
+k_swerve_config = "practice"
 
 # TODO - organize this better
-k_enable_logging = False  # allow logging from Advantagescope (in swerve.py), but really we may as well start it here
+k_enable_logging = True  # allow logging from Advantagescope (in swerve.py), but really we may as well start it here
 
 # starting position for odometry (real and in sim)
 k_start_x, k_start_y  = 2, 2
@@ -26,29 +27,6 @@ k_burn_flash = True
 # systems outside the robot
 camera_prefix = r'/Cameras'  # from the pis
 quest_prefix = r'/QuestNav'  # putting this on par with the cameras as an external system
-
-# Dictionary mapping Logical Name -> NetworkTables Camera Name in /Cameras
-# Each camera has a purpose, which can be 'tags' (apriltags) or 'orange' (hsv-filtered objects)
-# If one physical camera does both, we treat it as two cameras but with the same topic
-# ordering is nice to align with the IP and order they are on the pis, but not required
-# rotation angle is CCW positive from the front of the robot
-fov = 45 #  sim testing fov, no effect on real robot yet
-
-k_practicebot_cameras = {
-    'logi_front': {'topic_name': 'LogitechFront', 'type': 'tags', 'rotation': 0, 'fov': fov},
-    'logi_front_hsv': {'topic_name': 'LogitechFront', 'type': 'hsv', 'label': 'yellow', 'rotation': 0, 'fov': fov},
-    'logi_left': {'topic_name': 'LogitechLeft', 'type': 'tags', 'rotation': 90, 'fov': fov},
-    'logi_left_hsv': {'topic_name': 'LogitechLeft', 'type': 'hsv', 'label': 'yellow', 'rotation': 90, 'fov': fov},
-}
-
-k_sim_cameras = {
-    'genius_low': {'topic_name': 'GeniusLow', 'type': 'tags', 'rotation':-90, 'fov': fov},
-    'arducam_back': {'topic_name': 'ArducamBack', 'type': 'tags', 'rotation':180, 'fov': fov},
-    'logitech_reef': {'topic_name': 'LogitechReef', 'type': 'tags', 'rotation':0, 'fov': fov},
-    'logitech_reef_hsv': {'topic_name': 'LogitechReef', 'type': 'hsv', 'label': 'orange', 'rotation':0, 'fov': fov},
-    'arducam_high': {'topic_name': 'ArducamHigh', 'type': 'tags', 'rotation':90, 'fov': fov},}
-
-k_cameras = k_practicebot_cameras
 
 # systems inside/from the robot
 status_prefix = r'/SmartDashboard/RobotStatus'  # the default for any status message
@@ -69,6 +47,42 @@ k_allow_tag_averaging = True
 k_swerve_only = False
 k_swerve_rate_limited = True
 k_field_oriented = True  # is there any reason for this at all?
+
+
+class CameraConstants:
+    #  ----------  camera configuration (may need its own class eventually)  ----------
+    # Dictionary mapping Logical Name -> NetworkTables Camera Name in /Cameras
+    # Each camera has a purpose, which can be 'tags' (apriltags) or 'orange' (hsv-filtered objects)
+    # If one physical camera does both, we treat it as two cameras but with the same topic
+    # ordering is nice to align with the IP and order they are on the pis, but not required
+    # rotation angle is CCW positive from the front of the robot
+    fov = 45  # sim testing fov, no effect on real robot yet
+
+    k_practicebot_cameras = {
+        'logi_front': {'topic_name': 'LogitechFront', 'type': 'tags', 'rotation': 0, 'fov': fov},
+        'logi_front_hsv': {'topic_name': 'LogitechFront', 'type': 'hsv', 'label': 'yellow', 'rotation': 0, 'fov': fov},
+        'logi_left': {'topic_name': 'LogitechLeft', 'type': 'tags', 'rotation': 90, 'fov': fov},
+        'logi_left_hsv': {'topic_name': 'LogitechLeft', 'type': 'hsv', 'label': 'yellow', 'rotation': 90, 'fov': fov},
+    }
+
+    k_comp_cameras = {
+        'arducam_right': {'topic_name': 'ArducamRight', 'type': 'tags', 'rotation': 0, 'fov': fov},
+        'arducam_left': {'topic_name': 'ArducamLeft', 'type': 'tags', 'rotation': 0, 'fov': fov},
+    }
+
+    # for testing hsv pickup
+    k_sim_cameras = {
+        'logi_front_hsv': {'topic_name': 'LogitechFront', 'type': 'hsv', 'label': 'yellow', 'rotation': 0, 'fov': fov},
+        'genius_low': {'topic_name': 'GeniusLow', 'type': 'tags', 'rotation': -90, 'fov': fov},
+        'logi_left': {'topic_name': 'LogitechLeft', 'type': 'tags', 'rotation': 90, 'fov': fov},
+        'logi_left_hsv': {'topic_name': 'LogitechLeft', 'type': 'hsv', 'label': 'yellow', 'rotation': 90, 'fov': fov},
+    }
+
+    k_cameras = k_sim_cameras
+
+    # add local_tester.py's sim camera if in sim - allows for testing without pis
+    if wpilib.RobotBase.isSimulation():
+        k_cameras.update({'front_sim': {'topic_name': 'LocalTest', 'type': 'tags', 'rotation': 0, 'fov': fov},})
 
 
 class SimConstants:
@@ -120,8 +134,8 @@ class DrivetrainConstants:
     k_nt_debugging = False  # print extra values to NT for debugging
     # these are for the apriltags.  For the most part, you want to trust the gyro, not the tags for angle
     # based on https://www.chiefdelphi.com/t/swerve-drive-pose-estimator-and-add-vision-measurement-using-limelight-is-very-jittery/453306/13
-    k_pose_stdevs_large = (2, 2
-                           , 10)  # use when you don't trust the april tags - stdev x, stdev y, stdev theta
+    # HIGH numbers = LOW trust  (~ big stdev = we don't trust it much) 2m is high, 0.1m is small
+    k_pose_stdevs_large = (2, 2, 10)  # use when you don't trust the april tags - stdev x, stdev y, stdev theta
     k_pose_stdevs_disabled = (1, 1, 2)  # use when we are disabled to quickly get updates
     k_pose_stdevs_small = (0.1, 0.1, 10)  # use when you do trust the tags
 

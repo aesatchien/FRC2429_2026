@@ -12,8 +12,8 @@ class VisionSim:
         self.inst = ntcore.NetworkTableInstance.getDefault()
         
         # Configuration
-        self.cam_list = list(constants.k_cameras.keys())
-        self.physical_cameras = sorted(list(set(c['topic_name'] for c in constants.k_cameras.values())))
+        self.cam_list = list(constants.CameraConstants.k_cameras.keys())
+        self.physical_cameras = sorted(list(set(c['topic_name'] for c in constants.CameraConstants.k_cameras.values())))
 
         self.camera_dict = {}
         self._init_networktables()
@@ -34,7 +34,7 @@ class VisionSim:
             return
 
         # note this will be skipped if we told it to disable vision - so update will loop through nothing
-        for ix, (key, config) in enumerate(constants.k_cameras.items()):
+        for ix, (key, config) in enumerate(constants.CameraConstants.k_cameras.items()):
             cam_topic = config['topic_name']
             cam_type = config.get('label', config['type'])
             base = f'/Cameras/{cam_topic}/{cam_type}'
@@ -77,7 +77,7 @@ class VisionSim:
         # If True: Do not simulate targets, do not blink test. Just draw FOV.
         if constants.SimConstants.k_use_external_cameras:
             for key in self.cam_list:
-                self._update_fov_visualization(key, robot_pose, constants.k_cameras[key], self.show_fov_subs[key].get())
+                self._update_fov_visualization(key, robot_pose, constants.CameraConstants.k_cameras[key], self.show_fov_subs[key].get())
             return
 
         # 2. Blink Test
@@ -87,7 +87,7 @@ class VisionSim:
 
         # 3. Normal Simulation
         for key in self.cam_list:
-            config = constants.k_cameras[key]
+            config = constants.CameraConstants.k_cameras[key]
 
             if key in self.camera_dict:
                 cam_data = self.camera_dict[key]
@@ -204,7 +204,7 @@ class VisionSim:
                 continue
 
             cam_data = self.camera_dict[key]
-            config = constants.k_cameras[key]
+            config = constants.CameraConstants.k_cameras[key]
             topic = config['topic_name']
 
             is_connected = (topic != topic_off)

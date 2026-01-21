@@ -30,6 +30,9 @@ def set_config_defaults(configs: Union[SparkMaxConfig, List[SparkMaxConfig]]) ->
 k_burn_flash = True  # whether to burn the configurations into the spark maxes
 k_driver_controller_port = 0  # USB index for the driver's joystick
 
+k_enable_logging = True  # allow logging from Advantagescope (in swerve.py), but really we may as well start it here
+
+
 class TestSubsystemConstants:
     # demonstrates the simplest class for holding a group of constants
     k_my_constant = 1  # sample constant
@@ -79,8 +82,8 @@ class ShooterConstants:
     # FLYWHEEL
     k_flywheel_left_leader_config, k_flywheel_right_follower_config = SparkMaxConfig(), SparkMaxConfig()
     k_flywheel_configs = [k_flywheel_left_leader_config, k_flywheel_right_follower_config]
-    k_test_speed = 2000
-    k_fastest_speed = 4000
+    k_test_speed = 4000
+    k_fastest_speed = 6500
     k_test_rpm = 20
     k_fastest_rpm = 60
 
@@ -88,7 +91,7 @@ class ShooterConstants:
     # k_flywheel_right_follower.inverted(False)  # this is not necessary - it will get ignored
 
     # set up the followers
-    k_flywheel_right_follower_config.follow(k_CANID_flywheel_left_leader, invert=True)  # always true if follower on other side
+    k_flywheel_right_follower_config.follow(k_CANID_flywheel_left_leader, invert=False)  # depends on motor placement
 
     #setting brake, voltage compensation, and current limit for the flywheel motors
     set_config_defaults(k_flywheel_configs)
