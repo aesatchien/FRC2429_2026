@@ -5,6 +5,8 @@ import rev
 from rev import ClosedLoopSlot, SparkClosedLoopController, SparkFlexConfig, SparkMax, SparkMaxConfig
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d, Transform2d
 from wpimath.units import inchesToMeters, lbsToKilograms
+from typing import Union, List
+
 
 
 # TODO - organize this better
@@ -122,3 +124,37 @@ class DrivetrainConstants:
                            , 10)  # use when you don't trust the april tags - stdev x, stdev y, stdev theta
     k_pose_stdevs_disabled = (1, 1, 2)  # use when we are disabled to quickly get updates
     k_pose_stdevs_small = (0.1, 0.1, 10)  # use when you do trust the tags
+
+def set_config_defaults(configs: Union[SparkMaxConfig, List[SparkMaxConfig]]) -> None:
+    """
+    Applies default configuration settings to a single config object or a list of config objects.
+    Args:
+        configs: A single configuration object or a list of configuration objects.
+    """
+    # Check if the input is a list (or any sequence except a string/bytes)
+    if isinstance(configs, (list, tuple)):
+        config_list = configs
+    else:
+        config_list = [configs]  # If it's a single item, wrap it in a list for the loop
+    for config in config_list:
+        config.voltageCompensation(12)
+        config.setIdleMode(SparkMaxConfig.IdleMode.kBrake)
+        config.smartCurrentLimit(40)
+
+class TurretConstants:
+    k_radians = 0
+    k_CAN_id = 30
+    k_config = SparkMaxConfig()
+    k_counter_offset = 1
+    set_config_defaults(k_config)
+    k_abs_encoder_readout_when_at_zero_position = 0
+    k_tolerance = 0
+    k_nt_debugging = True
+
+    k_delay_between_balls = 1 / 5 * 50  # we want 200 milliseconds which is 1/5 of a second, setting it to 1/5 of our loop rate every second
+    k_indexer_balls_per_rotation = 4
+    k_config.inverted(True)
+    k_indexer_gear_ratio = 5
+    k_indexer_position_conversion_factor = 1 / k_indexer_gear_ratio
+    k_config.encoder.positionConversionFactor(k_indexer_position_conversion_factor)
+    k_config.encoder.velocityConversionFactor(k_indexer_position_conversion_factor)  # currently RPM
