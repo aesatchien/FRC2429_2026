@@ -18,7 +18,6 @@ class IntakeCommandLogging(commands2.Command):  # change the name for your comma
         self.intake = intake
         self.addRequirements(self.intake)  # commandsv2 version of requirements
         self.extra_log_info = None
-        # self.counter = 0  # add a counter if you need to track iterations, remember to initialize in below
         # self.addRequirements(self.container.??)  # commands2 version of requirements - add the subsystems you need
 
     def initialize(self) -> None:

@@ -16,7 +16,7 @@ class Intake(Subsystem):
         self.counter = ic.k_intake_counter_offset  # note this should be an offset in constants
         self.default_rpm = ic.k_test_rpm
 
-        # --------------- add motors and shooter rpm ----------------
+        # --------------- add motors and set intake rpm ----------------
         
         motor_type = rev.SparkMax.MotorType.kBrushless
         self.intake = rev.SparkMax(ic.k_CANID_intake, motor_type)
@@ -49,18 +49,18 @@ class Intake(Subsystem):
         SmartDashboard.putBoolean('intake_on', self.intake_on)
 
     def stop_intake(self):
-        # three different ways to stop the shooter
+        # three different ways to stop the intake
         self.intake.set(0)  # this sets the output to zero (number between -1 and 1) - it is "dumb"
-        # self.shooter_l.setVoltage(0)  # this sets the voltage to zero (number between -12 and 12) - it is also "dumb"
-        # self.flywheel_controller.setReference(value=0, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=0)
+        # self.intake_l.setVoltage(0)  # this sets the voltage to zero (number between -12 and 12) - it is also "dumb"
+        # self.intake_controller.setReference(value=0, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=0)
 
         self.intake_on = False
         self.voltage = 0  # CJH for 2024 testing
         SmartDashboard.putBoolean('intake_on', self.intake_on)
 
     def set_intake_rpm(self, rpm=1000):
-        # multiple different ways to set the shooter
-        # self.flywheel_left_leader.set(rpm)
+        # multiple different ways to set the intake
+        # self.intake.set(rpm)
         feed_forward = min(12, 12 * rpm / 5600)  # if there is no gearing, then this gets you close
         # rev is a pain in the ass - you have to pass EXACTLY the types it wants - no using "0" for the slots anymore
         self.intake_controller.setReference(value=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
@@ -82,14 +82,14 @@ class Intake(Subsystem):
     def periodic(self) -> None:
         self.counter += 1
 
-        # SmartDashboard.putBoolean('shooter_enable', self.shooter_enable)
+        # SmartDashboard.putBoolean('intake_enable', self.intake_enable)
         if self.counter % 20 == 0:
             SmartDashboard.putNumber('intake_velocity', self.intake_encoder.getVelocity())
 
             # not too often
-            #SmartDashboard.putNumber('shooter_rpm', self.shooter_l.getVelocity())
-            #SmartDashboard.putNumber('shooter_rpm_target', self.rpm)
+            #SmartDashboard.putNumber('intake_rpm', self.intake.getVelocity())
+            #SmartDashboard.putNumber('intake_rpm_target', self.rpm)
             #at_velocity = math.fabs(self.get_velocity() - self.rpm) < 200  # need to figure out this tolerance
-            #SmartDashboard.putBoolean('shooter_ready', at_velocity)
-            #SmartDashboard.putNumber('shooter_current', self.shooter_l.getOutputCurrent())
-            #SmartDashboard.putNumber('shooter_output', self.shooter_l.getAppliedOutput())
+            #SmartDashboard.putBoolean('intake_ready', at_velocity)
+            #SmartDashboard.putNumber('intake_current', self.intake.getOutputCurrent())
+            #SmartDashboard.putNumber('intake_output', self.intake.getAppliedOutput())
