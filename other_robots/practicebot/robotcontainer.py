@@ -21,6 +21,7 @@ from subsystems.quest import Questnav
 from subsystems.robot_state import RobotState
 from subsystems.swerve import Swerve
 from subsystems.vision import Vision
+from subsystems.turret import Turret
 # from subsystems.questnav_2429 import QuestnavModule
 
 # 2429 "auto" commands - just an organizational division of commands
@@ -55,6 +56,7 @@ class RobotContainer:
         # The robot's subsystems
         self.questnav = Questnav()  # going to break the silo convention and let the Swerve see the quest for now
         self.swerve = Swerve(questnav=self.questnav)
+        self.turret = Turret()
         self.vision = Vision()
         self.robot_state = RobotState()  # currently has a callback that LED can register
         self.led = Led(robot_state=self.robot_state)  # may want LED last because it may want to know about other systems
@@ -202,7 +204,7 @@ class RobotContainer:
         # test a setting of the swerve modules straight before running the auto to tag
         # self.triggerA.whileTrue(commands2.cmd.run(lambda: self.swerve.set_straight(), self.swerve))
         # self.triggerA.whileTrue(SwerveTest(self, self.swerve))
-        self.triggerA.whileTrue(TrackHub(self))
+        self.triggerA.whileTrue(TrackHub(self, timeout=10))
         #self.triggerA.debounce(0.1).whileTrue(AutoToPoseClean(self, self.swerve, target_pose=None, use_vision=True, cameras=['logi_front_hsv'], control_type='not_pathplanner'))
         self.triggerX.debounce(0.1).whileTrue(AutoToPoseClean(self, self.swerve, target_pose=None, use_vision=True, cameras=['logi_left_hsv'], control_type='not_pathplanner'))
         self.triggerB.debounce(0.1).whileTrue(AutoTrackVisionTarget(self, camera_key='logi_front_hsv', target_distance=0.40))
