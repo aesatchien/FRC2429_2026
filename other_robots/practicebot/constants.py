@@ -12,7 +12,7 @@ k_swerve_config = "practice"
 k_enable_logging = True  # allow logging from Advantagescope (in swerve.py), but really we may as well start it here
 
 # starting position for odometry (real and in sim)
-k_start_x, k_start_y  = 2, 2
+k_start_x, k_start_y  = 3.5, 2.5
 
 # ------------  joysticks and other input ------------
 k_driver_controller_port = 0
