@@ -5,7 +5,7 @@ It includes CAN IDs, conversion factors, and configuration objects for the Spark
 The constants are organized into classes for each subsystem.
 """
 import math  # use this for pi and tau, cos and sin if necessary
-from rev import SparkMaxConfig  # i think we can do SparkBaseConfig - it works for Max and Flex controllers
+from rev import SparkMaxConfig, SparkFlexConfig  # i think we can do SparkBaseConfig - it works for Max and Flex controllers
 from typing import Union, List
 
 
@@ -77,13 +77,14 @@ class ShooterConstants:
     k_flywheel_counter_offset = 2
     k_CANID_indexer = 5
     k_CANID_flywheel_left_leader, k_CANID_flywheel_right_follower = 7, 8  # left flywheel and follower
+    k_CANID_flywheel_back_follower = 10
     k_CANID_turret = 9
 
     # FLYWHEEL
-    k_flywheel_left_leader_config, k_flywheel_right_follower_config = SparkMaxConfig(), SparkMaxConfig()
-    k_flywheel_configs = [k_flywheel_left_leader_config, k_flywheel_right_follower_config]
-    k_test_speed = 4000
-    k_fastest_speed = 6500
+    k_flywheel_left_leader_config, k_flywheel_right_follower_config, k_flywheel_back_follower_config = SparkMaxConfig(), SparkMaxConfig(), SparkFlexConfig()
+    k_flywheel_configs = [k_flywheel_left_leader_config, k_flywheel_right_follower_config, k_flywheel_back_follower_config]
+    k_test_speed = 5200
+    k_fastest_speed = 5600
     k_test_rpm = 20
     k_fastest_rpm = 60
 
@@ -92,6 +93,7 @@ class ShooterConstants:
 
     # set up the followers
     k_flywheel_right_follower_config.follow(k_CANID_flywheel_left_leader, invert=True)  # depends on motor placement
+    k_flywheel_back_follower_config.follow(k_CANID_flywheel_left_leader, invert=True)  # depends on motor placement
 
     #setting brake, voltage compensation, and current limit for the flywheel motors
     set_config_defaults(k_flywheel_configs)

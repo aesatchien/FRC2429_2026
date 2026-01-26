@@ -21,6 +21,7 @@ class Shooter(Subsystem):
         motor_type = rev.SparkMax.MotorType.kBrushless
         self.flywheel_left_leader = rev.SparkMax(sc.k_CANID_flywheel_left_leader, motor_type)
         self.flywheel_right_follower = rev.SparkMax(sc.k_CANID_flywheel_right_follower, motor_type)
+        self.flywheel_back_follower = rev.SparkMax(sc.k_CANID_flywheel_back_follower, motor_type)
         self.indexer_motor = rev.SparkMax(sc.k_CANID_indexer, motor_type)
 
         # convenient list of motors if we need to query or set all of them
