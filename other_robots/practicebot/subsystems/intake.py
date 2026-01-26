@@ -29,9 +29,9 @@ class Intake(Subsystem):
         self.intake_encoder = self.intake.getEncoder()
 
         # default parameters for the sparkmaxes reset and persist modes -
-        self.rev_resets = SparkBase.ResetMode.kResetSafeParameters
-        self.rev_persists = SparkBase.PersistMode.kPersistParameters if constants.k_burn_flash \
-            else SparkBase.PersistMode.kNoPersistParameters
+        self.rev_resets = rev.ResetMode.kResetSafeParameters
+        self.rev_persists = rev.PersistMode.kPersistParameters if constants.k_burn_flash \
+            else rev.PersistMode.kNoPersistParameters
 
         # put the configs in a list matching the motors
         self.configs = ic.k_intake_configs + [ic.k_intake_config]  # FIXME - make this consistent

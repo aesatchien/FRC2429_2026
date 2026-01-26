@@ -30,8 +30,8 @@ class Shooter(Subsystem):
         self.flywheel_encoder = self.flywheel_left_leader.getEncoder()
 
         # default parameters for the sparkmaxes reset and persist modes -
-        self.rev_resets = SparkBase.ResetMode.kResetSafeParameters
-        self.rev_persists = SparkBase.PersistMode.kPersistParameters if constants.k_burn_flash \
+        self.rev_resets = rev.ResetMode.kResetSafeParameters
+        self.rev_persists = rev.PersistMode.kPersistParameters if constants.k_burn_flash \
             else SparkBase.PersistMode.kNoPersistParameters
 
         # put the configs in a list matching the motors
