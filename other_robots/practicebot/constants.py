@@ -156,6 +156,21 @@ class DrivetrainConstants:
     k_pose_stdevs_disabled = (1, 1, 2)  # use when we are disabled to quickly get updates
     k_pose_stdevs_small = (0.1, 0.1, 10)  # use when you do trust the tags
 
+class IntakeConstants:
+    k_intake_counter_offset = 3
+    k_CANID_intake = 9 #IDK
+
+    k_intake_config = SparkMaxConfig()
+    k_intake_configs = [k_intake_config]
+    k_test_speed = 2500
+    k_fastest_speed = 4500
+    k_test_rpm = 20
+    k_fastest_rpm = 60
+
+    k_intake_config.inverted(False)
+
+    set_config_defaults(k_intake_configs)
+
 class ShooterConstants:
 
     k_flywheel_counter_offset = 2

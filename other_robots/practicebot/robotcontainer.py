@@ -39,6 +39,7 @@ from commands.sim_show_fov import SimShowFOV
 from commands.move_training_box import MoveTrainingBox
 from commands.swerve_test import SwerveTest
 from commands.shooting_log_command import ShootingCommandLogging
+from commands.intake_logging_command import IntakeCommandLogging
 
 
 class RobotContainer:
@@ -203,8 +204,9 @@ class RobotContainer:
         # self.triggerA.whileTrue(commands2.cmd.run(lambda: self.swerve.set_straight(), self.swerve))
         # self.triggerA.whileTrue(SwerveTest(self, self.swerve))
         self.triggerA.whileTrue(ShootingCommandLogging(container=self, shooter=self.shooter))
+        self.triggerX.whileTrue(IntakeCommandLogging(container=self, intake=self.intake))
         #self.triggerA.debounce(0.1).whileTrue(AutoToPoseClean(self, self.swerve, target_pose=None, use_vision=True, cameras=['logi_front_hsv'], control_type='not_pathplanner'))
-        self.triggerX.debounce(0.1).whileTrue(AutoToPoseClean(self, self.swerve, target_pose=None, use_vision=True, cameras=['logi_left_hsv'], control_type='not_pathplanner'))
+        #self.triggerX.debounce(0.1).whileTrue(AutoToPoseClean(self, self.swerve, target_pose=None, use_vision=True, cameras=['logi_left_hsv'], control_type='not_pathplanner'))
         self.triggerB.debounce(0.1).whileTrue(AutoTrackVisionTarget(self, camera_key='logi_front_hsv', target_distance=0.40))
 
         self.triggerLB.whileTrue(SimShowFOV(self))
