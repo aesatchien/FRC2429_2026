@@ -81,7 +81,7 @@ class Shooter(Subsystem):
         # self.flywheel_left_leader.set(rpm)
         feed_forward = min(12, 12 * rpm / 5600)  # if there is no gearing, then this gets you close
         # rev is a pain in the ass - you have to pass EXACTLY the types it wants - no using "0" for the slots anymore
-        self.flywheel_controller.setReference(value=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
+        self.flywheel_controller.setSetpoint(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
         print(f'set flywheel rpm to {rpm:.0f}')  # want to say what time it is, but can't import the container's timer easily
         self.shooter_on = True
         self.voltage = feed_forward  # 12 * rpm / 5600  # Guess
@@ -91,7 +91,7 @@ class Shooter(Subsystem):
         gear_ratio = 5
         feed_forward = min(12, gear_ratio * 12 * rpm / 5600)  # geared down 5x
         # rev is a pain in the ass - you have to pass EXACTLY the types it wants - no using "0" for the slots anymore
-        self.indexer_controller.setReference(value=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
+        self.indexer_controller.setSetpoint(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
         print(f'set indexer rpm to {rpm:.0f}')  # want to say what time it is, but can't import the container's timer easily
         self.indexer_on = True
         SmartDashboard.putBoolean('indexer_on', self.indexer_on)
