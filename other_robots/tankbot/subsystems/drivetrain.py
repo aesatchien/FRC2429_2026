@@ -31,9 +31,9 @@ class Drivetrain(Subsystem):
         self.motors = [self.drive_r1, self.drive_r2, self.drive_l1, self.drive_l2]
 
         # default parameters for the sparkmaxes reset and persist modes -
-        self.rev_resets = SparkBase.ResetMode.kResetSafeParameters
-        self.rev_persists = SparkBase.PersistMode.kPersistParameters if constants.k_burn_flash \
-            else SparkBase.PersistMode.kNoPersistParameters
+        self.rev_resets = rev.ResetMode.kResetSafeParameters
+        self.rev_persists = rev.PersistMode.kPersistParameters if constants.k_burn_flash \
+            else rev.PersistMode.kNoPersistParameters
 
         # put the configs in a list matching the motors list
         self.configs = [dc.k_right_config, dc.k_follower_config_r2,

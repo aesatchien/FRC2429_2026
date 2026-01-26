@@ -13,8 +13,10 @@ class Shooter(Subsystem):
     def __init__(self) -> None:
         super().__init__()
         self.setName('Shooter')
+        self.allowed_rpms = [i for i in range(0, 5001, 1000)]
+        self.current_index = 0
         self.counter = sc.k_flywheel_counter_offset  # note this should be an offset in constants
-        self.default_rpm = sc.k_test_rpm
+        self.current_rpm = sc.k_test_rpm
 
         # --------------- add motors and shooter rpm ----------------
         
@@ -36,9 +38,9 @@ class Shooter(Subsystem):
         self.indexer_encoder.setPosition(0)
 
         # default parameters for the sparkmaxes reset and persist modes -
-        self.rev_resets = SparkBase.ResetMode.kResetSafeParameters
-        self.rev_persists = SparkBase.PersistMode.kPersistParameters if constants.k_burn_flash \
-            else SparkBase.PersistMode.kNoPersistParameters
+        self.rev_resets = rev.ResetMode.kResetSafeParameters
+        self.rev_persists = rev.PersistMode.kPersistParameters if constants.k_burn_flash \
+            else rev.PersistMode.kNoPersistParameters
 
         # put the configs in a list matching the motors
         self.configs = sc.k_flywheel_configs + [sc.k_indexer_config]  # FIXME - make this consistent
@@ -94,6 +96,11 @@ class Shooter(Subsystem):
         self.indexer_on = True
         SmartDashboard.putBoolean('indexer_on', self.indexer_on)
 
+    def change_speed(self, direction):
+        # direction: 1 for faster, -1 for slower, 0 for same
+        self.current_index = max(0, min(len(self.allowed_rpms) - 1, self.current_index + direction))
+        self.current_rpm = self.allowed_rpms[self.current_index]
+        self.set_shooter_rpm(self.current_rpm)
 
     def get_velocity(self):
         return self.flywheel_encoder.getVelocity()
@@ -102,7 +109,7 @@ class Shooter(Subsystem):
         if self.shooter_on:
             self.stop_shooter()
         else:
-            self.rpm = self.default_rpm if rpm is None else rpm
+            self.rpm = self.current_rpm if rpm is None else rpm
             self.set_shooter_rpm(self.rpm)
 
     def get_indexer_position(self):
@@ -114,6 +121,7 @@ class Shooter(Subsystem):
         # SmartDashboard.putBoolean('shooter_enable', self.shooter_enable)
         if self.counter % 20 == 0:
             SmartDashboard.putNumber('indexer_position', self.indexer_encoder.getPosition())
+            SmartDashboard.putNumber('shooter_rpm', self.flywheel_encoder.getVelocity())
             # not too often
             #SmartDashboard.putNumber('shooter_rpm', self.shooter_l.getVelocity())
             #SmartDashboard.putNumber('shooter_rpm_target', self.rpm)
