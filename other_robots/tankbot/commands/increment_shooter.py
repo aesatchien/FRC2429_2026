@@ -11,8 +11,6 @@ from subsystems.shooter import Shooter
 @log_command(console=True, nt=False, print_init=True, print_end=True)  # will print start and end messages
 class IncrementShooter(commands2.Command):  # change the name for your command
 
-    index = 0
-
     def __init__(self, container, shooter: Shooter, indent=0, speed_change=0) -> None:
         super().__init__()
         self.indent = indent
@@ -39,7 +37,7 @@ class IncrementShooter(commands2.Command):  # change the name for your command
 
     def isFinished(self) -> bool:
         # True: fire once and end; False: run forever until interrupted; logic has it end when code returns True
-        return False
+        return True #set the new speed, then end
 
     def end(self, interrupted: bool) -> None:
         # put your safe cleanup code here - turn off motors, set LEDs, etc

@@ -14,7 +14,7 @@ class Shooter(Subsystem):
         super().__init__()
         self.setName('Shooter')
         self.allowed_rpms = [i for i in range(0, 5001, 1000)]
-        self.current_index = 0
+        self.current_index = 4  # start at 4000 rpm
         self.counter = sc.k_flywheel_counter_offset  # note this should be an offset in constants
         self.current_rpm = sc.k_test_rpm
 
