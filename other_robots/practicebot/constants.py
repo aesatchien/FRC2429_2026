@@ -5,6 +5,25 @@ import rev
 from rev import ClosedLoopSlot, SparkClosedLoopController, SparkFlexConfig, SparkMax, SparkMaxConfig
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d, Transform2d
 from wpimath.units import inchesToMeters, lbsToKilograms
+from typing import Union, List
+
+
+ # ----------------  COMMON FUNCTIONS  ------------------------------------
+def set_config_defaults(configs: Union[SparkMaxConfig, List[SparkMaxConfig]]) -> None:
+    """
+    Applies default configuration settings to a single config object or a list of config objects.
+    Args:
+        configs: A single configuration object or a list of configuration objects.
+    """
+    # Check if the input is a list (or any sequence except a string/bytes)
+    if isinstance(configs, (list, tuple)):
+        config_list = configs
+    else:
+        config_list = [configs]  # If it's a single item, wrap it in a list for the loop
+    for config in config_list:
+        config.voltageCompensation(12)
+        config.setIdleMode(SparkMaxConfig.IdleMode.kBrake)
+        config.smartCurrentLimit(40)
 
 k_swerve_config = "practice"
 
@@ -136,3 +155,27 @@ class DrivetrainConstants:
     k_pose_stdevs_large = (2, 2, 10)  # use when you don't trust the april tags - stdev x, stdev y, stdev theta
     k_pose_stdevs_disabled = (1, 1, 2)  # use when we are disabled to quickly get updates
     k_pose_stdevs_small = (0.1, 0.1, 10)  # use when you do trust the tags
+
+class ShooterConstants:
+
+    k_flywheel_counter_offset = 2
+    k_CANID_indexer = 5
+    k_CANID_flywheel_left_leader, k_CANID_flywheel_right_follower = 7, 8  # left flywheel and follower
+    k_CANID_turret = 9
+
+    # FLYWHEEL
+    k_flywheel_left_leader_config, k_flywheel_right_follower_config = SparkMaxConfig(), SparkMaxConfig()
+    k_flywheel_configs = [k_flywheel_left_leader_config, k_flywheel_right_follower_config]
+    k_test_speed = 4000
+    k_fastest_speed = 6500
+    k_test_rpm = 20
+    k_fastest_rpm = 60
+
+    k_flywheel_left_leader_config.inverted(False)  # have to check which way it spins for positive RPM
+    # k_flywheel_right_follower.inverted(False)  # this is not necessary - it will get ignored
+
+    # set up the followers
+    k_flywheel_right_follower_config.follow(k_CANID_flywheel_left_leader, invert=False)  # depends on motor placement
+
+    #setting brake, voltage compensation, and current limit for the flywheel motors
+    set_config_defaults(k_flywheel_configs)
