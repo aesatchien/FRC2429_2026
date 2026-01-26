@@ -21,6 +21,8 @@ from subsystems.quest import Questnav
 from subsystems.robot_state import RobotState
 from subsystems.swerve import Swerve
 from subsystems.vision import Vision
+from subsystems.shooter import Shooter
+from subsystems.intake import Intake
 
 # from subsystems.questnav_2429 import QuestnavModule
 
@@ -61,6 +63,8 @@ class RobotContainer:
         self.robot_state = RobotState()  # currently has a callback that LED can register
         self.led = Led(robot_state=self.robot_state)  # may want LED last because it may want to know about other systems
         # self.questnav_2429 = QuestnavModule()
+        self.shooter = Shooter()
+        self.intake = Intake()
 
         self.configure_joysticks()
         self.bind_driver_buttons()
