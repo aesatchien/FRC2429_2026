@@ -15,9 +15,13 @@ class IncrementShooter(commands2.Command):  # change the name for your command
 
     def __init__(self, container, shooter: Shooter, indent=0, speed_change=0) -> None:
         super().__init__()
+        self.indent = indent
+        self.container = container
+        self.setName('Increment Shooter')
         self.shooter = shooter
         self.speed_change = speed_change
         self.addRequirements(self.shooter)  # commands2 version of requirements - add the subsystems you need
+        self.extra_log_info = None
         # self.counter = 0  # add a counter if you need to track iterations, remember to initialize in below
         # self.addRequirements(self.container.??)  # commands2 version of requirements - add the subsystems you need
 
