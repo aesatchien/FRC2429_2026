@@ -28,6 +28,7 @@ class IncrementShooter(commands2.Command):  # change the name for your command
         # if you wish to add more information to the console logger, change self.extra_log_info
         # self.extra_log_info = "Target=7"  # (for example)
         self.shooter.change_speed(self.speed_change)
+        self.shooter.set_shooter_rpm(self.shooter.current_rpm)
 
 
             
@@ -41,4 +42,4 @@ class IncrementShooter(commands2.Command):  # change the name for your command
 
     def end(self, interrupted: bool) -> None:
         # put your safe cleanup code here - turn off motors, set LEDs, etc
-        return True
+        pass

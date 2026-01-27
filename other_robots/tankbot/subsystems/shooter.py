@@ -13,7 +13,7 @@ class Shooter(Subsystem):
     def __init__(self) -> None:
         super().__init__()
         self.setName('Shooter')
-        self.allowed_rpms = [i for i in range(0, 5001, 1000)]
+        self.allowed_rpms = [i for i in range(0, 5001, 100) if i >= 2400 or i == 0]
         self.current_index = 4  # start at 4000 rpm
         self.counter = sc.k_flywheel_counter_offset  # note this should be an offset in constants
         self.current_rpm = sc.k_test_rpm
@@ -68,7 +68,10 @@ class Shooter(Subsystem):
 
         self.shooter_on = False
         self.voltage = 0  # CJH for 2024 testing
+        self.current_rpm = 0
         SmartDashboard.putBoolean('shooter_on', self.shooter_on)
+        SmartDashboard.putNumber('shooter_rpm', self.current_rpm)
+
 
     def stop_indexer(self):
         self.indexer_motor.set(0)  # this sets the output to zero (number between -1 and 1) - it is "dumb"
@@ -86,6 +89,7 @@ class Shooter(Subsystem):
         self.shooter_on = True
         self.voltage = feed_forward  # 12 * rpm / 5600  # Guess
         SmartDashboard.putBoolean('shooter_on', self.shooter_on)
+        SmartDashboard.putNumber('shooter_rpm', self.current_rpm)
 
     def set_indexer_rpm(self, rpm=60):
         gear_ratio = 5
