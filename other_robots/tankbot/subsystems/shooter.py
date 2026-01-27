@@ -13,7 +13,7 @@ class Shooter(Subsystem):
     def __init__(self) -> None:
         super().__init__()
         self.setName('Shooter')
-        self.allowed_rpms = [i for i in range(0, 5001, 100) if i >= 2400 or i == 0]
+        self.allowed_rpms = [i for i in range(0, 5001, 200) if i >= 2400 or i == 0]
         self.current_index = 4  # start at 4000 rpm
         self.counter = sc.k_flywheel_counter_offset  # note this should be an offset in constants
         self.current_rpm = sc.k_test_rpm
@@ -123,9 +123,10 @@ class Shooter(Subsystem):
         self.counter += 1
 
         # SmartDashboard.putBoolean('shooter_enable', self.shooter_enable)
+        SmartDashboard.putNumber('shooter_rpm', self.flywheel_encoder.getVelocity())
         if self.counter % 20 == 0:
             SmartDashboard.putNumber('indexer_position', self.indexer_encoder.getPosition())
-            SmartDashboard.putNumber('shooter_rpm', self.flywheel_encoder.getVelocity())
+            #SmartDashboard.putNumber('shooter_rpm', self.flywheel_encoder.getVelocity())
             # not too often
             #SmartDashboard.putNumber('shooter_rpm', self.shooter_l.getVelocity())
             #SmartDashboard.putNumber('shooter_rpm_target', self.rpm)
