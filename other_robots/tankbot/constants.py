@@ -5,6 +5,8 @@ It includes CAN IDs, conversion factors, and configuration objects for the Spark
 The constants are organized into classes for each subsystem.
 """
 import math  # use this for pi and tau, cos and sin if necessary
+
+import rev
 from rev import SparkMaxConfig, SparkFlexConfig  # i think we can do SparkBaseConfig - it works for Max and Flex controllers
 from typing import Union, List
 
@@ -90,6 +92,9 @@ class ShooterConstants:
 
     k_flywheel_left_leader_config.inverted(True)  # have to check which way it spins for positive RPM
     # k_flywheel_right_follower.inverted(False)  # this is not necessary - it will get ignored
+
+    # if we want, we coult put the feed forward here instead of in the subsystem
+    k_flywheel_left_leader_config.closedLoop.pidf(p=1e-4, i=0, d=0, ff=0, slot=rev.ClosedLoopSlot.kSlot0)
 
     # set up the followers
     k_flywheel_right_follower_config.follow(k_CANID_flywheel_left_leader, invert=True)  # depends on motor placement
