@@ -24,6 +24,7 @@ class TrackHub(commands2.Command):
         To make it act kinda instantaneous, set a very small timeout. Then, it will not
         move the turret unless the arm is pretty much already at a safe position.
         """
+
         super().__init__()
         self.setName('Track_Hub')
         self.indent = indent
@@ -40,6 +41,7 @@ class TrackHub(commands2.Command):
         self.rHubLocation = None
         self.bHubLocation = None
         self.turn_angle = None
+
 
         self.counter = 0
 
@@ -67,17 +69,15 @@ class TrackHub(commands2.Command):
         else:
             vector = self.bHubLocation - self.robot_location
 
-        distance = vector.norm()
-
         robot_to_hub_angle = vector.angle()  #angle between center of robot and the hub
-        robot_angle = self.robot_pose.rotation()
-        turret_angle: Rotation2d = robot_to_hub_angle - robot_angle
+        robot_angle = self.robot_pose.rotation()  #robot's angle with respect to the x-axis
+        #turret_angle: Rotation2d = robot_to_hub_angle - robot_angle  #calculates the angle the turret has to point so it looks at the hub
 
         # Use the .angle() method of the translation
 
         # self.turret.set_position(turret_angle.radians())
         if (self.counter % 50 == 0):
-            print(f"Setting turret to {turret_angle.degrees():.1f}")
+            print(f"Setting turret to {robot_to_hub_angle.degrees():.1f}")
 
     def isFinished(self) -> bool:
 

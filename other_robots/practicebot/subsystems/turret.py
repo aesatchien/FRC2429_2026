@@ -110,13 +110,13 @@ class Turret(Subsystem):
         #     # the wrist is currently in a bad position, so retract it!
         #     self.set_position(constants.k_positions["stow"]["wrist_pivot"])
 
-        if self.counter % 10 == 0:
-            # TODO - move out the ones that are not used by the dash
-            wpilib.SmartDashboard.putNumber("wrist abs encoder", self.abs_encoder.getPosition())
-            wpilib.SmartDashboard.putNumber("wrist relative encoder, rad", self.encoder.getPosition())
-            wpilib.SmartDashboard.putNumber("wrist relative encoder, degrees", math.degrees(self.encoder.getPosition()))
-
-            if constants.TurretConstants.k_nt_debugging:  # extra debugging info for NT
-                pass
+        # if self.counter % 10 == 0:
+        #     # TODO - move out the ones that are not used by the dash
+        #     wpilib.SmartDashboard.putNumber("wrist abs encoder", self.abs_encoder.getPosition())
+        #     wpilib.SmartDashboard.putNumber("wrist relative encoder, rad", self.encoder.getPosition())
+        #     wpilib.SmartDashboard.putNumber("wrist relative encoder, degrees", math.degrees(self.encoder.getPosition()))
+        #
+        #     if constants.TurretConstants.k_nt_debugging:  # extra debugging info for NT
+        #         pass
 
         return super().periodic()
