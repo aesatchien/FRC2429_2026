@@ -192,8 +192,8 @@ class RobotContainer:
                 commands2.cmd.runOnce(lambda: setattr(self.robot_state, 'target', selected_value))))
         wpilib.SmartDashboard.putData(f'{command_prefix}/RobotScoringMode', self.score_test_chooser)
 
-        # self.auto_chooser = AutoBuilder.buildAutoChooser('')  # this loops through the path planner deploy directory
-        self.auto_chooser = wpilib.SendableChooser()  #  use this if you don't have any pathplanner autos defined
+        self.auto_chooser = AutoBuilder.buildAutoChooser('')  # this loops through the path planner deploy directory
+        # self.auto_chooser = wpilib.SendableChooser()  #  use this if you don't have any pathplanner autos defined
         self.auto_chooser.setDefaultOption('1:  Wait *CODE*', PrintCommand("** Running wait auto **").andThen(commands2.WaitCommand(15)))
         self.auto_chooser.addOption('2a: Drive 2s Straight *CODE*',
                                     PrintCommand("** Running drive by velocity swerve leave auto **").
@@ -229,7 +229,7 @@ class RobotContainer:
             #self.triggerB.onTrue(commands2.cmd.runOnce(lambda: setattr(self.robot_state, 'side', RobotState.Side.RIGHT)))
             #self.triggerB.debounce(0.1).whileTrue(AutoToPoseClean(self, self.swerve, target_pose=None, nearest=True, from_robot_state=False,control_type='not_pathplanner'))
 
-        # set up dpad to allow slow, smooth robot-centric alignment
+        # set up dpad to allow slow, smooth robot-centric alignment - but give it enough to get over the bump
         dpad_output = 0.25
         self.triggerUp.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(dpad_output, 0, 0), timeout=10))
         self.triggerDown.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(-dpad_output, 0, 0), timeout=10))
@@ -244,8 +244,9 @@ class RobotContainer:
 
 
     def register_commands(self):
-        # this is for PathPlanner, so it can call our commands
-        NamedCommands.registerCommand('robot state left', commands2.cmd.runOnce(lambda: setattr(self.robot_state, 'side', RobotState.Side.RIGHT)).ignoringDisable(True))
+        # this is for PathPlanner, so it can call our commands.  Note they do not magically show up in pathplanner
+        # you have to add them there, and then it remembers your list of commands.  so name them wisely
+        NamedCommands.registerCommand('robot_state_left', commands2.cmd.runOnce(lambda: setattr(self.robot_state, 'side', RobotState.Side.LEFT)).ignoringDisable(True))
 
 
     def get_autonomous_command(self):
