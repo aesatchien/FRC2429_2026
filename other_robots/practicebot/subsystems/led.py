@@ -2,7 +2,7 @@ from enum import Enum
 import time  # import time for precise timing
 import commands2
 from wpilib import AddressableLED
-from wpilib import SmartDashboard, Timer
+from wpilib import Timer
 import ntcore
 import constants
 from subsystems.robot_state import RobotState

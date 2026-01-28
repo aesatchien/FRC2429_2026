@@ -1,4 +1,5 @@
 # constants for the 2024 robot
+from itertools import count
 import math
 import wpilib
 import rev
@@ -6,26 +7,12 @@ from rev import ClosedLoopSlot, SparkClosedLoopController, SparkFlexConfig, Spar
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d, Transform2d
 from wpimath.units import inchesToMeters, lbsToKilograms
 from typing import Union, List
-
-
- # ----------------  COMMON FUNCTIONS  ------------------------------------
-def set_config_defaults(configs: Union[SparkMaxConfig, List[SparkMaxConfig]]) -> None:
-    """
-    Applies default configuration settings to a single config object or a list of config objects.
-    Args:
-        configs: A single configuration object or a list of configuration objects.
-    """
-    # Check if the input is a list (or any sequence except a string/bytes)
-    if isinstance(configs, (list, tuple)):
-        config_list = configs
-    else:
-        config_list = [configs]  # If it's a single item, wrap it in a list for the loop
-    for config in config_list:
-        config.voltageCompensation(12)
-        config.setIdleMode(SparkMaxConfig.IdleMode.kBrake)
-        config.smartCurrentLimit(40)
+from helpers.utilities import set_config_defaults
 
 k_swerve_config = "practice"
+
+# Generator for unique counter offsets
+_counter = count(1)
 
 # TODO - organize this better
 k_enable_logging = True  # allow logging from Advantagescope (in swerve.py), but really we may as well start it here
@@ -103,7 +90,7 @@ class CameraConstants:
 
 
 class SimConstants:
-    k_counter_offset = 1
+    k_counter_offset = next(_counter)
     k_cam_distance_limit = 4  # sim testing how far targets can be - usually 3 to 3.5m on the real cameras
     k_tag_visibility_angle = 60  # degrees, the angle from normal that the tag can be seen (90 means +/- 90 deg)
 
@@ -118,7 +105,7 @@ class SimConstants:
 
 class VisionConstants:
 
-    k_counter_offset = 2
+    k_counter_offset = next(_counter)
     k_nt_debugging = False  # print extra values to NT for debugging
     k_pi_names = ["top_pi"]
 
@@ -128,13 +115,13 @@ class VisionConstants:
 
 
 class QuestConstants:
-    k_counter_offset = 3
+    k_counter_offset = next(_counter)
     quest_to_robot = Transform2d(inchesToMeters(0), inchesToMeters(9.5), Rotation2d().fromDegrees(0))
 
 
 class LedConstants:
 
-    k_counter_offset = 4
+    k_counter_offset = next(_counter)
     k_nt_debugging = False  # print extra values to NT for debugging
     k_led_count = 40  # correct as of 2025 0305
     k_led_count_ignore = 4  # flat ones not for the height indicator
@@ -142,12 +129,12 @@ class LedConstants:
 
 class RobotStateConstants:
 
-    k_counter_offset = 5
+    k_counter_offset = next(_counter)
     k_nt_debugging = False  # print extra values to NT for debugging
 
 class DrivetrainConstants:
 
-    k_counter_offset = 6
+    k_counter_offset = next(_counter)
     k_nt_debugging = False  # print extra values to NT for debugging
     # these are for the apriltags.  For the most part, you want to trust the gyro, not the tags for angle
     # based on https://www.chiefdelphi.com/t/swerve-drive-pose-estimator-and-add-vision-measurement-using-limelight-is-very-jittery/453306/13
@@ -157,8 +144,8 @@ class DrivetrainConstants:
     k_pose_stdevs_small = (0.1, 0.1, 10)  # use when you do trust the tags
 
 class IntakeConstants:
-    k_intake_counter_offset = 3
-    k_CANID_intake = 9 #IDK
+    k_counter_offset = next(_counter)
+    k_CANID_intake = 9  # IDK
 
     k_intake_config = SparkMaxConfig()
     k_intake_configs = [k_intake_config]
@@ -173,7 +160,7 @@ class IntakeConstants:
 
 class ShooterConstants:
 
-    k_flywheel_counter_offset = 2
+    k_counter_offset = next(_counter)
     k_CANID_indexer = 5
     k_CANID_flywheel_left_leader, k_CANID_flywheel_right_follower = 7, 8  # left flywheel and follower
     k_CANID_turret = 9
@@ -194,3 +181,6 @@ class ShooterConstants:
 
     #setting brake, voltage compensation, and current limit for the flywheel motors
     set_config_defaults(k_flywheel_configs)
+
+class ClimberConstants:
+    k_counter_offset = next(_counter)

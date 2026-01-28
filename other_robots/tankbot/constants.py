@@ -96,6 +96,7 @@ class ShooterConstants:
     # if we want, we coult put the feed forward here instead of in the subsystem
     k_flywheel_left_leader_config.closedLoop.pidf(p=1e-4, i=0, d=0, ff=0, slot=rev.ClosedLoopSlot.kSlot0)
 
+
     # set up the followers
     k_flywheel_right_follower_config.follow(k_CANID_flywheel_left_leader, invert=True)  # depends on motor placement
     k_flywheel_back_follower_config.follow(k_CANID_flywheel_left_leader, invert=True)  # depends on motor placement

@@ -1,6 +1,9 @@
 import functools
-from wpilib import SmartDashboard
+import ntcore
 import time
+
+# Global publisher for alerts
+_alert_pub = ntcore.NetworkTableInstance.getDefault().getStringTopic("/SmartDashboard/alert").publish()
 
 def log_command(cls=None, *, console=True, nt=False, print_init=True, print_end=True):
     """
@@ -64,7 +67,7 @@ def log_command(cls=None, *, console=True, nt=False, print_init=True, print_end=
                 if console:
                     print(msg, flush=True)
                 if nt:
-                    SmartDashboard.putString("alert", msg)
+                    _alert_pub.set(msg)
 
         @functools.wraps(orig_end)
         def new_end(self, interrupted: bool):
@@ -90,7 +93,7 @@ def log_command(cls=None, *, console=True, nt=False, print_init=True, print_end=
                 if console:
                     print(msg)
                 if nt:
-                    SmartDashboard.putString("alert", msg)
+                    _alert_pub.set(msg)
 
         cls_inner.initialize = new_initialize
         cls_inner.end = new_end

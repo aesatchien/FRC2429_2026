@@ -23,7 +23,7 @@ class PhysicsEngine:
         
         # Create a Field2d for visualization
         self.field = wpilib.Field2d()
-        wpilib.SmartDashboard.putData("Field", self.field)  # this should just keep the default one
+        wpilib.SmartDashboard.putData("Field", self.field)  # should just keep the default one but adds our piece poses
         self.target_object = self.field.getObject("Target")
 
         # Initialize Simulations

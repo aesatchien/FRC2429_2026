@@ -1,8 +1,6 @@
 import commands2
 from commands.log_command import log_command  # outsource explicit logging clutter to a single line
 
-from wpilib import SmartDashboard
-
 import constants
 from constants import IntakeConstants as ic
 from subsystems.intake import Intake

@@ -2,10 +2,7 @@ import random
 
 import commands2
 import wpilib
-from wpilib import SmartDashboard
-import ntcore
 import rev
-import pickle as pkl
 import random
 
 from helpers.decorators import log_command

@@ -86,7 +86,7 @@ class Questnav(SubsystemBase):
         self.quest_synched_pub.set(self.quest_has_synched)
         self.quest_in_use_pub.set(self.use_quest)
 
-        # note - may not want these buried one deeper.  Also,, we may want to put them in robotcontainer instead of here
+        # note - may not want these buried one deeper.  Also, we may want to put them in robotcontainer instead of here
         command_prefix = constants.command_prefix
         SmartDashboard.putData(f'{command_prefix}/QuestResetOdometry', InstantCommand(lambda: self.quest_reset_odometry()).ignoringDisable(True))
         SmartDashboard.putData(f'{command_prefix}/QuestSyncOdometry', InstantCommand(lambda: self.quest_sync_odometry()).ignoringDisable(True))
