@@ -13,7 +13,7 @@ class Shooter(Subsystem):
     def __init__(self) -> None:
         super().__init__()
         self.setName('Shooter')
-        self.allowed_rpms = [i for i in range(0, 5001, 200) if i >= 2400 or i == 0]
+        self.allowed_rpms = [i for i in range(0, 5001, 200) if i >= 2600 or i == 0] # gives valid rpms from 2600 to 5000 increments of 200
         self.current_index = 4  # start at 4000 rpm
         self.counter = sc.k_flywheel_counter_offset  # note this should be an offset in constants
         self.current_rpm = sc.k_test_rpm
