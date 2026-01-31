@@ -38,8 +38,11 @@ class DriveConstants:
     # ------------- KINEMATICS -------------
     # Chassis configuration - not sure if it even matters if we're square because wpilib accounts for it
     # MK4i modules have the centers of the wheels 2.5" from the edge, so this is robot length (or width) minus 5
-    kTrackWidth = units.inchesToMeters(23.0)  # Distance between centers of right and left wheels on robot
-    kWheelBase = units.inchesToMeters(23.0)   # Distance between front and back wheels on robot
+    robot_chassis = 27.5  # in
+    mk4i_offset = 2.5  # in
+
+    kTrackWidth = units.inchesToMeters(robot_chassis - 2 * mk4i_offset)  # Distance between centers of right and left wheels on robot
+    kWheelBase = units.inchesToMeters(robot_chassis - 2 * mk4i_offset)   # Distance between front and back wheels on robot
 
     # kinematics gets passed [self.frontLeft, self.frontRight, self.rearLeft, self.rearRight]
     # Front left is X+Y+, Front right is + -, Rear left is - +, Rear right is - - (otherwise odometery is wrong)
