@@ -9,24 +9,8 @@ import math  # use this for pi and tau, cos and sin if necessary
 import rev
 from rev import SparkMaxConfig, SparkFlexConfig  # i think we can do SparkBaseConfig - it works for Max and Flex controllers
 from typing import Union, List
+from helpers.utilities import set_config_defaults
 
-
- # ----------------  COMMON FUNCTIONS  ------------------------------------
-def set_config_defaults(configs: Union[SparkMaxConfig, List[SparkMaxConfig]]) -> None:
-    """
-    Applies default configuration settings to a single config object or a list of config objects.
-    Args:
-        configs: A single configuration object or a list of configuration objects.
-    """
-    # Check if the input is a list (or any sequence except a string/bytes)
-    if isinstance(configs, (list, tuple)):
-        config_list = configs
-    else:
-        config_list = [configs]  # If it's a single item, wrap it in a list for the loop
-    for config in config_list:
-        config.voltageCompensation(12)
-        config.setIdleMode(SparkMaxConfig.IdleMode.kBrake)
-        config.smartCurrentLimit(40)
 
 # general constants
 k_burn_flash = True  # whether to burn the configurations into the spark maxes
@@ -98,7 +82,7 @@ class ShooterConstants:
     if k_control_type == 'max_motion':
         # maxmotion - allows us to set mav velocity, acceleration and jerk, letting us crank proportional response
         motor_max_rpm = 6784  # neo vortex
-        k_flywheel_left_leader_config.closedLoop.pidf(p=1e-4, i=0, d=0, ff=1 / motor_max_rpm, slot=rev.ClosedLoopSlot.kSlot0)
+        k_flywheel_left_leader_config.closedLoop.pidf(p=2e-4, i=0, d=0, ff=1 / motor_max_rpm, slot=rev.ClosedLoopSlot.kSlot0)
 
         # Configure MAXMotion (The "Modern" Smart Motion) - Note: "maxMotion" object instead of "smartMotion"
         k_flywheel_left_leader_config.closedLoop.maxMotion.cruiseVelocity(6000, slot=rev.ClosedLoopSlot.kSlot0)
