@@ -1,3 +1,5 @@
+import math
+
 import wpilib
 import wpilib.simulation as simlib  # 2021 name for the simulation library
 from  wpimath.geometry import Pose2d, Transform2d
@@ -10,6 +12,7 @@ from simulation import sim_utils
 from simulation.swerve_sim import SwerveSim
 from simulation.gamepiece_sim import GamepieceSim
 from simulation.vision_sim import VisionSim
+from simulation.blockhead_mech import BlockheadMech
 
 class PhysicsEngine:
 
@@ -30,6 +33,7 @@ class PhysicsEngine:
         self.swerve_sim = SwerveSim(physics_controller, robot)
         self.gamepiece_sim = GamepieceSim(self.field)
         self.vision_sim = VisionSim(self.field)
+        self.mech = BlockheadMech()
 
         # Ghost Robot linger state
         self.last_ghost_update_time = 0
@@ -80,3 +84,25 @@ class PhysicsEngine:
             # make it disappear after the ghost timeout
             if now - self.last_ghost_update_time > self.ghost_linger_duration:
                 self.target_object.setPoses([])
+
+        # ----------------- Update Mechanisms (Stubs) -----------------
+        # For now, just calling them to ensure no errors until subsystems are built
+        
+        # Animate drivetrain wheels based on forward speed
+        chassis_velocity = 0.5 if int(wpilib.getTime()) % 5 == 0 else 0
+        self.mech.update_drivetrain(chassis_velocity)
+        
+        # Animate intake deployment based on whether it's running
+        intake_test_state = True if int(wpilib.getTime()) % 2 == 0 else False
+        #self.mech.update_intake(self.container.intake.intake_on, self.container.intake.get_velocity())
+        self.mech.update_intake(deployed=intake_test_state, speed=1.0 if intake_test_state else 0.0)
+        
+        self.mech.update_hopper(1.0 if intake_test_state else 0)
+        self.mech.update_indexer(1.0 if intake_test_state else 0)
+        self.mech.update_shooter(3000 if intake_test_state else 0)
+
+        climber_height = 22 + 8 * math.sin(1 * wpilib.getTime())  # 22±8 inches
+        self.mech.update_climber(height_from_ground=climber_height) # Keep visible for now (15 length + 2 root)
+
+        # Update ball position (static for now)
+        self.mech.update_ball(45, 3)
