@@ -82,11 +82,11 @@ class DriveConstants:
     # SPARK controller  settings and CAN IDs  - checked for correctness 2025 0317
     # turning offset needs to be in radians, so it uses the 2pi scaling factor
     # I meant to have billet out on the right side, but it looks like i had that opposite for reefbot
-    comp_bot_dict = {'LF':{'driving_can': 27, 'turning_can': 26, 'port': 3, 'turning_offset': sf * 0.484},
-                    'LB':{'driving_can': 25, 'turning_can': 24, 'port': 1, 'turning_offset': sf * 0.437},
-                    'RF':{'driving_can': 23, 'turning_can': 22, 'port': 2, 'turning_offset': sf *  0.078},
-                    'RB':{'driving_can': 21, 'turning_can': 20, 'port': 0, 'turning_offset': sf *  0.030}}
-    comp_bot_motor_inversions = {'drive_motors_inverted':True, 'turn_motors_inverted': False, }
+    comp_bot_dict = {'LF':{'driving_can': 21, 'turning_can': 20, 'port': 3, 'turning_offset': sf * 0.988},
+                    'LB':{'driving_can': 23, 'turning_can': 22, 'port': 1, 'turning_offset': sf * 0.429},
+                    'RF':{'driving_can': 25, 'turning_can': 24, 'port': 2, 'turning_offset': sf *  0.061},
+                    'RB':{'driving_can': 27, 'turning_can': 26, 'port': 0, 'turning_offset': sf *  0.039}}
+    comp_bot_motor_inversions = {'drive_motors_inverted':False, 'turn_motors_inverted': True, }
     practice_bot_dict = {'LF':{'driving_can': 21, 'turning_can': 20, 'port': 3, 'turning_offset': sf *  0.498},
                     'LB':{'driving_can': 23, 'turning_can': 22, 'port': 1, 'turning_offset': sf *  0.113},
                     'RF':{'driving_can': 25, 'turning_can': 24, 'port': 2, 'turning_offset': sf *  0.091},  # billet out

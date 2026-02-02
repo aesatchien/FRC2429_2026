@@ -9,7 +9,7 @@ from wpimath.units import inchesToMeters, lbsToKilograms
 from typing import Union, List
 from helpers.utilities import set_config_defaults
 
-k_swerve_config = "practice"
+k_swerve_config = "comp"
 
 # Generator for unique counter offsets
 _counter = count(1)
