@@ -91,6 +91,7 @@ class Intake(Subsystem):
     def get_rpm(self):
         return self.intake_encoder.getVelocity()
 
+    # TODO - get dropper position to ground and back up
     def set_dropper_down(self, down=True):
         # function that moves intake down to the ground, or up to stow it
         pass
