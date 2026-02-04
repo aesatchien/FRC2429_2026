@@ -71,8 +71,8 @@ class ShooterConstants:
     k_flywheel_configs = [k_flywheel_left_leader_config, k_flywheel_right_follower_config, k_flywheel_back_follower_config]
     k_test_speed = 5200
     k_fastest_speed = 5600
-    k_test_rpm = 20
-    k_fastest_rpm = 60
+    k_test_rpm = 2000
+    k_fastest_rpm = 5600
 
     k_flywheel_left_leader_config.inverted(False)  # have to check which way it spins for positive RPM
     # k_flywheel_right_follower.inverted(False)  # this is not necessary - it will get ignored
