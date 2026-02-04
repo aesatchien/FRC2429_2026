@@ -41,8 +41,8 @@ from commands.set_leds import SetLEDs
 from commands.sim_show_fov import SimShowFOV
 from commands.move_training_box import MoveTrainingBox
 from commands.swerve_test import SwerveTest
-from commands.shooting_log_command import ShootingCommandLogging
-from commands.intake_logging_command import IntakeCommandLogging
+from commands.shooting_command import ShootingCommand
+from commands.intake_set import Intake_Set
 
 
 class RobotContainer:
@@ -212,8 +212,8 @@ class RobotContainer:
         # test a setting of the swerve modules straight before running the auto to tag
         # self.triggerA.whileTrue(commands2.cmd.run(lambda: self.swerve.set_straight(), self.swerve))
         # self.triggerA.whileTrue(SwerveTest(self, self.swerve))
-        self.triggerA.whileTrue(ShootingCommandLogging(container=self, shooter=self.shooter))
-        self.triggerX.whileTrue(IntakeCommandLogging(container=self, intake=self.intake))
+        self.triggerA.whileTrue(ShootingCommand(container=self, shooter=self.shooter))
+        self.triggerX.whileTrue(Intake_Set(intake=self.intake, rpm=1000))
         #self.triggerA.debounce(0.1).whileTrue(AutoToPoseClean(self, self.swerve, target_pose=None, use_vision=True, cameras=['logi_front_hsv'], control_type='not_pathplanner'))
         #self.triggerX.debounce(0.1).whileTrue(AutoToPoseClean(self, self.swerve, target_pose=None, use_vision=True, cameras=['logi_left_hsv'], control_type='not_pathplanner'))
         self.triggerB.debounce(0.1).whileTrue(AutoTrackVisionTarget(self, camera_key='logi_front_hsv', target_distance=0.40))

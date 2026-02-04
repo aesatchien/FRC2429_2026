@@ -41,6 +41,7 @@ class Shooter(Subsystem):
 
         # initialize states
         self.shooter_on = False
+        self.current_rpm = 0
         self.voltage = 0
         self._init_networktables()
 
@@ -59,6 +60,7 @@ class Shooter(Subsystem):
         # self.flywheel_controller.setReference(value=0, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=0)
 
         self.shooter_on = False
+        self.current_rpm = 0
         self.voltage = 0  # CJH for 2024 testing
         self.shooter_on_pub.set(self.shooter_on)
 
@@ -67,8 +69,9 @@ class Shooter(Subsystem):
         # self.flywheel_left_leader.set(rpm)
         feed_forward = min(12, 12 * rpm / 5600)  # if there is no gearing, then this gets you close
         # rev is a pain in the ass - you have to pass EXACTLY the types it wants - no using "0" for the slots anymore
-        self.flywheel_controller.setReference(value=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
+        self.flywheel_controller.setReference(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
         print(f'set flywheel rpm to {rpm:.0f}')  # want to say what time it is, but can't import the container's timer easily
+        self.current_rpm = rpm
         self.shooter_on = True
         self.voltage = feed_forward  # 12 * rpm / 5600  # Guess
         self.shooter_on_pub.set(self.shooter_on)

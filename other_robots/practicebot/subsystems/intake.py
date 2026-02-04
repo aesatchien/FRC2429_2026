@@ -34,7 +34,7 @@ class Intake(Subsystem):
             else rev.PersistMode.kNoPersistParameters
 
         # put the configs in a list matching the motors
-        self.configs = ic.k_intake_configs + [ic.k_intake_config]  # FIXME - make this consistent
+        self.configs = ic.k_intake_configs
 
         # this should be its own function later - we will call it whenever we change brake mode
         rev_errors = [motor.configure(config, self.rev_resets, self.rev_persists)
@@ -42,15 +42,16 @@ class Intake(Subsystem):
 
         # initialize states
         self.intake_on = False
-        self.voltage = 0
+        self.current_rpm = 0
         self._init_networktables()
 
     def _init_networktables(self):
         self.inst = ntcore.NetworkTableInstance.getDefault()
-        self.nt_prefix = "/SmartDashboard/Intake"  # TODO - set this in constants
-        self.intake_on_pub = self.inst.getBooleanTopic(f"{self.nt_prefix}/intake_on").publish()
-        self.intake_velocity_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/intake_velocity").publish()
+        self.intake_prefix = constants.intake_prefix
+        self.intake_on_pub = self.inst.getBooleanTopic(f"{self.intake_prefix}/intake_on").publish()
+        self.intake_rpm_pub = self.inst.getDoubleTopic(f"{self.intake_prefix}/intake_rpm").publish()
         self.intake_on_pub.set(self.intake_on)
+        self.intake_rpm_pub.set(self.current_rpm)
 
     def stop_intake(self):
         # three different ways to stop the intake
@@ -59,18 +60,21 @@ class Intake(Subsystem):
         # self.intake_controller.setReference(value=0, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=0)
 
         self.intake_on = False
-        self.voltage = 0  # CJH for 2024 testing
+        self.current_rpm = 0
         self.intake_on_pub.set(self.intake_on)
+        self.intake_rpm_pub.set(self.current_rpm)
 
     def set_intake_rpm(self, rpm=1000):
+        # TODO - incorporate a PID to handle voltage sag from multiple balls
         feed_forward = min(12, 12 * rpm / 5600)  # if there is no gearing, then this gets you close
-        self.intake_controller.setReference(value=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
+        self.intake_controller.setReference(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
         print(f'set intake rpm to {rpm:.0f}')  # want to say what time it is, but can't import the container's timer easily - could use the wpilib timer
         self.intake_on = True
-        self.voltage = feed_forward  # 12 * rpm / 5600  # Guess
+        self.current_rpm = rpm
         self.intake_on_pub.set(self.intake_on)
+        self.intake_rpm_pub.set(self.current_rpm)
 
-    def get_velocity(self):
+    def get_rpm(self):
         return self.intake_encoder.getVelocity()
 
     def toggle_intake(self, rpm):
@@ -84,5 +88,5 @@ class Intake(Subsystem):
         self.counter += 1
 
         # SmartDashboard.putBoolean('intake_enable', self.intake_enable)
-        if self.counter % 20 == 0:
-            self.intake_velocity_pub.set(self.intake_encoder.getVelocity())
+        # if self.counter % 20 == 0:
+        #     self.intake_rpm_pub.set(self.intake_encoder.getVelocity())
