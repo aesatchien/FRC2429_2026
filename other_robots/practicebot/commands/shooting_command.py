@@ -1,7 +1,6 @@
 import commands2
-from commands.log_command import log_command  # outsource explicit logging clutter to a single line
+from helpers.log_command import log_command  # outsource explicit logging clutter to a single line
 
-import constants
 from constants import ShooterConstants as sc
 from subsystems.shooter import Shooter
 

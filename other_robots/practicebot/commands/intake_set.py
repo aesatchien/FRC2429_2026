@@ -1,8 +1,6 @@
 import commands2
-from commands.log_command import log_command  # outsource explicit logging clutter to a single line
+from helpers.log_command import log_command  # outsource explicit logging clutter to a single line
 
-import constants
-from constants import IntakeConstants as ic
 from subsystems.intake import Intake
 
 @log_command(console=True, nt=False, print_init=True, print_end=False)  # will print start and end messages

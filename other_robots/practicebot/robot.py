@@ -3,8 +3,8 @@
 import typing
 import wpilib
 import commands2
-from wpimath.geometry import Translation2d
 
+from helpers import log_command
 from robotcontainer import RobotContainer
 from subsystems.led import Led  # allows indexing of LED colors
 
@@ -68,7 +68,7 @@ class MyRobot(commands2.TimedCommandRobot):
     def autonomousInit(self) -> None:
         """This autonomous runs the autonomous command selected by your RobotContainer class."""
 
-        self.container.timer.reset()  # putting this after the scheduler is bad
+        log_command.log_timer.reset()  # want this before the scheduler
 
         self.autonomousCommand = self.container.get_autonomous_command()
 
@@ -80,8 +80,9 @@ class MyRobot(commands2.TimedCommandRobot):
 
     def teleopInit(self) -> None:
 
+        log_command.log_timer.reset()
         # self.container.swerve.use_photoncam = False
-        self.container.timer.reset()  # putting this after the scheduler is bad
+
         # This makes sure that the autonomous stops running when
         # teleop starts running. If you want the autonomous to
         # continue until interrupted by another command, remove

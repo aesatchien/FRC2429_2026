@@ -14,7 +14,8 @@ from subsystems.swerve_constants import AutoConstants as ac
 from subsystems.swerve import Swerve
 from subsystems.led import Led
 from subsystems.vision import Vision
-from helpers.decorators import log_command, deprecated
+from helpers.log_command import log_command
+from helpers.utilities import deprecated
 from helpers.apriltag_utils import get_nearest_tag
 
 

@@ -1,9 +1,29 @@
 import functools
 import ntcore
-import time
+import wpilib
 
 # Global publisher for alerts
 _alert_pub = ntcore.NetworkTableInstance.getDefault().getStringTopic("/SmartDashboard/alert").publish()
+
+class LogTimer:
+    """
+    Encapsulates the 'Time Since Enabled' logic.
+    Acts as a singleton source of truth for command logging timestamps.
+    """
+    def __init__(self):
+        self._start_offset = 0.0
+        self.reset()
+
+    def reset(self):
+        """Resets the timer to 0.0 relative to the current FPGA timestamp."""
+        self._start_offset = wpilib.Timer.getFPGATimestamp()
+
+    def get(self):
+        """Returns the time in seconds since the last reset."""
+        return wpilib.Timer.getFPGATimestamp() - self._start_offset
+
+# Global instance to be used by the decorator and the robot class
+log_timer = LogTimer()
 
 def log_command(cls=None, *, console=True, nt=False, print_init=True, print_end=True):
     """
@@ -41,10 +61,7 @@ def log_command(cls=None, *, console=True, nt=False, print_init=True, print_end=
         def new_initialize(self):
             # --- Logging Start Logic ---
             # Set start_time for duration calculation later
-            if hasattr(self, 'container') and hasattr(self.container, 'timer'):
-                self.start_time = round(self.container.timer.get(), 2)
-            else:
-                self.start_time = round(time.time(), 2)
+            self.start_time = round(log_timer.get(), 2)
 
             # --- Run Original Initialize First ---
             orig_init(self)
@@ -76,10 +93,7 @@ def log_command(cls=None, *, console=True, nt=False, print_init=True, print_end=
             
             # --- Logging End Logic ---
             if print_end:
-                if hasattr(self, 'container') and hasattr(self.container, 'timer'):
-                    end_time = self.container.timer.get()
-                else:
-                    end_time = time.time()
+                end_time = log_timer.get()
 
                 start_time = getattr(self, "start_time", end_time)
                 duration = end_time - start_time
