@@ -68,7 +68,9 @@ class MyRobot(commands2.TimedCommandRobot):
     def autonomousInit(self) -> None:
         """This autonomous runs the autonomous command selected by your RobotContainer class."""
 
-        log_command.log_timer.reset()  # want this before the scheduler
+        # Reset the timer used by the @log_command decorator.
+        # This ensures that command logs start at 0.0s for the beginning of Autonomous.
+        log_command.reset()
 
         self.autonomousCommand = self.container.get_autonomous_command()
 
@@ -80,7 +82,9 @@ class MyRobot(commands2.TimedCommandRobot):
 
     def teleopInit(self) -> None:
 
-        log_command.log_timer.reset()
+        # Reset the timer used by the @log_command decorator.
+        # This ensures that command logs start at 0.0s for the beginning of Teleop.
+        log_command.reset()
         # self.container.swerve.use_photoncam = False
 
         # This makes sure that the autonomous stops running when

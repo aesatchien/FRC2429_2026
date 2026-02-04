@@ -5,10 +5,11 @@ import wpilib
 # Global publisher for alerts
 _alert_pub = ntcore.NetworkTableInstance.getDefault().getStringTopic("/SmartDashboard/alert").publish()
 
-class LogTimer:
+class _LogTimer:
     """
     Encapsulates the 'Time Since Enabled' logic.
     Acts as a singleton source of truth for command logging timestamps.
+    Internal use only.
     """
     def __init__(self):
         self._start_offset = 0.0
@@ -22,8 +23,17 @@ class LogTimer:
         """Returns the time in seconds since the last reset."""
         return wpilib.Timer.getFPGATimestamp() - self._start_offset
 
-# Global instance to be used by the decorator and the robot class
-log_timer = LogTimer()
+# Internal global instance
+_log_timer = _LogTimer()
+
+# Public API functions
+def reset():
+    """Resets the global log timer. Call this in autonomousInit and teleopInit."""
+    _log_timer.reset()
+
+def get_time():
+    """Returns the current log time in seconds."""
+    return _log_timer.get()
 
 def log_command(cls=None, *, console=True, nt=False, print_init=True, print_end=True):
     """
@@ -61,7 +71,7 @@ def log_command(cls=None, *, console=True, nt=False, print_init=True, print_end=
         def new_initialize(self):
             # --- Logging Start Logic ---
             # Set start_time for duration calculation later
-            self.start_time = round(log_timer.get(), 2)
+            self.start_time = round(get_time(), 2)
 
             # --- Run Original Initialize First ---
             orig_init(self)
@@ -93,7 +103,7 @@ def log_command(cls=None, *, console=True, nt=False, print_init=True, print_end=
             
             # --- Logging End Logic ---
             if print_end:
-                end_time = log_timer.get()
+                end_time = get_time()
 
                 start_time = getattr(self, "start_time", end_time)
                 duration = end_time - start_time

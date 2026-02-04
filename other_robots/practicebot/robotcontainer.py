@@ -175,7 +175,7 @@ class RobotContainer:
             # because that's what `cmd` is when the loop finishes.
             # By setting `cmd=cmd` as a default argument, we force the lambda to capture
             # the *current* value of `cmd` during each iteration of the loop.
-            wpilib.SmartDashboard.putData(f'{command_prefix}/{cmd}', commands2.InstantCommand(lambda cmd=cmd: print(f'Called {cmd} at {wpilib.Timer.getFPGATimestamp():.1f}'))
+            wpilib.SmartDashboard.putData(f'{command_prefix}/{cmd}', commands2.InstantCommand(lambda cmd=cmd: print(f'Called {cmd} at {wpilib.Timer.getFPGATimestamp():.1f}s'))
                                           .alongWith(commands2.WaitCommand(2)).ignoringDisable(True))
 
         # end pyqt dashboard section
