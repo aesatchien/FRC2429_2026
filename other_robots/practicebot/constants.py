@@ -147,11 +147,13 @@ class DrivetrainConstants:
 class IntakeConstants:
     k_counter_offset = next(_counter)
     k_CANID_intake = 9  # IDK
+    k_CANID_dropper = 10  # IDK
 
     k_intake_config = SparkMaxConfig()
     k_intake_configs = [k_intake_config]
     k_test_rpm = 20  # pi * diameter roller / 60  to get inches per second
     k_fastest_rpm = 60
+    k_dropper_rpm = 10 
 
     k_intake_config.inverted(False)
 
