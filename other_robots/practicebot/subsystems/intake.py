@@ -37,7 +37,7 @@ class Intake(Subsystem):
             else rev.PersistMode.kNoPersistParameters
 
         # put the configs in a list matching the motors
-        self.configs = [ic.k_intake_configs, ic.k_dropper_configs]
+        self.configs = ic.k_intake_configs + ic.k_dropper_configs
 
         # this should be its own function later - we will call it whenever we change brake mode
         rev_errors = [motor.configure(config, self.rev_resets, self.rev_persists)

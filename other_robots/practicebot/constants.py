@@ -151,6 +151,8 @@ class IntakeConstants:
 
     k_intake_config = SparkMaxConfig()
     k_intake_configs = [k_intake_config]
+    k_dropper_config = SparkMaxConfig()
+    k_dropper_configs = [k_dropper_config]
     k_test_rpm = 20  # pi * diameter roller / 60  to get inches per second
     k_fastest_rpm = 60
     k_dropper_rpm = 10 
