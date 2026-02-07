@@ -7,6 +7,7 @@ from rev import ClosedLoopSlot, SparkClosedLoopController, SparkFlexConfig, Spar
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d, Transform2d
 from wpimath.units import inchesToMeters, lbsToKilograms
 from typing import Union, List
+
 from helpers.utilities import set_config_defaults
 
 k_swerve_config = "comp"
@@ -144,6 +145,25 @@ class DrivetrainConstants:
     k_pose_stdevs_disabled = (1, 1, 2)  # use when we are disabled to quickly get updates
     k_pose_stdevs_small = (0.1, 0.1, 10)  # use when you do trust the tags
 
+
+class TurretConstants:
+    k_radians = 0
+    k_CAN_id = 30
+    k_config = SparkMaxConfig()
+    k_counter_offset = 1
+    set_config_defaults(k_config)
+    k_abs_encoder_readout_when_at_zero_position = 0
+    k_tolerance = 0
+    k_nt_debugging = True
+
+    k_delay_between_balls = 1 / 5 * 50  # we want 200 milliseconds which is 1/5 of a second, setting it to 1/5 of our loop rate every second
+    k_indexer_balls_per_rotation = 4
+    k_config.inverted(True)
+    k_indexer_gear_ratio = 5
+    k_indexer_position_conversion_factor = 1 / k_indexer_gear_ratio
+    k_config.encoder.positionConversionFactor(k_indexer_position_conversion_factor)
+    k_config.encoder.velocityConversionFactor(k_indexer_position_conversion_factor)  # currently RPM
+
 class IntakeConstants:
     k_counter_offset = next(_counter)
     k_CANID_intake = 9  # IDK
@@ -187,3 +207,4 @@ class ShooterConstants:
 
 class ClimberConstants:
     k_counter_offset = next(_counter)
+
