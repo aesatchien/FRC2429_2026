@@ -34,7 +34,7 @@ class PhysicsEngine:
         # 2025 Update: Use LinearSystemId to create the plant (Motor, MOI, Gearing)
         self.flywheel_plant = plant.LinearSystemId.flywheelSystem(plant.DCMotor.NEO(1), 0.01, 1.0)
         self.flywheel_sim = FlywheelSim(self.flywheel_plant, plant.DCMotor.NEO(1))
-        self.flywheel_spark = rev.SparkMaxSim(self.container.shooter.flywheel_left_leader, plant.DCMotor.NEO(1))
+        self.flywheel_spark = rev.SparkFlexSim(self.container.shooter.flywheel_left_leader, plant.DCMotor.NEO(1))
         
         # Access internal SimDevice to read 'Reference' for closed-loop simulation
         self.flywheel_sim_device = SimDeviceSim(f"SPARK MAX [{self.container.shooter.flywheel_left_leader.getDeviceId()}]")
