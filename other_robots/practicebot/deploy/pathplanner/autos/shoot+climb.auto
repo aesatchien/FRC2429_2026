@@ -5,22 +5,9 @@
     "data": {
       "commands": [
         {
-          "type": "parallel",
+          "type": "path",
           "data": {
-            "commands": [
-              {
-                "type": "named",
-                "data": {
-                  "name": "go to hub"
-                }
-              },
-              {
-                "type": "path",
-                "data": {
-                  "pathName": "1+n LEFT shoot+climb"
-                }
-              }
-            ]
+            "pathName": "1+n Climb"
           }
         }
       ]

@@ -3,12 +3,8 @@
   "robotLength": 0.7,
   "holonomicMode": true,
   "pathFolders": [
-    "1+0",
-    "1+0 trough",
-    "1+1",
-    "1+1 left",
-    "1+n RIGHT",
-    "1+n LEFT"
+    "1+n LEFT",
+    "1+n RIGHT"
   ],
   "autoFolders": [
     "shoot+climb"
