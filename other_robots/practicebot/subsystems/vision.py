@@ -1,6 +1,6 @@
 import wpilib
 from commands2 import SubsystemBase
-from wpilib import SmartDashboard, DriverStation
+from wpilib import DriverStation
 import ntcore
 from ntcore import NetworkTableInstance
 from wpimath.geometry import Pose2d, Rotation2d, Transform2d, Translation2d
@@ -66,6 +66,9 @@ class Vision(SubsystemBase):
             self.camera_dict[key]['strafe_entry'] = self.inst.getDoubleTopic(f"{base_topic}/strafe").subscribe(0)
             self.camera_dict[key]['rotation_entry'] = self.inst.getDoubleTopic(f"{base_topic}/rotation").subscribe(0)
 
+        # Subscribe to Swerve drive_y for simulation logic
+        self.drive_y_sub = self.inst.getDoubleTopic(f"{constants.swerve_prefix}/drive_y").subscribe(0)
+
         if constants.VisionConstants.k_print_config:
             print('\n*** VISION.PY CAMERA DICT ***')
             for key, item in self.camera_dict.items():
@@ -90,7 +93,7 @@ class Vision(SubsystemBase):
 
     def get_strafe(self, camera_key: str) -> float:
         if wpilib.RobotBase.isSimulation() and constants.CameraConstants.k_cameras[camera_key]['type'] == 'tags':  # trick the sim into thinking we are on tag 18
-            drive_y = SmartDashboard.getNumber('drive_y', 0)
+            drive_y = self.drive_y_sub.get()
             y_dist = drive_y - 4.025900  # will be positive if we are left of tag,right if center
             # pretend that we get 100% change over a meter
             if math.fabs(y_dist) > 0.5:  # todo - make this dist from tag

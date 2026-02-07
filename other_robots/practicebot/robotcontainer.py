@@ -21,6 +21,9 @@ from subsystems.quest import Questnav
 from subsystems.robot_state import RobotState
 from subsystems.swerve import Swerve
 from subsystems.vision import Vision
+from subsystems.shooter import Shooter
+from subsystems.intake import Intake
+
 # from subsystems.questnav_2429 import QuestnavModule
 
 # 2429 "auto" commands - just an organizational division of commands
@@ -38,7 +41,10 @@ from commands.set_leds import SetLEDs
 from commands.sim_show_fov import SimShowFOV
 from commands.move_training_box import MoveTrainingBox
 from commands.swerve_test import SwerveTest
-from commands.track_hub import TrackHub
+
+from commands.shooting_command import ShootingCommand
+from commands.intake_set import Intake_Set
+
 
 
 class RobotContainer:
@@ -49,8 +55,6 @@ class RobotContainer:
     """
 
     def __init__(self) -> None:
-        self.timer = wpilib.Timer()
-        self.timer.start()
 
         # The robot's subsystems
         self.questnav = Questnav()  # going to break the silo convention and let the Swerve see the quest for now
@@ -59,6 +63,8 @@ class RobotContainer:
         self.robot_state = RobotState()  # currently has a callback that LED can register
         self.led = Led(robot_state=self.robot_state)  # may want LED last because it may want to know about other systems
         # self.questnav_2429 = QuestnavModule()
+        self.shooter = Shooter()
+        self.intake = Intake()
 
         self.configure_joysticks()
         self.bind_driver_buttons()
@@ -171,7 +177,7 @@ class RobotContainer:
             # because that's what `cmd` is when the loop finishes.
             # By setting `cmd=cmd` as a default argument, we force the lambda to capture
             # the *current* value of `cmd` during each iteration of the loop.
-            wpilib.SmartDashboard.putData(f'{command_prefix}/{cmd}', commands2.InstantCommand(lambda cmd=cmd: print(f'Called {cmd} at {self.timer.get():.1f}'))
+            wpilib.SmartDashboard.putData(f'{command_prefix}/{cmd}', commands2.InstantCommand(lambda cmd=cmd: print(f'Called {cmd} at {wpilib.Timer.getFPGATimestamp():.1f}s'))
                                           .alongWith(commands2.WaitCommand(2)).ignoringDisable(True))
 
         # end pyqt dashboard section
@@ -186,11 +192,15 @@ class RobotContainer:
                 commands2.cmd.runOnce(lambda: setattr(self.robot_state, 'target', selected_value))))
         wpilib.SmartDashboard.putData(f'{command_prefix}/RobotScoringMode', self.score_test_chooser)
 
-        # self.auto_chooser = AutoBuilder.buildAutoChooser('')  # this loops through the path planner deploy directory
+        # self.auto_chooser = AutoBuilder.buildAutoChooser('')  # this loops through the path planner deploy directory - must exist 
         self.auto_chooser = wpilib.SendableChooser()  #  use this if you don't have any pathplanner autos defined
         self.auto_chooser.setDefaultOption('1:  Wait *CODE*', PrintCommand("** Running wait auto **").andThen(commands2.WaitCommand(15)))
-        self.auto_chooser.addOption('2a: Drive 2s Straight *CODE*', PrintCommand("** Running drive by velocity swerve leave auto **").andThen(DriveByVelocitySwerve(self, self.swerve, Pose2d(0.1, 0, 0), 2)))
-        self.auto_chooser.addOption('2b: Drive 2s To Driver Station *CODE*', PrintCommand("** Running drive by velocity swerve leave auto **").andThen(DriveByVelocitySwerve(self, self.swerve, Pose2d(0.1, 0, 0), 2.5, field_relative=True)))
+        self.auto_chooser.addOption('2a: Drive 2s Straight *CODE*',
+                                    PrintCommand("** Running drive by velocity swerve leave auto **").
+                                    andThen(DriveByVelocitySwerve(self, self.swerve, Pose2d(0.1, 0, 0), 2)))
+        self.auto_chooser.addOption('2b: Drive 2s To Driver Station *CODE*',
+                                    PrintCommand("** Running drive by velocity swerve leave auto **").
+                                    andThen(DriveByVelocitySwerve(self, self.swerve, Pose2d(0.1, 0, 0), 2.5, field_relative=True)))
         wpilib.SmartDashboard.putData('autonomous routines', self.auto_chooser)  #
 
 
@@ -202,9 +212,16 @@ class RobotContainer:
         # test a setting of the swerve modules straight before running the auto to tag
         # self.triggerA.whileTrue(commands2.cmd.run(lambda: self.swerve.set_straight(), self.swerve))
         # self.triggerA.whileTrue(SwerveTest(self, self.swerve))
-        self.triggerA.whileTrue(TrackHub(self))
+
+        #self.triggerA.whileTrue(TrackHub(self))
         #self.triggerA.debounce(0.1).whileTrue(AutoToPoseClean(self, self.swerve, target_pose=None, use_vision=True, cameras=['logi_front_hsv'], control_type='not_pathplanner'))
         self.triggerX.debounce(0.1).whileTrue(AutoToPoseClean(self, self.swerve, target_pose=None, use_vision=True, cameras=['logi_left_hsv'], control_type='not_pathplanner'))
+
+        self.triggerA.whileTrue(ShootingCommand(container=self, shooter=self.shooter))
+        self.triggerX.whileTrue(Intake_Set(intake=self.intake, rpm=1000))
+        #self.triggerA.debounce(0.1).whileTrue(AutoToPoseClean(self, self.swerve, target_pose=None, use_vision=True, cameras=['logi_front_hsv'], control_type='not_pathplanner'))
+        #self.triggerX.debounce(0.1).whileTrue(AutoToPoseClean(self, self.swerve, target_pose=None, use_vision=True, cameras=['logi_left_hsv'], control_type='not_pathplanner'))
+
         self.triggerB.debounce(0.1).whileTrue(AutoTrackVisionTarget(self, camera_key='logi_front_hsv', target_distance=0.40))
 
         self.triggerLB.whileTrue(SimShowFOV(self))
@@ -218,8 +235,8 @@ class RobotContainer:
             #self.triggerB.onTrue(commands2.cmd.runOnce(lambda: setattr(self.robot_state, 'side', RobotState.Side.RIGHT)))
             #self.triggerB.debounce(0.1).whileTrue(AutoToPoseClean(self, self.swerve, target_pose=None, nearest=True, from_robot_state=False,control_type='not_pathplanner'))
 
-        # set up dpad to allow slow, smooth robot-centric alignment
-        dpad_output = 0.125
+        # set up dpad to allow slow, smooth robot-centric alignment - but give it enough to get over the bump
+        dpad_output = 0.1
         self.triggerUp.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(dpad_output, 0, 0), timeout=10))
         self.triggerDown.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(-dpad_output, 0, 0), timeout=10))
         self.triggerLeft.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(0, dpad_output, 0), timeout=10))
@@ -233,8 +250,9 @@ class RobotContainer:
 
 
     def register_commands(self):
-        # this is for PathPlanner, so it can call our commands
-        NamedCommands.registerCommand('robot state left', commands2.cmd.runOnce(lambda: setattr(self.robot_state, 'side', RobotState.Side.RIGHT)).ignoringDisable(True))
+        # this is for PathPlanner, so it can call our commands.  Note they do not magically show up in pathplanner
+        # you have to add them there, and then it remembers your list of commands.  so name them wisely
+        NamedCommands.registerCommand('robot_state_left', commands2.cmd.runOnce(lambda: setattr(self.robot_state, 'side', RobotState.Side.LEFT)).ignoringDisable(True))
 
 
     def get_autonomous_command(self):

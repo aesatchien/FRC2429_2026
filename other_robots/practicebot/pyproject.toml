@@ -49,9 +49,9 @@ components = [
 requires = [
     "protobuf>=6.0,<7",
     "robotpy-urcl",
-    "robotpy-pathplannerlib==2026.1.1",
-    "robotpy-navx==2026.0.0b1",
-    "robotpy-rev==2026.0.1",
+    "robotpy-pathplannerlib>=2026.1.1",
+    "robotpy-navx>=2026.0.0",
+    "robotpy-rev>=2026.0.1",
 
 ]
 

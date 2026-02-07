@@ -1,4 +1,5 @@
 # constants for the 2024 robot
+from itertools import count
 import math
 import wpilib
 import rev
@@ -7,8 +8,12 @@ from wpimath.geometry import Pose2d, Rotation2d, Translation2d, Transform2d
 from wpimath.units import inchesToMeters, lbsToKilograms
 from typing import Union, List
 
+from helpers.utilities import set_config_defaults
 
-k_swerve_config = "practice"
+k_swerve_config = "comp"
+
+# Generator for unique counter offsets
+_counter = count(1)
 
 # TODO - organize this better
 k_enable_logging = True  # allow logging from Advantagescope (in swerve.py), but really we may as well start it here
@@ -34,7 +39,8 @@ vision_prefix = r'/SmartDashboard/Vision'  # from the robot
 swerve_prefix = r'/SmartDashboard/Swerve'  # from the robot
 sim_prefix = r'/SmartDashboard/Sim'  # from the sim (still from the robot)
 auto_prefix = r'/SmartDashboard/Auto'  # one place for all of our auto goals and temp variables
-command_prefix = r'Command'  # SPECIAL CASE: the SmartDashboard.putData auto prepends /SmartDashboard to the key
+command_prefix = r'Command'  # SPECIAL CASE: the SmartDashboard.putData auto prepends /SmartDashboard to the key\
+intake_prefix = r'/SmartDashboard/Intake'  # intake subsystem
 
 
 k_swerve_debugging_messages = True
@@ -86,7 +92,7 @@ class CameraConstants:
 
 
 class SimConstants:
-    k_counter_offset = 1
+    k_counter_offset = next(_counter)
     k_cam_distance_limit = 4  # sim testing how far targets can be - usually 3 to 3.5m on the real cameras
     k_tag_visibility_angle = 60  # degrees, the angle from normal that the tag can be seen (90 means +/- 90 deg)
 
@@ -101,7 +107,7 @@ class SimConstants:
 
 class VisionConstants:
 
-    k_counter_offset = 2
+    k_counter_offset = next(_counter)
     k_nt_debugging = False  # print extra values to NT for debugging
     k_pi_names = ["top_pi"]
 
@@ -111,13 +117,13 @@ class VisionConstants:
 
 
 class QuestConstants:
-    k_counter_offset = 3
+    k_counter_offset = next(_counter)
     quest_to_robot = Transform2d(inchesToMeters(0), inchesToMeters(9.5), Rotation2d().fromDegrees(0))
 
 
 class LedConstants:
 
-    k_counter_offset = 4
+    k_counter_offset = next(_counter)
     k_nt_debugging = False  # print extra values to NT for debugging
     k_led_count = 40  # correct as of 2025 0305
     k_led_count_ignore = 4  # flat ones not for the height indicator
@@ -125,12 +131,12 @@ class LedConstants:
 
 class RobotStateConstants:
 
-    k_counter_offset = 5
+    k_counter_offset = next(_counter)
     k_nt_debugging = False  # print extra values to NT for debugging
 
 class DrivetrainConstants:
 
-    k_counter_offset = 6
+    k_counter_offset = next(_counter)
     k_nt_debugging = False  # print extra values to NT for debugging
     # these are for the apriltags.  For the most part, you want to trust the gyro, not the tags for angle
     # based on https://www.chiefdelphi.com/t/swerve-drive-pose-estimator-and-add-vision-measurement-using-limelight-is-very-jittery/453306/13
@@ -139,21 +145,6 @@ class DrivetrainConstants:
     k_pose_stdevs_disabled = (1, 1, 2)  # use when we are disabled to quickly get updates
     k_pose_stdevs_small = (0.1, 0.1, 10)  # use when you do trust the tags
 
-def set_config_defaults(configs: Union[SparkMaxConfig, List[SparkMaxConfig]]) -> None:
-    """
-    Applies default configuration settings to a single config object or a list of config objects.
-    Args:
-        configs: A single configuration object or a list of configuration objects.
-    """
-    # Check if the input is a list (or any sequence except a string/bytes)
-    if isinstance(configs, (list, tuple)):
-        config_list = configs
-    else:
-        config_list = [configs]  # If it's a single item, wrap it in a list for the loop
-    for config in config_list:
-        config.voltageCompensation(12)
-        config.setIdleMode(SparkMaxConfig.IdleMode.kBrake)
-        config.smartCurrentLimit(40)
 
 class TurretConstants:
     k_radians = 0
@@ -172,3 +163,48 @@ class TurretConstants:
     k_indexer_position_conversion_factor = 1 / k_indexer_gear_ratio
     k_config.encoder.positionConversionFactor(k_indexer_position_conversion_factor)
     k_config.encoder.velocityConversionFactor(k_indexer_position_conversion_factor)  # currently RPM
+
+class IntakeConstants:
+    k_counter_offset = next(_counter)
+    k_CANID_intake = 9  # IDK
+    k_CANID_dropper = 10  # IDK
+
+    k_intake_config = SparkMaxConfig()
+    k_intake_configs = [k_intake_config]
+    k_dropper_config = SparkMaxConfig()
+    k_dropper_configs = [k_dropper_config]
+    k_test_rpm = 20  # pi * diameter roller / 60  to get inches per second
+    k_fastest_rpm = 60
+    k_dropper_rpm = 10 
+
+    k_intake_config.inverted(False)
+
+    set_config_defaults(k_intake_configs)
+
+class ShooterConstants:
+
+    k_counter_offset = next(_counter)
+    k_CANID_indexer = 5
+    k_CANID_flywheel_left_leader, k_CANID_flywheel_right_follower = 7, 8  # left flywheel and follower
+    k_CANID_turret = 9
+
+    # FLYWHEEL
+    k_flywheel_left_leader_config, k_flywheel_right_follower_config = SparkMaxConfig(), SparkMaxConfig()
+    k_flywheel_configs = [k_flywheel_left_leader_config, k_flywheel_right_follower_config]
+    k_test_speed = 4000
+    k_fastest_speed = 6500
+    k_test_rpm = 20
+    k_fastest_rpm = 60
+
+    k_flywheel_left_leader_config.inverted(False)  # have to check which way it spins for positive RPM
+    # k_flywheel_right_follower.inverted(False)  # this is not necessary - it will get ignored
+
+    # set up the followers
+    k_flywheel_right_follower_config.follow(k_CANID_flywheel_left_leader, invert=False)  # depends on motor placement
+
+    #setting brake, voltage compensation, and current limit for the flywheel motors
+    set_config_defaults(k_flywheel_configs)
+
+class ClimberConstants:
+    k_counter_offset = next(_counter)
+

@@ -334,8 +334,10 @@ class UIUpdater:
             return
 
         new_list = sub.get()
+        list_changed = False
         if new_list != props.get('last_value'):
             props['last_value'] = new_list
+            list_changed = True
             widget.blockSignals(True)
             widget.clear()
             widget.addItems(new_list)
@@ -345,7 +347,8 @@ class UIUpdater:
         selected_sub = props.get('selected_subscriber')
         if selected_sub:
             selected_routine = selected_sub.get()
-            if selected_routine != props.get('last_selected_value'):
+            # If the list changed, we MUST re-set the text because clear() wiped it
+            if list_changed or selected_routine != props.get('last_selected_value'):
                 props['last_selected_value'] = selected_routine
                 widget.blockSignals(True)
                 widget.setCurrentText(selected_routine)

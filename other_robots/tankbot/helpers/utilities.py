@@ -1,6 +1,4 @@
 # repo for utility functions anyone can use
-import functools
-import warnings
 from typing import Union, List
 from rev import ClosedLoopSlot, SparkMaxConfig, SparkFlexConfig
 
@@ -96,46 +94,6 @@ def compare_motors(motor_a, motor_b, name_a="Motor A", name_b="Motor B"):
         # Print row with clean descriptive name
         print(f"{marker} {key:<{col_width_label - 2}} | {val_a:<{col_width_data}} | {val_b:<{col_width_data}}")
     print()
-
-def deprecated(reason):
-    """
-    A decorator to mark a class or function as deprecated.
-    Emits a warning when the class is instantiated or function is called.
-    """
-    # This is the outer function that takes the reason string.
-    def decorator(cls_or_func):
-        # This is the actual decorator that wraps the class or function.
-        if isinstance(cls_or_func, type):
-            # It's a class
-            orig_init = cls_or_func.__init__
-
-            # @functools.wraps preserves the original function's name and docstring.
-            @functools.wraps(orig_init)
-            def new_init(self, *args, **kwargs):
-                # stacklevel=2 makes the warning point to the code that *called*
-                # the deprecated class, not to this line in the decorator.
-                warnings.warn(
-                    f"{cls_or_func.__name__} is deprecated: {reason}",
-                    DeprecationWarning,
-                    stacklevel=2
-                )
-                orig_init(self, *args, **kwargs)
-
-            cls_or_func.__init__ = new_init
-            return cls_or_func
-        else:
-            # It's a function
-            # @functools.wraps preserves the original function's name and docstring.
-            @functools.wraps(cls_or_func)
-            def wrapper(*args, **kwargs):
-                warnings.warn(
-                    f"{cls_or_func.__name__} is deprecated: {reason}",
-                    DeprecationWarning,
-                    stacklevel=2
-                )
-                return cls_or_func(*args, **kwargs)
-            return wrapper
-    return decorator
 
 # Example usage:
 # compare_motors_2025(left_drive, right_drive, "Left_Master", "Right_Master")

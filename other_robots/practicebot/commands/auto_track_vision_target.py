@@ -3,7 +3,7 @@ from wpimath.controller import PIDController, ProfiledPIDController
 from wpimath.trajectory import TrapezoidProfile
 from subsystems.swerve import Swerve
 from subsystems.vision import Vision
-from helpers.decorators import log_command
+from helpers.log_command import log_command
 
 @log_command(console=True, nt=False, print_init=True, print_end=True)
 class AutoTrackVisionTarget(commands2.Command):

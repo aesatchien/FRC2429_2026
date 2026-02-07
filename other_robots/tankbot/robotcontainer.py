@@ -10,6 +10,7 @@ from constants import ShooterConstants as sc
 
 from commands.drive_by_joystick import DriveByJoystick
 from commands.shooting_log_command import ShootingCommandLogging
+from commands.increment_shooter import IncrementShooter
 from commands.log_test import LogTest
 
 from subsystems.drivetrain import Drivetrain
@@ -72,7 +73,9 @@ class RobotContainer:
 
         self.triggerY.onTrue(ShootingCommandLogging(container=self, shooter=self.shooter, continuous=False, balls=2))
 
-        self.trigger_down.onTrue(LogTest(container=self, indent=0).ignoringDisable(True))
+        self.trigger_up.onTrue(IncrementShooter(container=self, shooter=self.shooter, speed_change=1))
+
+        self.trigger_down.onTrue(IncrementShooter(container=self, shooter=self.shooter, speed_change=-1))
 
         # ------------ DEMONSTRATE PRINT COMMANDS  --------------
         # easy to ready way - linear, not using method chaining
@@ -94,12 +97,12 @@ class RobotContainer:
 
         # ------------ DEMONSTRATE DRIVING THE TANK WITH "RUN" COMMANDS  --------------
         # more things we can do with triggers - RunCommand is going to execute continuously
-        self.trigger_up.whileTrue(
-            commands2.RunCommand(
-                lambda: self.drive.tank_drive(leftSpeed=0.1, rightSpeed=0.1),self.drive,)
-            .beforeStarting(lambda: (print(f"up pressed {self.timer.get():.2f}s ", end='')))
-            .finallyDo(lambda interrupted: (print(f"up released {self.timer.get():.2f}s")))
-        )
+        # self.trigger_up.whileTrue(
+        #     commands2.RunCommand(
+        #         lambda: self.drive.tank_drive(leftSpeed=0.1, rightSpeed=0.1),self.drive,)
+        #     .beforeStarting(lambda: (print(f"up pressed {self.timer.get():.2f}s ", end='')))
+        #     .finallyDo(lambda interrupted: (print(f"up released {self.timer.get():.2f}s")))
+        # )
 
         # ------------ DEMONSTRATE INSTANT COMMANDS FOR SHOOTER TOGGLING WITH DECORATORS  --------------
         # RunCommand is not what we want here - an InstantCommand is the right call
