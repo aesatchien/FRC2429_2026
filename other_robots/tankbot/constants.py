@@ -73,6 +73,7 @@ class ShooterConstants:
     k_fastest_speed = 5600
     k_test_rpm = 2000
     k_fastest_rpm = 5600
+    motor_max_rpm = 6784  # neo vortex
 
     k_flywheel_left_leader_config.inverted(False)  # have to check which way it spins for positive RPM
     # k_flywheel_right_follower.inverted(False)  # this is not necessary - it will get ignored
@@ -81,7 +82,6 @@ class ShooterConstants:
     k_control_type = 'max_motion'
     if k_control_type == 'max_motion':
         # maxmotion - allows us to set mav velocity, acceleration and jerk, letting us crank proportional response
-        motor_max_rpm = 6784  # neo vortex
         k_flywheel_left_leader_config.closedLoop.pidf(p=2e-4, i=0, d=0, ff=1 / motor_max_rpm, slot=rev.ClosedLoopSlot.kSlot0)
 
         # Configure MAXMotion (The "Modern" Smart Motion) - Note: "maxMotion" object instead of "smartMotion"
