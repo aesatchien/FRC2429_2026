@@ -93,7 +93,7 @@ class ShooterConstants:
 
     else:
         # velocity control - has clonky starts and stops, and weak response to ball transients, and p < 1e-4 or it's oscillating
-        k_flywheel_left_leader_config.closedLoop.pidf(p=1e-4, i=0, d=0, ff=0, slot=rev.ClosedLoopSlot.kSlot0)
+        k_flywheel_left_leader_config.closedLoop.pidf(p=2e-4, i=0, d=0, ff=0, slot=rev.ClosedLoopSlot.kSlot0)
 
 
     # set up the followers
