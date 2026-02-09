@@ -77,7 +77,7 @@ class Intake(Subsystem):
     def set_intake_rpm(self, rpm=1000):
         # TODO - incorporate a PID to handle voltage sag from multiple balls
         feed_forward = min(12, 12 * rpm / 5600)  # if there is no gearing, then this gets you close
-        self.set_dropper_down(down=True) if self.dropper_down == False else None
+        # self.set_dropper_down(down=True) if self.dropper_down == False else None
         self.intake_controller.setReference(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
         print(f'set intake rpm to {rpm:.0f}')  # want to say what time it is, but can't import the container's timer easily - could use the wpilib timer
         self.intake_on = True

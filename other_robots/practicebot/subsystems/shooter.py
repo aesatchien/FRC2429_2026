@@ -60,7 +60,7 @@ class Shooter(Subsystem):
         self.shooter_on_pub.set(self.shooter_on)
 
         self.indexer_on_pub = self.inst.getBooleanTopic(f"{self.nt_prefix}/indexer_on").publish()
-        self.indexer_rpm_pub = self.inst.getDouvleTopic(f"{self.nt_prefix}/indexer_position").publish()
+        self.indexer_rpm_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/indexer_position").publish()
         self.indexer_rpm_pub.set(self.current_indexer_rpm)
         self.indexer_on_pub.set(self.indexer_on)
 
