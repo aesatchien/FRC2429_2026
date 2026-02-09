@@ -13,19 +13,24 @@ class Shooter(Subsystem):
         self.setName('Shooter')
         self.counter = sc.k_counter_offset  # note this should be an offset in constants
         self.default_rpm = sc.k_test_rpm
+        self.default_indexer_rpm = sc.k_indexer_rpm
 
         # --------------- add motors and shooter rpm ----------------
         
         motor_type = rev.SparkMax.MotorType.kBrushless
         self.flywheel_left_leader = rev.SparkMax(sc.k_CANID_flywheel_left_leader, motor_type)
         self.flywheel_right_follower = rev.SparkMax(sc.k_CANID_flywheel_right_follower, motor_type)
+        self.indexer = rev.SparkMax(sc.k_CANID_indexer, motor_type)
 
         # convenient list of motors if we need to query or set all of them
-        self.motors = [self.flywheel_left_leader, self.flywheel_right_follower]
+        self.motors = [self.flywheel_left_leader, self.flywheel_right_follower, self.indexer]
 
         # you need a controller to set velocity
         self.flywheel_controller = self.flywheel_left_leader.getClosedLoopController()
         self.flywheel_encoder = self.flywheel_left_leader.getEncoder()
+
+        self.indexer_controller = self.indexer.getClosedLoopController()
+        self.indexer_encoder = self.indexer.getEncoder()
 
         # default parameters for the sparkmaxes reset and persist modes -
         self.rev_resets = rev.ResetMode.kResetSafeParameters
@@ -33,7 +38,7 @@ class Shooter(Subsystem):
             else SparkBase.PersistMode.kNoPersistParameters
 
         # put the configs in a list matching the motors
-        self.configs = sc.k_flywheel_configs # FIXME - make this consistent
+        self.configs:list = sc.k_flywheel_configs + [sc.k_indexer_config]
  
         # this should be its own function later - we will call it whenever we change brake mode
         rev_errors = [motor.configure(config, self.rev_resets, self.rev_persists)
@@ -41,7 +46,9 @@ class Shooter(Subsystem):
 
         # initialize states
         self.shooter_on = False
+        self.indexer_on = False
         self.current_rpm = 0
+        self.current_indexer_rpm = 0
         self.voltage = 0
         self._init_networktables()
 
@@ -52,17 +59,32 @@ class Shooter(Subsystem):
         self.shooter_rpm_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/shooter_position").publish()
         self.shooter_on_pub.set(self.shooter_on)
 
+        self.indexer_on_pub = self.inst.getBooleanTopic(f"{self.nt_prefix}/indexer_on").publish()
+        self.indexer_rpm_pub = self.inst.getDouvleTopic(f"{self.nt_prefix}/indexer_position").publish()
+        self.indexer_rpm_pub.set(self.current_indexer_rpm)
+        self.indexer_on_pub.set(self.indexer_on)
+
 
     def stop_shooter(self):
         # three different ways to stop the shooter
         self.flywheel_left_leader.set(0)  # this sets the output to zero (number between -1 and 1) - it is "dumb"
         # self.shooter_l.setVoltage(0)  # this sets the voltage to zero (number between -12 and 12) - it is also "dumb"
         # self.flywheel_controller.setReference(value=0, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=0)
-
+        self.indexer_on = False
+        self.current_indexer_rpm = 0
         self.shooter_on = False
         self.current_rpm = 0
         self.voltage = 0  # CJH for 2024 testing
         self.shooter_on_pub.set(self.shooter_on)
+    
+    # keeping indexer and shooter separate, and combining them in commands.
+    def start_indexer(self, rpm=1000):
+        feed_forward = min(12, 12 * rpm / 5600)
+        self.indexer_controller.setReference(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
+        print(f'Setting indexer rpm to {rpm:.0f}')
+        self.current_indexer_rpm = rpm
+        self.indexer_on = True
+        self.indexer_on_pub.set(self.indexer_on)
 
     def set_shooter_rpm(self, rpm=1000):
         # multiple different ways to set the shooter
