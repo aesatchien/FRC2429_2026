@@ -215,7 +215,7 @@ class RobotContainer:
 
         #self.triggerA.whileTrue(TrackHub(self))
         #self.triggerA.debounce(0.1).whileTrue(AutoToPoseClean(self, self.swerve, target_pose=None, use_vision=True, cameras=['logi_front_hsv'], control_type='not_pathplanner'))
-        self.triggerX.debounce(0.1).whileTrue(AutoToPoseClean(self, self.swerve, target_pose=None, use_vision=True, cameras=['logi_left_hsv'], control_type='not_pathplanner'))
+        #self.triggerX.debounce(0.1).whileTrue(AutoToPoseClean(self, self.swerve, target_pose=None, use_vision=True, cameras=['logi_left_hsv'], control_type='not_pathplanner'))
 
         self.triggerA.whileTrue(ShootingCommand(container=self, shooter=self.shooter))
         self.triggerX.whileTrue(Intake_Set(intake=self.intake, rpm=1000))
@@ -227,6 +227,7 @@ class RobotContainer:
         self.triggerLB.whileTrue(SimShowFOV(self))
         self.triggerRB.onTrue(MoveTrainingBox(self))
         self.triggerRB.whileTrue(SwerveTest(self, self.swerve))
+        self.trigger_L_trigger.onTrue(commands2.PrintCommand("Pushed L trigger"))
 
 
         if wpilib.RobotBase.isSimulation():
