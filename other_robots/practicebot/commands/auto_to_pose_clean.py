@@ -22,7 +22,8 @@ from helpers.apriltag_utils import get_nearest_tag
 class AutoToPoseClean(commands2.Command):  #
 
     def __init__(self, container, swerve: Swerve, target_pose: Pose2d, use_vision=False, cameras=None,
-                 nearest=False, from_robot_state=False, control_type='not_pathplanner', indent=0, offset: Transform2d = None) -> None:
+                 nearest=False, from_robot_state=False, control_type='not_pathplanner', indent=0,
+                 offset: Transform2d = None) -> None:
         """
         if nearest, it overrides target_pose
         """
@@ -82,13 +83,13 @@ class AutoToPoseClean(commands2.Command):  #
             self.y_pid.setIntegratorRange(-0.1, 0.1)  # clamp min(negative) and max output of the integral term
             self.y_pid.setIZone(0.25)  # do not allow integral unless we are within 0.25m (prevents windup)
 
-            self.rot_pid = PIDController(0.7, 0.0, 0,)  # 0.5
+            self.rot_pid = PIDController(0.7, 0.0, 0, )  # 0.5
             self.rot_pid.enableContinuousInput(radians(-180), radians(180))
 
     def _init_networktables(self):
         self.inst = ntcore.NetworkTableInstance.getDefault()
         prefix = constants.auto_prefix
-        
+
         self.x_setpoint_pub = self.inst.getDoubleTopic(f"{prefix}/x_setpoint").publish()
         self.y_setpoint_pub = self.inst.getDoubleTopic(f"{prefix}/y_setpoint").publish()
         self.rot_setpoint_pub = self.inst.getDoubleTopic(f"{prefix}/rot_setpoint").publish()
@@ -98,7 +99,7 @@ class AutoToPoseClean(commands2.Command):  #
         self.x_commanded_pub = self.inst.getDoubleTopic(f"{prefix}/x_commanded").publish()
         self.y_commanded_pub = self.inst.getDoubleTopic(f"{prefix}/y_commanded").publish()
         self.rot_commanded_pub = self.inst.getDoubleTopic(f"{prefix}/rot_commanded").publish()
-        
+
         self.auto_active_pub = self.inst.getBooleanTopic(f"{prefix}/robot_in_auto").publish()
         self.goal_pose_pub = self.inst.getStructTopic(f"{prefix}/goal_pose", Pose2d).publish()
         self.auto_active_pub.set(False)
@@ -118,7 +119,8 @@ class AutoToPoseClean(commands2.Command):  #
             self.target_pose = self.container.robot_state.reef_goal_pose
 
             if wpilib.DriverStation.getAlliance() == wpilib.DriverStation.Alliance.kRed:
-                self.target_pose = self.target_pose.rotateAround(point=Translation2d(17.548 / 2, 8.062 / 2),rot=Rotation2d(math.pi))
+                self.target_pose = self.target_pose.rotateAround(point=Translation2d(17.548 / 2, 8.062 / 2),
+                                                                 rot=Rotation2d(math.pi))
 
         elif self.from_robot_state:
             self.target_pose = self.container.robot_state.reef_goal_pose
@@ -137,7 +139,8 @@ class AutoToPoseClean(commands2.Command):  #
 
                 rel_tf = Transform2d(relative_pose.translation(), relative_pose.rotation())
                 self.target_pose = current_pose.transformBy(rel_tf)
-                print(f"AutoToPose Vision: Robot Rel Move -> X: {relative_pose.X():.2f}m, Y: {relative_pose.Y():.2f}m, Rot: {relative_pose.rotation().degrees():.1f}°")
+                print(
+                    f"AutoToPose Vision: Robot Rel Move -> X: {relative_pose.X():.2f}m, Y: {relative_pose.Y():.2f}m, Rot: {relative_pose.rotation().degrees():.1f}°")
             else:
                 self.target_pose = current_pose
                 self.abort = True
@@ -149,7 +152,7 @@ class AutoToPoseClean(commands2.Command):  #
         if self.control_type == 'pathplanner':
             self.target_state.pose = self.target_pose  # set the pose of the target state
             self.target_state.heading = self.target_pose.rotation()
-            
+
             if self.swerve.flip_path():  # this is in initialize, not __init__, in case FMS hasn't told us the right alliance on boot-up
                 self.target_state_flipped = self.target_state.flip()
             else:
@@ -183,7 +186,6 @@ class AutoToPoseClean(commands2.Command):  #
             self.y_pid.reset()
             self.rot_pid.reset()
 
-
             self.x_commanded_pub.set(self.target_pose.X())
             self.y_commanded_pub.set(self.target_pose.Y())
             self.rot_commanded_pub.set(self.target_pose.rotation().degrees())
@@ -193,7 +195,6 @@ class AutoToPoseClean(commands2.Command):  #
 
     def initialize(self) -> None:
         """Called just before this Command runs the first time."""
-        self.start_time = round(self.container.timer.get(), 2)
         self.abort = False  # reset_controllers will change this if something is wrong
         self.reset_controllers()  # this is supposed to get us a new pose and reset all the parameters
 
@@ -203,7 +204,6 @@ class AutoToPoseClean(commands2.Command):  #
         self.auto_active_pub.set(True)
 
         self.extra_log_info = f'target {self.target_pose}'
-
 
     def execute(self) -> None:
         # moved here because of the auto-logger
@@ -227,12 +227,12 @@ class AutoToPoseClean(commands2.Command):  #
             # TODO optimize the last mile and have it gracefully not oscillate
             rot_max, rot_min = 0.5, 0.1
             trans_max, trans_min = 0.3, 0.1  # it browns out when you start if this is too high
-            
+
             # WPILib Way: Vector Math for Field-Centric Error
             error_vector = self.target_pose.translation() - robot_pose.translation()
             diff_x = error_vector.X()
             diff_y = error_vector.Y()
-            
+
             # Rotation Error (Handles wrapping automatically, e.g. 179 to -179 is 2 deg)
             diff_radians = (self.target_pose.rotation() - robot_pose.rotation()).radians()
 
@@ -250,9 +250,9 @@ class AutoToPoseClean(commands2.Command):  #
                 x_output = math.copysign(trans_min, x_output)
             if abs(y_output) < trans_min and not self.y_overshot and abs(diff_y) > ac.k_translation_tolerance_meters:
                 y_output = math.copysign(trans_min, y_output)
-            if abs(rot_output) < rot_min and not self.rot_overshot and abs(math.degrees(diff_radians)) > ac.k_rotation_tolerance:
+            if abs(rot_output) < rot_min and not self.rot_overshot and abs(
+                    math.degrees(diff_radians)) > ac.k_rotation_tolerance.degrees():
                 rot_output = math.copysign(rot_min, rot_output)
-
             # enforce maximum values
             x_output = x_output if math.fabs(x_output) < trans_max else math.copysign(trans_max, x_output)
             y_output = y_output if math.fabs(y_output) < trans_max else math.copysign(trans_max, y_output)
@@ -277,7 +277,7 @@ class AutoToPoseClean(commands2.Command):  #
                 msg = f'{self.counter:3d}  {diff_x:+.2f} {str(self.x_overshot):>5} {x_output:+.2f} | {diff_y:+.2f}  {str(self.y_overshot):>5} {y_output:+.2f} '
                 msg += f'| {math.degrees(diff_radians):>+6.1f}° {str(self.rot_overshot):>5} {rot_output:+.2f} | {self.tolerance_counter} '
                 print(msg)
-                
+
                 if wpilib.RobotBase.isSimulation():
                     self.x_setpoint_pub.set(self.x_pid.getSetpoint())
                     self.y_setpoint_pub.set(self.y_pid.getSetpoint())
@@ -285,7 +285,6 @@ class AutoToPoseClean(commands2.Command):  #
                     self.x_measured_pub.set(robot_pose.x)
                     self.y_measured_pub.set(robot_pose.y)
                     self.rot_measured_pub.set(robot_pose.rotation().degrees())
-
 
         self.counter += 1
 
@@ -295,7 +294,7 @@ class AutoToPoseClean(commands2.Command):  #
     def end(self, interrupted: bool) -> None:
         if wpilib.RobotBase.isSimulation():  # Cancel the Ghost Robot
             self.auto_active_pub.set(False)
-            
+
         if interrupted or self.abort:  # we killed ourself, so we want this case to also to be red
             commands2.CommandScheduler.getInstance().schedule(
                 self.container.led.set_indicator_with_timeout(Led.Indicator.kFAILUREFLASH, 2))
