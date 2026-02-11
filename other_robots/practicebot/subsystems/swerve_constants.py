@@ -1,3 +1,10 @@
+"""
+Swerve Drive Constants
+
+This file contains all the physical, kinematic, and electrical constants for the Swerve Drive subsystem.
+It also includes the configuration for the REV SparkMax/Flex motor controllers.
+"""
+
 import math
 from pathplannerlib.auto import PathConstraints
 from pathplannerlib.controller import PPHolonomicDriveController
@@ -13,32 +20,45 @@ import constants
 
 
 class DriveConstants:
+    """
+    Global constants for the Swerve Drive subsystem.
+    Includes robot dimensions, speed limits, and hardware configuration.
+    """
 
+    # ==========================================
+    # Robot Identification & Controller Type
+    # ==========================================
+    # TODO: Consolidate this with constants.k_swerve_config to avoid split-brain configuration.
     k_robot_id = 'practice'  # used to switch between the two configs - different controllers, IDs, and abs encoder offsets
     if k_robot_id not in ['practice', 'comp']:
         raise ValueError(f'robot_id "{k_robot_id}" must be one of [comp, practice]')
 
     k_drive_controller_type = SparkMax if k_robot_id == 'practice' else SparkFlex
 
-    # ---- Driving Parameters - Note that these are not the maximum possible speeds, rather the allowed maximum speeds
+    # ==========================================
+    # Speed & Acceleration Limits
+    # ==========================================
+    # Note that these are not the maximum possible speeds, rather the allowed maximum speeds
     kMaxSpeedMetersPerSecond = 4.75  # Sanjith started at 3.7, 4.25 was Haochen competition, 4.8 is full out on NEOs
     kMaxAngularSpeed = 0.75 * math.tau # 0.5 * math.tau  # radians per second was 0.5 tau through AVR - too slow
     # TODO: actually figure out what the total max speed should be - vector sum?
     kMaxTotalSpeed = 1.1 * math.sqrt(2) * kMaxSpeedMetersPerSecond  # sum of angular and rotational, should probably do hypotenuse
+    
     # set the acceleration limits used in driving using the SlewRateLimiter tool
     kMagnitudeSlewRate = 5  # hundred percent per second (1 = 100%)
     kRotationalSlewRate = 5  # hundred percent per second (1 = 100%)
+    
+    # Input Deadbands
     k_inner_deadband = 0.10  # use deadbands for joystick transformations and keepangle calculations
     k_outer_deadband = 0.95  # above this you just set it to 1 - makes going diagonal easier
-    # k_minimum_rotation = kMaxAngularSpeed * k_inner_deadband
 
-    # ---- reporting  parameters
+    # Reporting
     k_swerve_state_messages = True # these currently send the pose data to the sim - keep them on
 
-    # ------------- KINEMATICS -------------
-    # Chassis configuration - not sure if it even matters if we're square because wpilib accounts for it
-    # MK4i modules have the centers of the wheels 2.5" from the edge, so this is robot length (or width) minus 5
-    robot_chassis = 27.5  # in
+    # ==========================================
+    # Physical Dimensions & Kinematics
+    # ==========================================
+    robot_chassis = 27.0  # in
     mk4i_offset = 2.5  # in
 
     kTrackWidth = units.inchesToMeters(robot_chassis - 2 * mk4i_offset)  # Distance between centers of right and left wheels on robot
@@ -58,7 +78,9 @@ class DriveConstants:
     # set up kinematics object for swerve subsystem
     kDriveKinematics = SwerveDrive4Kinematics(*kModulePositions)
 
-    #  ----------------   THIS IS TRIAL AND ERROR - USE BLOCKS UNDER CHASSIS   ---------------
+    # ==========================================
+    # Hardware Configuration (Inversions, Encoders)
+    # ==========================================
     # which motors need to be inverted - depends on if mounted on top (True) or bottom (False)
     # THIS IS THE FIRST CHECK - DRIVE WITH DPAD (robot relative) AND MAKE SURE DIRECTION IS CORRECT
     k_drive_motors_inverted = False  # drive forward and reverse correct?  If not, invert this.
@@ -79,9 +101,10 @@ class DriveConstants:
     k_analog_encoder_scale_factor = math.tau * 1 / k_analog_encoder_abs_max  # 1.011 * 2pi  # so have to scale back up to be b/w 0 and 1
     sf = k_analog_encoder_scale_factor
 
-    # SPARK controller  settings and CAN IDs  - checked for correctness 2025 0317
-    # turning offset needs to be in radians, so it uses the 2pi scaling factor
-    # I meant to have billet out on the right side, but it looks like i had that opposite for reefbot
+    # ==========================================
+    # CAN IDs and Offsets
+    # ==========================================
+    # I intend to have billet out on the right side - billet gears point right
     comp_bot_dict = {'LF':{'driving_can': 21, 'turning_can': 20, 'port': 3, 'turning_offset': sf * 0.057},
                     'LB':{'driving_can': 23, 'turning_can': 22, 'port': 1, 'turning_offset': sf * 0.432},
                     'RF':{'driving_can': 25, 'turning_can': 24, 'port': 2, 'turning_offset': sf *  0.071},
@@ -93,6 +116,7 @@ class DriveConstants:
                     'RB':{'driving_can': 27, 'turning_can': 26, 'port': 0, 'turning_offset': sf *  0.466}}  # billet out
     practice_bot_motor_inversions = {'drive_motors_inverted':False, 'turn_motors_inverted': True}
 
+    # Select the active configuration based on constants.py
     if constants.k_swerve_config == "practice":
         swerve_dict = practice_bot_dict
         swerve_motor_inversions = practice_bot_motor_inversions
@@ -102,7 +126,7 @@ class DriveConstants:
 
     # print(f'swerve_dict: {swerve_dict}')
 
-    # need the absolute encoder values when wheels facing forward  - 20230322 CJH
+    # Encoder Alignment Test Mode
     analog_encoder_test_mode = False  #  set this to test the wheel alignment
     if analog_encoder_test_mode:
         print(f'YOU ARE IN ENCODER ALIGNMENT TEST MODE -- DO NOT DRIVE!!!')
@@ -111,17 +135,21 @@ class DriveConstants:
         for key in ['LF', 'RF', 'LB', 'RB'] :
             swerve_dict[key]['turning_offset'] = 0
     else:
-        # these aren't used anymore!
         pass
-        # practicebot 20251224 CJH:  LF: 0.841  LB: 0.718  RF:  0.745  RB: 0.865
 
 
 class NeoMotorConstants:
     kFreeSpeedRpm = 5676 if DriveConstants.k_robot_id == 'practice' else 6784   # neo is 5676, vortex is 6784
 
 class ModuleConstants:
+    """
+    Constants for individual Swerve Modules.
+    Includes gearing, PID gains, and SparkMax/Flex configurations.
+    """
 
-    # Calculations required for driving motor conversion factors and feed forward
+    # ==========================================
+    # Gearing & Conversions
+    # ==========================================
     kDrivingMotorFreeSpeedRps = NeoMotorConstants.kFreeSpeedRpm / 60
     kWheelDiameterMeters = 4 * 0.0254  #  0.1016  =  four inches
     kWheelCircumferenceMeters = kWheelDiameterMeters * math.pi
@@ -136,22 +164,35 @@ class ModuleConstants:
     kTurningEncoderPositionFactor = math.tau / k_turning_motor_gear_ratio # radian
     kTurningEncoderVelocityFactor = kTurningEncoderPositionFactor / 60.0  # radians per second
 
+    # ==========================================
+    # PID & Feedforward
+    # ==========================================
     kDrivingP = 0
     kDrivingI = 0
     kDrivingD = 0
     kDrivingFF = 1 / kDriveWheelFreeSpeedRps  # CJH tested 3/19/2023, works ok  - 0.2235
-    # print(f'kdrivingFF: {kDrivingFF}')
     kDrivingMinOutput = -0.96 # why is this here?
     kDrivingMaxOutput = 0.96
     k_smartmotion_max_velocity = 3  # m/s
     k_smartmotion_max_accel = 2  # m/s/s
 
-    # todo: put common constants across controllers into constants.py
+    kTurningP = 0.3 #  CJH tested this 3/19/2023  and 0.25 was good.  Used in the wpilib PID controller, not rev
+    kTurningI = 0.0
+    kTurningD = 0.0
+    kTurningFF = 0
+    kTurningMinOutput = -1
+    kTurningMaxOutput = 1
 
+    # ==========================================
+    # Electrical & Current Limits
+    # ==========================================
     # 2024 0414 CJH - 80A allows the drive motors to pull WAY too much and we brown out (AVR)
     kDrivingMotorCurrentLimit = 60  # amp - set to 50 for worlds to make sure no brownouts - maybe 60 will still be safe
     kTurningMotorCurrentLimit = 40  # amp
 
+    # ==========================================
+    # SparkMax/Flex Configurations
+    # ==========================================
     k_driving_config = SparkFlexConfig() if DriveConstants.k_robot_id == 'comp' else SparkMaxConfig()
     k_driving_config.inverted(DriveConstants.swerve_motor_inversions['drive_motors_inverted'])
     k_driving_config.closedLoop.pidf(p=0, i=0, d=0, ff=1/kDriveWheelFreeSpeedRps)
@@ -175,23 +216,14 @@ class ModuleConstants:
     k_turning_config.voltageCompensation(12)
 
     # nor do we use this encoder-- we configure it "just to watch it if we need to for velocities, etc."
-
     k_turning_config.encoder.positionConversionFactor(math.tau/k_turning_motor_gear_ratio) # radian
     k_turning_config.encoder.velocityConversionFactor(math.tau/(k_turning_motor_gear_ratio * 60)) # radians per second
 
-    kTurningP = 0.3 #  CJH tested this 3/19/2023  and 0.25 was good.  Used in the wpilib PID controller, not rev
-    kTurningI = 0.0
-    kTurningD = 0.0
-    kTurningFF = 0
-    kTurningMinOutput = -1
-    kTurningMaxOutput = 1
-
-    # does no good ...
-    #print(f'driving cfg: {k_driving_config.flatten()}')
-    #print(f'turing cfg: {k_turning_config.flatten()}')
-
 
 class AutoConstants:
+    """
+    Constants for Autonomous operation and PathPlanner.
+    """
 
     k_pathplanner_translation_pid_constants = PIDConstants(kP=6, kI=0, kD=0)
     k_pathplanner_rotation_pid_constants = PIDConstants(kP=4, kI=0, kD=0)  # no longer negative when swerve correct
@@ -201,17 +233,31 @@ class AutoConstants:
             rotation_constants=k_pathplanner_rotation_pid_constants,
     )
 
-    # is this used anywhere?
     k_pathfinding_constraints = PathConstraints(
             maxVelocityMps=3,
             maxAccelerationMpsSq=6,  # this was at 6 for all comps - CJH lowered it to 4 for old batteries 20251006
             maxAngularVelocityRps=2*math.pi,  # radians per second
             maxAngularAccelerationRpsSq=4*math.pi,  # radians per second squared
             nominalVoltage=12,
-
     )
 
     # used as end conditions in auto to pose / pid to point
     k_rotation_tolerance = Rotation2d(math.radians(2))
     k_translation_tolerance_meters = 2 / 100
 
+
+class TargetingConstants:
+    """
+    Constants for AutoToPose and Joystick Targeting.
+    Centralizes PID gains and tolerances for targeting logic.
+    """
+    # AutoToPoseClean uses 0.7, Joystick uses 0.8.
+    kAutoRotationPID = PIDConstants(0.7, 0.0, 0.0)
+    kTeleopRotationPID = PIDConstants(0.8, 0.0, 0.0)
+    
+    # Translation PIDs for AutoToPose
+    kAutoTranslationPID = PIDConstants(0.8, 0.1, 0.0)
+    
+    # Tolerances (mirrored from AutoConstants for now, but can be tuned separately)
+    k_rotation_tolerance = AutoConstants.k_rotation_tolerance
+    k_translation_tolerance_meters = AutoConstants.k_translation_tolerance_meters

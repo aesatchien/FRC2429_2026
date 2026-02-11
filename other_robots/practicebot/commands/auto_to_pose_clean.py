@@ -10,7 +10,7 @@ from wpimath.geometry import Pose2d, Translation2d, Rotation2d, Transform2d
 from wpimath.filter import SlewRateLimiter
 
 import constants
-from subsystems.swerve_constants import AutoConstants as ac
+from subsystems.swerve_constants import AutoConstants as ac, TargetingConstants as tc
 from subsystems.swerve import Swerve
 from subsystems.led import Led
 from subsystems.vision import Vision
@@ -75,15 +75,15 @@ class AutoToPoseClean(commands2.Command):  #
         else:  # custom
             # trying to get it to slow down but still make it to final position
             # after 1s at 1 error the integral contribution will be Ki - so 1s at 0.1 error will output 0.1 * Ki
-            self.x_pid = PIDController(0.8, 0.1, 0.0)  # can allow for a higher Ki because of clamping below
+            self.x_pid = PIDController(tc.kAutoTranslationPID.kP, tc.kAutoTranslationPID.kI, tc.kAutoTranslationPID.kD)
             self.x_pid.setIntegratorRange(-0.1, 0.1)  # clamp Ki * Tot Error min(negative) and max output
             self.x_pid.setIZone(0.25)  # do not allow integral unless we are within 0.25m (prevents windup)
 
-            self.y_pid = PIDController(0.8, 0.1, 0.0)
+            self.y_pid = PIDController(tc.kAutoTranslationPID.kP, tc.kAutoTranslationPID.kI, tc.kAutoTranslationPID.kD)
             self.y_pid.setIntegratorRange(-0.1, 0.1)  # clamp min(negative) and max output of the integral term
             self.y_pid.setIZone(0.25)  # do not allow integral unless we are within 0.25m (prevents windup)
 
-            self.rot_pid = PIDController(0.7, 0.0, 0, )  # 0.5
+            self.rot_pid = PIDController(tc.kAutoRotationPID.kP, tc.kAutoRotationPID.kI, tc.kAutoRotationPID.kD)
             self.rot_pid.enableContinuousInput(radians(-180), radians(180))
 
     def _init_networktables(self):

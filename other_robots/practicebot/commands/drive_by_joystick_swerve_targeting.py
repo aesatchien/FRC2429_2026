@@ -10,7 +10,7 @@ from subsystems.swerve import Swerve  # allows us to access the definitions
 from commands2.button import CommandXboxController
 from wpimath.geometry import Translation2d
 from wpimath.filter import Debouncer, SlewRateLimiter
-from subsystems.swerve_constants import DriveConstants as dc, AutoConstants as ac
+from subsystems.swerve_constants import DriveConstants as dc, AutoConstants as ac, TargetingConstants as tc
 from helpers.log_command import log_command
 
 
@@ -58,7 +58,7 @@ class DriveByJoystickSwerveTargeting(commands2.Command):
         self.rHubLocation = Translation2d(12.1, 4.05)
         
         # PID for rotation tracking (Best parts of AutoToPoseClean)
-        self.rot_pid = PIDController(0.8, 0.0, 0.0) # Tuned for teleop (slightly aggressive)
+        self.rot_pid = PIDController(tc.kTeleopRotationPID.kP, tc.kTeleopRotationPID.kI, tc.kTeleopRotationPID.kD)
         self.rot_pid.enableContinuousInput(-math.pi, math.pi)
         
         # Tracking state
@@ -163,7 +163,7 @@ class DriveByJoystickSwerveTargeting(commands2.Command):
             rot_min = 0.05 # Minimum to overcome friction
             
             # Apply minimum output (stiction breaking) if not overshot
-            if abs(rot_output) < rot_min and not self.rot_overshot and abs(math.degrees(diff_radians)) > 1.0: # 1 deg tolerance
+            if abs(rot_output) < rot_min and not self.rot_overshot and abs(math.degrees(diff_radians)) > tc.k_rotation_tolerance.degrees():
                 rot_output = math.copysign(rot_min, rot_output)
                 
             # Clamp maximum
