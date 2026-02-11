@@ -3,6 +3,7 @@ import math
 import wpilib
 import wpilib.simulation as simlib  # 2021 name for the simulation library
 from  wpimath.geometry import Pose2d, Transform2d
+from wpimath.units import inchesToMeters
 from pyfrc.physics.core import PhysicsInterface
 import ntcore
 
@@ -105,8 +106,8 @@ class PhysicsEngine:
         self.mech.update_indexer(1 if self.container.shooter.indexer_on else 0)
         self.mech.update_shooter(self.container.shooter.current_rpm if self.container.shooter.shooter_on else 0)
 
-        climber_height = 22 + 8 * math.sin(1 * wpilib.getTime())  # 22±8 inches
+        climber_height = inchesToMeters(22 + 8 * math.sin(1 * wpilib.getTime()))  # 22±8 inches
         self.mech.update_climber(height_from_ground=climber_height) # Keep visible for now (15 length + 2 root)
 
         # Update ball position (static for now)
-        self.mech.update_ball(45, 3)
+        self.mech.update_ball(inchesToMeters(45), inchesToMeters(2))
