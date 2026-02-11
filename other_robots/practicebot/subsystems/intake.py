@@ -67,7 +67,6 @@ class Intake(Subsystem):
 
         self.intake_on = False
         self.current_rpm = 0
-        self.deployed = False
 
         self.update_nt()  # update all relevant state variables on networktables
 
@@ -94,7 +93,9 @@ class Intake(Subsystem):
     def set_down(self, down=True):
         # function that moves intake down to the ground, or up to stow it
         # passing a false would move the dropper up to stow
-        pass
+        self.deployed = down
+        self.update_nt()
+        return down
 
     def toggle_intake(self, rpm):
         if self.intake_on:
