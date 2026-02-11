@@ -28,11 +28,7 @@ class DriveConstants:
     # ==========================================
     # Robot Identification & Controller Type
     # ==========================================
-    k_robot_id = constants.k_swerve_config  # used to switch between the two configs - different controllers, IDs, and abs encoder offsets
-    if k_robot_id not in ['practice', 'comp']:
-        raise ValueError(f'robot_id "{k_robot_id}" must be one of [comp, practice]')
-
-    k_drive_controller_type = SparkMax if k_robot_id == 'practice' else SparkFlex
+    # Configuration is handled via ACTIVE_CONFIG dictionary below.
 
 
     # ==========================================
@@ -104,27 +100,48 @@ class DriveConstants:
     # ==========================================
     # CAN IDs and Offsets
     # ==========================================
-    # I intend to have billet out on the right side - billet gears point right
-    comp_bot_dict = {'LF':{'driving_can': 21, 'turning_can': 20, 'port': 3, 'turning_offset': sf * 0.057},
-                    'LB':{'driving_can': 23, 'turning_can': 22, 'port': 1, 'turning_offset': sf * 0.432},
-                    'RF':{'driving_can': 25, 'turning_can': 24, 'port': 2, 'turning_offset': sf *  0.071},
-                    'RB':{'driving_can': 27, 'turning_can': 26, 'port': 0, 'turning_offset': sf *  0.035}}
-    comp_bot_motor_inversions = {'drive_motors_inverted':False, 'turn_motors_inverted': True, }
-    practice_bot_dict = {'LF':{'driving_can': 21, 'turning_can': 20, 'port': 3, 'turning_offset': sf *  0.498},
-                    'LB':{'driving_can': 23, 'turning_can': 22, 'port': 1, 'turning_offset': sf *  0.113},
-                    'RF':{'driving_can': 25, 'turning_can': 24, 'port': 2, 'turning_offset': sf *  0.091},  # billet out
-                    'RB':{'driving_can': 27, 'turning_can': 26, 'port': 0, 'turning_offset': sf *  0.466}}  # billet out
-    practice_bot_motor_inversions = {'drive_motors_inverted':False, 'turn_motors_inverted': True}
+    
+    PRACTICE_CONFIG = {
+        'robot_id': 'practice',
+        'controller_cls': SparkMax,
+        'config_cls': SparkMaxConfig,
+        'free_speed_rpm': 5676,
+        'modules': {
+            'LF': {'driving_can': 21, 'turning_can': 20, 'port': 3, 'turning_offset': sf * 0.498},
+            'LB': {'driving_can': 23, 'turning_can': 22, 'port': 1, 'turning_offset': sf * 0.113},
+            'RF': {'driving_can': 25, 'turning_can': 24, 'port': 2, 'turning_offset': sf * 0.091},
+            'RB': {'driving_can': 27, 'turning_can': 26, 'port': 0, 'turning_offset': sf * 0.466}
+        },
+        'inversions': {'drive_motors_inverted': False, 'turn_motors_inverted': True}
+    }
+
+    COMP_CONFIG = {
+        'robot_id': 'comp',
+        'controller_cls': SparkFlex,
+        'config_cls': SparkFlexConfig,
+        'free_speed_rpm': 6784,
+        'modules': {
+            'LF': {'driving_can': 21, 'turning_can': 20, 'port': 3, 'turning_offset': sf * 0.057},
+            'LB': {'driving_can': 23, 'turning_can': 22, 'port': 1, 'turning_offset': sf * 0.432},
+            'RF': {'driving_can': 25, 'turning_can': 24, 'port': 2, 'turning_offset': sf * 0.071},
+            'RB': {'driving_can': 27, 'turning_can': 26, 'port': 0, 'turning_offset': sf * 0.035}
+        },
+        'inversions': {'drive_motors_inverted': False, 'turn_motors_inverted': True}
+    }
 
     # Select the active configuration based on constants.py
-    if k_robot_id == "practice":
-        swerve_dict = practice_bot_dict
-        swerve_motor_inversions = practice_bot_motor_inversions
+    if constants.k_swerve_config == "practice":
+        ACTIVE_CONFIG = PRACTICE_CONFIG
+    elif constants.k_swerve_config == "comp":
+        ACTIVE_CONFIG = COMP_CONFIG
     else:
-        swerve_dict = comp_bot_dict # set this to one or the other
-        swerve_motor_inversions = comp_bot_motor_inversions
+        raise ValueError(f'k_swerve_config "{constants.k_swerve_config}" must be one of [comp, practice]')
 
-    # print(f'swerve_dict: {swerve_dict}')
+    # Aliases for compatibility
+    k_robot_id = ACTIVE_CONFIG['robot_id']
+    k_drive_controller_type = ACTIVE_CONFIG['controller_cls']
+    swerve_dict = ACTIVE_CONFIG['modules']
+    swerve_motor_inversions = ACTIVE_CONFIG['inversions']
 
     # Encoder Alignment Test Mode
     analog_encoder_test_mode = False  #  set this to test the wheel alignment
@@ -139,7 +156,7 @@ class DriveConstants:
 
 
 class NeoMotorConstants:
-    kFreeSpeedRpm = 5676 if DriveConstants.k_robot_id == 'practice' else 6784   # neo is 5676, vortex is 6784
+    kFreeSpeedRpm = DriveConstants.ACTIVE_CONFIG['free_speed_rpm']
 
 class ModuleConstants:
     """
@@ -193,7 +210,7 @@ class ModuleConstants:
     # ==========================================
     # SparkMax/Flex Configurations
     # ==========================================
-    k_driving_config = SparkFlexConfig() if DriveConstants.k_robot_id == 'comp' else SparkMaxConfig()
+    k_driving_config = DriveConstants.ACTIVE_CONFIG['config_cls']()
     k_driving_config.inverted(DriveConstants.swerve_motor_inversions['drive_motors_inverted'])
     k_driving_config.closedLoop.pidf(p=0, i=0, d=0, ff=1/kDriveWheelFreeSpeedRps)
     k_driving_config.closedLoop.minOutput(-0.96)
@@ -209,7 +226,7 @@ class ModuleConstants:
     # k_driving_config.closedLoop.pidf(0, 0, 0, 0.01)
 
     # note: we don't use any spark pid or ff for turning
-    k_turning_config = SparkFlexConfig() if DriveConstants.k_robot_id == 'comp' else SparkMaxConfig()
+    k_turning_config = DriveConstants.ACTIVE_CONFIG['config_cls']()
     k_turning_config.inverted(DriveConstants.swerve_motor_inversions['turn_motors_inverted'])
     k_turning_config.setIdleMode(SparkMaxConfig.IdleMode.kBrake)
     k_turning_config.smartCurrentLimit(stallLimit=kTurningMotorCurrentLimit, freeLimit=kTurningMotorCurrentLimit, limitRpm=5700)
