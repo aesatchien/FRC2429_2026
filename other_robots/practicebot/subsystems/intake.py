@@ -1,7 +1,5 @@
-import wpilib
 import ntcore
 from commands2 import Subsystem
-from wpilib import DriverStation
 import rev
 from rev import SparkBase, SparkLowLevel  # trying to save some typing
 
@@ -70,9 +68,8 @@ class Intake(Subsystem):
         self.intake_on = False
         self.current_rpm = 0
         self.dropper_down = False
-        self.intake_on_pub.set(self.intake_on)
-        self.intake_rpm_pub.set(self.current_rpm)
-        self.dropper_down_pub.set(self.dropper_down)
+
+        self.update_nt()  # update all relevant state variables on networktables
 
     def set_intake_rpm(self, rpm=1000):
         # TODO - incorporate a PID to handle voltage sag from multiple balls
@@ -83,7 +80,9 @@ class Intake(Subsystem):
         self.intake_on = True
         self.current_rpm = rpm
 
+        self.update_nt()  # update all relevant state variables on networktables
 
+    def update_nt(self):
         self.intake_on_pub.set(self.intake_on)
         self.intake_rpm_pub.set(self.current_rpm)
         self.dropper_down_pub.set(self.dropper_down)

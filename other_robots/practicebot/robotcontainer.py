@@ -46,7 +46,6 @@ from commands.shooting_command import ShootingCommand
 from commands.intake_set import Intake_Set
 
 
-
 class RobotContainer:
     """
     This class is where the bulk of the robot should be declared. Since Command-based is a "declarative" paradigm, very
@@ -56,6 +55,7 @@ class RobotContainer:
 
     def __init__(self) -> None:
 
+        # ----------  SUBSYSTEMS  ---------------
         # The robot's subsystems
         self.questnav = Questnav()  # going to break the silo convention and let the Swerve see the quest for now
         self.swerve = Swerve(questnav=self.questnav)
@@ -66,6 +66,7 @@ class RobotContainer:
         self.shooter = Shooter()
         self.intake = Intake()
 
+        # ----------  CONTROLLERS & DEFAULTS  ---------------
         self.configure_joysticks()
         self.bind_driver_buttons()
 
@@ -81,12 +82,12 @@ class RobotContainer:
         if not constants.k_swerve_only:
             pass
 
+        # ----------  DASHBOARD & PATHPLANNER  ---------------
         self.register_commands()
 
         self.initialize_dashboard()
 
         Pathfinding.setPathfinder(LocalADStar())
-
 
     def configure_joysticks(self):
         """
@@ -94,53 +95,36 @@ class RobotContainer:
         instantiating a :GenericHID or one of its subclasses (Joystick or XboxController),
         and then passing it to a JoystickButton.
         """
-        # The driver's controller
+        # ----------  DRIVER CONTROLLER  ---------------
         self.driver_command_controller = commands2.button.CommandXboxController(constants.k_driver_controller_port)
-        self.triggerA = self.driver_command_controller.a()
-        self.triggerB = self.driver_command_controller.b()
-        self.triggerX = self.driver_command_controller.x()
-        self.triggerY = self.driver_command_controller.y()
-        self.triggerLB = self.driver_command_controller.leftBumper()
-        self.triggerRB = self.driver_command_controller.rightBumper()
-        self.trigger_L_trigger = self.driver_command_controller.leftTrigger(0.5)
-        self.triggerBack = self.driver_command_controller.back()
-        self.triggerStart = self.driver_command_controller.start()
-        self.triggerUp = self.driver_command_controller.povUp()
-        self.triggerDown = self.driver_command_controller.povDown()
-        self.triggerLeft = self.driver_command_controller.povLeft()
-        self.triggerRight = self.driver_command_controller.povRight()
+        self.configure_controller(self.driver_command_controller, 'trigger', 0.5)
 
-        self.copilot_controller = commands2.button.CommandXboxController(1) 
+        # ----------  CO-DRIVER CONTROLLER  ---------------
+        self.copilot_controller = commands2.button.CommandXboxController(constants.k_co_driver_controller_port)
+        self.configure_controller(self.copilot_controller, 'co_trigger', 0.2)
 
-    def configure_codriver_joystick(self):
-
-        print("Configuring codriver joystick")
-
-        self.co_trigger_a = self.copilot_controller.a()  # 2024 way
-        self.co_trigger_b = self.copilot_controller.b()
-        self.co_trigger_y = self.copilot_controller.y()
-        self.co_trigger_x = self.copilot_controller.x()
-        self.co_trigger_rb = self.copilot_controller.rightBumper()
-        self.co_trigger_lb = self.copilot_controller.leftBumper()
-        self.co_trigger_r = self.copilot_controller.povRight()
-        self.co_trigger_l = self.copilot_controller.povLeft()
-        self.co_trigger_u = self.copilot_controller.povUp()
-        self.co_trigger_d = self.copilot_controller.povDown()
-
-        self.co_trigger_l_trigger = self.copilot_controller.leftTrigger(0.2)
-        self.co_trigger_r_trigger = self.copilot_controller.rightTrigger(0.2)
-        self.co_trigger_start = self.copilot_controller.start()
-        self.co_trigger_back = self.copilot_controller.back()
-
+        # Extra axes for co-driver
         self.co_trigger_r_stick_positive_x = self.copilot_controller.axisGreaterThan(4, 0.5)
         self.co_trigger_r_stick_negative_x = self.copilot_controller.axisLessThan(4, -0.5)
         self.co_trigger_r_stick_positive_y = self.copilot_controller.axisGreaterThan(5, 0.5)
         self.co_trigger_r_stick_negative_y = self.copilot_controller.axisLessThan(5, -0.5)
 
+    def configure_controller(self, controller, prefix, threshold):
+        # Standard buttons
+        button_map = {
+            'A': 'a', 'B': 'b', 'X': 'x', 'Y': 'y', 'LB': 'leftBumper', 'RB': 'rightBumper',
+            'Back': 'back', 'Start': 'start', 'Up': 'povUp', 'Down': 'povDown', 'Left': 'povLeft', 'Right': 'povRight'
+        }
+        for name, method_name in button_map.items():
+            setattr(self, f"{prefix}{name}", getattr(controller, method_name)())
+        
+        # Triggers
+        setattr(self, f"{prefix}_L_trigger", controller.leftTrigger(threshold))
+        setattr(self, f"{prefix}_R_trigger", controller.rightTrigger(threshold))
 
     def initialize_dashboard(self):
-        # lots of putdatas for testing on the dash
-        # COMMANDS FOR GUI (ROBOT DEBUGGING) - 20250224 CJH
+        # ----------  DASHBOARD COMMANDS  ---------------
+        # --------------   COMMANDS FOR GUI (ROBOT DEBUGGING) - 20250224 CJH
         command_prefix = constants.command_prefix
         # --------------   TESTING LEDS ----------------
         self.led_mode_chooser = wpilib.SendableChooser()
@@ -153,7 +137,6 @@ class RobotContainer:
         self.led_indicator_chooser.onChange(listener=lambda selected_value: commands2.CommandScheduler.getInstance().schedule(
             SetLEDs(container=self, led=self.led, indicator=selected_value)))
         wpilib.SmartDashboard.putData(f'{command_prefix}/LED Indicator', self.led_indicator_chooser)
-
 
         # experimental, not used on dash
         wpilib.SmartDashboard.putData(f'{command_prefix}/SetSuccess', SetLEDs(container=self, led=self.led, indicator=Led.Indicator.kSUCCESS))
@@ -192,6 +175,7 @@ class RobotContainer:
                 commands2.cmd.runOnce(lambda: setattr(self.robot_state, 'target', selected_value))))
         wpilib.SmartDashboard.putData(f'{command_prefix}/RobotScoringMode', self.score_test_chooser)
 
+        # ----------  AUTONOMOUS CHOOSER SECTION  ---------------
         # self.auto_chooser = AutoBuilder.buildAutoChooser('')  # this loops through the path planner deploy directory - must exist 
         self.auto_chooser = wpilib.SendableChooser()  #  use this if you don't have any pathplanner autos defined
         self.auto_chooser.setDefaultOption('1:  Wait *CODE*', PrintCommand("** Running wait auto **").andThen(commands2.WaitCommand(15)))
@@ -203,8 +187,8 @@ class RobotContainer:
                                     andThen(DriveByVelocitySwerve(self, self.swerve, Pose2d(0.1, 0, 0), 2.5, field_relative=True)))
         wpilib.SmartDashboard.putData('autonomous routines', self.auto_chooser)  #
 
-
     def bind_driver_buttons(self):
+        # ----------  DRIVER BUTTONS  ---------------
         print("Binding driver buttons")
         # move this to the top of the button area so we have a left and a right auto-drive
         self.triggerY.onTrue(ResetFieldCentric(container=self, swerve=self.swerve, angle=0))
@@ -217,10 +201,13 @@ class RobotContainer:
         #self.triggerA.debounce(0.1).whileTrue(AutoToPoseClean(self, self.swerve, target_pose=None, use_vision=True, cameras=['logi_front_hsv'], control_type='not_pathplanner'))
         #self.triggerX.debounce(0.1).whileTrue(AutoToPoseClean(self, self.swerve, target_pose=None, use_vision=True, cameras=['logi_left_hsv'], control_type='not_pathplanner'))
 
-        self.triggerA.whileTrue(ShootingCommand(container=self, shooter=self.shooter))
-        self.triggerX.whileTrue(Intake_Set(intake=self.intake, rpm=1000))
-        #self.triggerA.debounce(0.1).whileTrue(AutoToPoseClean(self, self.swerve, target_pose=None, use_vision=True, cameras=['logi_front_hsv'], control_type='not_pathplanner'))
-        #self.triggerX.debounce(0.1).whileTrue(AutoToPoseClean(self, self.swerve, target_pose=None, use_vision=True, cameras=['logi_left_hsv'], control_type='not_pathplanner'))
+        #self.triggerA.whileTrue(ShootingCommand(container=self, shooter=self.shooter))
+        #self.triggerX.whileTrue(Intake_Set(intake=self.intake, rpm=1000))
+        self.triggerStart.whileTrue(Intake_Set(intake=self.intake, rpm=0))
+
+
+        self.triggerA.debounce(0.1).whileTrue(AutoToPoseClean(self, self.swerve, target_pose=None, use_vision=True, cameras=['logi_front_hsv'], control_type='not_pathplanner'))
+        self.triggerX.debounce(0.1).whileTrue(AutoToPoseClean(self, self.swerve, target_pose=None, use_vision=True, cameras=['logi_left_hsv'], control_type='not_pathplanner'))
 
         self.triggerB.debounce(0.1).whileTrue(AutoTrackVisionTarget(self, camera_key='logi_front_hsv', target_distance=0.40))
 
@@ -246,11 +233,12 @@ class RobotContainer:
         #self.triggerLB.onTrue(RumbleCommand(container=self, rumble_amount=0.95, left_rumble=True, right_rumble=False, rumble_time=0.5))
         #self.triggerRB.onTrue(RumbleCommand(container=self, rumble_amount=0.95, left_rumble=False, right_rumble=True, rumble_time=0.5))
 
-    def bind_codriver_buttons(self):
+    def bind_codriver_buttons(self) -> None:
+        # ----------  CO-DRIVER BUTTONS  ---------------
         print("Binding codriver buttons")
 
-
     def register_commands(self):
+        # ----------  PATHPLANNER COMMANDS  ---------------
         # this is for PathPlanner, so it can call our commands.  Note they do not magically show up in pathplanner
         # you have to add them there, and then it remembers your list of commands.  so name them wisely
         NamedCommands.registerCommand('robot_state_left', commands2.cmd.runOnce(lambda: setattr(self.robot_state, 'side', RobotState.Side.LEFT)).ignoringDisable(True))
