@@ -57,10 +57,13 @@ class Shooter(Subsystem):
         self.nt_prefix = "/SmartDashboard/Shooter"  # TODO = move to constants
         self.shooter_on_pub = self.inst.getBooleanTopic(f"{self.nt_prefix}/shooter_on").publish()
         self.shooter_rpm_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/shooter_position").publish()
-        self.shooter_on_pub.set(self.shooter_on)
-
         self.indexer_on_pub = self.inst.getBooleanTopic(f"{self.nt_prefix}/indexer_on").publish()
         self.indexer_rpm_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/indexer_position").publish()
+
+
+    def update_nt(self):
+        self.shooter_on_pub.set(self.shooter_on)
+        self.shooter_rpm_pub.set(self.current_rpm)
         self.indexer_rpm_pub.set(self.current_indexer_rpm)
         self.indexer_on_pub.set(self.indexer_on)
 
@@ -74,17 +77,17 @@ class Shooter(Subsystem):
         self.current_indexer_rpm = 0
         self.shooter_on = False
         self.current_rpm = 0
-        self.voltage = 0  # CJH for 2024 testing
-        self.shooter_on_pub.set(self.shooter_on)
+
+        self.update_nt()
     
     # keeping indexer and shooter separate, and combining them in commands.
-    def start_indexer(self, rpm=1000):
+    def set_indexer_rpm(self, rpm=1000):
         feed_forward = min(12, 12 * rpm / 5600)
         self.indexer_controller.setReference(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
         print(f'Setting indexer rpm to {rpm:.0f}')
         self.current_indexer_rpm = rpm
         self.indexer_on = True
-        self.indexer_on_pub.set(self.indexer_on)
+        self.update_nt()
 
     def set_shooter_rpm(self, rpm=1000):
         # multiple different ways to set the shooter
@@ -95,8 +98,7 @@ class Shooter(Subsystem):
         print(f'set flywheel rpm to {rpm:.0f}')  # want to say what time it is, but can't import the container's timer easily
         self.current_rpm = rpm
         self.shooter_on = True
-        self.voltage = feed_forward  # 12 * rpm / 5600  # Guess
-        self.shooter_on_pub.set(self.shooter_on)
+        self.update_nt()
 
 
     def get_velocity(self):
@@ -109,12 +111,14 @@ class Shooter(Subsystem):
             self.rpm = self.default_rpm if rpm is None else rpm
             self.set_shooter_rpm(self.rpm)
 
+
     def periodic(self) -> None:
         self.counter += 1
 
         # SmartDashboard.putBoolean('shooter_enable', self.shooter_enable)
         if self.counter % 20 == 0:
-            if self.shooter_on:
-                self.shooter_rpm_pub.set(self.flywheel_encoder.getVelocity())
-            else:
-                self.shooter_rpm_pub.set(0)
+            pass
+            # if self.shooter_on:
+            #     self.shooter_rpm_pub.set(self.flywheel_encoder.getVelocity())
+            # else:
+            #     self.shooter_rpm_pub.set(0)

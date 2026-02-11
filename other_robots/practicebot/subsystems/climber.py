@@ -40,6 +40,7 @@ from constants import TurretConstants
 from commands2 import SubsystemBase
 import constants
 from constants import ClimberConstants as cc
+from rev import SparkBase, SparkLowLevel
 
 class Climber(SubsystemBase):
     def __init__(self) -> None:
@@ -85,3 +86,20 @@ class Climber(SubsystemBase):
 
         self.motor_on_pub.set(self.motor_on)
         self.motor_rpm_pub.set(self.current_rpm)
+
+    def go_up(self):
+    def go_down(self):
+    def set_position(self, inches_from_ground):
+     # takes current position, then increment it by delta x
+     # 1 rotation = x inch
+     # Position convertion factor --> Take a look at 2026 tankbot
+        if cc.k_control_type == 'max_motion':
+            ks = 0 if rpm < 1 else cc.ks_volts  # otherwise it still just turns at 0
+            self.flywheel_controller.setSetpoint(setpoint= inches_from_ground, ctrl=SparkLowLevel.ControlType.kMAXMotionPositionControl,
+                                                 slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=0)
+        else:
+            feed_forward = min(12.0, 12.0 * rpm / sc.motor_max_rpm)  # if there is no gearing, then this gets you close
+            # rev is a pain in the ass - you have to pass EXACTLY the types it wants - no using "0" for the slots anymore
+            self.flywheel_controller.setSetpoint(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
+            self.voltage = feed_forward  # 12 * rpm / max rpm  # Guess
+    def get_distance(self):

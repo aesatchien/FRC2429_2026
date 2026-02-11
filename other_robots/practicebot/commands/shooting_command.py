@@ -8,16 +8,14 @@ from subsystems.shooter import Shooter
 class ShootingCommand(commands2.Command):  # change the name for your command
 
 
-    def __init__(self, container, shooter: Shooter, indent=0) -> None:
+    def __init__(self, shooter: Shooter, indent=0) -> None:
         super().__init__()
         self.setName('Shooting') # change this to something appropriate for this command
         self.indent = indent
-        self.container = container
         self.shooter = shooter
         self.addRequirements(self.shooter)  # commandsv2 version of requirements
         self.extra_log_info = None
-        # self.counter = 0  # add a counter if you need to track iterations, remember to initialize in below
-        # self.addRequirements(self.container.??)  # commands2 version of requirements - add the subsystems you need
+        self.counter = 0  # add a counter if you need to track iterations, remember to initialize in below
 
     def initialize(self) -> None:
         # Called just before each time this Command runs
@@ -25,6 +23,7 @@ class ShootingCommand(commands2.Command):  # change the name for your command
         # self.extra_log_info = "Target=7"  # (for example)
         self.counter = 0
         self.shooter.set_shooter_rpm(sc.k_test_speed)
+        self.shooter.set_indexer_rpm(sc.k_indexer_rpm)
 
     def execute(self) -> None:
         pass

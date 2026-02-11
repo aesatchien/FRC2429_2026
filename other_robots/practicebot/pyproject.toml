@@ -61,7 +61,7 @@ requires = [
 # To reproduce the roboRIO dependency layout on a development machine:
 #
 # Core RobotPy / WPILib (exact ABI match for the season):
-#   python -m pip install -U --upgrade-strategy eager "robotpy[all]>=2026,<2027"
+#
 #
 # Vendor / wrapper packages that intentionally override conservative pins:
 #   python -m pip install -U --no-deps "robotpy-navx>=2026,<2027" "robotpy-pathplannerlib>=2026,<2027" \
