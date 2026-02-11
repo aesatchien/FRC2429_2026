@@ -5,11 +5,12 @@ import wpilib
 import ntcore
 
 import constants
+from wpimath.controller import PIDController
 from subsystems.swerve import Swerve  # allows us to access the definitions
 from commands2.button import CommandXboxController
 from wpimath.geometry import Translation2d
 from wpimath.filter import Debouncer, SlewRateLimiter
-from subsystems.swerve_constants import DriveConstants as dc
+from subsystems.swerve_constants import DriveConstants as dc, AutoConstants as ac
 from helpers.log_command import log_command
 
 
@@ -45,12 +46,25 @@ class DriveByJoystickSwerveTargeting(commands2.Command):
         self.drive_limiter = SlewRateLimiter(stick_max_units_per_second)
         self.strafe_limiter = SlewRateLimiter(stick_max_units_per_second)
         self.turbo_limiter = SlewRateLimiter(10)
+        
+        # Rotation limiters - we want a separate one for manual vs tracking to allow more aggressive tracking response without making manual feel laggy
+        self.manual_rot_limiter = SlewRateLimiter(stick_max_units_per_second)
+        self.tracking_rot_limiter = SlewRateLimiter(4) # Faster response for tracking
 
         # -----------------------------------------------------------
         # 4. Targeting Setup
         # -----------------------------------------------------------
         self.bHubLocation = Translation2d(4.74, 4.05)
         self.rHubLocation = Translation2d(12.1, 4.05)
+        
+        # PID for rotation tracking (Best parts of AutoToPoseClean)
+        self.rot_pid = PIDController(0.8, 0.0, 0.0) # Tuned for teleop (slightly aggressive)
+        self.rot_pid.enableContinuousInput(-math.pi, math.pi)
+        
+        # Tracking state
+        self.rot_overshot = False
+        self.last_diff_radians = 100.0
+        self.last_tracking_on = False
 
         # -----------------------------------------------------------
         # 5. NetworkTables
@@ -85,6 +99,7 @@ class DriveByJoystickSwerveTargeting(commands2.Command):
         left_y = hid.getLeftY()
         left_x = hid.getLeftX()
         right_x = hid.getRightX()
+        tracking_on = hid.getRightBumper()
         
         # Alliance Color
         alliance = wpilib.DriverStation.getAlliance()
@@ -100,7 +115,6 @@ class DriveByJoystickSwerveTargeting(commands2.Command):
         else:
             hub_vector = self.bHubLocation - robot_location
         robot_to_hub_angle = hub_vector.angle()
-        # TODO - implement angle usage
 
         # --- 2b. Drive Mode Calculations ---
         # Turbo / Slow Mode
@@ -125,8 +139,55 @@ class DriveByJoystickSwerveTargeting(commands2.Command):
 
         # --- 2d. Deadbanding & Shaping ---
         # Rotational Deadband
-        if abs(joystick_rot) < dc.k_inner_deadband:
-            joystick_rot = 0
+        if tracking_on:
+            # --- TRACKING LOGIC (Best of AutoToPoseClean) ---
+            
+            # Reset state on rising edge
+            if not self.last_tracking_on:
+                self.rot_pid.reset()
+                self.tracking_rot_limiter.reset(0) # Start from 0 to prevent jump
+                self.rot_overshot = False
+                self.last_diff_radians = 100.0
+
+            # Calculate PID
+            rot_output = self.rot_pid.calculate(robot_pose.rotation().radians(), robot_to_hub_angle.radians())
+            
+            # Error analysis for fine-tuning
+            diff_radians = self.rot_pid.getPositionError()
+            if abs(diff_radians) > abs(self.last_diff_radians):
+                self.rot_overshot = True
+            self.last_diff_radians = diff_radians
+            
+            # Constants for tuning
+            rot_max = 1.0 # Allow full speed for fast tracking
+            rot_min = 0.05 # Minimum to overcome friction
+            
+            # Apply minimum output (stiction breaking) if not overshot
+            if abs(rot_output) < rot_min and not self.rot_overshot and abs(math.degrees(diff_radians)) > 1.0: # 1 deg tolerance
+                rot_output = math.copysign(rot_min, rot_output)
+                
+            # Clamp maximum
+            rot_output = math.copysign(min(abs(rot_output), rot_max), rot_output)
+            
+            # Slew rate limit for smoothness (prevent brownouts on snap turns)
+            desired_rot = self.tracking_rot_limiter.calculate(rot_output)
+            
+        elif self.last_tracking_on and not tracking_on:
+            # Falling Edge: We just stopped tracking.
+            # Reset manual limiter to the current joystick input to prevent "ghost" slewing from the state before tracking started.
+            desired_rot = joystick_rot * angular_slowmode_multiplier
+            self.manual_rot_limiter.reset(desired_rot)
+            
+        else:
+            # --- MANUAL LOGIC ---
+            if abs(joystick_rot) < dc.k_inner_deadband:
+                joystick_rot = 0
+            # Scale manual rotation
+            desired_rot = joystick_rot * angular_slowmode_multiplier
+            # Limit manual rotation (was missing in original)
+            desired_rot = self.manual_rot_limiter.calculate(desired_rot)
+
+        self.last_tracking_on = tracking_on
             
         # Translational Deadband & Clipping
         processing_vector = raw_vector
@@ -141,7 +202,6 @@ class DriveByJoystickSwerveTargeting(commands2.Command):
 
         # --- 2e. Scaling ---
         processing_vector *= slowmode_multiplier
-        desired_rot = joystick_rot * angular_slowmode_multiplier
 
         # --- 2f. Rate Limiting ---
         desired_fwd = self.drive_limiter.calculate(processing_vector.X())
@@ -160,7 +220,7 @@ class DriveByJoystickSwerveTargeting(commands2.Command):
             ySpeed=desired_strafe,
             rot=desired_rot,
             fieldRelative=self.field_oriented,
-            rate_limited=self.rate_limited,
+            rate_limited=False, # We handle all limiting in this command now
             keep_angle=False
         )
 

@@ -36,6 +36,7 @@ from commands.auto_track_vision_target import AutoTrackVisionTarget
 from commands.can_status import CANStatus
 from commands.drive_by_distance_swerve import DriveByVelocitySwerve
 from commands.drive_by_joystick_swerve import DriveByJoystickSwerve
+from commands.drive_by_joystick_swerve_targeting import DriveByJoystickSwerveTargeting
 from commands.reset_field_centric import ResetFieldCentric
 from commands.rumble_command import RumbleCommand
 from commands.set_leds import SetLEDs
@@ -70,11 +71,10 @@ class RobotContainer:
         self.bind_driver_buttons()
         # self.bind_codriver_buttons()  # if we need to
 
-        self.swerve.setDefaultCommand(DriveByJoystickSwerve(
+        self.swerve.setDefaultCommand(DriveByJoystickSwerveTargeting(
             container=self,
             swerve=self.swerve,
             controller=js.driver_controller,
-            # field_oriented=False,
             rate_limited=constants.k_swerve_rate_limited
         ))
 
