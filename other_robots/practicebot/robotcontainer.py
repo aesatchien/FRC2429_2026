@@ -1,5 +1,4 @@
 # 2429 FRC code for 2025 season - Reefscape
-from sys import prefix
 
 import wpilib
 from wpimath.geometry import Pose2d
@@ -9,14 +8,13 @@ from commands2.printcommand import PrintCommand
 # pathplanner stuff
 from pathplannerlib.pathfinders import LocalADStar
 from pathplannerlib.pathfinding import Pathfinding
-from pathplannerlib.auto import AutoBuilder, NamedCommands
+from pathplannerlib.auto import NamedCommands
 
 # 2429 helper files
 import constants
 from helpers import joysticks as js
 
 # 2429 subsystems
-from subsystems import swerve_constants
 from subsystems.led import Led
 from subsystems.quest import Questnav
 from subsystems.robot_state import RobotState
@@ -31,19 +29,15 @@ from subsystems.targeting import Targeting
 # 2429 "auto" commands - just an organizational division of commands
 
 # 2429 commands
-from commands.auto_to_pose import AutoToPose
 from commands.auto_to_pose_clean import AutoToPoseClean
 from commands.auto_track_vision_target import AutoTrackVisionTarget
 from commands.can_status import CANStatus
 from commands.drive_by_distance_swerve import DriveByVelocitySwerve
-from commands.drive_by_joystick_swerve import DriveByJoystickSwerve
-from commands.drive_by_joystick_swerve_targeting import DriveByJoystickSwerveTargeting
+from commands.drive_by_joystick_subsystem_targeting import DriveByJoystickSubsystemTargeting
 from commands.reset_field_centric import ResetFieldCentric
-from commands.rumble_command import RumbleCommand
 from commands.set_leds import SetLEDs
 from commands.sim_show_fov import SimShowFOV
 from commands.move_training_box import MoveTrainingBox
-from commands.swerve_test import SwerveTest
 
 from commands.shooting_command import ShootingCommand
 from commands.intake_set import Intake_Set
@@ -60,7 +54,7 @@ class RobotContainer:
 
         # ----------  SUBSYSTEMS  ---------------
         # The robot's subsystems
-        self.targeting = Targeting()
+        self.targeting = Targeting()  # pure math for getting rotations values for target tracking
         self.questnav = Questnav()  # going to break the silo convention and let the Swerve see the quest for now
         self.swerve = Swerve(questnav=self.questnav)
         self.vision = Vision()
@@ -73,11 +67,11 @@ class RobotContainer:
         self.bind_driver_buttons()
         # self.bind_codriver_buttons()  # if we need to
 
-        self.swerve.setDefaultCommand(DriveByJoystickSwerveTargeting(
+        self.swerve.setDefaultCommand(DriveByJoystickSubsystemTargeting(
             container=self,
             swerve=self.swerve,
+            targeting=self.targeting,
             controller=js.driver_controller,
-            rate_limited=constants.k_swerve_rate_limited
         ))
 
         if not constants.k_swerve_only:

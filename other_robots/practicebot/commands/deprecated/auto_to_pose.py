@@ -10,7 +10,7 @@ from wpimath.trajectory import TrapezoidProfile
 from wpimath.filter import SlewRateLimiter
 
 import constants
-from subsystems.swerve_constants import AutoConstants as ac
+from subsystems.swerve_constants import DriveConstants as dc, AutoConstants as ac
 from subsystems.swerve import Swerve
 from subsystems.led import Led
 from subsystems.vision import Vision

@@ -13,8 +13,9 @@ from wpimath.filter import Debouncer, SlewRateLimiter
 from wpimath.kinematics import ChassisSpeeds
 from subsystems.swerve_constants import DriveConstants as dc, AutoConstants as ac, TargetingConstants as tc
 from helpers.log_command import log_command
+from helpers.utilities import deprecated
 
-
+@deprecated("Use DriveByJoystickSubsystemTargeting instead. This class was for developing the math.")
 @log_command(console=True, nt=False, print_init=True, print_end=False)
 class DriveByJoystickSwerveTargeting(commands2.Command):
     def __init__(self, container, swerve: Swerve, controller: CommandXboxController, rate_limited=False) -> None:
