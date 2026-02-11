@@ -48,13 +48,13 @@ class RobotClimb(commands2.command):
         # if turret safe: move turret, exit
 
     def initialize(self) -> None:
-
+        pass
     # def execute(self) -> None:
     #     # - to_mid_bar: 18 in.
     #     # - to_high_bar: 18 in.
 
     def isFinished(self) -> bool:
-            return False
+        return False
 
     def end(self) -> None:
         return None

@@ -40,10 +40,10 @@ class DriveByJoystickSwerve(commands2.Command):
 
         # CJH added a slew rate limiter 20250311 - but there already is one in Swerve, so is this redundant?
         # make sure you put it on the joystick (not calculations), otherwise it doesn't help much on slow-mode
-        stick_max_units_per_second = 3  # can't be too low or you get lag - probably should be between 3 and 5
+        stick_max_units_per_second = dc.kDriverSlewRate  # can't be too low or you get lag - probably should be between 3 and 5
         self.drive_limiter = SlewRateLimiter(stick_max_units_per_second)
         self.strafe_limiter = SlewRateLimiter(stick_max_units_per_second)
-        self.turbo_limiter = SlewRateLimiter(10)
+        self.turbo_limiter = SlewRateLimiter(dc.kTurboSlewRate)
 
         # -----------------------------------------------------------
         # 4. Targeting Setup - if we are tracking (ignore)

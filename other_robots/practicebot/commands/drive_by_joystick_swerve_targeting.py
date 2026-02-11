@@ -43,10 +43,10 @@ class DriveByJoystickSwerveTargeting(commands2.Command):
         
         # CJH added a slew rate limiter 20250311 - but there already is one in Swerve, so is this redundant?
         # make sure you put it on the joystick (not calculations), otherwise it doesn't help much on slow-mode
-        stick_max_units_per_second = 3  # can't be too low or you get lag - probably should be between 3 and 5
+        stick_max_units_per_second = dc.kDriverSlewRate  # can't be too low or you get lag - probably should be between 3 and 5
         self.drive_limiter = SlewRateLimiter(stick_max_units_per_second)
         self.strafe_limiter = SlewRateLimiter(stick_max_units_per_second)
-        self.turbo_limiter = SlewRateLimiter(10)
+        self.turbo_limiter = SlewRateLimiter(dc.kTurboSlewRate)
         
         # Rotation limiters - we want a separate one for manual
         # vs tracking to allow more aggressive tracking response
@@ -70,6 +70,7 @@ class DriveByJoystickSwerveTargeting(commands2.Command):
 
         # debug prints for optimization        
         self.debug_prints = True
+        self.debug_nt = True
         self.debug_v_field = Translation2d()
         self.debug_future_pose = Translation2d()
         self.debug_pid = 0
@@ -91,6 +92,7 @@ class DriveByJoystickSwerveTargeting(commands2.Command):
         self.js_dv_norm_x_pub = self.inst.getDoubleTopic(f"{status_prefix}/_joystick_dv_norm_x").publish()
         self.js_dv_norm_y_pub = self.inst.getDoubleTopic(f"{status_prefix}/_joystick_dv_norm_y").publish()
         self.commanded_values_pub = self.inst.getDoubleArrayTopic(f"{status_prefix}/_joystick_commanded_values").publish()
+        self.targeting_debug_pub = self.inst.getDoubleArrayTopic(f"{status_prefix}/targeting_debug").publish()
 
     def initialize(self) -> None:
         """Called just before this Command runs the first time."""
@@ -141,9 +143,18 @@ class DriveByJoystickSwerveTargeting(commands2.Command):
             # go through the tracking calculations - allow arbitrary complexity
             desired_rot = self._calculate_tracking_rotation(inputs['robot_pose'])
             
-            if self.debug_prints and self.counter % 10 == 0:
+            if self.counter % 10 == 0:
                 pose = inputs['robot_pose']
-                print(f"{self.counter:3d} | {pose.X():.2f} {pose.Y():.2f} | {self.debug_v_field.X():.2f} {self.debug_v_field.Y():.2f} | {self.debug_future_pose.X():.2f} {self.debug_future_pose.Y():.2f} | {self.debug_error_deg:6.1f} | {self.debug_pid:.2f} {self.debug_ff:.2f} {self.debug_ks:.2f} {desired_rot:.2f}")
+                if self.debug_prints:
+                    print(f"{self.counter:3d} | {pose.X():.2f} {pose.Y():.2f} | {self.debug_v_field.X():.2f} {self.debug_v_field.Y():.2f} | {self.debug_future_pose.X():.2f} {self.debug_future_pose.Y():.2f} | {self.debug_error_deg:6.1f} | {self.debug_pid:.2f} {self.debug_ff:.2f} {self.debug_ks:.2f} {desired_rot:.2f}")
+                if self.debug_nt:
+                    self.targeting_debug_pub.set([
+                        pose.X(), pose.Y(),
+                        self.debug_v_field.X(), self.debug_v_field.Y(),
+                        self.debug_future_pose.X(), self.debug_future_pose.Y(),
+                        self.debug_error_deg,
+                        self.debug_pid, self.debug_ff, self.debug_ks, desired_rot
+                    ])
         elif self.last_tracking_on: # Falling Edge
             # Reset manual limiter to current input to prevent ghost slewing
             manual_rot = raw_rot * angular_slowmode_multiplier

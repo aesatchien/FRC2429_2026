@@ -24,6 +24,7 @@ from subsystems.swerve import Swerve
 from subsystems.vision import Vision
 from subsystems.shooter import Shooter
 from subsystems.intake import Intake
+from subsystems.targeting import Targeting
 
 # from subsystems.questnav_2429 import QuestnavModule
 
@@ -59,6 +60,7 @@ class RobotContainer:
 
         # ----------  SUBSYSTEMS  ---------------
         # The robot's subsystems
+        self.targeting = Targeting()
         self.questnav = Questnav()  # going to break the silo convention and let the Swerve see the quest for now
         self.swerve = Swerve(questnav=self.questnav)
         self.vision = Vision()

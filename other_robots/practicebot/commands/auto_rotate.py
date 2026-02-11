@@ -14,7 +14,7 @@ from subsystems.swerve_constants import AutoConstants as ac
 from subsystems.swerve import Swerve
 from subsystems.led import Led
 from subsystems.vision import Vision
-from helpers.decorators import log_command
+from helpers.log_command import log_command
 from helpers.apriltag_utils import get_nearest_tag
 
 
@@ -41,7 +41,7 @@ class AutoToAngle(commands2.Command):  #
         self.cameras = cameras  # which cameras to use
         self.offset = offset  # offset in robot frame (x=forward, y=left, rot=ccw)
         self.print_debug = True
-        self.target_angle = th.robot_to_hub_angle
+        self.target_angle = 0 # th.robot_to_hub_angle
 
         # CJH added a slew rate limiter 20250323 - it jolts and browns out the robot if it servos to full speed
         max_units_per_second = 2  # can't be too low or you get lag and we allow a max of < 50% below

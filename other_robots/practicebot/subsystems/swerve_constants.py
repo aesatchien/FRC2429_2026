@@ -67,6 +67,9 @@ class DriveConstants:
     # set the acceleration limits used in driving using the SlewRateLimiter tool
     kMagnitudeSlewRate = 5  # hundred percent per second (1 = 100%)
     kRotationalSlewRate = 5  # hundred percent per second (1 = 100%)
+    kDriverSlewRate = 3  # Slew rate for manual driver control (units/sec)
+    kAutoSlewRate = 2    # Slew rate for autonomous PID correction (units/sec)
+    kTurboSlewRate = 10  # Slew rate for turbo mode trigger (units/sec)
     
     # Input Deadbands
     k_inner_deadband = 0.10  # use deadbands for joystick transformations and keepangle calculations

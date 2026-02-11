@@ -41,7 +41,7 @@ class AutoToPose(commands2.Command):  #
         self.print_debug = True
 
         # CJH added a slew rate limiter 20250323 - it jolts and browns out the robot if it servos to full speed
-        max_units_per_second = 2  # can't be too low or you get lag and we allow a max of < 50% below
+        max_units_per_second = dc.kAutoSlewRate  # can't be too low or you get lag and we allow a max of < 50% below
         self.x_limiter = SlewRateLimiter(max_units_per_second)
         self.y_limiter = SlewRateLimiter(max_units_per_second)
         self.rot_limiter = SlewRateLimiter(max_units_per_second)
