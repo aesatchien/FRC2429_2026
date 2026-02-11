@@ -85,7 +85,9 @@ class AutoToPose(commands2.Command):  #
             self.target_pose = self.original_target_pose
 
         if wpilib.DriverStation.getAlliance()  == wpilib.DriverStation.Alliance.kRed and not self.use_vision:
-            self.target_pose = self.target_pose.rotateAround(point=Translation2d(17.548 / 2, 8.062 / 2), rot=Rotation2d(math.pi))
+            mid_x = constants.FieldConstants.k_field_length / 2
+            mid_y = constants.FieldConstants.k_field_width / 2
+            self.target_pose = self.target_pose.rotateAround(point=Translation2d(mid_x, mid_y), rot=Rotation2d(math.pi))
 
         if self.control_type == 'pathplanner':
             self.target_state = PathPlannerTrajectoryState()

@@ -20,27 +20,45 @@ from helpers.apriltag_utils import get_nearest_tag
 
 @log_command(console=True, nt=False, print_init=True, print_end=True)
 class AutoToPoseClean(commands2.Command):  #
+    """
+    A command to drive the robot to a specific pose using either PathPlanner or custom PID controllers.
+
+    Modes of Operation (determined by arguments):
+    1. Static Target: Pass `target_pose`.
+    2. Vision Target: Pass `use_vision=True`. Uses cameras to find a target relative to the robot.
+    3. Nearest Tag: Pass `nearest=True`. Finds nearest AprilTag and drives to a scoring location associated with it.
+    4. Robot State: Pass `from_robot_state=True`. Uses a goal previously set in the RobotState subsystem.
+
+    Control Types:
+    - 'pathplanner': Uses PathPlanner's holonomic controller.
+    - 'custom' (default): Uses internal PID controllers with overshoot detection and stiction handling.
+    """
 
     def __init__(self, container, swerve: Swerve, target_pose: Pose2d, use_vision=False, cameras=None,
                  nearest=False, from_robot_state=False, control_type='not_pathplanner', indent=0,
                  offset: Transform2d = None) -> None:
-        """
-        if nearest, it overrides target_pose
-        """
         super().__init__()
         self.setName('AutoToPoseClean')  # using the pathplanner controller instead
+        
+        # --- Dependencies ---
         self.indent = indent
         self.container = container
         self.swerve = swerve
-        self.control_type = control_type  # choose between the pathplanner controller or our custom one
-        self.counter = 0
-        self.tolerance_counter = 0
-        self.from_robot_state = from_robot_state  # I don't know why this is here
+        self.addRequirements(self.swerve)
+
+        # --- Configuration ---
+        self.control_type = control_type
+        self.from_robot_state = from_robot_state
         self.nearest = nearest  # only use nearest tags as the target
         self.use_vision = use_vision  # use the cameras to tell us where to go
         self.cameras = cameras  # which cameras to use
         self.offset = offset  # offset in robot frame (x=forward, y=left, rot=ccw)
         self.print_debug = True
+        
+        # --- State ---
+        self.counter = 0
+        self.tolerance_counter = 0
+        self.abort = False
 
         # CJH added a slew rate limiter 20250323 - it jolts and browns out the robot if it servos to full speed
         max_units_per_second = 2  # can't be too low or you get lag and we allow a max of < 50% below
@@ -52,7 +70,6 @@ class AutoToPoseClean(commands2.Command):  #
         if target_pose is None:
             self.target_pose = Pose2d(0, 0, 0)
         self.original_target_pose = self.target_pose
-        self.abort = False
 
         # check for overshoot
         self.x_overshot = False
@@ -62,7 +79,6 @@ class AutoToPoseClean(commands2.Command):  #
         self.last_diff_y = 999
         self.last_diff_radians = 1
 
-        self.addRequirements(self.swerve)
         self.create_controllers()
         self._init_networktables()
 
@@ -105,51 +121,11 @@ class AutoToPoseClean(commands2.Command):  #
         self.auto_active_pub.set(False)
 
     def reset_controllers(self):
-
-        # if we want to run this on the fly, we need to pass it a pose
-        if self.nearest:
-            # this is currently too convoluted.  figures out where we are, then asks for the nearest tag to that goal
-            # then it figures out what the robot's goal position is for that tag, but only for blue
-            # then it flips the pose if we're red.  this definitely needs to be simplified into a single get_goal pose
-            # basically because good stuff was intended in robotstate and then not used
-            current_pose = self.container.swerve.get_pose()
-            nearest_tag = get_nearest_tag(current_pose=current_pose, destination='reef')  # tage pose returned
-            self.container.robot_state.set_reef_goal_by_tag(nearest_tag)  # blue reef location returned
-
-            self.target_pose = self.container.robot_state.reef_goal_pose
-
-            if wpilib.DriverStation.getAlliance() == wpilib.DriverStation.Alliance.kRed:
-                self.target_pose = self.target_pose.rotateAround(point=Translation2d(17.548 / 2, 8.062 / 2),
-                                                                 rot=Rotation2d(math.pi))
-
-        elif self.from_robot_state:
-            self.target_pose = self.container.robot_state.reef_goal_pose
-        elif self.use_vision:
-            # use the vision subsystem to take us to our goal
-            current_pose = self.container.swerve.get_pose()
-            relative_pose = self.container.vision.nearest_to_robot(self.cameras)
-
-            if relative_pose is not None:
-                # Apply offset in robot frame if provided
-                if self.offset is not None:
-                    rx = relative_pose.X() + self.offset.X()
-                    ry = relative_pose.Y() + self.offset.Y()
-                    rrot = relative_pose.rotation() + self.offset.rotation()
-                    relative_pose = Pose2d(rx, ry, rrot)
-
-                rel_tf = Transform2d(relative_pose.translation(), relative_pose.rotation())
-                self.target_pose = current_pose.transformBy(rel_tf)
-                print(
-                    f"AutoToPose Vision: Robot Rel Move -> X: {relative_pose.X():.2f}m, Y: {relative_pose.Y():.2f}m, Rot: {relative_pose.rotation().degrees():.1f}°")
-            else:
-                self.target_pose = current_pose
-                self.abort = True
-                print("AutoToPoseClean: Vision target not found. Aborting.")
-
-        else:
-            self.target_pose = self.original_target_pose
-
+        """Determines the target pose and resets PID/PathPlanner state."""
+        self.target_pose = self._determine_target_pose()
+        
         if self.control_type == 'pathplanner':
+            # Update PathPlanner state
             self.target_state.pose = self.target_pose  # set the pose of the target state
             self.target_state.heading = self.target_pose.rotation()
 
@@ -159,6 +135,7 @@ class AutoToPoseClean(commands2.Command):  #
                 self.target_state_flipped = self.target_state
 
         else:  # custom
+            # Update PID Setpoints
             self.x_pid.setSetpoint(self.target_pose.X())
             self.y_pid.setSetpoint(self.target_pose.Y())
             self.rot_pid.setSetpoint(self.target_pose.rotation().radians())
@@ -176,12 +153,6 @@ class AutoToPoseClean(commands2.Command):  #
             self.y_limiter.reset(0)
             self.counter = 0
 
-            if self.control_type == 'pathplanner':
-                if self.swerve.flip_path():  # this is in initialize, not __init__, in case FMS hasn't told us the right alliance on boot-up
-                    self.target_state_flipped = self.target_state.flip()
-                else:
-                    self.target_state_flipped = self.target_state
-
             self.x_pid.reset()
             self.y_pid.reset()
             self.rot_pid.reset()
@@ -192,6 +163,56 @@ class AutoToPoseClean(commands2.Command):  #
 
             # Update the goal pose for the ghost robot
             self.goal_pose_pub.set(self.target_pose)
+
+    def _determine_target_pose(self) -> Pose2d:
+        """Calculates the target pose based on the selected mode."""
+        current_pose = self.container.swerve.get_pose()
+
+        if self.nearest:
+            # 1. Nearest Tag Mode
+            nearest_tag = get_nearest_tag(current_pose=current_pose, destination='reef')
+            self.container.robot_state.set_reef_goal_by_tag(nearest_tag)
+            target = self.container.robot_state.reef_goal_pose
+            # Mirroring handled below
+
+        elif self.from_robot_state:
+            # 2. Robot State Mode
+            target = self.container.robot_state.reef_goal_pose
+
+        elif self.use_vision:
+            # 3. Vision Mode
+            # Vision is relative to the robot, so we return immediately (no mirroring needed)
+            relative_pose = self.container.vision.nearest_to_robot(self.cameras)
+
+            if relative_pose is not None:
+                # Apply offset in robot frame if provided
+                if self.offset is not None:
+                    rx = relative_pose.X() + self.offset.X()
+                    ry = relative_pose.Y() + self.offset.Y()
+                    rrot = relative_pose.rotation() + self.offset.rotation()
+                    relative_pose = Pose2d(rx, ry, rrot)
+
+                rel_tf = Transform2d(relative_pose.translation(), relative_pose.rotation())
+                target = current_pose.transformBy(rel_tf)
+                print(f"AutoToPose Vision: Robot Rel Move -> X: {relative_pose.X():.2f}m, Y: {relative_pose.Y():.2f}m, Rot: {relative_pose.rotation().degrees():.1f}°")
+                return target
+            else:
+                self.abort = True
+                print("AutoToPoseClean: Vision target not found. Aborting.")
+                return current_pose
+
+        else:
+            # 4. Static Target Mode
+            target = self.original_target_pose
+
+        # Apply Red Alliance Mirroring to everything EXCEPT Vision
+        if wpilib.DriverStation.getAlliance() == wpilib.DriverStation.Alliance.kRed:
+            mid_x = constants.FieldConstants.k_field_length / 2
+            mid_y = constants.FieldConstants.k_field_width / 2
+            target = target.rotateAround(point=Translation2d(mid_x, mid_y), rot=Rotation2d(math.pi))
+            
+        return target
+
 
     def initialize(self) -> None:
         """Called just before this Command runs the first time."""
@@ -211,82 +232,88 @@ class AutoToPoseClean(commands2.Command):  #
             msg = f'CNT  DX     XT?   Xo   |   DY    YT?   Yo   |   DR     RT?   Ro   | TC'
             print(msg)
 
-        # we could also do this with wpilib pidcontrollers
         robot_pose = self.swerve.get_pose()
 
         if self.control_type == 'pathplanner':
-            target_chassis_speeds = ac.k_pathplanner_holonomic_controller.calculateRobotRelativeSpeeds(
-                current_pose=robot_pose, target_state=self.target_state_flipped)
-            self.swerve.drive_robot_relative(target_chassis_speeds, "we don't use feedforwards")
-
+            self._execute_pathplanner_control(robot_pose)
         else:
-            x_output = self.x_pid.calculate(robot_pose.X())  # setpoint is the target pose X
-            y_output = self.y_pid.calculate(robot_pose.Y())  # setpoint is the target pose Y
-            rot_output = self.rot_pid.calculate(robot_pose.rotation().radians())  # setpoint is the target pose radians
-
-            # TODO optimize the last mile and have it gracefully not oscillate
-            rot_max, rot_min = 0.5, 0.1
-            trans_max, trans_min = 0.3, 0.1  # it browns out when you start if this is too high
-
-            # WPILib Way: Vector Math for Field-Centric Error
-            error_vector = self.target_pose.translation() - robot_pose.translation()
-            diff_x = error_vector.X()
-            diff_y = error_vector.Y()
-
-            # Rotation Error (Handles wrapping automatically, e.g. 179 to -179 is 2 deg)
-            diff_radians = (self.target_pose.rotation() - robot_pose.rotation()).radians()
-
-            if abs(diff_x) > abs(self.last_diff_x) and self.counter > 0:
-                self.x_overshot = True
-            self.last_diff_x = diff_x
-            if abs(diff_y) > abs(self.last_diff_y) and self.counter > 0:
-                self.y_overshot = True
-            self.last_diff_y = diff_y
-            if abs(diff_radians) > abs(self.last_diff_radians) and self.counter > 0:
-                self.rot_overshot = True
-            self.last_diff_radians = diff_radians
-
-            if abs(x_output) < trans_min and not self.x_overshot and abs(diff_x) > ac.k_translation_tolerance_meters:
-                x_output = math.copysign(trans_min, x_output)
-            if abs(y_output) < trans_min and not self.y_overshot and abs(diff_y) > ac.k_translation_tolerance_meters:
-                y_output = math.copysign(trans_min, y_output)
-            if abs(rot_output) < rot_min and not self.rot_overshot and abs(
-                    math.degrees(diff_radians)) > ac.k_rotation_tolerance.degrees():
-                rot_output = math.copysign(rot_min, rot_output)
-            # enforce maximum values
-            x_output = x_output if math.fabs(x_output) < trans_max else math.copysign(trans_max, x_output)
-            y_output = y_output if math.fabs(y_output) < trans_max else math.copysign(trans_max, y_output)
-            rot_output = rot_output if math.fabs(rot_output) < rot_max else math.copysign(rot_max, rot_output)
-
-            # smooth out the initial jumps with slew_limiters
-            x_output = self.x_limiter.calculate(x_output)
-            y_output = self.y_limiter.calculate(y_output)
-            rot_output = self.rot_limiter.calculate(rot_output)
-            # I finally tracked down the initial error to the keep_angle - if it is True it has a rotation kink the first time
-            self.swerve.drive(x_output, y_output, rot_output, fieldRelative=True, rate_limited=False, keep_angle=False)
-
-            # keep track of how long we've been good - allow to recover if we overshoot
-            rotation_achieved = abs(math.degrees(diff_radians)) < ac.k_rotation_tolerance.degrees()
-            translation_achieved = error_vector.norm() < ac.k_translation_tolerance_meters
-            if rotation_achieved and translation_achieved:
-                self.tolerance_counter += 1
-            else:
-                self.tolerance_counter = 0
-
-            if self.counter % 10 == 0 and (wpilib.RobotBase.isSimulation() or self.print_debug):
-                msg = f'{self.counter:3d}  {diff_x:+.2f} {str(self.x_overshot):>5} {x_output:+.2f} | {diff_y:+.2f}  {str(self.y_overshot):>5} {y_output:+.2f} '
-                msg += f'| {math.degrees(diff_radians):>+6.1f}° {str(self.rot_overshot):>5} {rot_output:+.2f} | {self.tolerance_counter} '
-                print(msg)
-
-                if wpilib.RobotBase.isSimulation():
-                    self.x_setpoint_pub.set(self.x_pid.getSetpoint())
-                    self.y_setpoint_pub.set(self.y_pid.getSetpoint())
-                    self.rot_setpoint_pub.set(math.degrees(self.rot_pid.getSetpoint()))
-                    self.x_measured_pub.set(robot_pose.x)
-                    self.y_measured_pub.set(robot_pose.y)
-                    self.rot_measured_pub.set(robot_pose.rotation().degrees())
+            self._execute_custom_control(robot_pose)
 
         self.counter += 1
+
+    def _execute_pathplanner_control(self, robot_pose):
+        target_chassis_speeds = ac.k_pathplanner_holonomic_controller.calculateRobotRelativeSpeeds(
+            current_pose=robot_pose, target_state=self.target_state_flipped)
+        self.swerve.drive_robot_relative(target_chassis_speeds, "we don't use feedforwards")
+
+    def _execute_custom_control(self, robot_pose):
+        # 1. Calculate PID Outputs
+        x_output = self.x_pid.calculate(robot_pose.X())
+        y_output = self.y_pid.calculate(robot_pose.Y())
+        rot_output = self.rot_pid.calculate(robot_pose.rotation().radians())
+
+        # 2. Calculate Errors (for overshoot detection and tolerance)
+        error_vector = self.target_pose.translation() - robot_pose.translation()
+        diff_x = error_vector.X()
+        diff_y = error_vector.Y()
+        diff_radians = (self.target_pose.rotation() - robot_pose.rotation()).radians()
+
+        # 3. Check for Overshoot
+        if abs(diff_x) > abs(self.last_diff_x) and self.counter > 0: self.x_overshot = True
+        self.last_diff_x = diff_x
+        
+        if abs(diff_y) > abs(self.last_diff_y) and self.counter > 0: self.y_overshot = True
+        self.last_diff_y = diff_y
+        
+        if abs(diff_radians) > abs(self.last_diff_radians) and self.counter > 0: self.rot_overshot = True
+        self.last_diff_radians = diff_radians
+
+        # 4. Apply Stiction Breaking (Minimum Output)
+        # If we haven't overshot yet, but we are close, ensure we apply enough power to move
+        rot_max, rot_min = 0.5, 0.1
+        trans_max, trans_min = 0.3, 0.1
+
+        if abs(x_output) < trans_min and not self.x_overshot and abs(diff_x) > ac.k_translation_tolerance_meters:
+            x_output = math.copysign(trans_min, x_output)
+        if abs(y_output) < trans_min and not self.y_overshot and abs(diff_y) > ac.k_translation_tolerance_meters:
+            y_output = math.copysign(trans_min, y_output)
+        if abs(rot_output) < rot_min and not self.rot_overshot and abs(math.degrees(diff_radians)) > ac.k_rotation_tolerance.degrees():
+            rot_output = math.copysign(rot_min, rot_output)
+
+        # 5. Clamp Outputs
+        x_output = math.copysign(min(abs(x_output), trans_max), x_output)
+        y_output = math.copysign(min(abs(y_output), trans_max), y_output)
+        rot_output = math.copysign(min(abs(rot_output), rot_max), rot_output)
+
+        # 6. Slew Rate Limiting (Smooth Acceleration)
+        x_output = self.x_limiter.calculate(x_output)
+        y_output = self.y_limiter.calculate(y_output)
+        rot_output = self.rot_limiter.calculate(rot_output)
+
+        # 7. Drive
+        self.swerve.drive(x_output, y_output, rot_output, fieldRelative=True, rate_limited=False, keep_angle=False)
+
+        # 8. Check Tolerance
+        rotation_achieved = abs(math.degrees(diff_radians)) < ac.k_rotation_tolerance.degrees()
+        translation_achieved = error_vector.norm() < ac.k_translation_tolerance_meters
+        if rotation_achieved and translation_achieved:
+            self.tolerance_counter += 1
+        else:
+            self.tolerance_counter = 0
+
+        # 9. Logging
+        if self.counter % 10 == 0 and (wpilib.RobotBase.isSimulation() or self.print_debug):
+            msg = f'{self.counter:3d}  {diff_x:+.2f} {str(self.x_overshot):>5} {x_output:+.2f} | {diff_y:+.2f}  {str(self.y_overshot):>5} {y_output:+.2f} '
+            msg += f'| {math.degrees(diff_radians):>+6.1f}° {str(self.rot_overshot):>5} {rot_output:+.2f} | {self.tolerance_counter} '
+            print(msg)
+
+            if wpilib.RobotBase.isSimulation():
+                self.x_setpoint_pub.set(self.x_pid.getSetpoint())
+                self.y_setpoint_pub.set(self.y_pid.getSetpoint())
+                self.rot_setpoint_pub.set(math.degrees(self.rot_pid.getSetpoint()))
+                self.x_measured_pub.set(robot_pose.x)
+                self.y_measured_pub.set(robot_pose.y)
+                self.rot_measured_pub.set(robot_pose.rotation().degrees())
 
     def isFinished(self) -> bool:
         return self.tolerance_counter > 10 or self.abort

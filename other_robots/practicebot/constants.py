@@ -56,6 +56,11 @@ k_swerve_only = False
 k_swerve_rate_limited = True
 k_field_oriented = True  # is there any reason for this at all?
 
+class FieldConstants:
+    # this changes year by year.  TODO: need to find it by software
+    k_field_length = 16.54  # 2026 Rebuilt
+    k_field_width = 8.07  # 2026 Rebuilt
+
 
 class CameraConstants:
     #  ----------  camera configuration (may need its own class eventually)  ----------
@@ -224,4 +229,3 @@ class ClimberConstants:
     k_climber_configs = [k_climber_config]
     k_test_rpm = 20  # pi * diameter roller / 60  to get inches per second
     k_fastest_rpm = 60
-

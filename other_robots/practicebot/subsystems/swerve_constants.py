@@ -28,12 +28,12 @@ class DriveConstants:
     # ==========================================
     # Robot Identification & Controller Type
     # ==========================================
-    # TODO: Consolidate this with constants.k_swerve_config to avoid split-brain configuration.
-    k_robot_id = 'practice'  # used to switch between the two configs - different controllers, IDs, and abs encoder offsets
+    k_robot_id = constants.k_swerve_config  # used to switch between the two configs - different controllers, IDs, and abs encoder offsets
     if k_robot_id not in ['practice', 'comp']:
         raise ValueError(f'robot_id "{k_robot_id}" must be one of [comp, practice]')
 
     k_drive_controller_type = SparkMax if k_robot_id == 'practice' else SparkFlex
+
 
     # ==========================================
     # Speed & Acceleration Limits
@@ -117,7 +117,7 @@ class DriveConstants:
     practice_bot_motor_inversions = {'drive_motors_inverted':False, 'turn_motors_inverted': True}
 
     # Select the active configuration based on constants.py
-    if constants.k_swerve_config == "practice":
+    if k_robot_id == "practice":
         swerve_dict = practice_bot_dict
         swerve_motor_inversions = practice_bot_motor_inversions
     else:
