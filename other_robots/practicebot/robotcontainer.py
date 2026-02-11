@@ -13,6 +13,7 @@ from pathplannerlib.auto import AutoBuilder, NamedCommands
 
 # 2429 helper files
 import constants
+from helpers import joysticks as js
 
 # 2429 subsystems
 from subsystems import swerve_constants
@@ -60,21 +61,19 @@ class RobotContainer:
         self.questnav = Questnav()  # going to break the silo convention and let the Swerve see the quest for now
         self.swerve = Swerve(questnav=self.questnav)
         self.vision = Vision()
-        self.robot_state = RobotState()  # currently has a callback that LED can register
-        self.led = Led(robot_state=self.robot_state)  # may want LED last because it may want to know about other systems
-        # self.questnav_2429 = QuestnavModule()
         self.shooter = Shooter()
         self.intake = Intake()
+        self.robot_state = RobotState()  # currently has a callback that LED can register
+        self.led = Led(robot_state=self.robot_state)  # may want LED last because it may want to know about other systems
 
         # ----------  CONTROLLERS & DEFAULTS  ---------------
-        self.configure_joysticks()
         self.bind_driver_buttons()
-
+        # self.bind_codriver_buttons()  # if we need to
 
         self.swerve.setDefaultCommand(DriveByJoystickSwerve(
             container=self,
             swerve=self.swerve,
-            controller=self.driver_command_controller,
+            controller=js.driver_controller,
             # field_oriented=False,
             rate_limited=constants.k_swerve_rate_limited
         ))
@@ -89,38 +88,56 @@ class RobotContainer:
 
         Pathfinding.setPathfinder(LocalADStar())
 
-    def configure_joysticks(self):
-        """
-        Use this method to define your button->command mappings. Buttons can be created by
-        instantiating a :GenericHID or one of its subclasses (Joystick or XboxController),
-        and then passing it to a JoystickButton.
-        """
-        # ----------  DRIVER CONTROLLER  ---------------
-        self.driver_command_controller = commands2.button.CommandXboxController(constants.k_driver_controller_port)
-        self.configure_controller(self.driver_command_controller, 'trigger', 0.5)
+    def bind_driver_buttons(self):
+        # ----------  DRIVER BUTTONS  ---------------
+        print("Binding driver buttons")
 
-        # ----------  CO-DRIVER CONTROLLER  ---------------
-        self.copilot_controller = commands2.button.CommandXboxController(constants.k_co_driver_controller_port)
-        self.configure_controller(self.copilot_controller, 'co_trigger', 0.2)
+        # --- Drive & Navigation ---
+        js.driver_y.onTrue(ResetFieldCentric(container=self, swerve=self.swerve, angle=0))
 
-        # Extra axes for co-driver
-        self.co_trigger_r_stick_positive_x = self.copilot_controller.axisGreaterThan(4, 0.5)
-        self.co_trigger_r_stick_negative_x = self.copilot_controller.axisLessThan(4, -0.5)
-        self.co_trigger_r_stick_positive_y = self.copilot_controller.axisGreaterThan(5, 0.5)
-        self.co_trigger_r_stick_negative_y = self.copilot_controller.axisLessThan(5, -0.5)
+        # D-Pad: Slow, smooth robot-centric alignment (Nudge)
+        dpad_driving = False
+        if dpad_driving:
+            dpad_output = 0.15
+            js.driver_up.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(dpad_output, 0, 0), timeout=10))
+            js.driver_down.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(-dpad_output, 0, 0), timeout=10))
+            js.driver_left.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(0, dpad_output, 0), timeout=10))
+            js.driver_right.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(0, -dpad_output, 0), timeout=10))
+        else:
+            js.driver_up.whileTrue(ShootingCommand(shooter=self.shooter))
+            js.driver_right.whileTrue(Intake_Set(intake=self.intake, rpm=1000))
+            js.driver_left.whileTrue(Intake_Set(intake=self.intake, rpm=0))
 
-    def configure_controller(self, controller, prefix, threshold):
-        # Standard buttons
-        button_map = {
-            'A': 'a', 'B': 'b', 'X': 'x', 'Y': 'y', 'LB': 'leftBumper', 'RB': 'rightBumper',
-            'Back': 'back', 'Start': 'start', 'Up': 'povUp', 'Down': 'povDown', 'Left': 'povLeft', 'Right': 'povRight'
-        }
-        for name, method_name in button_map.items():
-            setattr(self, f"{prefix}{name}", getattr(controller, method_name)())
+        # --- Subsystems ---
+        js.driver_start.whileTrue(Intake_Set(intake=self.intake, rpm=1000))
+        js.driver_back.whileTrue(Intake_Set(intake=self.intake, rpm=0))
+
+        # --- Vision & Automation ---
+        # Align to Pose (Front/Left)
+        js.driver_a.debounce(0.1).whileTrue(AutoToPoseClean(self, self.swerve, target_pose=None, use_vision=True, cameras=['logi_front_hsv'], control_type='not_pathplanner'))
+        js.driver_x.debounce(0.1).whileTrue(AutoToPoseClean(self, self.swerve, target_pose=None, use_vision=True, cameras=['logi_left_hsv'], control_type='not_pathplanner'))
         
-        # Triggers
-        setattr(self, f"{prefix}_L_trigger", controller.leftTrigger(threshold))
-        setattr(self, f"{prefix}_R_trigger", controller.rightTrigger(threshold))
+        # Track Target
+        js.driver_b.debounce(0.1).whileTrue(AutoTrackVisionTarget(self, camera_key='logi_front_hsv', target_distance=0.40))
+
+        # --- Debug & Simulation ---
+        js.driver_lb.whileTrue(SimShowFOV(self))
+        js.driver_rb.onTrue(MoveTrainingBox(self))
+        # js.driver_rb.whileTrue(SwerveTest(self, self.swerve))
+        
+        js.driver_l_trigger.onTrue(commands2.PrintCommand("Pushed L trigger"))
+        js.driver_r_trigger.onTrue(commands2.PrintCommand("Pushed R trigger"))
+
+        # --- Debug & Simulation ---
+        # test a setting of the swerve modules straight before running the auto to tag
+        # js.driver_a.whileTrue(commands2.cmd.run(lambda: self.swerve.set_straight(), self.swerve))
+        #js.driver_a.whileTrue(TrackHub(self))
+        #js.driver_a.whileTrue(ShootingCommand(container=self, shooter=self.shooter))
+
+
+    def bind_codriver_buttons(self) -> None:
+        # ----------  CO-DRIVER BUTTONS  ---------------
+        print("Binding codriver buttons")
 
     def initialize_dashboard(self):
         # ----------  DASHBOARD COMMANDS  ---------------
@@ -187,62 +204,11 @@ class RobotContainer:
                                     andThen(DriveByVelocitySwerve(self, self.swerve, Pose2d(0.1, 0, 0), 2.5, field_relative=True)))
         wpilib.SmartDashboard.putData('autonomous routines', self.auto_chooser)  #
 
-    def bind_driver_buttons(self):
-        # ----------  DRIVER BUTTONS  ---------------
-        print("Binding driver buttons")
-        # move this to the top of the button area so we have a left and a right auto-drive
-        self.triggerY.onTrue(ResetFieldCentric(container=self, swerve=self.swerve, angle=0))
-
-        # test a setting of the swerve modules straight before running the auto to tag
-        # self.triggerA.whileTrue(commands2.cmd.run(lambda: self.swerve.set_straight(), self.swerve))
-        # self.triggerA.whileTrue(SwerveTest(self, self.swerve))
-
-        #self.triggerA.whileTrue(TrackHub(self))
-        #self.triggerA.debounce(0.1).whileTrue(AutoToPoseClean(self, self.swerve, target_pose=None, use_vision=True, cameras=['logi_front_hsv'], control_type='not_pathplanner'))
-        #self.triggerX.debounce(0.1).whileTrue(AutoToPoseClean(self, self.swerve, target_pose=None, use_vision=True, cameras=['logi_left_hsv'], control_type='not_pathplanner'))
-
-        #self.triggerA.whileTrue(ShootingCommand(container=self, shooter=self.shooter))
-        #self.triggerX.whileTrue(Intake_Set(intake=self.intake, rpm=1000))
-        self.triggerStart.whileTrue(Intake_Set(intake=self.intake, rpm=0))
-
-
-        self.triggerA.debounce(0.1).whileTrue(AutoToPoseClean(self, self.swerve, target_pose=None, use_vision=True, cameras=['logi_front_hsv'], control_type='not_pathplanner'))
-        self.triggerX.debounce(0.1).whileTrue(AutoToPoseClean(self, self.swerve, target_pose=None, use_vision=True, cameras=['logi_left_hsv'], control_type='not_pathplanner'))
-
-        self.triggerB.debounce(0.1).whileTrue(AutoTrackVisionTarget(self, camera_key='logi_front_hsv', target_distance=0.40))
-
-        self.triggerLB.whileTrue(SimShowFOV(self))
-        self.triggerRB.onTrue(MoveTrainingBox(self))
-        self.triggerRB.whileTrue(SwerveTest(self, self.swerve))
-        self.trigger_L_trigger.onTrue(commands2.PrintCommand("Pushed L trigger"))
-
-
-        if wpilib.RobotBase.isSimulation():
-            # reefscape stuff
-            pass
-            #self.triggerB.onTrue(commands2.cmd.runOnce(lambda: setattr(self.robot_state, 'side', RobotState.Side.RIGHT)))
-            #self.triggerB.debounce(0.1).whileTrue(AutoToPoseClean(self, self.swerve, target_pose=None, nearest=True, from_robot_state=False,control_type='not_pathplanner'))
-
-        # set up dpad to allow slow, smooth robot-centric alignment - but give it enough to get over the bump
-        dpad_output = 0.1
-        self.triggerUp.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(dpad_output, 0, 0), timeout=10))
-        self.triggerDown.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(-dpad_output, 0, 0), timeout=10))
-        self.triggerLeft.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(0, dpad_output, 0), timeout=10))
-        self.triggerRight.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(0, -dpad_output, 0), timeout=10))
-
-        #self.triggerLB.onTrue(RumbleCommand(container=self, rumble_amount=0.95, left_rumble=True, right_rumble=False, rumble_time=0.5))
-        #self.triggerRB.onTrue(RumbleCommand(container=self, rumble_amount=0.95, left_rumble=False, right_rumble=True, rumble_time=0.5))
-
-    def bind_codriver_buttons(self) -> None:
-        # ----------  CO-DRIVER BUTTONS  ---------------
-        print("Binding codriver buttons")
-
     def register_commands(self):
         # ----------  PATHPLANNER COMMANDS  ---------------
         # this is for PathPlanner, so it can call our commands.  Note they do not magically show up in pathplanner
         # you have to add them there, and then it remembers your list of commands.  so name them wisely
         NamedCommands.registerCommand('robot_state_left', commands2.cmd.runOnce(lambda: setattr(self.robot_state, 'side', RobotState.Side.LEFT)).ignoringDisable(True))
-
 
     def get_autonomous_command(self):
         # return DriveByVelocitySwerve(self, self.swerve, Pose2d(0.1, 0, 0), 2)

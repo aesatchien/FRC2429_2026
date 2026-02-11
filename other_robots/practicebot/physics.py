@@ -100,7 +100,7 @@ class PhysicsEngine:
         self.mech.update_intake(deployed=intake_state, speed=1.0 if intake_state else 0.0)
         
         self.mech.update_hopper(1.0 if test_state else 0)
-        self.mech.update_indexer(1.0 if test_state else 0)
+        self.mech.update_indexer(1 if self.container.shooter.indexer_on else 0)
         self.mech.update_shooter(self.container.shooter.current_rpm if self.container.shooter.shooter_on else 0)
 
         climber_height = 22 + 8 * math.sin(1 * wpilib.getTime())  # 22±8 inches

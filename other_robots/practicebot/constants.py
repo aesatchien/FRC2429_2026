@@ -10,7 +10,7 @@ from typing import Union, List
 
 from helpers.utilities import set_config_defaults
 
-k_swerve_config = "comp"
+k_swerve_config = "comp"  # choose between practice bot and comp bot for now - they differ by swerve ofsets
 
 # Generator for unique counter offsets
 _counter = count(1)
@@ -172,8 +172,8 @@ class IntakeConstants:
 
     k_intake_config = SparkMaxConfig()
     k_intake_configs = [k_intake_config]
-    k_dropper_config = SparkMaxConfig()
-    k_dropper_configs = [k_dropper_config]
+    k_deploy_config = SparkMaxConfig()
+    k_deploy_configs = [k_deploy_config]
     k_test_rpm = 20  # pi * diameter roller / 60  to get inches per second
     k_fastest_rpm = 60
     k_dropper_rpm = 10 

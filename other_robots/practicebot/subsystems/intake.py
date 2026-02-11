@@ -17,17 +17,17 @@ class Intake(Subsystem):
         # --------------- add motors and set intake rpm ----------------
         
         motor_type = rev.SparkMax.MotorType.kBrushless
-        self.intake = rev.SparkMax(ic.k_CANID_intake, motor_type)
-        self.dropper = rev.SparkMax(ic.k_CANID_dropper, motor_type)
+        self.intake_motor = rev.SparkMax(ic.k_CANID_intake, motor_type)
+        self.deploy_motor = rev.SparkMax(ic.k_CANID_dropper, motor_type)
 
         # convenient list of motors if we need to query or set all of them
-        self.motors = [self.intake, self.dropper]
+        self.motors = [self.intake_motor, self.deploy_motor]
 
         # you need a controller to set velocity
-        self.intake_controller = self.intake.getClosedLoopController()
-        self.intake_encoder = self.intake.getEncoder()
-        self.dropper_controller = self.dropper.getClosedLoopController()
-        self.dropper_encoder = self.dropper.getEncoder()
+        self.intake_controller = self.intake_motor.getClosedLoopController()
+        self.intake_encoder = self.intake_motor.getEncoder()
+        self.deploy_controller = self.deploy_motor.getClosedLoopController()
+        self.deploy_encoder = self.deploy_motor.getEncoder()
 
         # default parameters for the sparkmaxes reset and persist modes -
         self.rev_resets = rev.ResetMode.kResetSafeParameters
@@ -35,7 +35,7 @@ class Intake(Subsystem):
             else rev.PersistMode.kNoPersistParameters
 
         # put the configs in a list matching the motors
-        self.configs = ic.k_intake_configs + ic.k_dropper_configs
+        self.configs = ic.k_intake_configs + ic.k_deploy_configs
 
         # this should be its own function later - we will call it whenever we change brake mode
         rev_errors = [motor.configure(config, self.rev_resets, self.rev_persists)
@@ -43,7 +43,7 @@ class Intake(Subsystem):
 
         # initialize states
         self.intake_on = False
-        self.dropper_down = False
+        self.deployed = False
         self.current_rpm = 0
         self._init_networktables()
 
@@ -53,21 +53,21 @@ class Intake(Subsystem):
         self.intake_prefix = constants.intake_prefix
         self.intake_on_pub = self.inst.getBooleanTopic(f"{self.intake_prefix}/intake_on").publish()
         self.intake_rpm_pub = self.inst.getDoubleTopic(f"{self.intake_prefix}/intake_rpm").publish()
-        self.dropper_down_pub = self.inst.getBooleanTopic(f"{self.intake_prefix}/dropper_down").publish()
+        self.deployed_pub = self.inst.getBooleanTopic(f"{self.intake_prefix}/deployed").publish()
         
         self.intake_on_pub.set(self.intake_on)
         self.intake_rpm_pub.set(self.current_rpm)
-        self.dropper_down_pub.set(self.dropper_down)
+        self.deployed_pub.set(self.deployed)
 
     def stop_intake(self):
         # three different ways to stop the intake
-        self.intake.set(0)  # this sets the output to zero (number between -1 and 1) - it is "dumb"
+        self.intake_motor.set(0)  # this sets the output to zero (number between -1 and 1) - it is "dumb"
         # self.intake_l.setVoltage(0)  # this sets the voltage to zero (number between -12 and 12) - it is also "dumb"
         # self.intake_controller.setReference(value=0, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=0)
 
         self.intake_on = False
         self.current_rpm = 0
-        self.dropper_down = False
+        self.deployed = False
 
         self.update_nt()  # update all relevant state variables on networktables
 
@@ -85,7 +85,7 @@ class Intake(Subsystem):
     def update_nt(self):
         self.intake_on_pub.set(self.intake_on)
         self.intake_rpm_pub.set(self.current_rpm)
-        self.dropper_down_pub.set(self.dropper_down)
+        self.deployed_pub.set(self.deployed)
 
     def get_rpm(self):
         return self.intake_encoder.getVelocity()
