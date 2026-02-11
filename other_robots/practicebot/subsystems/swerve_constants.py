@@ -3,6 +3,30 @@ Swerve Drive Constants
 
 This file contains all the physical, kinematic, and electrical constants for the Swerve Drive subsystem.
 It also includes the configuration for the REV SparkMax/Flex motor controllers.
+
+--- Control Loop Hierarchy and Tuning "Strengths" ---
+
+1. Driver Input Layer (The "Feel") - Located in DriveByJoystickSwerveTargeting.py
+   - Response Curve (sqrt): Makes robot less sensitive near center, ramps to full speed quickly.
+   - Slow Mode Multiplier: 0.2 (Base) to 1.0 (Turbo). Caps speed at 20% unless trigger pulled.
+   - Manual Slew Rate: 3.0 units/sec. Limits how fast rotation command changes manually.
+
+2. Targeting Layer (The "Brain") - Located in DriveByJoystickSwerveTargeting.py & TargetingConstants
+   - Lookahead Time (kTargetingLookaheadS): 0.9s. Aims at future target position to compensate for lag.
+   - Rotation PID (kTeleopRotationPID.kP): 0.8. "Spring constant" pulling nose to target.
+   - Physics Feedforward: 1.0. Calculates exact angular velocity needed for tangential speed.
+   - Static Friction (kTeleopRotationkS): 0.05. Minimum output to break friction.
+   - Tracking Slew Rate: Disabled/High. Allows auto-aim to react instantly.
+
+3. Kinematics Layer (The "Limiter") - Located in DriveConstants
+   - Max Speed: 4.75 m/s. Ceiling for translation.
+   - Max Angular Speed: 0.75 * 2pi rad/s. Ceiling for rotation.
+   - Acceleration Limit: 5.0 (100%/0.2s). Prevents tipping/brownouts.
+
+4. Motor Control Layer (The "Muscle") - Located in ModuleConstants
+   - Drive Feedforward: 1/FreeSpeed. Open loop control providing ~95% of power.
+   - Drive PID: 0.0. Currently disabled.
+   - Turning PID: 0.3. Stiffness of wheel angle servo.
 """
 
 import math
@@ -273,8 +297,11 @@ class TargetingConstants:
     kTeleopRotationPID = PIDConstants(0.8, 0.0, 0.0)
     
     # Translation PIDs for AutoToPose
-    kAutoTranslationPID = PIDConstants(0.8, 0.1, 0.0)
+    kAutoTranslationPID = PIDConstants(1.2, 0.1, 0.0)
     
     # Tolerances (mirrored from AutoConstants for now, but can be tuned separately)
     k_rotation_tolerance = AutoConstants.k_rotation_tolerance
     k_translation_tolerance_meters = AutoConstants.k_translation_tolerance_meters
+    k_teleop_rotation_kS = 0.05 # Minimum output to overcome friction (static friction feedforward)
+    k_targeting_lookahead_s = 0.9 # Lookahead time in seconds to anticipate robot motion (lag compensation)
+    k_teleop_rotation_kf = 1.0 # Physics feedforward gain. 1.0 is exact, >1.0 overdrives for lag.
