@@ -6,6 +6,7 @@ from  wpimath.geometry import Pose2d, Transform2d
 from pyfrc.physics.core import PhysicsInterface
 import ntcore
 
+from constants import mech_prefix
 from robot import MyRobot
 import constants
 from simulation import sim_utils
@@ -54,6 +55,7 @@ class PhysicsEngine:
         # Ghost Robot Subscribers - used for tracking goals in auto
         self.auto_active_sub = self.inst.getBooleanTopic(f"{auto_sim_prefix}/robot_in_auto").subscribe(False)
         self.goal_pose_sub = self.inst.getStructTopic(f"{auto_sim_prefix}/goal_pose", Pose2d).subscribe(Pose2d())
+
 
     def update_sim(self, now, tm_diff):
 

@@ -21,9 +21,6 @@ class BlockheadMech:
         # ----------------- Mechanism2d Views -----------------
         # Side view is best for Intake, Elevator, Shooter, Climber
         self.mech_side = wpilib.Mechanism2d(self.width + 10, self.height + 10)
-        
-        # Put to dashboard
-        wpilib.SmartDashboard.putData("Mech Side View", self.mech_side)
 
         # ----------------- Visual Constants -----------------
         self.color_chassis = Color8Bit(Color.kGray)
@@ -44,6 +41,10 @@ class BlockheadMech:
         self._init_shooter()
         self._init_climber()
         self._init_ball()
+
+        # Put to dashboard
+        # mech_prefix = constants.mech_prefix
+        wpilib.SmartDashboard.putData("Mech Side View", self.mech_side)
 
     def _get_rel_angle(self, target_abs, parent_abs):
         """

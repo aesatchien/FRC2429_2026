@@ -39,9 +39,10 @@ vision_prefix = r'/SmartDashboard/Vision'  # from the robot
 swerve_prefix = r'/SmartDashboard/Swerve'  # from the robot
 sim_prefix = r'/SmartDashboard/Sim'  # from the sim (still from the robot)
 auto_prefix = r'/SmartDashboard/Auto'  # one place for all of our auto goals and temp variables
-command_prefix = r'Command'  # SPECIAL CASE: the SmartDashboard.putData auto prepends /SmartDashboard to the key\
 intake_prefix = r'/SmartDashboard/Intake'  # intake subsystem
 climber_prefix = r'/SmartDashboard/Climber' #climber subsystem
+command_prefix = r'Command'  # SPECIAL CASE: the SmartDashboard.putData auto prepends /SmartDashboard to the key\
+mech_prefix = r'/Mech' # SPECIAL CASE: the SmartDashboard.putData auto prepends /SmartDashboard to the key\
 
 
 k_swerve_debugging_messages = True
