@@ -61,6 +61,7 @@ class Targeting(Subsystem):
         self.last_rot_output = 0
         self.effective_distance = 0.0
         self.target_rpm = 0.0
+        self.shot_error = 999.0
         self.last_calc_time = -1.0
         self.was_active = False
 
@@ -91,6 +92,8 @@ class Targeting(Subsystem):
         self.auto_active_pub = self.inst.getBooleanTopic(f"{auto_prefix}/robot_in_auto").publish()
         self.goal_pose_pub = self.inst.getStructTopic(f"{auto_prefix}/goal_pose", Pose2d).publish()
         self.shot_line_pub = self.inst.getStructArrayTopic(f"{auto_prefix}/shot_line", Pose2d).publish()
+        self.is_ok_to_shoot_pub = self.inst.getBooleanTopic(f"{auto_prefix}/is_ok_to_shoot").publish()
+        self.shot_error_pub = self.inst.getDoubleTopic(f"{auto_prefix}/shot_error").publish()
 
     def reset_state(self):
         """Resets the PID controller and tracking state. Call this when tracking starts."""
@@ -109,6 +112,10 @@ class Targeting(Subsystem):
     def is_at_target(self) -> bool:
         """Returns True if the rotation error is within tolerance."""
         return abs(self.debug_error_deg) < tc.k_rotation_tolerance.degrees()
+        
+    def is_ok_to_shoot(self) -> bool:
+        """Returns True if the calculated shot endpoint is within tolerance of the target."""
+        return self.shot_error < tc.kShotAccuracyToleranceMeters
 
     def calculate_target_rotation(self, robot_pose: Pose2d, robot_vel: ChassisSpeeds) -> float:
         """
@@ -118,6 +125,10 @@ class Targeting(Subsystem):
         self.counter += 1
         self.last_calc_time = wpilib.Timer.getFPGATimestamp()
         self.last_robot_pose = robot_pose
+        
+        # Deadband velocity to prevent jitter at start/stop
+        if math.hypot(robot_vel.vx, robot_vel.vy) < 0.1:
+            robot_vel = ChassisSpeeds(0, 0, 0)
 
         # --- Targeting Calculations ---
         
@@ -155,6 +166,9 @@ class Targeting(Subsystem):
         
         end_point_translation = robot_pose.translation() + robot_motion_vector + shot_vector
         self.debug_shot_end = Pose2d(end_point_translation, robot_pose.rotation())
+        
+        # Calculate shot error (distance from shot endpoint to target center)
+        self.shot_error = end_point_translation.distance(target_location)
         
         # 6. Calculate setpoint angle based on future position (Lookahead)
         robot_to_hub_angle = (target_location - future_robot_location).angle()
@@ -218,6 +232,8 @@ class Targeting(Subsystem):
         elif self.was_active:
             self.auto_active_pub.set(False)
             self.shot_line_pub.set([])
+            self.is_ok_to_shoot_pub.set(False)
+            self.shot_error_pub.set(999.0)
             self.was_active = False
 
         # Publish debug data periodically
@@ -228,5 +244,13 @@ class Targeting(Subsystem):
                 self.debug_future_pose.X(), self.debug_future_pose.Y(),
                 self.debug_error_deg,
                 self.debug_pid, self.debug_ff, self.debug_ks, self.last_rot_output,
-                self.effective_distance, self.target_rpm
+                self.effective_distance, self.target_rpm,
+                self.shot_error
             ])
+            
+            if is_active:
+                self.is_ok_to_shoot_pub.set(self.is_ok_to_shoot())
+                self.shot_error_pub.set(self.shot_error)
+            else:
+                self.is_ok_to_shoot_pub.set(False)
+                self.shot_error_pub.set(999.0)

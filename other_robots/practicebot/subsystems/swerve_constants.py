@@ -307,3 +307,4 @@ class TargetingConstants:
     k_translation_tolerance_meters = AutoConstants.k_translation_tolerance_meters
     k_teleop_rotation_kS = 0.05 # Minimum output to overcome friction (static friction feedforward)
     k_teleop_rotation_kf = 1.0 # Physics feedforward gain. 1.0 is exact, >1.0 overdrives for lag.
+    kShotAccuracyToleranceMeters = 0.5 # Shot must land within this distance of the target center to be "OK"
