@@ -76,7 +76,7 @@ class Shooter(Subsystem):
         self.indexer_on_pub.set(self.indexer_on)
         self.indexer_rpm_pub.set(self.current_indexer_rpm)
         self.hopper_on_pub.set(self.hopper_on)
-        self.hopper_rpm_pub.set(self.hopper_rpm_pub)
+        self.hopper_rpm_pub.set(self.current_hopper_rpm)
 
 
     def stop_shooter(self):

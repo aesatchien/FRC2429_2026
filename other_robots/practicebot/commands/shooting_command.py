@@ -29,7 +29,7 @@ class ShootingCommand(commands2.Command):  # change the name for your command
 
     def execute(self) -> None:
         self.counter += 1
-        if self.counter > self.delay_cycles:
+        if self.counter > self.delay_cycles and (self.shooter.indexer_on == False or self.shooter.hopper_on == False):
             self.shooter.set_indexer_rpm(sc.k_indexer_rpm)
             self.shooter.set_hopper_rpm(sc.k_hopper_rpm)
         # runs 50x per second, so be careful about messages and timing
