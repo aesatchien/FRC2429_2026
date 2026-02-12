@@ -43,7 +43,7 @@ class Shooter(Subsystem):
             else SparkBase.PersistMode.kNoPersistParameters
 
         # put the configs in a list matching the motors
-        self.configs:list = sc.k_flywheel_configs + [sc.k_indexer_config] + [sc.k_hopper_configs]
+        self.configs:list = sc.k_flywheel_configs + [sc.k_indexer_config] + [sc.k_hopper_config]
  
         # this should be its own function later - we will call it whenever we change brake mode
         rev_errors = [motor.configure(config, self.rev_resets, self.rev_persists)
@@ -84,9 +84,31 @@ class Shooter(Subsystem):
         self.flywheel_left_leader.set(0)  # this sets the output to zero (number between -1 and 1) - it is "dumb"
         # self.shooter_l.setVoltage(0)  # this sets the voltage to zero (number between -12 and 12) - it is also "dumb"
         # self.flywheel_controller.setReference(value=0, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=0)
-        self.set_indexer_rpm(0)
+        print("Setting shooter rpm to 0")
+
+        self.stop_indexer()
+        self.stop_hopper()
+
         self.shooter_on = False
         self.current_rpm = 0
+
+        self.update_nt()
+
+    def stop_indexer(self):
+        # setting everything off, then updating
+        self.indexer_controller.set(0)
+        print("Setting indexer rpm to 0")
+        self.indexer_on = False
+        self.current_indexer_rpm = 0
+
+        self.update_nt()
+    
+    def stop_hopper(self):
+        # setting everything off, then updating
+        self.hopper_motor.set(0)
+        print("Setting hopper rpm to 0")
+        self.hopper_on = False
+        self.current_hopper_rpm = 0
 
         self.update_nt()
 
@@ -94,9 +116,17 @@ class Shooter(Subsystem):
     def set_indexer_rpm(self, rpm=1000):
         feed_forward = min(12, 12 * rpm / 5600)
         self.indexer_controller.setReference(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
-        print(f'Setting indexer rpm to {rpm:.0f}')
+        print(f"Setting indexer rpm to {rpm:.0f}")
         self.current_indexer_rpm = rpm
-        self.indexer_on = True if rpm > 0 else False
+        self.indexer_on = True
+        self.update_nt()
+
+    def set_hopper_rpm(self, rpm=1000):
+        feed_forward = min(12, 12 * rpm / 5600)
+        self.indexer_controller.setReference(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
+        print(f"Setting hopper rpm to {rpm:.0f}")
+        self.current_hopper_rpm = rpm
+        self.hopper_on = True
         self.update_nt()
 
     def set_shooter_rpm(self, rpm=1000):
@@ -109,7 +139,6 @@ class Shooter(Subsystem):
         self.current_rpm = rpm
         self.shooter_on = True
         self.update_nt()
-
 
     def get_velocity(self):
         return self.flywheel_encoder.getVelocity()
