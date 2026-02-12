@@ -295,17 +295,15 @@ class TargetingConstants:
     Constants for AutoToPose and Joystick Targeting.
     Centralizes PID gains and tolerances for targeting logic.
     """
-    # AutoToPoseClean uses 0.7, Joystick uses 0.8.
-    kAutoRotationPID = PIDConstants(0.7, 0.0, 0.0)
-    kTeleopRotationPID = PIDConstants(0.8, 0.0, 0.0)
+    #  ROTATION PIDs -  AutoToPoseClean uses 0.7, Joystick uses 0.8.
+    kAutoRotationPID = PIDConstants(0.7, 0.0, 0.0)  # auto_to_pose.py
+    kTeleopRotationPID = PIDConstants(1.8, 0.0, 0.0)  # targeting.py
     
-    # Translation PIDs for AutoToPose
-    kAutoTranslationPID = PIDConstants(1.2, 0.1, 0.0)
+    # TRANSLATION PIDs for AutoToPose
+    kAutoTranslationPID = PIDConstants(0.8, 0.1, 0.0)
     
     # Tolerances (mirrored from AutoConstants for now, but can be tuned separately)
     k_rotation_tolerance = AutoConstants.k_rotation_tolerance
     k_translation_tolerance_meters = AutoConstants.k_translation_tolerance_meters
     k_teleop_rotation_kS = 0.05 # Minimum output to overcome friction (static friction feedforward)
     k_teleop_rotation_kf = 1.0 # Physics feedforward gain. 1.0 is exact, >1.0 overdrives for lag.
-    # set k_ball_speed_mps really high to disable leading the target
-    k_ball_speed_mps = 12.0 # Average horizontal speed of the game piece (m/s) for Time of Flight calculation.

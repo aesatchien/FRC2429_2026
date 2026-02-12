@@ -61,11 +61,14 @@ class Targeting(Subsystem):
         self.last_rot_output = 0
         self.effective_distance = 0.0
         self.target_rpm = 0.0
+        self.last_calc_time = -1.0
+        self.was_active = False
 
         # Debugging variables
         self.debug_v_field = Translation2d()
         self.debug_future_pose = Translation2d()
         self.debug_future_rotation = Rotation2d()
+        self.debug_shot_end = Pose2d()
         self.debug_pid = 0
         self.debug_ff = 0
         self.debug_ks = 0
@@ -80,8 +83,14 @@ class Targeting(Subsystem):
     def _init_networktables(self):
         self.inst = ntcore.NetworkTableInstance.getDefault()
         status_prefix = constants.status_prefix
+        auto_prefix = constants.auto_prefix
+
         self.targeting_debug_pub = self.inst.getDoubleArrayTopic(f"{status_prefix}/targeting_debug").publish()
-        self.ghost_pose_pub = self.inst.getStructTopic(f"{status_prefix}/targeting_ghost_pose", Pose2d).publish()
+        
+        # Match AutoToPoseClean publishing for Physics/Sim visualization
+        self.auto_active_pub = self.inst.getBooleanTopic(f"{auto_prefix}/robot_in_auto").publish()
+        self.goal_pose_pub = self.inst.getStructTopic(f"{auto_prefix}/goal_pose", Pose2d).publish()
+        self.shot_line_pub = self.inst.getStructArrayTopic(f"{auto_prefix}/shot_line", Pose2d).publish()
 
     def reset_state(self):
         """Resets the PID controller and tracking state. Call this when tracking starts."""
@@ -107,6 +116,7 @@ class Targeting(Subsystem):
         Includes Lookahead, Physics Feedforward, PID, and Static Friction compensation.
         """
         self.counter += 1
+        self.last_calc_time = wpilib.Timer.getFPGATimestamp()
         self.last_robot_pose = robot_pose
 
         # --- Targeting Calculations ---
@@ -135,6 +145,16 @@ class Targeting(Subsystem):
         # 5. Calculate Effective Distance (for Shooter RPM)
         self.effective_distance = future_robot_location.distance(target_location)
         self.target_rpm = self.rpm_map.get(self.effective_distance)
+
+        # --- Calculate Shot Line for Visualization ---
+        # Where the ball goes if we shoot NOW with CURRENT heading
+        # Endpoint = CurrentPos + (RobotVel * t) + (ShotVel * t)
+        # (ShotVel * t) is just a vector of length effective_distance in the direction of the robot
+        shot_vector = Translation2d(self.effective_distance, 0).rotateBy(robot_pose.rotation())
+        robot_motion_vector = v_field * lookahead_time
+        
+        end_point_translation = robot_pose.translation() + robot_motion_vector + shot_vector
+        self.debug_shot_end = Pose2d(end_point_translation, robot_pose.rotation())
         
         # 6. Calculate setpoint angle based on future position (Lookahead)
         robot_to_hub_angle = (target_location - future_robot_location).angle()
@@ -186,6 +206,20 @@ class Targeting(Subsystem):
         return rot_output
 
     def periodic(self):
+        # Check if targeting is active (heuristic: calculated recently, e.g. < 0.1s ago)
+        is_active = (wpilib.Timer.getFPGATimestamp() - self.last_calc_time) < 0.1
+
+
+        if is_active:
+            self.auto_active_pub.set(True)
+            self.goal_pose_pub.set(Pose2d(self.debug_future_pose, self.debug_future_rotation))
+            self.shot_line_pub.set([self.last_robot_pose, self.debug_shot_end])
+            self.was_active = True
+        elif self.was_active:
+            self.auto_active_pub.set(False)
+            self.shot_line_pub.set([])
+            self.was_active = False
+
         # Publish debug data periodically
         if self.counter % 10 == 0:
             self.targeting_debug_pub.set([
@@ -196,4 +230,3 @@ class Targeting(Subsystem):
                 self.debug_pid, self.debug_ff, self.debug_ks, self.last_rot_output,
                 self.effective_distance, self.target_rpm
             ])
-            self.ghost_pose_pub.set(Pose2d(self.debug_future_pose, self.debug_future_rotation))

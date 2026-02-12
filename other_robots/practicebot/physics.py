@@ -31,6 +31,7 @@ class PhysicsEngine:
         self.field = wpilib.Field2d()
         wpilib.SmartDashboard.putData("Field", self.field)  # should just keep the default one but adds our piece poses
         self.target_object = self.field.getObject("Target")
+        self.shotline_object = self.field.getObject("ShotLine")
 
         # Initialize Simulations
         self.swerve_sim = SwerveSim(physics_controller, robot)
@@ -56,6 +57,7 @@ class PhysicsEngine:
         # Ghost Robot Subscribers - used for tracking goals in auto
         self.auto_active_sub = self.inst.getBooleanTopic(f"{auto_sim_prefix}/robot_in_auto").subscribe(False)
         self.goal_pose_sub = self.inst.getStructTopic(f"{auto_sim_prefix}/goal_pose", Pose2d).subscribe(Pose2d())
+        self.shot_line_sub = self.inst.getStructArrayTopic(f"{auto_sim_prefix}/shot_line", Pose2d).subscribe([])
 
 
     def update_sim(self, now, tm_diff):
@@ -83,11 +85,13 @@ class PhysicsEngine:
         # Update Ghost Robot
         if self.auto_active_sub.get():
             self.target_object.setPose(self.goal_pose_sub.get())
+            self.shotline_object.setPoses(self.shot_line_sub.get())
             self.last_ghost_update_time = now
         else:
             # make it disappear after the ghost timeout
             if now - self.last_ghost_update_time > self.ghost_linger_duration:
                 self.target_object.setPoses([])
+                self.shotline_object.setPoses([])
 
         # ----------------- Update Mechanisms (Stubs) -----------------
         # For now, just calling them to ensure no errors until subsystems are built
