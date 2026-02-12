@@ -14,6 +14,7 @@ class Shooter(Subsystem):
         self.counter = sc.k_counter_offset  # note this should be an offset in constants
         self.default_rpm = sc.k_test_rpm
         self.default_indexer_rpm = sc.k_indexer_rpm
+        self.default_hopper_rpm = sc.k_hopper_rpm
 
         # --------------- add motors and shooter rpm ----------------
         
@@ -21,9 +22,10 @@ class Shooter(Subsystem):
         self.flywheel_left_leader = rev.SparkMax(sc.k_CANID_flywheel_left_leader, motor_type)
         self.flywheel_right_follower = rev.SparkMax(sc.k_CANID_flywheel_right_follower, motor_type)
         self.indexer = rev.SparkMax(sc.k_CANID_indexer, motor_type)
+        self.hopper = rev.SparkMax(sc.k_CANID_hopper, motor_type)
 
         # convenient list of motors if we need to query or set all of them
-        self.motors = [self.flywheel_left_leader, self.flywheel_right_follower, self.indexer]
+        self.motors = [self.flywheel_left_leader, self.flywheel_right_follower, self.indexer, self.hopper]
 
         # you need a controller to set velocity
         self.flywheel_controller = self.flywheel_left_leader.getClosedLoopController()
@@ -32,13 +34,16 @@ class Shooter(Subsystem):
         self.indexer_controller = self.indexer.getClosedLoopController()
         self.indexer_encoder = self.indexer.getEncoder()
 
+        self.hopper_controller = self.hopper.getClosedLoopController()
+        self.hopper_encoder = self.hopper.getEncoder()
+
         # default parameters for the sparkmaxes reset and persist modes -
         self.rev_resets = rev.ResetMode.kResetSafeParameters
         self.rev_persists = rev.PersistMode.kPersistParameters if constants.k_burn_flash \
             else SparkBase.PersistMode.kNoPersistParameters
 
         # put the configs in a list matching the motors
-        self.configs:list = sc.k_flywheel_configs + [sc.k_indexer_config]
+        self.configs:list = sc.k_flywheel_configs + [sc.k_indexer_config] + [sc.k_hopper_configs]
  
         # this should be its own function later - we will call it whenever we change brake mode
         rev_errors = [motor.configure(config, self.rev_resets, self.rev_persists)
@@ -47,8 +52,10 @@ class Shooter(Subsystem):
         # initialize states
         self.shooter_on = False
         self.indexer_on = False
+        self.hopper_on = False
         self.current_rpm = 0
         self.current_indexer_rpm = 0
+        self.current_hopper_rpm = 0
         self.voltage = 0
         self._init_networktables()
 
@@ -59,13 +66,17 @@ class Shooter(Subsystem):
         self.shooter_rpm_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/shooter_position").publish()
         self.indexer_on_pub = self.inst.getBooleanTopic(f"{self.nt_prefix}/indexer_on").publish()
         self.indexer_rpm_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/indexer_position").publish()
+        self.hopper_on_pub = self.inst.getBooleanTopic(f"{self.nt_prefix}/hopper_on").publish()
+        self.hopper_rpm_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/hopper_rpm").publish()
 
 
     def update_nt(self):
         self.shooter_on_pub.set(self.shooter_on)
         self.shooter_rpm_pub.set(self.current_rpm)
-        self.indexer_rpm_pub.set(self.current_indexer_rpm)
         self.indexer_on_pub.set(self.indexer_on)
+        self.indexer_rpm_pub.set(self.current_indexer_rpm)
+        self.hopper_on_pub.set(self.hopper_on)
+        self.hopper_rpm_pub.set(self.hopper_rpm_pub)
 
 
     def stop_shooter(self):
@@ -79,7 +90,7 @@ class Shooter(Subsystem):
         self.current_rpm = 0
 
         self.update_nt()
-    
+
     # keeping indexer and shooter separate, and combining them in commands.
     def set_indexer_rpm(self, rpm=1000):
         feed_forward = min(12, 12 * rpm / 5600)

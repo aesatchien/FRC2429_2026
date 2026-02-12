@@ -195,15 +195,18 @@ class ShooterConstants:
     k_CANID_indexer = 5
     k_CANID_flywheel_left_leader, k_CANID_flywheel_right_follower = 7, 8  # left flywheel and follower
     k_CANID_indexer = 11  # IDK
+    k_CANID_hopper = 12  # IDK
 
     # FLYWHEEL
-    k_flywheel_left_leader_config, k_flywheel_right_follower_config, k_indexer_config = SparkMaxConfig(), SparkMaxConfig(), SparkMaxConfig()
+    k_flywheel_left_leader_config, k_flywheel_right_follower_config = SparkMaxConfig(), SparkMaxConfig()
+    k_indexer_config, k_hopper_config = SparkMaxConfig(), SparkMaxConfig()
     k_flywheel_configs = [k_flywheel_left_leader_config, k_flywheel_right_follower_config]
     k_test_speed = 4000
     k_fastest_speed = 6500
     k_test_rpm = 2000
     k_fastest_rpm = 5600
     k_indexer_rpm = 1000
+    k_hopper_rpm = 1000
 
     k_flywheel_left_leader_config.inverted(False)  # have to check which way it spins for positive RPM
     # k_flywheel_right_follower.inverted(False)  # this is not necessary - it will get ignored
