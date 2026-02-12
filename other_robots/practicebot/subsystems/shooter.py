@@ -84,8 +84,7 @@ class Shooter(Subsystem):
         self.flywheel_left_leader.set(0)  # this sets the output to zero (number between -1 and 1) - it is "dumb"
         # self.shooter_l.setVoltage(0)  # this sets the voltage to zero (number between -12 and 12) - it is also "dumb"
         # self.flywheel_controller.setReference(value=0, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=0)
-        self.indexer_on = False
-        self.current_indexer_rpm = 0
+        self.set_indexer_rpm(0)
         self.shooter_on = False
         self.current_rpm = 0
 
@@ -97,7 +96,7 @@ class Shooter(Subsystem):
         self.indexer_controller.setReference(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
         print(f'Setting indexer rpm to {rpm:.0f}')
         self.current_indexer_rpm = rpm
-        self.indexer_on = True
+        self.indexer_on = True if rpm > 0 else False
         self.update_nt()
 
     def set_shooter_rpm(self, rpm=1000):
