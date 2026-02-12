@@ -1,13 +1,39 @@
 import math
+import bisect
 import ntcore
 import wpilib
 from commands2 import Subsystem
 from wpimath.controller import PIDController
-from wpimath.geometry import Pose2d, Translation2d
+from wpimath.geometry import Pose2d, Translation2d, Rotation2d
 from wpimath.kinematics import ChassisSpeeds
-
 import constants
+from constants import ShooterConstants as sc
 from subsystems.swerve_constants import DriveConstants as dc, TargetingConstants as tc
+
+class InterpolatedLookupTable:
+    """
+    Simple lookup table with linear interpolation.
+    Replaces wpimath.interpolation.InterpolatingDoubleTreeMap.
+    """
+    def __init__(self, data: dict):
+        self.x = sorted(data.keys())
+        self.y = [data[k] for k in self.x]
+        
+    def get(self, val: float) -> float:
+        if not self.x:
+            return 0.0
+        if val <= self.x[0]:
+            return self.y[0]
+        if val >= self.x[-1]:
+            return self.y[-1]
+            
+        # Find the insertion point to maintain sorted order
+        idx = bisect.bisect_right(self.x, val)
+        x0, x1 = self.x[idx-1], self.x[idx]
+        y0, y1 = self.y[idx-1], self.y[idx]
+        
+        # Linear interpolation
+        return y0 + (val - x0) * (y1 - y0) / (x1 - x0)
 
 class Targeting(Subsystem):
     """
@@ -33,14 +59,21 @@ class Targeting(Subsystem):
         self.counter = 0
         self.last_robot_pose = Pose2d()
         self.last_rot_output = 0
+        self.effective_distance = 0.0
+        self.target_rpm = 0.0
 
         # Debugging variables
         self.debug_v_field = Translation2d()
         self.debug_future_pose = Translation2d()
+        self.debug_future_rotation = Rotation2d()
         self.debug_pid = 0
         self.debug_ff = 0
         self.debug_ks = 0
         self.debug_error_deg = 0
+
+        # Initialize Lookup Tables
+        self.rpm_map = InterpolatedLookupTable(sc.k_distance_to_rpm)
+        self.tof_map = InterpolatedLookupTable(sc.k_distance_to_tof)
 
         self._init_networktables()
 
@@ -48,12 +81,25 @@ class Targeting(Subsystem):
         self.inst = ntcore.NetworkTableInstance.getDefault()
         status_prefix = constants.status_prefix
         self.targeting_debug_pub = self.inst.getDoubleArrayTopic(f"{status_prefix}/targeting_debug").publish()
+        self.ghost_pose_pub = self.inst.getStructTopic(f"{status_prefix}/targeting_ghost_pose", Pose2d).publish()
 
     def reset_state(self):
         """Resets the PID controller and tracking state. Call this when tracking starts."""
         self.rot_pid.reset()
         self.rot_overshot = False
         self.last_diff_radians = 100.0
+
+    def get_effective_distance(self) -> float:
+        """Returns the distance from the predicted future robot pose to the target."""
+        return self.effective_distance
+        
+    def get_target_rpm(self) -> float:
+        """Returns the calculated RPM based on effective distance."""
+        return self.target_rpm
+
+    def is_at_target(self) -> bool:
+        """Returns True if the rotation error is within tolerance."""
+        return abs(self.debug_error_deg) < tc.k_rotation_tolerance.degrees()
 
     def calculate_target_rotation(self, robot_pose: Pose2d, robot_vel: ChassisSpeeds) -> float:
         """
@@ -69,30 +115,41 @@ class Targeting(Subsystem):
         v_robot = Translation2d(robot_vel.vx, robot_vel.vy)
         v_field = v_robot.rotateBy(robot_pose.rotation()) 
 
-        # 2. Predict future position based on lookahead time (Lag Compensation)
-        future_robot_location = robot_pose.translation() + (v_field * tc.k_targeting_lookahead_s)
-        self.debug_v_field = v_field
-        self.debug_future_pose = future_robot_location
-
-        # 3. Determine target based on future position (prevents jitter)
-        if (abs(self.rHubLocation - future_robot_location) < abs(self.bHubLocation - future_robot_location)):
+        # 2. Determine target (closest hub based on current position)
+        # We do this early to calculate distance for Time of Flight
+        if (abs(self.rHubLocation - robot_pose.translation()) < abs(self.bHubLocation - robot_pose.translation())):
             target_location = self.rHubLocation
         else:
             target_location = self.bHubLocation
-        
-        # 4. Calculate setpoint angle based on future position (Lookahead)
-        robot_to_hub_angle = (target_location - future_robot_location).angle()
 
-        # 5. Calculate vector from current position for Feedforward
+        # 3. Calculate Dynamic Lookahead (Time of Flight)
+        current_dist = robot_pose.translation().distance(target_location)
+        # Look up Time of Flight based on current distance
+        lookahead_time = self.tof_map.get(current_dist)
+
+        # 4. Predict future position
+        future_robot_location = robot_pose.translation() + (v_field * lookahead_time)
+        self.debug_v_field = v_field
+        self.debug_future_pose = future_robot_location
+        
+        # 5. Calculate Effective Distance (for Shooter RPM)
+        self.effective_distance = future_robot_location.distance(target_location)
+        self.target_rpm = self.rpm_map.get(self.effective_distance)
+        
+        # 6. Calculate setpoint angle based on future position (Lookahead)
+        robot_to_hub_angle = (target_location - future_robot_location).angle()
+        self.debug_future_rotation = robot_to_hub_angle
+
+        # 7. Calculate vector from current position for Feedforward
         current_hub_vector = target_location - robot_pose.translation()
 
-        # 6. Calculate PID Output
+        # 8. Calculate PID Output
         # We use the Lookahead angle as the setpoint, but the current rotation as measurement
         pid_output = self.rot_pid.calculate(robot_pose.rotation().radians(), robot_to_hub_angle.radians())
         self.debug_pid = pid_output
         rot_output = pid_output
         
-        # 7. Feedforward (Velocity Lead)
+        # 9. Feedforward (Velocity Lead)
         # Calculate angular velocity required to track target while moving: omega = (v_field x r_target) / |r|^2
         dist_sq = current_hub_vector.norm()**2
         ff_output = 0
@@ -113,7 +170,7 @@ class Targeting(Subsystem):
             self.rot_overshot = True
         self.last_diff_radians = diff_radians
         
-        # 9. Apply kS (Static Friction) if we are not at the target
+        # 10. Apply kS (Static Friction) if we are not at the target
         ks_output = 0
         if abs(diff_radians) > tc.k_rotation_tolerance.radians():
             ks_output = math.copysign(tc.k_teleop_rotation_kS, rot_output)
@@ -121,7 +178,7 @@ class Targeting(Subsystem):
         self.debug_ks = ks_output
         rot_output += ks_output
             
-        # 10. Clamp maximum
+        # 11. Clamp maximum
         rot_max = 1.0
         rot_output = math.copysign(min(abs(rot_output), rot_max), rot_output)
         
@@ -136,5 +193,7 @@ class Targeting(Subsystem):
                 self.debug_v_field.X(), self.debug_v_field.Y(),
                 self.debug_future_pose.X(), self.debug_future_pose.Y(),
                 self.debug_error_deg,
-                self.debug_pid, self.debug_ff, self.debug_ks, self.last_rot_output
+                self.debug_pid, self.debug_ff, self.debug_ks, self.last_rot_output,
+                self.effective_distance, self.target_rpm
             ])
+            self.ghost_pose_pub.set(Pose2d(self.debug_future_pose, self.debug_future_rotation))

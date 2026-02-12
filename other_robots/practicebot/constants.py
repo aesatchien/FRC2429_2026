@@ -214,6 +214,26 @@ class ShooterConstants:
     #setting brake, voltage compensation, and current limit for the flywheel motors
     set_config_defaults(k_flywheel_configs)
 
+    # Lookup Tables: Distance (meters) -> Value
+    # These are example values. You must tune these on the field!
+    k_distance_to_rpm = {
+        1.0: 2500,
+        2.0: 3200,
+        3.0: 3900,
+        4.0: 4800,
+        5.0: 5800
+    }
+    
+    # Distance (meters) -> Time of Flight (seconds)
+    # Used for the targeting lag compensation
+    k_distance_to_tof = {
+        1.0: 0.1,
+        2.0: 0.25,
+        3.0: 0.45,
+        4.0: 0.7,
+        5.0: 1.0
+    }
+
 class ClimberConstants:
     k_counter_offset = next(_counter)
     k_CANID_elevator = 11  # IDK

@@ -306,5 +306,6 @@ class TargetingConstants:
     k_rotation_tolerance = AutoConstants.k_rotation_tolerance
     k_translation_tolerance_meters = AutoConstants.k_translation_tolerance_meters
     k_teleop_rotation_kS = 0.05 # Minimum output to overcome friction (static friction feedforward)
-    k_targeting_lookahead_s = 0.9 # Lookahead time in seconds to anticipate robot motion (lag compensation)
     k_teleop_rotation_kf = 1.0 # Physics feedforward gain. 1.0 is exact, >1.0 overdrives for lag.
+    # set k_ball_speed_mps really high to disable leading the target
+    k_ball_speed_mps = 12.0 # Average horizontal speed of the game piece (m/s) for Time of Flight calculation.
