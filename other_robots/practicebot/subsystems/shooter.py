@@ -96,7 +96,7 @@ class Shooter(Subsystem):
 
     def stop_indexer(self):
         # setting everything off, then updating
-        self.indexer_controller.set(0)
+        self.indexer.set(0)
         print("Setting indexer rpm to 0")
         self.indexer_on = False
         self.current_indexer_rpm = 0
@@ -105,7 +105,7 @@ class Shooter(Subsystem):
     
     def stop_hopper(self):
         # setting everything off, then updating
-        self.hopper_motor.set(0)
+        self.hopper.set(0)
         print("Setting hopper rpm to 0")
         self.hopper_on = False
         self.current_hopper_rpm = 0
