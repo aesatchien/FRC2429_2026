@@ -20,20 +20,25 @@ class Shooter(Subsystem):
         # --------------- add motors and shooter rpm ----------------
         
         motor_type = rev.SparkMax.MotorType.kBrushless
+
+        self.hopper = rev.SparkMax(sc.k_CANID_hopper, motor_type)
+        self.indexer_left_leader = rev.SparkMax(sc.k_CANID_indexer_left_leader, motor_type)
+        self.indexer_right_follower = rev.SparkMax(sc.k_CANID_indexer_right_follower, motor_type)
+
         self.flywheel_left_leader = rev.SparkMax(sc.k_CANID_flywheel_left_leader, motor_type)
         self.flywheel_right_follower = rev.SparkMax(sc.k_CANID_flywheel_right_follower, motor_type)
-        self.indexer = rev.SparkMax(sc.k_CANID_indexer, motor_type)
-        self.hopper = rev.SparkMax(sc.k_CANID_hopper, motor_type)
+        # TODO - add rollers here and in list - decide if they are just followers or independent
 
         # convenient list of motors if we need to query or set all of them
-        self.motors = [self.flywheel_left_leader, self.flywheel_right_follower, self.indexer, self.hopper]
+        self.motors = [self.flywheel_left_leader, self.flywheel_right_follower,
+                       self.indexer_left_leader, self.indexer_right_follower, self.hopper]
 
         # you need a controller to set velocity
         self.flywheel_controller = self.flywheel_left_leader.getClosedLoopController()
         self.flywheel_encoder = self.flywheel_left_leader.getEncoder()
 
-        self.indexer_controller = self.indexer.getClosedLoopController()
-        self.indexer_encoder = self.indexer.getEncoder()
+        self.indexer_controller = self.indexer_left_leader.getClosedLoopController()
+        self.indexer_encoder = self.indexer_left_leader.getEncoder()
 
         self.hopper_controller = self.hopper.getClosedLoopController()
         self.hopper_encoder = self.hopper.getEncoder()
@@ -41,10 +46,10 @@ class Shooter(Subsystem):
         # default parameters for the sparkmaxes reset and persist modes -
         self.rev_resets = rev.ResetMode.kResetSafeParameters
         self.rev_persists = rev.PersistMode.kPersistParameters if constants.k_burn_flash \
-            else SparkBase.PersistMode.kNoPersistParameters
+            else rev.PersistMode.kNoPersistParameters
 
         # put the configs in a list matching the motors
-        self.configs:list = sc.k_flywheel_configs + [sc.k_indexer_config] + [sc.k_hopper_config]
+        self.configs:list = sc.k_shooter_configs
  
         # this should be its own function later - we will call it whenever we change brake mode
         rev_errors = [motor.configure(config, self.rev_resets, self.rev_persists)
@@ -97,7 +102,7 @@ class Shooter(Subsystem):
 
     def stop_indexer(self):
         # setting everything off, then updating
-        self.indexer.set(0)
+        self.indexer_left_leader.set(0)
         print("Setting indexer rpm to 0")
         self.indexer_on = False
         self.current_indexer_rpm = 0

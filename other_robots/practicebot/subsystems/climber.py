@@ -36,7 +36,6 @@ import math
 import ntcore
 import wpilib
 from rev import ClosedLoopSlot, SparkMax
-from constants import TurretConstants
 from commands2 import SubsystemBase
 import constants
 from constants import ClimberConstants as cc
