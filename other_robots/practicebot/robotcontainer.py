@@ -104,7 +104,7 @@ class RobotContainer:
         else:
             js.driver_up.onTrue(IncrementIntake(intake=self.intake, speed_change=1))
             js.driver_down.onTrue(IncrementIntake(intake=self.intake, speed_change=-1))
-            js.driver_right.whileTrue(Intake_Set(intake=self.intake, rpm=ic.allowed_rpms[self.intake.current_index]))
+            js.driver_right.whileTrue(Intake_Set(intake=self.intake, rpm=self.intake.default_rpm))
             js.driver_left.whileTrue(Intake_Set(intake=self.intake, rpm=0))
 
         # --- Subsystems ---
