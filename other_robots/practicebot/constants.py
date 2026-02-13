@@ -154,69 +154,70 @@ class DrivetrainConstants:
 
     # for now, the remaining constants are in swerve_constants.py
 
-class TurretConstants:
-    k_radians = 0
-    k_CAN_id = 30
-    k_config = SparkMaxConfig()
-    k_counter_offset = 1
-    set_config_defaults(k_config)
-    k_abs_encoder_readout_when_at_zero_position = 0
-    k_tolerance = 0
-    k_nt_debugging = True
-
-    k_delay_between_balls = 1 / 5 * 50  # we want 200 milliseconds which is 1/5 of a second, setting it to 1/5 of our loop rate every second
-    k_indexer_balls_per_rotation = 4
-    k_config.inverted(True)
-    k_indexer_gear_ratio = 5
-    k_indexer_position_conversion_factor = 1 / k_indexer_gear_ratio
-    k_config.encoder.positionConversionFactor(k_indexer_position_conversion_factor)
-    k_config.encoder.velocityConversionFactor(k_indexer_position_conversion_factor)  # currently RPM
-
 class IntakeConstants:
     k_counter_offset = next(_counter)
-    k_CANID_intake = 9  # IDK
-    k_CANID_dropper = 10  # IDK
 
-    k_intake_config = SparkMaxConfig()
-    k_intake_configs = [k_intake_config]
+    k_CANID_dropper = 3  # reserve 4 if we need another
+
+    k_CANID_intake_left_leader = 4  # robot right, does not need inverted
+    k_CANID_intake_right_follower = 5  # robot left, needs follower inverted
+
+    k_intake_left_leader_config, k_intake_right_follower_config = SparkMaxConfig(), SparkMaxConfig()
+    k_intake_configs = [k_intake_left_leader_config, k_intake_right_follower_config]
     k_deploy_config = SparkMaxConfig()
     k_deploy_configs = [k_deploy_config]
-    k_test_rpm = 20  # pi * diameter roller / 60  to get inches per second
+    k_test_rpm = 1000  # pi * diameter roller / 60  to get inches per second
     k_fastest_rpm = 60
     k_dropper_rpm = 10
     allowed_rpms = [0, 60] + [i for i in range(2000, 5601, 250)]
 
-    k_intake_config.inverted(False)
+    k_intake_left_leader_config.inverted(True)
+    k_intake_right_follower_config.follow(k_CANID_intake_left_leader, invert=False)  # depends on motor placement
 
     set_config_defaults(k_intake_configs)
 
 class ShooterConstants:
 
     k_counter_offset = next(_counter)
-    k_CANID_indexer = 5
-    k_CANID_flywheel_left_leader, k_CANID_flywheel_right_follower = 7, 8  # left flywheel and follower
-    k_CANID_indexer = 11  # IDK
-    k_CANID_hopper = 12  # IDK
+
+    # HOPPER
+    k_CANID_hopper = 6  # reserve 7
+    k_hopper_config = SparkMaxConfig()
+    k_hopper_config.inverted(False)
+    k_hopper_rpm = 1000
+
+    # INDEXER
+    k_CANID_indexer_left_leader, k_CANID_indexer_right_follower  = 8, 9
+    k_indexer_left_leader_config, k_indexer_right_follower_config = SparkMaxConfig(), SparkMaxConfig()
+    k_indexer_left_leader_config.inverted(False)  # TODO - check which way it spins for positive RPM
+    k_indexer_right_follower_config.follow(k_CANID_indexer_left_leader, invert=False) # depends on motor placement
+    k_indexer_rpm = 1000
 
     # FLYWHEEL
-    k_flywheel_left_leader_config, k_flywheel_right_follower_config = SparkMaxConfig(), SparkMaxConfig()
-    k_indexer_config, k_hopper_config = SparkMaxConfig(), SparkMaxConfig()
-    k_flywheel_configs = [k_flywheel_left_leader_config, k_flywheel_right_follower_config]
+    k_CANID_flywheel_left_leader, k_CANID_flywheel_right_follower = 10, 11  # left flywheel and follower
+    k_CANID_flywheel_roller_leader, k_CANID_flywheel_roller_follower = 12, 13  # do we have two rollers
+    k_flywheel_left_leader_config, k_flywheel_right_follower_config = SparkFlexConfig(), SparkFlexConfig()
+    k_CANID_roller_left_leader_config, k_CANID_roller_right_follower_config = SparkFlexConfig(), SparkFlexConfig()
+
     k_test_speed = 4000
     k_fastest_speed = 6500
     k_test_rpm = 2000
     k_fastest_rpm = 5600
-    k_indexer_rpm = 1000
-    k_hopper_rpm = 1000
 
+    # set inversions
     k_flywheel_left_leader_config.inverted(False)  # have to check which way it spins for positive RPM
-    # k_flywheel_right_follower.inverted(False)  # this is not necessary - it will get ignored
-
     # set up the followers
     k_flywheel_right_follower_config.follow(k_CANID_flywheel_left_leader, invert=False)  # depends on motor placement
 
-    #setting brake, voltage compensation, and current limit for the flywheel motors
-    set_config_defaults(k_flywheel_configs)
+    # set all configs
+    # setting brake, voltage compensation, and current limit for the flywheel motors
+    k_flywheel_configs = [k_flywheel_left_leader_config, k_flywheel_right_follower_config]
+    k_shooter_configs: list =  [k_hopper_config,
+                                k_indexer_left_leader_config, k_indexer_right_follower_config,
+                                k_flywheel_left_leader_config, k_flywheel_right_follower_config,
+                                k_CANID_roller_left_leader_config, k_CANID_roller_right_follower_config]
+
+    set_config_defaults(k_shooter_configs)
 
     # Lookup Tables: Distance (meters) -> Value
     # These are example values. You must tune these on the field!
@@ -240,7 +241,7 @@ class ShooterConstants:
 
 class ClimberConstants:
     k_counter_offset = next(_counter)
-    k_CANID_elevator = 11  # IDK
+    k_CANID_elevator = 1  # reserve 2
 
     k_distances = { #IN INCHES
         "minimum_height": 10,  # lowest hook can get
