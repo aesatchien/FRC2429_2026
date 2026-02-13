@@ -11,6 +11,7 @@ from pathplannerlib.pathfinding import Pathfinding
 from pathplannerlib.auto import NamedCommands
 
 # 2429 helper files
+from commands.increment_intake import IncrementIntake
 import constants
 from helpers import joysticks as js
 
@@ -100,7 +101,8 @@ class RobotContainer:
             js.driver_left.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(0, dpad_output, 0), timeout=10))
             js.driver_right.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(0, -dpad_output, 0), timeout=10))
         else:
-            js.driver_up.whileTrue(ShootingCommand(shooter=self.shooter))
+            js.driver_up.onTrue(IncrementIntake(intake=self.intake, speed_change=1))
+            js.driver_down.onTrue(IncrementIntake(intake=self.intake, speed_change=-1))
             js.driver_right.whileTrue(Intake_Set(intake=self.intake, rpm=1000))
             js.driver_left.whileTrue(Intake_Set(intake=self.intake, rpm=0))
 
@@ -122,7 +124,8 @@ class RobotContainer:
         # js.driver_rb.whileTrue(SwerveTest(self, self.swerve))
         
         js.driver_l_trigger.onTrue(commands2.PrintCommand("Pushed L trigger"))
-        js.driver_r_trigger.onTrue(commands2.PrintCommand("Pushed R trigger"))
+        # js.driver_r_trigger.onTrue(commands2.PrintCommand("Pushed R trigger"))
+        js.driver_r_trigger.whileTrue(ShootingCommand(shooter=self.shooter))
 
         # --- Debug & Simulation ---
         # test a setting of the swerve modules straight before running the auto to tag

@@ -183,7 +183,8 @@ class IntakeConstants:
     k_deploy_configs = [k_deploy_config]
     k_test_rpm = 20  # pi * diameter roller / 60  to get inches per second
     k_fastest_rpm = 60
-    k_dropper_rpm = 10 
+    k_dropper_rpm = 10
+    allowed_rpms = [0, 60] + [i for i in range(2000, 5601, 250)]
 
     k_intake_config.inverted(False)
 

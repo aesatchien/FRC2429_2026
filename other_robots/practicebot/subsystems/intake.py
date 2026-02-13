@@ -69,6 +69,11 @@ class Intake(Subsystem):
         self.current_rpm = 0
 
         self.update_nt()  # update all relevant state variables on networktables
+    
+    def change_speed(self, change_speed=0):
+        # direction: 1 for faster, -1 for slower, 0 for same
+        self.current_index = max(0, min(len(self.allowed_rpms) - 1, self.current_index + change_speed))
+        self.current_rpm = self.allowed_rpms[self.current_index]
 
     def set_intake_rpm(self, rpm=1000):
         # TODO - incorporate a PID to handle voltage sag from multiple balls
