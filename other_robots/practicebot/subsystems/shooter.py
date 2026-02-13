@@ -40,10 +40,10 @@ class Shooter(Subsystem):
         # default parameters for the sparkmaxes reset and persist modes -
         self.rev_resets = rev.ResetMode.kResetSafeParameters
         self.rev_persists = rev.PersistMode.kPersistParameters if constants.k_burn_flash \
-            else SparkBase.PersistMode.kNoPersistParameters
+            else rev.PersistMode.kNoPersistParameters
 
         # put the configs in a list matching the motors
-        self.configs:list = sc.k_flywheel_configs + [sc.k_indexer_config] + [sc.k_hopper_config]
+        self.configs:list = sc.k_shooter_configs
  
         # this should be its own function later - we will call it whenever we change brake mode
         rev_errors = [motor.configure(config, self.rev_resets, self.rev_persists)

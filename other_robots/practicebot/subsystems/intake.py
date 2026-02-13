@@ -17,8 +17,8 @@ class Intake(Subsystem):
         # --------------- add motors and set intake rpm ----------------
         
         motor_type = rev.SparkMax.MotorType.kBrushless
-        self.intake_motor = rev.SparkMax(ic.k_CANID_intake, motor_type)
-        self.intake_motor_follower = rev.SparkMax(ic.k_CANID_intake_follower, motor_type)
+        self.intake_motor = rev.SparkMax(ic.k_CANID_intake_left_leader, motor_type)
+        self.intake_motor_follower = rev.SparkMax(ic.k_CANID_intake_right_follower, motor_type)
         self.deploy_motor = rev.SparkMax(ic.k_CANID_dropper, motor_type)
 
         # convenient list of motors if we need to query or set all of them
@@ -75,9 +75,8 @@ class Intake(Subsystem):
         # TODO - incorporate a PID to handle voltage sag from multiple balls
         feed_forward = min(12, 12 * rpm / 5600)  # if there is no gearing, then this gets you close
         # self.set_dropper_down(down=True) if self.dropper_down == False else None
-        self.intake_motor.set(feed_forward)
-        # self.intake_controller.setReference(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
-        print(f'set intake rpm to {rpm:.0f}')  # want to say what time it is, but can't import the container's timer easily - could use the wpilib timer
+        self.intake_controller.setReference(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
+        print(f'set intake rpm to {rpm:.0f}')  # can now get time from the log command's timer
         self.intake_on = True
         self.current_rpm = rpm
 
