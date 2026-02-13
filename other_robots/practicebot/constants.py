@@ -185,10 +185,10 @@ class ShooterConstants:
     k_hopper_rpm = 1000
 
     # INDEXER
-    k_CANID_indexer, k_CANID_indexer_follower  = 8, 9
+    k_CANID_indexer_left_leader, k_CANID_indexer_right_follower  = 8, 9
     k_indexer_left_leader_config, k_indexer_right_follower_config = SparkMaxConfig(), SparkMaxConfig()
     k_indexer_left_leader_config.inverted(False)  # TODO - check which way it spins for positive RPM
-    k_indexer_right_follower_config.follow(k_CANID_indexer, invert=False) # depends on motor placement
+    k_indexer_right_follower_config.follow(k_CANID_indexer_left_leader, invert=False) # depends on motor placement
     k_indexer_rpm = 1000
 
     # FLYWHEEL
