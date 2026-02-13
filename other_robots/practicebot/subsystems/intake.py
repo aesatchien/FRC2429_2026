@@ -18,10 +18,11 @@ class Intake(Subsystem):
         
         motor_type = rev.SparkMax.MotorType.kBrushless
         self.intake_motor = rev.SparkMax(ic.k_CANID_intake, motor_type)
+        self.intake_motor_follower = rev.SparkMax(ic.k_CANID_intake_follower, motor_type)
         self.deploy_motor = rev.SparkMax(ic.k_CANID_dropper, motor_type)
 
         # convenient list of motors if we need to query or set all of them
-        self.motors = [self.intake_motor, self.deploy_motor]
+        self.motors = [self.intake_motor, self.intake_motor_follower, self.deploy_motor]
 
         # you need a controller to set velocity
         self.intake_controller = self.intake_motor.getClosedLoopController()
@@ -74,7 +75,8 @@ class Intake(Subsystem):
         # TODO - incorporate a PID to handle voltage sag from multiple balls
         feed_forward = min(12, 12 * rpm / 5600)  # if there is no gearing, then this gets you close
         # self.set_dropper_down(down=True) if self.dropper_down == False else None
-        self.intake_controller.setReference(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
+        self.intake_motor.set(feed_forward)
+        # self.intake_controller.setReference(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
         print(f'set intake rpm to {rpm:.0f}')  # want to say what time it is, but can't import the container's timer easily - could use the wpilib timer
         self.intake_on = True
         self.current_rpm = rpm

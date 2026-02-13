@@ -105,7 +105,7 @@ class RobotContainer:
             js.driver_left.whileTrue(Intake_Set(intake=self.intake, rpm=0))
 
         # --- Subsystems ---
-        js.driver_start.whileTrue(Intake_Set(intake=self.intake, rpm=1000))
+        js.driver_start.whileTrue(Intake_Set(intake=self.intake, rpm=3000))
         js.driver_back.whileTrue(Intake_Set(intake=self.intake, rpm=0))
 
         # --- Vision & Automation ---
