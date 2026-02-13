@@ -140,10 +140,6 @@ class RobotContainer:
         # --------------   COMMANDS FOR GUI (ROBOT DEBUGGING) - 20250224 CJH
         command_prefix = constants.command_prefix
         # --------------   TESTING LEDS ----------------
-        self.led_mode_chooser = wpilib.SendableChooser()
-        [self.led_mode_chooser.addOption(key, value) for key, value in self.led.modes_dict.items()]  # add all the indicators
-        self.led_mode_chooser.onChange(listener=lambda selected_value: commands2.CommandScheduler.getInstance().schedule(SetLEDs(container=self, led=self.led, mode=selected_value)))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/LED Mode', self.led_mode_chooser)
 
         self.led_indicator_chooser = wpilib.SendableChooser()
         [self.led_indicator_chooser.addOption(key, value) for key, value in self.led.indicators_dict.items()]  # add all the indicators
@@ -180,13 +176,13 @@ class RobotContainer:
 
         # quick way to test all scoring positions from dashboard
         self.score_test_chooser = wpilib.SendableChooser()
-        [self.score_test_chooser.addOption(key, value) for key, value in self.robot_state.targets_dict.items()]  # add all the indicators
+        [self.score_test_chooser.addOption(key, value) for key, value in self.robot_state.states_dict.items()]  # add all the indicators
         self.score_test_chooser.onChange(
             # `setattr` is the programmatic way to set an attribute. It's equivalent to
-            # `self.robot_state.target = selected_value`, but can be used inside a lambda.
+            # `self.robot_state.state = selected_value`, but can be used inside a lambda.
             listener=lambda selected_value: commands2.CommandScheduler.getInstance().schedule(
-                commands2.cmd.runOnce(lambda: setattr(self.robot_state, 'target', selected_value))))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/RobotScoringMode', self.score_test_chooser)
+                commands2.cmd.runOnce(lambda: setattr(self.robot_state, 'state', selected_value))))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/RobotState', self.score_test_chooser)
 
         # ----------  AUTONOMOUS CHOOSER SECTION  ---------------
         # self.auto_chooser = AutoBuilder.buildAutoChooser('')  # this loops through the path planner deploy directory - must exist 
@@ -204,7 +200,8 @@ class RobotContainer:
         # ----------  PATHPLANNER COMMANDS  ---------------
         # this is for PathPlanner, so it can call our commands.  Note they do not magically show up in pathplanner
         # you have to add them there, and then it remembers your list of commands.  so name them wisely
-        NamedCommands.registerCommand('robot_state_left', commands2.cmd.runOnce(lambda: setattr(self.robot_state, 'side', RobotState.Side.LEFT)).ignoringDisable(True))
+        # NamedCommands.registerCommand('robot_state_left', commands2.cmd.runOnce(lambda: setattr(self.robot_state, 'side', RobotState.Side.LEFT)).ignoringDisable(True))
+        pass
 
     def get_autonomous_command(self):
         # return DriveByVelocitySwerve(self, self.swerve, Pose2d(0.1, 0, 0), 2)

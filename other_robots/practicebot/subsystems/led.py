@@ -39,12 +39,6 @@ class Led(commands2.Subsystem):
         kFAILUREFLASH = {'name': "FAILURE + MODE", "on_color": [255, 0, 0], "off_color": [0, 0, 0], "animated": False, "frequency": 3, "duty_cycle": 0.5, 'use_mode': True}
         kNONE = {'name': "NONE", "on_color": [255, 0, 0], "off_color": [0, 0, 0],                   "animated": False, "frequency": 3, "duty_cycle": 0.5, 'use_mode': False}
 
-    class Mode(Enum):
-        """ Mode class is for showing robot's current scoring mode and is the default during teleop """
-        kCORAL = {'name': "CORAL", "on_color": [200, 200, 200], "off_color": [0, 0, 0], "animated": False, "frequency": None, "duty_cycle": None}
-        kALGAE = {'name': "ALGAE", "on_color": [0, 120, 120], "off_color": [0, 0, 0], "animated": False, "frequency": None, "duty_cycle": None}  # [0, 180, 180] still looks too blue
-        kNONE = {'name': "NONE", "on_color": [160, 0, 160], "off_color": [0, 0, 0], "animated": False, "frequency": None, "duty_cycle": None}
-
     def __init__(self, robot_state: RobotState):
         super().__init__()
         self.setName('Led')
@@ -58,7 +52,6 @@ class Led(commands2.Subsystem):
         self.animation_counter = 0
         # this should auto-update the lists for the dashboard.  you can iterate over enums
         self.indicators_dict = {indicator.value["name"]: indicator for indicator in self.Indicator}
-        self.modes_dict = {mode.value["name"]: mode for mode in self.Mode}
         self.last_toggle_time = Timer.getFPGATimestamp()  # Tracks the last toggle time
         self.toggle_state = False  # Keeps track of the current on/off state
 
@@ -75,38 +68,36 @@ class Led(commands2.Subsystem):
 
         self._init_networktables()
 
-        # initialize modes and indicators
-        self.mode = self.Mode.kNONE
-        self.prev_mode = self.Mode.kNONE
+        # initialize indicators
         self.indicator = Led.Indicator.kPOLKA
 
-        self.set_mode(self.Mode.kNONE)
+        # Define colors for the generic modes passed from RobotState
+        # TODO: Move these to constants or inside the RobotState Enum itself
+        self.mode_colors = {
+            'coral': [200, 200, 200],
+            'algae': [0, 120, 120],
+            'none': [160, 0, 160],
+            'keep': [0, 0, 0] # Should not happen if logic is correct
+        }
+        self.current_mode_color = self.mode_colors['none']
+
         self.set_indicator(self.Indicator.kNONE)
 
     def _init_networktables(self):
         self.inst = ntcore.NetworkTableInstance.getDefault()
-        self.led_mode_pub = self.inst.getStringTopic(f"{constants.status_prefix}/_led_mode").publish()
         self.led_indicator_pub = self.inst.getStringTopic(f"{constants.status_prefix}/_led_indicator").publish()
 
-    def update_from_robot_state(self, target, side):
+    def update_from_robot_state(self, state):
         """ Update LED mode based on RobotState changes. """
-        if target.value['mode'] == 'coral':
-            self.set_mode(self.Mode.kCORAL)
-        elif target.value['mode'] == 'algae':
-            self.set_mode(self.Mode.kALGAE)
-        elif target.value['mode'] == 'keep':
-            pass  # don't change the mode
-        else:
-            self.set_mode(self.Mode.kNONE)
+        mode_key = state.value['mode']
+        
+        if mode_key in self.mode_colors and mode_key != 'keep':
+            self.current_mode_color = self.mode_colors[mode_key]
+        elif mode_key == 'none':
+             self.current_mode_color = self.mode_colors['none']
+             
+        # Reset indicator on state change? Maybe not always desired.
         self.set_indicator(self.Indicator.kNONE)
-
-    def set_mode(self, mode) -> None:
-        self.prev_mode = self.mode
-        self.mode = mode
-        self.led_mode_pub.set(self.mode.value['name'])
-
-    def get_mode(self):
-        return self.mode
 
     def set_indicator(self, indicator) -> None:
         self.indicator = indicator
@@ -194,7 +185,7 @@ class Led(commands2.Subsystem):
                     if self.toggle_state:
                         color = self.indicator.value["on_color"]
                     else:
-                        color = self.mode.value["on_color"] if self.indicator.value["use_mode"] else self.indicator.value["off_color"]
+                        color = self.current_mode_color if self.indicator.value["use_mode"] else self.indicator.value["off_color"]
 
                     self.set_leds(color)
 
@@ -210,16 +201,16 @@ class Led(commands2.Subsystem):
 
             else:  # Handle mode-only LEDs - they do not toggle
                 # thinking of using the target state to light the robot
-                lit_leds = self.robot_state.target.value['lit_leds']
+                lit_leds = self.robot_state.state.value['lit_leds']
                 if lit_leds == constants.LedConstants.k_led_count:
-                    self.set_leds(self.mode.value["on_color"])
+                    self.set_leds(self.current_mode_color)
                 else:  # target dependent LED states:
                     # turn them all off
-                    self.set_leds(self.mode.value["off_color"])
+                    self.set_leds([0, 0, 0])
                     # turn on the first section
-                    self.set_leds(self.mode.value["on_color"], end_index=lit_leds)
+                    self.set_leds(self.current_mode_color, end_index=lit_leds)
                     # turn on the other section
-                    self.set_leds(self.mode.value["on_color"], start_index=self.led_count - lit_leds)
+                    self.set_leds(self.current_mode_color, start_index=self.led_count - lit_leds)
 
             self.led_strip.setData(self.led_data)  # Send LED updates
 

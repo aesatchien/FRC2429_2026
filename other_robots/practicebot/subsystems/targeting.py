@@ -127,7 +127,7 @@ class Targeting(Subsystem):
         self.last_robot_pose = robot_pose
         
         # Deadband velocity to prevent jitter at start/stop
-        if math.hypot(robot_vel.vx, robot_vel.vy) < 0.1:
+        if math.hypot(robot_vel.vx, robot_vel.vy) < tc.kTargetingVelocityDeadband:
             robot_vel = ChassisSpeeds(0, 0, 0)
 
         # --- Targeting Calculations ---
@@ -187,7 +187,7 @@ class Targeting(Subsystem):
         # Calculate angular velocity required to track target while moving: omega = (v_field x r_target) / |r|^2
         dist_sq = current_hub_vector.norm()**2
         ff_output = 0
-        if dist_sq > 0.05: # Avoid division by zero (approx 22cm)
+        if dist_sq > tc.kMinTargetDistance**2: # Avoid division by zero
             # 2D Cross product: vx*ry - vy*rx gives tangential velocity * r
             omega_rad_s = (v_field.X() * current_hub_vector.Y() - v_field.Y() * current_hub_vector.X()) / dist_sq
             
