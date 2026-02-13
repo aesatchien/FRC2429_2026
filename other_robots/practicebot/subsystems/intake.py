@@ -13,6 +13,7 @@ class Intake(Subsystem):
         self.setName('Intake')
         self.counter = ic.k_counter_offset  # note this should be an offset in constants
         self.default_rpm = ic.k_test_rpm
+        self.current_index = 4  # for increment intake, we start at 4000 rpm
 
         # --------------- add motors and set intake rpm ----------------
         
@@ -73,8 +74,8 @@ class Intake(Subsystem):
     
     def change_speed(self, change_speed=0):
         # direction: 1 for faster, -1 for slower, 0 for same
-        self.current_index = max(0, min(len(self.allowed_rpms) - 1, self.current_index + change_speed))
-        self.current_rpm = self.allowed_rpms[self.current_index]
+        self.current_index = max(0, min(len(ic.allowed_rpms) - 1, self.current_index + change_speed))
+        self.current_rpm = ic.allowed_rpms[self.current_index]
 
     def set_intake_rpm(self, rpm=1000):
         # TODO - incorporate a PID to handle voltage sag from multiple balls

@@ -15,8 +15,6 @@ class Shooter(Subsystem):
         self.default_rpm = sc.k_test_rpm
         self.default_indexer_rpm = sc.k_indexer_rpm
         self.default_hopper_rpm = sc.k_hopper_rpm
-        self.current_index = 4  # for increment shooter, we start at 4000 rpm
-
         # --------------- add motors and shooter rpm ----------------
         
         motor_type = rev.SparkMax.MotorType.kBrushless

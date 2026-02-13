@@ -16,14 +16,13 @@ class IncrementIntake(commands2.Command):  # change the name for your command
         self.speed_change = speed_change
         self.addRequirements(self.intake)  # commandsv2 version of requirements
         self.extra_log_info = None
-        self.current_index = 4  # setting current speed to 4000 rpm on default
 
     def initialize(self) -> None:
         # Called just before each time this Command runs
         # if you wish to add more information to the console logger, change self.extra_log_info
         # self.extra_log_info = "Target=7"  # (for example)
         self.intake.change_speed(self.speed_change)
-        self.intake.set_shooter_rpm(ic.allowed_rpms[self.current_index])
+        self.intake.set_intake_rpm(ic.allowed_rpms[self.intake.current_index])
 
     def execute(self) -> None:
         # runs 50x per second, so be careful about messages and timing
