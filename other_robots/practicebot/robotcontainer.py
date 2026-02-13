@@ -11,8 +11,8 @@ from pathplannerlib.pathfinding import Pathfinding
 from pathplannerlib.auto import NamedCommands
 
 # 2429 helper files
-from commands.increment_intake import IncrementIntake
 import constants
+from constants import IntakeConstants as ic
 from helpers import joysticks as js
 
 # 2429 subsystems
@@ -39,6 +39,7 @@ from commands.reset_field_centric import ResetFieldCentric
 from commands.set_leds import SetLEDs
 from commands.sim_show_fov import SimShowFOV
 from commands.move_training_box import MoveTrainingBox
+from commands.increment_intake import IncrementIntake
 
 from commands.shooting_command import ShootingCommand
 from commands.intake_set import Intake_Set
@@ -103,7 +104,7 @@ class RobotContainer:
         else:
             js.driver_up.onTrue(IncrementIntake(intake=self.intake, speed_change=1))
             js.driver_down.onTrue(IncrementIntake(intake=self.intake, speed_change=-1))
-            js.driver_right.whileTrue(Intake_Set(intake=self.intake, rpm=1000))
+            js.driver_right.whileTrue(Intake_Set(intake=self.intake, rpm=ic.allowed_rpms[self.intake.current_index]))
             js.driver_left.whileTrue(Intake_Set(intake=self.intake, rpm=0))
 
         # --- Subsystems ---
