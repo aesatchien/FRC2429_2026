@@ -7,7 +7,7 @@ from subsystems.intake import Intake
 class Intake_Set(commands2.Command):  # change the name for your command
 
 
-    def __init__(self, intake: Intake, rpm=1000, indent=0) -> None:
+    def __init__(self, intake: Intake, rpm=1000, on_start=False, indent=0) -> None:
         super().__init__()
         self.setName('Intake_Set')  # change this to something appropriate for this command
         self.rpm = rpm
@@ -15,12 +15,16 @@ class Intake_Set(commands2.Command):  # change the name for your command
         self.indent = indent
         self.addRequirements(self.intake)  # commandsv2 version of requirements
         self.extra_log_info = f"RPM={self.rpm}"  # add extra info to the log messages
+        self.on_start = on_start
 
     def initialize(self) -> None:
         # Called just before each time this Command runs
         # if you wish to add more information to the console logger, change self.extra_log_info
         # self.extra_log_info = "Target=7"  # (for example)
-        self.intake.set_intake_rpm(self.rpm) if self.rpm > 1 else self.intake.stop_intake()
+        if self.on_start:
+            self.intake.set_intake_rpm(self.rpm) if self.rpm > 1 else self.intake.stop_intake()
+        else:
+            self.intake.set_intake_rpm(self.intake.default_rpm) if self.intake.default_rpm > 1 else self.intake.stop_intake()
 
     def execute(self) -> None:
         pass
