@@ -31,7 +31,7 @@ from subsystems.climber import Climber
 # 2429 "auto" commands - just an organizational division of commands
 
 # 2429 commands
-from commands.auto_to_pose import AutoToPose
+#from commands.auto_to_pose import AutoToPose
 from commands.auto_to_pose_clean import AutoToPoseClean
 from commands.auto_track_vision_target import AutoTrackVisionTarget
 from commands.can_status import CANStatus
@@ -183,7 +183,7 @@ class RobotContainer:
             # because that's what `cmd` is when the loop finishes.
             # By setting `cmd=cmd` as a default argument, we force the lambda to capture
             # the *current* value of `cmd` during each iteration of the loop.
-            wpilib.SmartDashboard.putData(f'{command_prefix}/{cmd}', commands2.InstantCommand(lambda cmd=cmd: print(f'Called {cmd} at {wpilib.Timer.getFPGATimestamp():.1f}s'))
+            wpilib.SmartDashboard.putData(f'{command_prefix}/{cmd}', commands2.InstantCommand(lambda cmd: print(f'Called {cmd} at {wpilib.Timer.getFPGATimestamp():.1f}s'))
                                           .alongWith(commands2.WaitCommand(2)).ignoringDisable(True))
 
         # end pyqt dashboard section
