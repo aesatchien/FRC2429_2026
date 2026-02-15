@@ -24,6 +24,7 @@ from subsystems.swerve import Swerve
 from subsystems.vision import Vision
 from subsystems.shooter import Shooter
 from subsystems.intake import Intake
+from subsystems.climber import Climber
 
 # from subsystems.questnav_2429 import QuestnavModule
 
@@ -42,6 +43,7 @@ from commands.set_leds import SetLEDs
 from commands.sim_show_fov import SimShowFOV
 from commands.move_training_box import MoveTrainingBox
 from commands.swerve_test import SwerveTest
+from commands.robot_climb import RobotClimb
 
 from commands.shooting_command import ShootingCommand
 from commands.intake_set import Intake_Set
@@ -63,6 +65,7 @@ class RobotContainer:
         self.vision = Vision()
         self.shooter = Shooter()
         self.intake = Intake()
+        self.climber = Climber()
         self.robot_state = RobotState()  # currently has a callback that LED can register
         self.led = Led(robot_state=self.robot_state)  # may want LED last because it may want to know about other systems
 
@@ -85,6 +88,8 @@ class RobotContainer:
         self.register_commands()
 
         self.initialize_dashboard()
+
+        self.position_index = 0
 
         Pathfinding.setPathfinder(LocalADStar())
 
@@ -124,9 +129,10 @@ class RobotContainer:
         js.driver_lb.whileTrue(SimShowFOV(self))
         js.driver_rb.onTrue(MoveTrainingBox(self))
         # js.driver_rb.whileTrue(SwerveTest(self, self.swerve))
-        
-        js.driver_l_trigger.onTrue(commands2.PrintCommand("Pushed L trigger"))
-        js.driver_r_trigger.onTrue(commands2.PrintCommand("Pushed R trigger"))
+
+        js.driver_l_trigger.debounce(0.1).whileTrue(RobotClimb(self, move_up=False, incremental=False, wait_to_finish=False, closed_loop_slot=0, indent=0))
+        js.driver_r_trigger.debounce(0.1).whileTrue(RobotClimb(self, move_up=True, incremental=False, wait_to_finish=False, closed_loop_slot=0, indent=0))
+
 
         # --- Debug & Simulation ---
         # test a setting of the swerve modules straight before running the auto to tag

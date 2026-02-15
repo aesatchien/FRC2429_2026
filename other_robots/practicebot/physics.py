@@ -15,6 +15,7 @@ from simulation.swerve_sim import SwerveSim
 from simulation.gamepiece_sim import GamepieceSim
 from simulation.vision_sim import VisionSim
 from simulation.blockhead_mech import BlockheadMech
+from subsystems.climber import Climber
 
 class PhysicsEngine:
 
@@ -23,7 +24,6 @@ class PhysicsEngine:
         self.physics_controller = physics_controller  # must have for simulation
         self.robot = robot
         self.container = self.robot.container
-
 
         self._init_networktables()
         
@@ -106,8 +106,9 @@ class PhysicsEngine:
         self.mech.update_indexer(1 if self.container.shooter.indexer_on else 0)
         self.mech.update_shooter(self.container.shooter.current_rpm if self.container.shooter.shooter_on else 0)
 
-        climber_height = inchesToMeters(22 + 8 * math.sin(1 * wpilib.getTime()))  # 22±8 inches
-        self.mech.update_climber(height_from_ground=climber_height) # Keep visible for now (15 length + 2 root)
+
+        #climber_height = inchesToMeters(22 + 8 * math.sin(1 * wpilib.getTime()))  # 22±8 inches
+        self.mech.update_climber(height_from_ground=inchesToMeters(self.container.climber.get_pos()))  # sets the climber's position to
 
         # Update ball position (static for now)
         self.mech.update_ball(inchesToMeters(45), inchesToMeters(2))
