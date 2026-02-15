@@ -13,15 +13,17 @@ class Intake(Subsystem):
         self.setName('Intake')
         self.counter = ic.k_counter_offset  # note this should be an offset in constants
         self.default_rpm = ic.k_test_rpm
+        self.current_index = 4  # for increment intake, we start at 4000 rpm
 
         # --------------- add motors and set intake rpm ----------------
         
         motor_type = rev.SparkMax.MotorType.kBrushless
-        self.intake_motor = rev.SparkMax(ic.k_CANID_intake, motor_type)
+        self.intake_motor = rev.SparkMax(ic.k_CANID_intake_left_leader, motor_type)
+        self.intake_motor_follower = rev.SparkMax(ic.k_CANID_intake_right_follower, motor_type)
         self.deploy_motor = rev.SparkMax(ic.k_CANID_dropper, motor_type)
 
         # convenient list of motors if we need to query or set all of them
-        self.motors = [self.intake_motor, self.deploy_motor]
+        self.motors = [self.intake_motor, self.intake_motor_follower, self.deploy_motor]
 
         # you need a controller to set velocity
         self.intake_controller = self.intake_motor.getClosedLoopController()
@@ -67,16 +69,20 @@ class Intake(Subsystem):
 
         self.intake_on = False
         self.current_rpm = 0
-        self.deployed = False
 
         self.update_nt()  # update all relevant state variables on networktables
+    
+    def change_speed(self, change_speed=0):
+        # direction: 1 for faster, -1 for slower, 0 for same
+        self.current_index = max(0, min(len(ic.allowed_rpms) - 1, self.current_index + change_speed))
+        self.default_rpm = ic.allowed_rpms[self.current_index]
 
     def set_intake_rpm(self, rpm=1000):
         # TODO - incorporate a PID to handle voltage sag from multiple balls
         feed_forward = min(12, 12 * rpm / 5600)  # if there is no gearing, then this gets you close
         # self.set_dropper_down(down=True) if self.dropper_down == False else None
         self.intake_controller.setReference(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
-        print(f'set intake rpm to {rpm:.0f}')  # want to say what time it is, but can't import the container's timer easily - could use the wpilib timer
+        print(f'set intake rpm to {rpm:.0f}')  # can now get time from the log command's timer
         self.intake_on = True
         self.current_rpm = rpm
 
@@ -94,7 +100,9 @@ class Intake(Subsystem):
     def set_down(self, down=True):
         # function that moves intake down to the ground, or up to stow it
         # passing a false would move the dropper up to stow
-        pass
+        self.deployed = down
+        self.update_nt()
+        return down
 
     def toggle_intake(self, rpm):
         if self.intake_on:

@@ -88,13 +88,13 @@ class Led(commands2.Subsystem):
         self.led_mode_pub = self.inst.getStringTopic(f"{constants.status_prefix}/_led_mode").publish()
         self.led_indicator_pub = self.inst.getStringTopic(f"{constants.status_prefix}/_led_indicator").publish()
 
-    def update_from_robot_state(self, target, side):
+    def update_from_robot_state(self, state):
         """ Update LED mode based on RobotState changes. """
-        if target.value['mode'] == 'coral':
+        if state.value['mode'] == 'coral':
             self.set_mode(self.Mode.kCORAL)
-        elif target.value['mode'] == 'algae':
+        elif state.value['mode'] == 'algae':
             self.set_mode(self.Mode.kALGAE)
-        elif target.value['mode'] == 'keep':
+        elif state.value['mode'] == 'keep':
             pass  # don't change the mode
         else:
             self.set_mode(self.Mode.kNONE)
@@ -210,7 +210,7 @@ class Led(commands2.Subsystem):
 
             else:  # Handle mode-only LEDs - they do not toggle
                 # thinking of using the target state to light the robot
-                lit_leds = self.robot_state.target.value['lit_leds']
+                lit_leds = self.robot_state.state.value['lit_leds']
                 if lit_leds == constants.LedConstants.k_led_count:
                     self.set_leds(self.mode.value["on_color"])
                 else:  # target dependent LED states:

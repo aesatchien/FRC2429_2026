@@ -16,6 +16,9 @@ class ShootingCommand(commands2.Command):  # change the name for your command
         self.addRequirements(self.shooter)  # commandsv2 version of requirements
         self.extra_log_info = None
         self.counter = 0  # add a counter if you need to track iterations, remember to initialize in below
+        # we want indexer and hopper to start after .1 seconds or 1/10 seconds. 
+        # if it runs 50x per second, 50 * 1/10 is 5, so after 5 cycles, start the indexer and hopper
+        self.delay_cycles = 5
 
     def initialize(self) -> None:
         # Called just before each time this Command runs
@@ -23,10 +26,12 @@ class ShootingCommand(commands2.Command):  # change the name for your command
         # self.extra_log_info = "Target=7"  # (for example)
         self.counter = 0
         self.shooter.set_shooter_rpm(sc.k_test_speed)
-        self.shooter.set_indexer_rpm(sc.k_indexer_rpm)
 
     def execute(self) -> None:
-        pass
+        self.counter += 1
+        if self.counter > self.delay_cycles and (self.shooter.indexer_on == False or self.shooter.hopper_on == False):
+            self.shooter.set_indexer_rpm(sc.k_indexer_rpm)
+            self.shooter.set_hopper_rpm(sc.k_hopper_rpm)
         # runs 50x per second, so be careful about messages and timing
 
     def isFinished(self) -> bool:

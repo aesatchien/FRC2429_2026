@@ -10,7 +10,7 @@ from wpimath.trajectory import TrapezoidProfile
 from wpimath.filter import SlewRateLimiter
 
 import constants
-from subsystems.swerve_constants import AutoConstants as ac
+from subsystems.swerve_constants import DriveConstants as dc, AutoConstants as ac
 from subsystems.swerve import Swerve
 from subsystems.led import Led
 from subsystems.vision import Vision
@@ -41,7 +41,7 @@ class AutoToPose(commands2.Command):  #
         self.print_debug = True
 
         # CJH added a slew rate limiter 20250323 - it jolts and browns out the robot if it servos to full speed
-        max_units_per_second = 2  # can't be too low or you get lag and we allow a max of < 50% below
+        max_units_per_second = dc.kAutoSlewRate  # can't be too low or you get lag and we allow a max of < 50% below
         self.x_limiter = SlewRateLimiter(max_units_per_second)
         self.y_limiter = SlewRateLimiter(max_units_per_second)
         self.rot_limiter = SlewRateLimiter(max_units_per_second)
@@ -85,7 +85,9 @@ class AutoToPose(commands2.Command):  #
             self.target_pose = self.original_target_pose
 
         if wpilib.DriverStation.getAlliance()  == wpilib.DriverStation.Alliance.kRed and not self.use_vision:
-            self.target_pose = self.target_pose.rotateAround(point=Translation2d(17.548 / 2, 8.062 / 2), rot=Rotation2d(math.pi))
+            mid_x = constants.FieldConstants.k_field_length / 2
+            mid_y = constants.FieldConstants.k_field_width / 2
+            self.target_pose = self.target_pose.rotateAround(point=Translation2d(mid_x, mid_y), rot=Rotation2d(math.pi))
 
         if self.control_type == 'pathplanner':
             self.target_state = PathPlannerTrajectoryState()

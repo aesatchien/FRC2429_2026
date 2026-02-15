@@ -22,8 +22,8 @@ class SwerveModule:
         self.turning_output = 0
 
         # get our two motor controllers and a simulation dummy
-        self.drivingSpark = dc.k_drive_controller_type(drivingCANId, SparkFlex.MotorType.kBrushless)
-        self.turningSpark = dc.k_drive_controller_type(turningCANId, SparkFlex.MotorType.kBrushless)
+        self.drivingSpark = dc.k_drive_controller_type(drivingCANId, rev.SparkLowLevel.MotorType.kBrushless)
+        self.turningSpark = dc.k_drive_controller_type(turningCANId, rev.SparkLowLevel.MotorType.kBrushless)
 
         #  ---------------- DRIVING SPARKMAX  ------------------
         self._configure_spark(self.drivingSpark, ModuleConstants.k_driving_config, drivingCANId)
