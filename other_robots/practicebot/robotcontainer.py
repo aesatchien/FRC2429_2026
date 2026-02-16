@@ -130,8 +130,8 @@ class RobotContainer:
         js.driver_rb.onTrue(MoveTrainingBox(self))
         # js.driver_rb.whileTrue(SwerveTest(self, self.swerve))
 
-        js.driver_l_trigger.debounce(0.1).whileTrue(RobotClimb(self, move_up=False, incremental=False, wait_to_finish=False, closed_loop_slot=0, indent=0))
-        js.driver_r_trigger.debounce(0.1).whileTrue(RobotClimb(self, move_up=True, incremental=False, wait_to_finish=False, closed_loop_slot=0, indent=0))
+        js.driver_l_trigger.debounce(0.1).whileTrue(RobotClimb(climber=self.climber, move_up=False, indent=0))
+        js.driver_r_trigger.debounce(0.1).whileTrue(RobotClimb(climber=self.climber, move_up=True, indent=0))
 
 
         # --- Debug & Simulation ---
@@ -190,7 +190,7 @@ class RobotContainer:
 
         # quick way to test all scoring positions from dashboard
         self.score_test_chooser = wpilib.SendableChooser()
-        [self.score_test_chooser.addOption(key, value) for key, value in self.robot_state.targets_dict.items()]  # add all the indicators
+        [self.score_test_chooser.addOption(key, value) for key, value in self.robot_state.states_dict.items()]  # add all the indicators
         self.score_test_chooser.onChange(
             # `setattr` is the programmatic way to set an attribute. It's equivalent to
             # `self.robot_state.target = selected_value`, but can be used inside a lambda.

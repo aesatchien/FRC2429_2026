@@ -36,7 +36,6 @@ import math
 import ntcore
 import wpilib
 from rev import ClosedLoopSlot, SparkMax
-from constants import TurretConstants
 from commands2 import SubsystemBase
 import constants
 from constants import ClimberConstants as cc
@@ -96,24 +95,15 @@ class Climber(SubsystemBase):
         pass
 
     def move_climber(self, increment: bool):
-        climber_height = {
-            "low_bar": 27,
-            "middle_bar": 45,
-            "upper_bar": 63
-        }
-        if (increment == False and self.position_index >= 0):
-            self.position_index -= 1
-        elif (increment == True and self.position_index <= 2):
-            self.position_index += 1
-        else:
-            self.position_index = 0
 
-        if (self.position_index == 0):
-            self.current_position = climber_height["low_bar"]
-        elif (self.position_index == 1):
-            self.current_position = climber_height["middle_bar"]
-        else:
-            self.current_position = climber_height["upper_bar"]
+        climber_height = [10,30]
+        if (increment == False and self.position_index > 0):
+            self.position_index -= 1
+        elif (increment == True and self.position_index < len(climber_height)-1):
+            self.position_index += 1
+
+        self.current_position = climber_height[self.position_index]
+        print(f'Climber location: {self.current_position:.0f}')
 
     def get_pos(self):
         return self.current_position
