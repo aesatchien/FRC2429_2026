@@ -5,7 +5,7 @@ from constants import IntakeConstants as sc
 from subsystems.shooter import Shooter
 
 
-@log_command(console=True, nt=False, print_init=True, print_end=True)  # will print start and end messages
+@log_command(console=True, nt=False, print_init=True, print_end=False)  # will print start and end messages
 class Increment_Shooter(commands2.Command):  # change the name for your command
 
     def __init__(self, shooter: Shooter, indent=0, speed_change=0) -> None:

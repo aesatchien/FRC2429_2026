@@ -91,11 +91,14 @@ class Shooter(Subsystem):
 
 
     def stop_shooter(self):
-        # three different ways to stop the shooter
-        self.flywheel_left_leader.set(0)  # this sets the output to zero (number between -1 and 1) - it is "dumb"
-        self.roller_motor.set(0)
-        # self.shooter_l.setVoltage(0)  # this sets the voltage to zero (number between -12 and 12) - it is also "dumb"
-        # self.flywheel_controller.setReference(value=0, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=0)
+        # noisy way
+        # self.flywheel_left_leader.set(0)  # this sets the output to zero (number between -1 and 1) - it is "dumb"
+        # self.roller_motor.set(0)
+
+        # Use MaxMotion to ramp down smoothly instead of hard stopping with set(0)
+        self.flywheel_controller.setReference(setpoint=0, ctrl=SparkLowLevel.ControlType.kMAXMotionVelocityControl, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=0)
+        self.roller_controller.setReference(setpoint=0, ctrl=SparkLowLevel.ControlType.kMAXMotionVelocityControl, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=0)
+
         print("Setting shooter rpm to 0")
 
         self.stop_indexer()
@@ -128,8 +131,8 @@ class Shooter(Subsystem):
 
     def change_speed(self, change_speed=0):
         # direction: 1 for faster, -1 for slower, 0 for same
-        self.current_index = max(0, min(len(sc.allowed_rpms) - 1, self.current_index + change_speed))
-        self.default_rpm = sc.allowed_rpms[self.current_index]
+        self.current_index = max(0, min(len(sc.allowed_shooter_rpms) - 1, self.current_index + change_speed))
+        self.default_rpm = sc.allowed_shooter_rpms[self.current_index]
     
     def set_indexer_rpm(self, rpm=1000):
         feed_forward = min(12, 12 * rpm / 5600)
@@ -153,14 +156,15 @@ class Shooter(Subsystem):
         roller_feed_forward = min(12, 12 * 0.5 * rpm / 6784)  # if there is no gearing, then this gets you close
         # rev is a pain in the ass - you have to pass EXACTLY the types it wants - no using "0" for the slots anymore
         # self.roller_controller.setReference(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=roller_feed_forward)
-        self.roller_motor.set(0.6)
 
         ks = 0 if rpm < 1 else sc.ks_volts  # otherwise it still just turns at 0
+        self.roller_controller.setReference(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kMAXMotionVelocityControl,
+                                             slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=ks)
         self.flywheel_controller.setReference(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kMAXMotionVelocityControl,
                                              slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=ks)
 
 
-        print(f'set flywheel rpm to {rpm:.0f}')  # want to say what time it is, but can't import the container's timer easily
+        print(f'  -- setflywheel rpm to {rpm:.0f}')  # want to say what time it is, but can't import the container's timer easily
         self.current_rpm = rpm
         self.shooter_on = True
         self.update_nt()
