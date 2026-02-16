@@ -37,7 +37,7 @@ class RobotClimb(commands2.Command):
         self.climber.move_climber(increment=self.move_up)
 
     def isFinished(self) -> bool:
-        return True
+        return False
 
     def end(self, interrupted) -> None:
         return None

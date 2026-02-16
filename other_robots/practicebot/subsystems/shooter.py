@@ -63,9 +63,11 @@ class Shooter(Subsystem):
         self.shooter_on = False
         self.indexer_on = False
         self.hopper_on = False
+        self.roller_on = False
         self.current_rpm = 0
         self.current_indexer_rpm = 0
         self.current_hopper_rpm = 0
+        self.current_roller_rpm = 0
         self.current_index = 0
         self.voltage = 0
         self._init_networktables()
@@ -74,12 +76,13 @@ class Shooter(Subsystem):
         self.inst = ntcore.NetworkTableInstance.getDefault()
         self.nt_prefix = "/SmartDashboard/Shooter"  # TODO = move to constants
         self.shooter_on_pub = self.inst.getBooleanTopic(f"{self.nt_prefix}/shooter_on").publish()
-        self.shooter_rpm_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/shooter_position").publish()
+        self.shooter_rpm_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/shooter_rpm").publish()
         self.indexer_on_pub = self.inst.getBooleanTopic(f"{self.nt_prefix}/indexer_on").publish()
-        self.indexer_rpm_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/indexer_position").publish()
+        self.indexer_rpm_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/indexer_rpm").publish()
         self.hopper_on_pub = self.inst.getBooleanTopic(f"{self.nt_prefix}/hopper_on").publish()
         self.hopper_rpm_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/hopper_rpm").publish()
-
+        self.roller_on_pub = self.inst.getBooleanTopic(f"{self.nt_prefix}/roller_on").publish()
+        self.roller_rpm_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/roller_rpm").publish()        
 
     def update_nt(self):
         self.shooter_on_pub.set(self.shooter_on)
@@ -88,6 +91,8 @@ class Shooter(Subsystem):
         self.indexer_rpm_pub.set(self.current_indexer_rpm)
         self.hopper_on_pub.set(self.hopper_on)
         self.hopper_rpm_pub.set(self.current_hopper_rpm)
+        self.roller_on_pub.set(self.roller_on)
+        self.roller_rpm_pub.set(self.current_roller_rpm)
 
 
     def stop_shooter(self):
@@ -106,12 +111,14 @@ class Shooter(Subsystem):
 
         self.shooter_on = False
         self.current_rpm = 0
+        self.roller_on = False
+        self.current_roller_rpm = 0
 
         self.update_nt()
 
     def stop_indexer(self):
         # setting everything off, then updating
-        self.indexer_left_leader.set(0)
+        self.indexer_left_leader.setReference(setpoint=0, ctrl=SparkLowLevel.ControlType.kMAXMotionVelocityControl, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=0)
         print("Setting indexer rpm to 0")
         self.indexer_on = False
         self.current_indexer_rpm = 0
@@ -120,7 +127,7 @@ class Shooter(Subsystem):
     
     def stop_hopper(self):
         # setting everything off, then updating
-        self.hopper.set(0)
+        self.hopper_controller.setReference(setpoint=0, ctrl=SparkLowLevel.ControlType.kMAXMotionVelocityControl, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=0)
         print("Setting hopper rpm to 0")
         self.hopper_on = False
         self.current_hopper_rpm = 0
@@ -167,6 +174,9 @@ class Shooter(Subsystem):
         print(f'  -- setflywheel rpm to {rpm:.0f}')  # want to say what time it is, but can't import the container's timer easily
         self.current_rpm = rpm
         self.shooter_on = True
+        self.current_roller_rpm = rpm
+        self.roller_on = True
+
         self.update_nt()
 
     def get_velocity(self):
