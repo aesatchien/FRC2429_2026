@@ -22,7 +22,7 @@ class IncrementIntake(commands2.Command):  # change the name for your command
         # if you wish to add more information to the console logger, change self.extra_log_info
         # self.extra_log_info = "Target=7"  # (for example)
         self.intake.change_speed(self.speed_change)
-        self.intake.set_shooter_rpm(self.intake.default_rpm)
+        self.intake.set_intake_rpm(self.intake.default_rpm)
 
     def execute(self) -> None:
         # runs 50x per second, so be careful about messages and timing
