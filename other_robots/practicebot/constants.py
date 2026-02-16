@@ -195,14 +195,15 @@ class ShooterConstants:
 
     # FLYWHEEL
     k_CANID_flywheel_left_leader, k_CANID_flywheel_right_follower = 10, 11  # left flywheel and follower
-    k_CANID_flywheel_roller_leader, k_CANID_flywheel_roller_follower = 12, 13  # do we have two rollers
+    k_CANID_flywheel_roller = 12  # one roller
     k_flywheel_left_leader_config, k_flywheel_right_follower_config = SparkFlexConfig(), SparkFlexConfig()
-    k_CANID_roller_left_leader_config, k_CANID_roller_right_follower_config = SparkFlexConfig(), SparkFlexConfig()
+    k_CANID_flywheel_roller_config = SparkFlexConfig()
 
     k_test_speed = 4000
     k_fastest_speed = 6500
     k_test_rpm = 2000
     k_fastest_rpm = 5600
+    allowed_rpms = [0, 60] + [i for i in range(2000, 5601, 250)]
 
     # set inversions
     k_flywheel_left_leader_config.inverted(False)  # have to check which way it spins for positive RPM
@@ -215,7 +216,7 @@ class ShooterConstants:
     k_shooter_configs: list =  [k_hopper_config,
                                 k_indexer_left_leader_config, k_indexer_right_follower_config,
                                 k_flywheel_left_leader_config, k_flywheel_right_follower_config,
-                                k_CANID_roller_left_leader_config, k_CANID_roller_right_follower_config]
+                                k_CANID_flywheel_roller_config]
 
     set_config_defaults(k_shooter_configs)
 

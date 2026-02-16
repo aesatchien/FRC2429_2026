@@ -77,7 +77,7 @@ class Intake(Subsystem):
         self.current_index = max(0, min(len(ic.allowed_rpms) - 1, self.current_index + change_speed))
         self.default_rpm = ic.allowed_rpms[self.current_index]
 
-    def set_intake_rpm(self, rpm=1000):
+    def set_intake_rpm(self, rpm=3500):
         # TODO - incorporate a PID to handle voltage sag from multiple balls
         feed_forward = min(12, 12 * rpm / 5600)  # if there is no gearing, then this gets you close
         # self.set_dropper_down(down=True) if self.dropper_down == False else None

@@ -60,6 +60,7 @@ class Shooter(Subsystem):
         self.current_rpm = 0
         self.current_indexer_rpm = 0
         self.current_hopper_rpm = 0
+        self.current_index = 0
         self.voltage = 0
         self._init_networktables()
 
@@ -117,6 +118,12 @@ class Shooter(Subsystem):
         self.update_nt()
 
     # keeping indexer and shooter separate, and combining them in commands.
+
+    def change_speed(self, change_speed=0):
+        # direction: 1 for faster, -1 for slower, 0 for same
+        self.current_index = max(0, min(len(sc.allowed_rpms) - 1, self.current_index + change_speed))
+        self.default_rpm = sc.allowed_rpms[self.current_index]
+    
     def set_indexer_rpm(self, rpm=1000):
         feed_forward = min(12, 12 * rpm / 5600)
         self.indexer_controller.setReference(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
