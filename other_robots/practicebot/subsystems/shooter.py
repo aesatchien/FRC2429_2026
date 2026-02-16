@@ -156,7 +156,7 @@ class Shooter(Subsystem):
         self.roller_motor.set(0.6)
 
         ks = 0 if rpm < 1 else sc.ks_volts  # otherwise it still just turns at 0
-        self.flywheel_controller.setSetpoint(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kMAXMotionVelocityControl,
+        self.flywheel_controller.setReference(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kMAXMotionVelocityControl,
                                              slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=ks)
 
 
