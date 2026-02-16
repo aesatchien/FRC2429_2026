@@ -12,17 +12,17 @@ class Increment_Shooter(commands2.Command):  # change the name for your command
         super().__init__()
         self.setName('Increment Shooter')
         self.indent = indent
-        self.intake = shooter
+        self.shooter = shooter
         self.speed_change = speed_change
-        self.addRequirements(self.intake)  # commandsv2 version of requirements
+        self.addRequirements(self.shooter)  # commandsv2 version of requirements
         self.extra_log_info = None
 
     def initialize(self) -> None:
         # Called just before each time this Command runs
         # if you wish to add more information to the console logger, change self.extra_log_info
         # self.extra_log_info = "Target=7"  # (for example)
-        self.intake.change_speed(self.speed_change)
-        self.intake.set_intake_rpm(self.shooter.default_rpm)
+        self.shooter.change_speed(self.speed_change)
+        self.shooter.set_intake_rpm(self.shooter.default_rpm)
 
     def execute(self) -> None:
         # runs 50x per second, so be careful about messages and timing
