@@ -197,7 +197,7 @@ class ShooterConstants:
     k_CANID_flywheel_left_leader, k_CANID_flywheel_right_follower = 10, 11  # left flywheel and follower
     k_CANID_flywheel_roller = 12  # one roller
     k_flywheel_left_leader_config, k_flywheel_right_follower_config = SparkFlexConfig(), SparkFlexConfig()
-    k_CANID_flywheel_roller_config = SparkFlexConfig()
+    k_flywheel_roller_config = SparkFlexConfig()
 
     k_test_speed = 4000
     k_fastest_speed = 6500
@@ -210,13 +210,25 @@ class ShooterConstants:
     # set up the followers
     k_flywheel_right_follower_config.follow(k_CANID_flywheel_left_leader, invert=False)  # depends on motor placement
 
+    # if we want, we could put the feed forward here instead of in the subsystem
+    # maxmotion - allows us to set mav velocity, acceleration and jerk, letting us crank proportional response]
+    motor_max_rpm = 6784  # Vortex
+    k_flywheel_left_leader_config.closedLoop.pidf(p=1e-4, i=0, d=0, ff=1 / motor_max_rpm, slot=rev.ClosedLoopSlot.kSlot0)
+
+    # Configure MAXMotion (The "Modern" Smart Motion) - Note: "maxMotion" object instead of "smartMotion"
+    k_flywheel_left_leader_config.closedLoop.maxMotion.cruiseVelocity(6000, slot=rev.ClosedLoopSlot.kSlot0)
+    k_flywheel_left_leader_config.closedLoop.maxMotion.maxAcceleration(6000, slot=rev.ClosedLoopSlot.kSlot0)
+    k_flywheel_left_leader_config.closedLoop.maxMotion.allowedClosedLoopError(0, slot=rev.ClosedLoopSlot.kSlot0)
+    ks_volts = 0.5
+
+
     # set all configs
     # setting brake, voltage compensation, and current limit for the flywheel motors
     k_flywheel_configs = [k_flywheel_left_leader_config, k_flywheel_right_follower_config]
     k_shooter_configs: list =  [k_hopper_config,
                                 k_indexer_left_leader_config, k_indexer_right_follower_config,
                                 k_flywheel_left_leader_config, k_flywheel_right_follower_config,
-                                k_CANID_flywheel_roller_config]
+                                k_flywheel_roller_config]
 
     set_config_defaults(k_shooter_configs)
 
