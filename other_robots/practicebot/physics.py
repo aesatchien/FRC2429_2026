@@ -112,7 +112,7 @@ class PhysicsEngine:
 
 
         #climber_height = inchesToMeters(22 + 8 * math.sin(1 * wpilib.getTime()))  # 22±8 inches
-        self.mech.update_climber(height_from_ground=inchesToMeters(self.container.climber.get_pos()))  # sets the climber's position to
+        self.mech.update_climber(height_from_ground=inchesToMeters(self.container.climber.get_pos()))  # sets the climber's position to one of the three possible heights of bar
 
         # Update ball position (static for now)
         self.mech.update_ball(inchesToMeters(45), inchesToMeters(2))

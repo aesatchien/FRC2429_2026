@@ -99,7 +99,7 @@ class Climber(SubsystemBase):
         self.inches_from_ground_pub.set(self.current_position)
 
     def move_climber(self, increment: bool):
-
+        # checks the direction of movement and if the climber's at max/min height
         if (increment == False and self.position_index > 0):
             self.position_index -= 1
         elif (increment == True and self.position_index < len(self.climber_heights)-1):
@@ -109,6 +109,7 @@ class Climber(SubsystemBase):
         print(f'Climber location: {self.current_position:.0f}')
 
     def get_pos(self):
+        # returns the current position of the robot
         return self.current_position
 
     def set_position(self):
