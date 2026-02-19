@@ -162,10 +162,10 @@ class IntakeConstants:
     k_CANID_intake_left_leader = 4  # robot right, does not need inverted
     k_CANID_intake_right_follower = 5  # robot left, needs follower inverted
 
-    k_intake_left_leader_config, k_intake_right_follower_config = SparkMaxConfig(), SparkMaxConfig()
-    k_intake_configs = [k_intake_left_leader_config, k_intake_right_follower_config]
     k_deploy_config = SparkMaxConfig()
-    k_deploy_configs = [k_deploy_config]
+
+    k_intake_left_leader_config, k_intake_right_follower_config = SparkMaxConfig(), SparkMaxConfig()
+    k_intake_configs = [k_intake_left_leader_config, k_intake_right_follower_config, k_deploy_config]
     k_test_rpm = 1000  # pi * diameter roller / 60  to get inches per second
     k_fastest_rpm = 60
     k_dropper_rpm = 10
