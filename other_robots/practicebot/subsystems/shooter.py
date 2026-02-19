@@ -160,7 +160,7 @@ class Shooter(Subsystem):
     def set_shooter_rpm(self, rpm=1000):
         # multiple different ways to set the shooter
         # self.flywheel_left_leader.set(rpm)
-        roller_feed_forward = min(12, 12 * 0.5 * rpm / 6784)  # if there is no gearing, then this gets you close
+        roller_feed_forward = min(12, 12 * rpm / 6784)  # if there is no gearing, then this gets you close
         # rev is a pain in the ass - you have to pass EXACTLY the types it wants - no using "0" for the slots anymore
         # self.roller_controller.setReference(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=roller_feed_forward)
 

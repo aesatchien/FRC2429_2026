@@ -209,8 +209,9 @@ class ShooterConstants:
 
     # set inversions
     k_flywheel_left_leader_config.inverted(False)  # have to check which way it spins for positive RPM
+    k_flywheel_roller_config.inverted(False)
     # set up the followers
-    k_flywheel_right_follower_config.follow(k_CANID_flywheel_left_leader, invert=False)  # depends on motor placement
+    k_flywheel_right_follower_config.follow(k_CANID_flywheel_left_leader, invert=True)  # depends on motor placement
 
     # if we want, we could put the feed forward here instead of in the subsystem
     # maxmotion - allows us to set mav velocity, acceleration and jerk, letting us crank proportional response]
