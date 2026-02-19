@@ -47,7 +47,7 @@ class Climber(SubsystemBase):
         self.setName('Climber')
         self.climber = Climber
         self.position_index = 0
-        self.current_position = 0
+        self.current_position = 10
         self.counter = cc.k_counter_offset  # note this should be an offset in constants
         self.default_rpm = cc.k_test_rpm
 

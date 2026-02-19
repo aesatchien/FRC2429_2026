@@ -44,7 +44,8 @@ from commands.sim_show_fov import SimShowFOV
 from commands.move_training_box import MoveTrainingBox
 from commands.swerve_test import SwerveTest
 from commands.robot_climb import RobotClimb
-from commands.increment_shooter import Increment_Shooter
+from commands.increment_shooter import IncrementShooter
+from commands.stop_shooter import StopShooter
 
 from commands.shooting_command import ShootingCommand
 from commands.intake_set import Intake_Set
@@ -111,9 +112,9 @@ class RobotContainer:
             js.driver_right.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(0, -dpad_output, 0), timeout=10))
         else:
             js.driver_up.whileTrue(ShootingCommand(shooter=self.shooter, rpm=5000))
-            js.driver_right.whileTrue(Increment_Shooter(shooter=self.shooter, speed_change=1))
-            js.driver_left.whileTrue(Increment_Shooter(shooter=self.shooter, speed_change=-1))
-            js.driver_down.whileTrue(self.shooter.stop_shooter)
+            js.driver_right.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=1))
+            js.driver_left.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=-1))
+            js.driver_down.whileTrue(StopShooter(shooter=self.shooter))
 
         # --- Subsystems ---
         js.driver_start.whileTrue(Intake_Set(intake=self.intake, rpm=3500))
