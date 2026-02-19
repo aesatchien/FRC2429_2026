@@ -110,9 +110,10 @@ class RobotContainer:
             js.driver_left.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(0, dpad_output, 0), timeout=10))
             js.driver_right.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(0, -dpad_output, 0), timeout=10))
         else:
-            js.driver_up.whileTrue(ShootingCommand(shooter=self.shooter))
+            js.driver_up.whileTrue(ShootingCommand(shooter=self.shooter, rpm=5000))
             js.driver_right.whileTrue(Increment_Shooter(shooter=self.shooter, speed_change=1))
             js.driver_left.whileTrue(Increment_Shooter(shooter=self.shooter, speed_change=-1))
+            js.driver_down.whileTrue(self.shooter.stop_shooter)
 
         # --- Subsystems ---
         js.driver_start.whileTrue(Intake_Set(intake=self.intake, rpm=3500))
