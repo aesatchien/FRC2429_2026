@@ -21,7 +21,7 @@ class RobotClimb(commands2.Command):
         self.setName('Robot_Climb')
         self.indent = indent
         self.climber = climber
-        self.move_up = move_up
+        self.move_up = move_up  # if false, move down, if true, move up
         self.timer = Timer()
         self.position_index = 0
         self.current_position = 0
@@ -34,6 +34,7 @@ class RobotClimb(commands2.Command):
         # if turret safe: move turret, exit
 
     def initialize(self) -> None:
+        # calls the move_climber method from climber subsystem
         self.climber.move_climber(increment=self.move_up)
 
     def isFinished(self) -> bool:

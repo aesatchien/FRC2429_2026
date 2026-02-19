@@ -281,3 +281,4 @@ class ClimberConstants:
     k_CANID_motor = 0
     k_number_of_encoder_ticks_per_motor_rotation = 42  # number of encoder ticks per wheel rotation, either 42 or 7000
     k_position_conversion_factor = .2  # TODO number of inches per encoder tick, this is wrong right now IDK what it is if their is a gear box etc
+    # k_position_conversion_factor = (k_wheel_diameter_in * math.pi * k_meter_per_inch / k_gear_ratio) ?
