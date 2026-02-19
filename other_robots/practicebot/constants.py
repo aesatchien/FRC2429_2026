@@ -191,7 +191,7 @@ class ShooterConstants:
     k_indexer_left_leader_config, k_indexer_right_follower_config = SparkMaxConfig(), SparkMaxConfig()
     k_indexer_left_leader_config.inverted(False)  # TODO - check which way it spins for positive RPM
     k_indexer_right_follower_config.follow(k_CANID_indexer_left_leader, invert=False) # depends on motor placement
-    k_indexer_rpm = 2000  # TODO - decide if this can just be a voltage
+    k_indexer_rpm = 4000  # TODO - decide if this can just be a voltage
 
     # FLYWHEEL
     k_CANID_flywheel_left_leader, k_CANID_flywheel_right_follower = 10, 11  # left flywheel and follower
@@ -205,7 +205,7 @@ class ShooterConstants:
     k_shooter_test_speed = 4000
     k_shooter_max_speed = 6500
     k_test_rpm = 2000
-    allowed_shooter_rpms = [0, 60] + [i for i in range(2000, 5601, 250)]
+    allowed_shooter_rpms = [0, 60] + [i for i in range(2000, 5601, 250)] + [5600]
 
     # set inversions
     k_flywheel_left_leader_config.inverted(False)  # have to check which way it spins for positive RPM

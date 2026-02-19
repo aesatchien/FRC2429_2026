@@ -169,6 +169,12 @@ class Shooter(Subsystem):
                                              slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=ks)
         self.flywheel_controller.setReference(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kMAXMotionVelocityControl,
                                              slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=ks)
+        if rpm > 1:
+            indexer_feed_forward = min(12, 12 * sc.k_indexer_rpm / 5600)
+            self.indexer_controller.setReference(setpoint=sc.k_indexer_rpm, ctrl=SparkLowLevel.ControlType.kMAXMotionVelocityControl,
+                                             slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=indexer_feed_forward)
+        else:
+            self.stop_indexer()
 
 
         print(f'  -- setflywheel rpm to {rpm:.0f}')  # want to say what time it is, but can't import the container's timer easily

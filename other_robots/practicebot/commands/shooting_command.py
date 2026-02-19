@@ -29,7 +29,7 @@ class ShootingCommand(commands2.Command):  # change the name for your command
         # self.shooter.set_indexer_rpm(sc.k_indexer_rpm)
         # self.shooter.set_hopper_rpm(sc.k_hopper_rpm)
         self.shooter.set_shooter_rpm(5000)
-        self.shooter.set_indexer_rpm(3000)
+        self.shooter.set_indexer_rpm(sc.k_indexer_rpm)
         self.shooter.set_hopper_rpm(sc.k_hopper_rpm)
 
 
