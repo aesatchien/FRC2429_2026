@@ -1,4 +1,5 @@
 # 2429 FRC code for 2025 season - Reefscape
+from sys import prefix
 
 import wpilib
 from wpimath.geometry import Pose2d
@@ -8,14 +9,14 @@ from commands2.printcommand import PrintCommand
 # pathplanner stuff
 from pathplannerlib.pathfinders import LocalADStar
 from pathplannerlib.pathfinding import Pathfinding
-from pathplannerlib.auto import NamedCommands
+from pathplannerlib.auto import AutoBuilder, NamedCommands
 
 # 2429 helper files
 import constants
-from constants import IntakeConstants as ic
 from helpers import joysticks as js
 
 # 2429 subsystems
+from subsystems import swerve_constants
 from subsystems.led import Led
 from subsystems.quest import Questnav
 from subsystems.robot_state import RobotState
@@ -23,23 +24,28 @@ from subsystems.swerve import Swerve
 from subsystems.vision import Vision
 from subsystems.shooter import Shooter
 from subsystems.intake import Intake
-from subsystems.targeting import Targeting
+from subsystems.climber import Climber
 
 # from subsystems.questnav_2429 import QuestnavModule
 
 # 2429 "auto" commands - just an organizational division of commands
 
 # 2429 commands
+#from commands.auto_to_pose import AutoToPose
 from commands.auto_to_pose_clean import AutoToPoseClean
 from commands.auto_track_vision_target import AutoTrackVisionTarget
 from commands.can_status import CANStatus
 from commands.drive_by_distance_swerve import DriveByVelocitySwerve
-from commands.drive_by_joystick_subsystem_targeting import DriveByJoystickSubsystemTargeting
+from commands.drive_by_joystick_swerve import DriveByJoystickSwerve
 from commands.reset_field_centric import ResetFieldCentric
+from commands.rumble_command import RumbleCommand
 from commands.set_leds import SetLEDs
 from commands.sim_show_fov import SimShowFOV
 from commands.move_training_box import MoveTrainingBox
-from commands.increment_intake import IncrementIntake
+from commands.swerve_test import SwerveTest
+from commands.robot_climb import RobotClimb
+from commands.increment_shooter import IncrementShooter
+from commands.stop_shooter import StopShooter
 
 from commands.shooting_command import ShootingCommand
 from commands.intake_set import Intake_Set
@@ -56,12 +62,12 @@ class RobotContainer:
 
         # ----------  SUBSYSTEMS  ---------------
         # The robot's subsystems
-        self.targeting = Targeting()  # pure math for getting rotations values for target tracking
         self.questnav = Questnav()  # going to break the silo convention and let the Swerve see the quest for now
         self.swerve = Swerve(questnav=self.questnav)
         self.vision = Vision()
         self.shooter = Shooter()
         self.intake = Intake()
+        self.climber = Climber()
         self.robot_state = RobotState()  # currently has a callback that LED can register
         self.led = Led(robot_state=self.robot_state)  # may want LED last because it may want to know about other systems
 
@@ -69,11 +75,12 @@ class RobotContainer:
         self.bind_driver_buttons()
         # self.bind_codriver_buttons()  # if we need to
 
-        self.swerve.setDefaultCommand(DriveByJoystickSubsystemTargeting(
+        self.swerve.setDefaultCommand(DriveByJoystickSwerve(
             container=self,
             swerve=self.swerve,
-            targeting=self.targeting,
             controller=js.driver_controller,
+            # field_oriented=False,
+            rate_limited=constants.k_swerve_rate_limited
         ))
 
         if not constants.k_swerve_only:
@@ -83,6 +90,8 @@ class RobotContainer:
         self.register_commands()
 
         self.initialize_dashboard()
+
+        self.position_index = 0
 
         Pathfinding.setPathfinder(LocalADStar())
 
@@ -102,13 +111,13 @@ class RobotContainer:
             js.driver_left.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(0, dpad_output, 0), timeout=10))
             js.driver_right.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(0, -dpad_output, 0), timeout=10))
         else:
-            js.driver_up.onTrue(IncrementIntake(intake=self.intake, speed_change=1))
-            js.driver_down.onTrue(IncrementIntake(intake=self.intake, speed_change=-1))
-            js.driver_right.whileTrue(Intake_Set(intake=self.intake, on_start=False, rpm=self.intake.default_rpm))
-            js.driver_left.whileTrue(Intake_Set(intake=self.intake, on_start=False, rpm=0))
+            js.driver_up.whileTrue(ShootingCommand(shooter=self.shooter, rpm=5000))
+            js.driver_right.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=1))
+            js.driver_left.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=-1))
+            js.driver_down.whileTrue(StopShooter(shooter=self.shooter))
 
         # --- Subsystems ---
-        js.driver_start.whileTrue(Intake_Set(intake=self.intake, rpm=3000))
+        js.driver_start.whileTrue(Intake_Set(intake=self.intake, rpm=3500))
         js.driver_back.whileTrue(Intake_Set(intake=self.intake, rpm=0))
 
         # --- Vision & Automation ---
@@ -123,10 +132,10 @@ class RobotContainer:
         js.driver_lb.whileTrue(SimShowFOV(self))
         js.driver_rb.onTrue(MoveTrainingBox(self))
         # js.driver_rb.whileTrue(SwerveTest(self, self.swerve))
-        
-        js.driver_l_trigger.onTrue(commands2.PrintCommand("Pushed L trigger"))
-        # js.driver_r_trigger.onTrue(commands2.PrintCommand("Pushed R trigger"))
-        js.driver_r_trigger.whileTrue(ShootingCommand(shooter=self.shooter))
+
+        js.driver_l_trigger.debounce(0.1).whileTrue(RobotClimb(climber=self.climber, move_up=False, indent=0))
+        js.driver_r_trigger.debounce(0.1).whileTrue(RobotClimb(climber=self.climber, move_up=True, indent=0))
+
 
         # --- Debug & Simulation ---
         # test a setting of the swerve modules straight before running the auto to tag
@@ -144,6 +153,10 @@ class RobotContainer:
         # --------------   COMMANDS FOR GUI (ROBOT DEBUGGING) - 20250224 CJH
         command_prefix = constants.command_prefix
         # --------------   TESTING LEDS ----------------
+        self.led_mode_chooser = wpilib.SendableChooser()
+        [self.led_mode_chooser.addOption(key, value) for key, value in self.led.modes_dict.items()]  # add all the indicators
+        self.led_mode_chooser.onChange(listener=lambda selected_value: commands2.CommandScheduler.getInstance().schedule(SetLEDs(container=self, led=self.led, mode=selected_value)))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/LED Mode', self.led_mode_chooser)
 
         self.led_indicator_chooser = wpilib.SendableChooser()
         [self.led_indicator_chooser.addOption(key, value) for key, value in self.led.indicators_dict.items()]  # add all the indicators
@@ -173,7 +186,7 @@ class RobotContainer:
             # because that's what `cmd` is when the loop finishes.
             # By setting `cmd=cmd` as a default argument, we force the lambda to capture
             # the *current* value of `cmd` during each iteration of the loop.
-            wpilib.SmartDashboard.putData(f'{command_prefix}/{cmd}', commands2.InstantCommand(lambda cmd=cmd: print(f'Called {cmd} at {wpilib.Timer.getFPGATimestamp():.1f}s'))
+            wpilib.SmartDashboard.putData(f'{command_prefix}/{cmd}', commands2.InstantCommand(lambda cmd: print(f'Called {cmd} at {wpilib.Timer.getFPGATimestamp():.1f}s'))
                                           .alongWith(commands2.WaitCommand(2)).ignoringDisable(True))
 
         # end pyqt dashboard section
@@ -183,10 +196,10 @@ class RobotContainer:
         [self.score_test_chooser.addOption(key, value) for key, value in self.robot_state.states_dict.items()]  # add all the indicators
         self.score_test_chooser.onChange(
             # `setattr` is the programmatic way to set an attribute. It's equivalent to
-            # `self.robot_state.state = selected_value`, but can be used inside a lambda.
+            # `self.robot_state.target = selected_value`, but can be used inside a lambda.
             listener=lambda selected_value: commands2.CommandScheduler.getInstance().schedule(
-                commands2.cmd.runOnce(lambda: setattr(self.robot_state, 'state', selected_value))))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/RobotState', self.score_test_chooser)
+                commands2.cmd.runOnce(lambda: setattr(self.robot_state, 'target', selected_value))))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/RobotScoringMode', self.score_test_chooser)
 
         # ----------  AUTONOMOUS CHOOSER SECTION  ---------------
         # self.auto_chooser = AutoBuilder.buildAutoChooser('')  # this loops through the path planner deploy directory - must exist 
@@ -204,8 +217,7 @@ class RobotContainer:
         # ----------  PATHPLANNER COMMANDS  ---------------
         # this is for PathPlanner, so it can call our commands.  Note they do not magically show up in pathplanner
         # you have to add them there, and then it remembers your list of commands.  so name them wisely
-        # NamedCommands.registerCommand('robot_state_left', commands2.cmd.runOnce(lambda: setattr(self.robot_state, 'side', RobotState.Side.LEFT)).ignoringDisable(True))
-        pass
+        NamedCommands.registerCommand('robot_state_left', commands2.cmd.runOnce(lambda: setattr(self.robot_state, 'side', RobotState.Side.LEFT)).ignoringDisable(True))
 
     def get_autonomous_command(self):
         # return DriveByVelocitySwerve(self, self.swerve, Pose2d(0.1, 0, 0), 2)

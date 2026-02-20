@@ -37,7 +37,7 @@ class Intake(Subsystem):
             else rev.PersistMode.kNoPersistParameters
 
         # put the configs in a list matching the motors
-        self.configs = ic.k_intake_configs + ic.k_deploy_configs
+        self.configs = ic.k_intake_configs
 
         # this should be its own function later - we will call it whenever we change brake mode
         rev_errors = [motor.configure(config, self.rev_resets, self.rev_persists)
@@ -77,7 +77,7 @@ class Intake(Subsystem):
         self.current_index = max(0, min(len(ic.allowed_rpms) - 1, self.current_index + change_speed))
         self.default_rpm = ic.allowed_rpms[self.current_index]
 
-    def set_intake_rpm(self, rpm=1000):
+    def set_intake_rpm(self, rpm=3500):
         # TODO - incorporate a PID to handle voltage sag from multiple balls
         feed_forward = min(12, 12 * rpm / 5600)  # if there is no gearing, then this gets you close
         # self.set_dropper_down(down=True) if self.dropper_down == False else None

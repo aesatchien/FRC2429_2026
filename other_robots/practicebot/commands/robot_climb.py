@@ -1,4 +1,5 @@
 import commands2
+import commands
 from rev import SparkMax
 import wpilib
 from wpilib import SmartDashboard, Timer
@@ -7,38 +8,23 @@ from subsystems.climber import Climber
 import math
 import ntcore
 import constants
+
 from helpers.log_command import log_command  # outsource explicit logging clutter to a single line
 
 
 @log_command(console=True, nt=False, print_init=True, print_end=True)  # will print start and end messages
-class RobotClimb(commands2.command):
+class RobotClimb(commands2.Command):
 
-    def __init__(self, container, timeout, incremental=False, wait_to_finish=False, closed_loop_slot=0, indent=0) -> None:
-        """
-        :param wait_to_finish=False: will not make this command instantaneously execute.
-        It will make this command end immediately after either the timeout has elapsed,
-        or after the turret has begun moving, whichever is first. wait_to_finish=True
-        will make the command end either after the timeout has elapsed, or after the
-        turret has *finished* moving, whichever is first.
-
-        To make it act kinda instantaneous, set a very small timeout. Then, it will not
-        move the turret unless the arm is pretty much already at a safe position.
-        """
+    def __init__(self, climber: Climber, move_up=False, indent=0) -> None:
 
         super().__init__()
         self.setName('Robot_Climb')
         self.indent = indent
-        self.container = container
-        self.incremental = incremental
-        self.timeout = timeout
-        self.wait_to_finish = wait_to_finish
-        self.slot = closed_loop_slot
+        self.climber = climber
+        self.move_up = move_up  # if false, move down, if true, move up
         self.timer = Timer()
-        self.addRequirements(self.turret)
-        self.robotLocation = None
-        self.rHubLocation = None
-        self.bHubLocation = None
-        self.turn_angle = None
+        self.position_index = 0
+        self.current_position = 0
 
         self.counter = 0
 
@@ -48,13 +34,11 @@ class RobotClimb(commands2.command):
         # if turret safe: move turret, exit
 
     def initialize(self) -> None:
-        pass
-    # def execute(self) -> None:
-    #     # - to_mid_bar: 18 in.
-    #     # - to_high_bar: 18 in.
+        # calls the move_climber method from climber subsystem
+        self.climber.move_climber(increment=self.move_up)
 
     def isFinished(self) -> bool:
         return False
 
-    def end(self) -> None:
+    def end(self, interrupted) -> None:
         return None

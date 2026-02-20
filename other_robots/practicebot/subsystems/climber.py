@@ -45,6 +45,9 @@ class Climber(SubsystemBase):
     def __init__(self) -> None:
         super().__init__()
         self.setName('Climber')
+        self.climber = Climber
+        self.position_index = 0
+        self.current_position = 10
         self.counter = cc.k_counter_offset  # note this should be an offset in constants
         self.default_rpm = cc.k_test_rpm
 
@@ -57,8 +60,8 @@ class Climber(SubsystemBase):
         self.motors = [self.motor]
 
         # you need a controller to set velocity
-        self.climber_controller = self.climber.getClosedLoopController()
-        self.climber_encoder = self.climber.getEncoder()
+        self.climber_controller = self.motor.getClosedLoopController()
+        self.climber_encoder = self.motor.getEncoder()
 
         # default parameters for the sparkmaxes reset and persist modes
         self.rev_resets = rev.ResetMode.kResetSafeParameters
@@ -75,34 +78,60 @@ class Climber(SubsystemBase):
         # initialize states
         self.motor_on = False
         self.current_rpm = 0
+        self.climber_heights = [10, 18, 30]
         self._init_networktables()
+
     def _init_networktables(self):
         self.inst = ntcore.NetworkTableInstance.getDefault()
 
         self.nt_prefix = constants.climber_prefix
         self.motor_on_pub = self.inst.getBooleanTopic(f"{self.nt_prefix}/motor_on").publish()
         self.motor_rpm_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/motor_rpm").publish()
+        self.inches_from_ground_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/inches_from_ground").publish()
 
         self.motor_on_pub.set(self.motor_on)
         self.motor_rpm_pub.set(self.current_rpm)
+        self.inches_from_ground_pub.set(self.current_position)
+    
+    def update_nt(self):
+        self.motor_on_pub.set(self.motor_on)
+        self.motor_rpm_pub.set(self.current_rpm)
+        self.inches_from_ground_pub.set(self.current_position)
 
-    def go_up(self):
-        pass
-    def go_down(self):
-        pass
-    def set_position(self, inches_from_ground):
+    def move_climber(self, increment: bool):
+        # checks the direction of movement and if the climber's at max/min height
+        if (increment == False and self.position_index > 0):
+            self.position_index -= 1
+        elif (increment == True and self.position_index < len(self.climber_heights)-1):
+            self.position_index += 1
+
+        self.set_position()
+        print(f'Climber location: {self.current_position:.0f}')
+
+    def get_pos(self):
+        # returns the current position of the robot
+        return self.current_position
+
+    def set_position(self):
      # takes current position, then increment it by delta x
      # 1 rotation = x inch
      # Position convertion factor --> Take a look at 2026 tankbot
-        rpm = 0  # this is just a placeholder
+        target_rotations = (self.climber_heights[self.position_index] - self.current_position) / cc.k_position_conversion_factor
+        target_number_of_encoder_ticks = target_rotations * cc.k_number_of_encoder_ticks_per_motor_rotation
+
         if cc.k_control_type == 'max_motion':
-            ks = 0 if rpm < 1 else cc.ks_volts  # otherwise it still just turns at 0
-            self.flywheel_controller.setSetpoint(setpoint= inches_from_ground, ctrl=SparkLowLevel.ControlType.kMAXMotionPositionControl,
+            #ks = 0 if rpm < 1 else cc.ks_volts  # othrwise it still just turns at 0
+            self.climber_controller.setReference(setpoint=target_number_of_encoder_ticks, ctrl=SparkLowLevel.ControlType.kMAXMotionPositionControl,
                                                  slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=0)
+            self.current_position = self.climber_heights[self.position_index]
+
         else:
-            feed_forward = min(12.0, 12.0 * rpm / 6000)  # if there is no gearing, then this gets you close
+            pass
+        
+        self.update_nt()
+        
+            #feed_forward = min(12.0, 12.0 * rpm / sc.motor_max_rpm)  # if there is no gearing, then this gets you close
             # rev is a pain in the ass - you have to pass EXACTLY the types it wants - no using "0" for the slots anymore
-            self.flywheel_controller.setSetpoint(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
-            self.voltage = feed_forward  # 12 * rpm / max rpm  # Guess
-    def get_distance(self):
-        pass
+            #self.flywheel_controller.setSetpoint(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
+            #self.voltage = feed_forward  # 12 * rpm / max rpm  # Guess
+    #def get_distance(self):
