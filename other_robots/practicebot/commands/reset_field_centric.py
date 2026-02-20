@@ -3,6 +3,8 @@ from subsystems.swerve import Swerve
 from wpimath.geometry import Pose2d
 from helpers.log_command import log_command
 
+import robot as rb
+
 
 @log_command(console=True, nt=False, print_init=True, print_end=True)
 class ResetFieldCentric(commands2.Command):
@@ -13,9 +15,8 @@ class ResetFieldCentric(commands2.Command):
         self.setName('Reset field centric')  # change this to something appropriate for this command
         self.container = container
         self.swerve = swerve
-        self.angle = angle # todo: set to 0 if blue alliance, else 180 deg?
-                            # was considering doing a conditionalcommand but that's bad if we boot up before connecting to fms
-
+        
+        self.angle = {"Red": 0, "Blue": 180}.get(rb.MyRobot.allianceInform)
 
     def initialize(self) -> None:
         """Called just before this Command runs the first time."""
