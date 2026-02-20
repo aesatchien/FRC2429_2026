@@ -30,6 +30,7 @@ class MyRobot(commands2.TimedCommandRobot):
         # Instantiate our RobotContainer.  This will perform all our button bindings, and put our
         # autonomous chooser on the dashboard.
         self.container = RobotContainer()
+        self.alliance_zone = None
 
     def disabledInit(self) -> None:
         """This function is called once each time the robot enters Disabled mode."""
@@ -41,14 +42,18 @@ class MyRobot(commands2.TimedCommandRobot):
         if self.disabled_counter % 100 == 0:
             # set the LEDs
             # if wpilib.DriverStation.isFMSAttached():
-            alliance_color = wpilib.DriverStation.getAlliance()
+            #alliance_color = wpilib.DriverStation.getAlliance()
+            alliance_color = wpilib.DriverStation.Alliance.kBlue
             if alliance_color is not None:
                 if alliance_color == wpilib.DriverStation.Alliance.kRed:
                     self.container.led.set_indicator(Led.Indicator.kHOTBOW)
+                    self.alliance_zone = "Red"
                 elif alliance_color == wpilib.DriverStation.Alliance.kBlue:
                     self.container.led.set_indicator(Led.Indicator.kCOOLBOW)
+                    self.alliance_zone = "Blue"
                 else:
                     self.container.led.set_indicator(Led.Indicator.kPOLKA)
+                    self.alliance_zone = None
 
         if self.disabled_counter % 1000 == 0:
             pass
@@ -105,7 +110,9 @@ class MyRobot(commands2.TimedCommandRobot):
         # commented out 2025 0305 CJH - this should never have been in here
         # wpilib.SmartDashboard.putNumber("ajs turn commanded", self.container.driver_command_controller.getRightX())
         return super().robotPeriodic()
-
+    
+    def allianceInform(self):
+        return self.alliance_zone
 
 if __name__ == "__main__":
     wpilib.run(MyRobot)
