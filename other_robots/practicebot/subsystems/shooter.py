@@ -12,7 +12,7 @@ class Shooter(Subsystem):
         super().__init__()
         self.setName('Shooter')
         self.counter = sc.k_counter_offset  # note this should be an offset in constants
-        self.default_rpm = sc.k_test_rpm
+        self.default_rpm = sc.k_shooter_test_speed
         self.default_indexer_rpm = sc.k_indexer_rpm
         self.default_hopper_rpm = sc.k_hopper_rpm
         # --------------- add motors and shooter rpm ----------------
@@ -82,7 +82,8 @@ class Shooter(Subsystem):
         self.hopper_on_pub = self.inst.getBooleanTopic(f"{self.nt_prefix}/hopper_on").publish()
         self.hopper_rpm_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/hopper_rpm").publish()
         self.roller_on_pub = self.inst.getBooleanTopic(f"{self.nt_prefix}/roller_on").publish()
-        self.roller_rpm_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/roller_rpm").publish()        
+        self.roller_rpm_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/roller_rpm").publish()
+        self.flywheel_encoder_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/flywheel_encoder").publish()
 
     def update_nt(self):
         self.shooter_on_pub.set(self.shooter_on)
@@ -173,6 +174,8 @@ class Shooter(Subsystem):
             indexer_feed_forward = min(12, 12 * sc.k_indexer_rpm / 5600)
             self.indexer_controller.setReference(setpoint=sc.k_indexer_rpm, ctrl=SparkLowLevel.ControlType.kMAXMotionVelocityControl,
                                              slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=indexer_feed_forward)
+            self.indexer_on = True
+            self.current_indexer_rpm = sc.k_indexer_rpm
         else:
             self.stop_indexer()
 
