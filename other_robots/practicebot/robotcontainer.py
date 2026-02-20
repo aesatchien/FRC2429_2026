@@ -128,11 +128,14 @@ class RobotContainer:
 
         # --- Debug & Simulation ---
         js.driver_lb.whileTrue(SimShowFOV(self))
-        js.driver_rb.onTrue(MoveTrainingBox(self))
-        # js.driver_rb.whileTrue(SwerveTest(self, self.swerve))
+        #js.driver_rb.onTrue(MoveTrainingBox(self))
+
+        js.driver_rb.whileTrue(SwerveTest(self, self.swerve))
 
         js.driver_l_trigger.debounce(0.1).whileTrue(RobotClimb(climber=self.climber, move_up=False, indent=0))
         js.driver_r_trigger.debounce(0.1).whileTrue(RobotClimb(climber=self.climber, move_up=True, indent=0))
+
+
 
 
         # --- Debug & Simulation ---

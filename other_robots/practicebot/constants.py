@@ -91,10 +91,12 @@ class CameraConstants:
         'logi_left_hsv': {'topic_name': 'LogitechLeft', 'type': 'hsv', 'label': 'yellow', 'rotation': 90, 'fov': fov},
     }
 
-    k_cameras = k_sim_cameras
+
+    k_cameras = k_comp_cameras
 
     # add local_tester.py's sim camera if in sim - allows for testing without pis
     if wpilib.RobotBase.isSimulation():
+        k_cameras = k_sim_cameras
         k_cameras.update({'front_sim': {'topic_name': 'LocalTest', 'type': 'tags', 'rotation': 0, 'fov': fov},})
 
 
