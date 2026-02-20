@@ -82,7 +82,8 @@ class Shooter(Subsystem):
         self.hopper_on_pub = self.inst.getBooleanTopic(f"{self.nt_prefix}/hopper_on").publish()
         self.hopper_rpm_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/hopper_rpm").publish()
         self.roller_on_pub = self.inst.getBooleanTopic(f"{self.nt_prefix}/roller_on").publish()
-        self.roller_rpm_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/roller_rpm").publish()        
+        self.roller_rpm_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/roller_rpm").publish()
+        self.flywheel_encoder_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/flywheel_encoder").publish()
 
     def update_nt(self):
         self.shooter_on_pub.set(self.shooter_on)
