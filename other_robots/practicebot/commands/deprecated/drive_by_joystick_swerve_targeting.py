@@ -263,6 +263,8 @@ class DriveByJoystickSwerveTargeting(commands2.Command):
         pid_output = self.rot_pid.calculate(robot_pose.rotation().radians(), robot_to_hub_angle.radians())
         self.debug_pid = pid_output
         rot_output = pid_output
+
+        """
         
         # --- Feedforward (Velocity Lead) ---
         # Calculate angular velocity required to track target while moving: omega = (v_field x r_target) / |r|^2
@@ -281,14 +283,14 @@ class DriveByJoystickSwerveTargeting(commands2.Command):
 
         self.debug_ff = ff_output
         rot_output += ff_output
-
+        """
         # Error analysis for fine-tuning
         diff_radians = self.rot_pid.getPositionError()
         self.debug_error_deg = math.degrees(diff_radians)
         if abs(diff_radians) > abs(self.last_diff_radians):
             self.rot_overshot = True
         self.last_diff_radians = diff_radians
-        
+
         # Apply kS (Static Friction) if we are not at the target
         ks_output = 0
         if abs(diff_radians) > tc.k_rotation_tolerance.radians():
