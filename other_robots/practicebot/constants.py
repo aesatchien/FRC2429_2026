@@ -246,21 +246,21 @@ class ShooterConstants:
     # Lookup Tables: Distance (meters) -> Value
     # These are example values. You must tune these on the field!
     k_distance_to_rpm = {
-        1.0: 2500,
-        2.0: 3200,
-        3.0: 3900,
-        4.0: 4800,
-        5.0: 5800
+        1.5: 3200,
+        2.0: 3500,
+        3.0: 4400,
+        4.0: 4650,
+        5.0: 5000
     }
     
     # Distance (meters) -> Time of Flight (seconds)
     # Used for the targeting lag compensation
     k_distance_to_tof = {
-        1.0: 0.1,
-        2.0: 0.25,
-        3.0: 0.45,
-        4.0: 0.7,
-        5.0: 1.0
+        1.5: 0.90,
+        2.0: 1.01,
+        3.0: 1.28,
+        4.0: 1.49,
+        5.0: 2.0
     }
 
 class ClimberConstants:
