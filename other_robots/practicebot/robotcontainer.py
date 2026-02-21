@@ -25,6 +25,7 @@ from subsystems.vision import Vision
 from subsystems.shooter import Shooter
 from subsystems.intake import Intake
 from subsystems.climber import Climber
+from subsystems.targeting import Targeting
 
 # from subsystems.questnav_2429 import QuestnavModule
 
@@ -36,7 +37,7 @@ from commands.auto_to_pose_clean import AutoToPoseClean
 from commands.auto_track_vision_target import AutoTrackVisionTarget
 from commands.can_status import CANStatus
 from commands.drive_by_distance_swerve import DriveByVelocitySwerve
-from commands.drive_by_joystick_swerve import DriveByJoystickSwerve
+from commands.drive_by_joystick_subsystem_targeting import DriveByJoystickSubsystemTargeting
 from commands.reset_field_centric import ResetFieldCentric
 from commands.rumble_command import RumbleCommand
 from commands.set_leds import SetLEDs
@@ -64,6 +65,7 @@ class RobotContainer:
         # The robot's subsystems
         self.questnav = Questnav()  # going to break the silo convention and let the Swerve see the quest for now
         self.swerve = Swerve(questnav=self.questnav)
+        self.targeting = Targeting()
         self.vision = Vision()
         self.shooter = Shooter()
         self.intake = Intake()
@@ -75,12 +77,11 @@ class RobotContainer:
         self.bind_driver_buttons()
         # self.bind_codriver_buttons()  # if we need to
 
-        self.swerve.setDefaultCommand(DriveByJoystickSwerve(
+        self.swerve.setDefaultCommand(DriveByJoystickSubsystemTargeting(
             container=self,
             swerve=self.swerve,
             controller=js.driver_controller,
-            # field_oriented=False,
-            rate_limited=constants.k_swerve_rate_limited
+            targeting=self.targeting,
         ))
 
         if not constants.k_swerve_only:
@@ -132,7 +133,8 @@ class RobotContainer:
         js.driver_lb.whileTrue(SimShowFOV(self))
         #js.driver_rb.onTrue(MoveTrainingBox(self))
 
-        js.driver_rb.whileTrue(SwerveTest(self, self.swerve))
+        # This kills targeting mode!  DO NOT USE RB
+        js.driver_back.whileTrue(SwerveTest(self, self.swerve))
 
         js.driver_l_trigger.debounce(0.1).whileTrue(RobotClimb(climber=self.climber, move_up=False, indent=0))
         js.driver_r_trigger.debounce(0.1).whileTrue(RobotClimb(climber=self.climber, move_up=True, indent=0))
