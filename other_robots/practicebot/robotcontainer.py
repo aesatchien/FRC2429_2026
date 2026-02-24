@@ -50,6 +50,7 @@ from commands.stop_shooter import StopShooter
 
 from commands.shooting_command import ShootingCommand
 from commands.intake_set import Intake_Set
+from commands.intake_deploy import Intake_Deploy
 
 
 class RobotContainer:
@@ -120,21 +121,25 @@ class RobotContainer:
         # --- Subsystems ---
         js.driver_start.whileTrue(Intake_Set(intake=self.intake, rpm=3500))
         js.driver_back.whileTrue(Intake_Set(intake=self.intake, rpm=0))
+        js.driver_x.whileTrue(Intake_Deploy(intake=self.intake, direction='up'))
+        js.driver_b.whileTrue(Intake_Deploy(intake=self.intake, direction='down'))
+        
+
 
         # --- Vision & Automation ---
         # Align to Pose (Front/Left)
-        js.driver_a.debounce(0.1).whileTrue(AutoToPoseClean(self, self.swerve, target_pose=None, use_vision=True, cameras=['logi_front_hsv'], control_type='not_pathplanner'))
-        js.driver_x.debounce(0.1).whileTrue(AutoToPoseClean(self, self.swerve, target_pose=None, use_vision=True, cameras=['logi_left_hsv'], control_type='not_pathplanner'))
+        #js.driver_a.debounce(0.1).whileTrue(AutoToPoseClean(self, self.swerve, target_pose=None, use_vision=True, cameras=['logi_front_hsv'], control_type='not_pathplanner'))
+        #js.driver_x.debounce(0.1).whileTrue(AutoToPoseClean(self, self.swerve, target_pose=None, use_vision=True, cameras=['logi_left_hsv'], control_type='not_pathplanner'))
         
         # Track Target
-        js.driver_b.debounce(0.1).whileTrue(AutoTrackVisionTarget(self, camera_key='logi_front_hsv', target_distance=0.40))
+        #js.driver_b.debounce(0.1).whileTrue(AutoTrackVisionTarget(self, camera_key='logi_front_hsv', target_distance=0.40))
 
         # --- Debug & Simulation ---
         js.driver_lb.whileTrue(SimShowFOV(self))
         #js.driver_rb.onTrue(MoveTrainingBox(self))
 
         # This kills targeting mode!  DO NOT USE RB
-        js.driver_back.whileTrue(SwerveTest(self, self.swerve))
+        # js.driver_back.whileTrue(SwerveTest(self, self.swerve))
 
         js.driver_l_trigger.debounce(0.1).whileTrue(RobotClimb(climber=self.climber, move_up=False, indent=0))
         js.driver_r_trigger.debounce(0.1).whileTrue(RobotClimb(climber=self.climber, move_up=True, indent=0))
