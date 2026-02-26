@@ -10,7 +10,7 @@ from typing import Union, List
 
 from helpers.utilities import set_config_defaults
 
-k_swerve_config = "practice"  # choose between practice bot and comp bot for now - they differ by swerve ofsets
+k_swerve_config = "comp"  # choose between practice bot and comp bot for now - they differ by swerve ofsets
 
 # Generator for unique counter offsets
 _counter = count(1)

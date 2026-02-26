@@ -239,7 +239,7 @@ class ModuleConstants:
     # ==========================================
     k_driving_config = DriveConstants.ACTIVE_CONFIG['config_cls']()
     k_driving_config.inverted(DriveConstants.swerve_motor_inversions['drive_motors_inverted'])
-    k_driving_config.closedLoop.pidf(p=0.0, i=0, d=0, ff=1/kDriveWheelFreeSpeedRps)
+    k_driving_config.closedLoop.pidf(p=0, i=0, d=0, ff=1/kDriveWheelFreeSpeedRps)
     k_driving_config.closedLoop.minOutput(-0.96)
     k_driving_config.closedLoop.maxOutput(0.96)
     k_driving_config.closedLoop.IZone(0.001)
@@ -297,7 +297,7 @@ class TargetingConstants:
     """
     #  ROTATION PIDs -  AutoToPoseClean uses 0.7, Joystick uses 0.8.
     kAutoRotationPID = PIDConstants(0.7, 0.0, 0.0)  # auto_to_pose.py
-    kTeleopRotationPID = PIDConstants(1.5, 0.0, 0.1)  # targeting.py
+    kTeleopRotationPID = PIDConstants(1.8, 0.0, 0.0)  # targeting.py
     
     # TRANSLATION PIDs for AutoToPose
     kAutoTranslationPID = PIDConstants(0.8, 0.1, 0.0)
