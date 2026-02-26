@@ -104,6 +104,9 @@ class Intake(Subsystem):
         self.update_nt()
         return down
 
+    def run_crank(self, crank_voltage):
+        self.deploy_motor.setVoltage(crank_voltage)
+
     def toggle_intake(self, rpm):
         if self.intake_on:
             self.stop_intake()

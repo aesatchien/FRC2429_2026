@@ -165,6 +165,7 @@ class IntakeConstants:
     k_CANID_intake_right_follower = 5  # robot left, needs follower inverted
 
     k_deploy_config = SparkMaxConfig()
+    k_intake_crank_voltage = 4  # volts for now
 
     k_intake_left_leader_config, k_intake_right_follower_config = SparkMaxConfig(), SparkMaxConfig()
     k_intake_configs = [k_intake_left_leader_config, k_intake_right_follower_config, k_deploy_config]
