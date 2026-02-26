@@ -10,7 +10,7 @@ from typing import Union, List
 
 from helpers.utilities import set_config_defaults
 
-k_swerve_config = "practice"  # choose between practice bot and comp bot for now - they differ by swerve ofsets
+k_swerve_config = "comp"  # choose between practice bot and comp bot for now - they differ by swerve ofsets
 
 # Generator for unique counter offsets
 _counter = count(1)
@@ -186,7 +186,7 @@ class ShooterConstants:
     # HOPPER
     k_CANID_hopper = 6  # reserve 7
     k_hopper_config = SparkMaxConfig()
-    k_hopper_config.inverted(False)
+    k_hopper_config.inverted(True)
     k_hopper_rpm = 1000  # TODO - decide if this can just be a voltage
 
     # INDEXER

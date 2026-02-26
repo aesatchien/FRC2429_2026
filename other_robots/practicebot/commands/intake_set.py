@@ -24,7 +24,7 @@ class Intake_Set(commands2.Command):  # change the name for your command
         if self.on_start:
             self.intake.set_intake_rpm(self.rpm) if self.rpm > 1 else self.intake.stop_intake()
         else:
-            self.intake.set_intake_rpm(self.intake.default_rpm) if self.rpm > 1 else self.intake.stop_intake()
+            self.intake.set_intake_rpm(self.rpm) if self.rpm > 1 else self.intake.stop_intake()
 
     def execute(self) -> None:
         pass
