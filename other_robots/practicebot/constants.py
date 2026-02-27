@@ -174,6 +174,8 @@ class IntakeConstants:
     k_dropper_rpm = 10
     allowed_rpms = [0, 60] + [i for i in range(2000, 5601, 250)]
 
+    k_number_of_encoder_ticks_from_stored_to_ground = 1  # trying the dumb way for now
+
     k_intake_left_leader_config.inverted(True)
     k_intake_right_follower_config.follow(k_CANID_intake_left_leader, invert=False)  # depends on motor placement
 
