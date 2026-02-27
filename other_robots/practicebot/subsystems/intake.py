@@ -94,7 +94,7 @@ class Intake(Subsystem):
         self.deployed_pub.set(self.deployed)
 
     def get_rpm(self):
-        return self.intake_encoder.getVelocity()
+        return self.current_rpm
 
     # TODO - get dropper position to ground and back up
     def set_down(self, down=True):

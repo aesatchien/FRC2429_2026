@@ -14,23 +14,24 @@ class Intake_Set(commands2.Command):  # change the name for your command
         self.intake = intake
         self.indent = indent
         self.addRequirements(self.intake)  # commandsv2 version of requirements
-        self.extra_log_info = f"RPM={self.rpm}"  # add extra info to the log messages
         self.on_start = on_start
 
     def initialize(self) -> None:
         # Called just before each time this Command runs
         # if you wish to add more information to the console logger, change self.extra_log_info
         # self.extra_log_info = "Target=7"  # (for example)
-        if self.on_start:
-            self.intake.set_intake_rpm(self.rpm) if self.rpm > 1 else self.intake.stop_intake()
-        else:
-            self.intake.set_intake_rpm(self.rpm) if self.rpm > 1 else self.intake.stop_intake()
+        print(self.intake.get_rpm(), self.rpm)
+        print("LOOOK RIGHT HERE")
+         # if the intake is already running, then we want to stop it instead of changing the speed
+        self.intake.set_intake_rpm(self.rpm) if self.intake.get_rpm() < 10 else self.intake.stop_intake()
+
+        self.extra_log_info = f"RPM={self.rpm}"  # updating log info here to get actual rpm
 
     def execute(self) -> None:
         pass
 
     def isFinished(self) -> bool:
-        return True
+        return False
         
     def end(self, interrupted: bool) -> None:
         # put your safe cleanup code here - turn off motors, set LEDs, etc
