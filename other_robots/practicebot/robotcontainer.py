@@ -79,11 +79,11 @@ class RobotContainer:
         # self.bind_codriver_buttons()  # if we need to
 
         self.swerve.setDefaultCommand(DriveByJoystickSubsystemTargeting(
-            container=self,
-            swerve=self.swerve,
-            controller=js.driver_controller,
-            targeting=self.targeting,
-        ))
+              container=self,
+              swerve=self.swerve,
+              controller=js.driver_controller,
+              targeting=self.targeting,
+         ))
 
         if not constants.k_swerve_only:
             pass
@@ -119,13 +119,14 @@ class RobotContainer:
             js.driver_down.whileTrue(StopShooter(shooter=self.shooter))
 
         # --- Subsystems ---
-        js.driver_lb.whileTrue(Intake_Set(intake=self.intake, rpm=2500))
+        js.driver_lb.whileTrue(Intake_Set(intake=self.intake, rpm=1500))
         js.driver_back.whileTrue(Intake_Set(intake=self.intake, rpm=0))
         js.driver_x.whileTrue(Intake_Deploy(intake=self.intake, direction='up'))
         js.driver_b.whileTrue(Intake_Deploy(intake=self.intake, direction='down'))
+        js.driver_rb.whileTrue(ShootingCommand(shooter=self.shooter, rpm=3500))
 
-        #js.driver_l_trigger.whileTrue(Intake_Set(intake=self.intake, rpm=2500))
-        js.driver_r_trigger.whileTrue(ShootingCommand(shooter=self.shooter, rpm=5000))
+        # js.driver_l_trigger.whileTrue(Intake_Set(intake=self.intake, rpm=2500))
+        # js.driver_r_trigger.whileTrue(ShootingCommand(shooter=self.shooter, rpm=5000))
         
 
 
