@@ -119,12 +119,12 @@ class RobotContainer:
             js.driver_down.whileTrue(StopShooter(shooter=self.shooter))
 
         # --- Subsystems ---
-        js.driver_start.whileTrue(Intake_Set(intake=self.intake, rpm=2500))
+        js.driver_lb.whileTrue(Intake_Set(intake=self.intake, rpm=2500))
         js.driver_back.whileTrue(Intake_Set(intake=self.intake, rpm=0))
         js.driver_x.whileTrue(Intake_Deploy(intake=self.intake, direction='up'))
         js.driver_b.whileTrue(Intake_Deploy(intake=self.intake, direction='down'))
 
-        js.driver_l_trigger.whileTrue(Intake_Set(intake=self.intake, rpm=2500))
+        #js.driver_l_trigger.whileTrue(Intake_Set(intake=self.intake, rpm=2500))
         js.driver_r_trigger.whileTrue(ShootingCommand(shooter=self.shooter, rpm=5000))
         
 
@@ -138,7 +138,7 @@ class RobotContainer:
         #js.driver_b.debounce(0.1).whileTrue(AutoTrackVisionTarget(self, camera_key='logi_front_hsv', target_distance=0.40))
 
         # --- Debug & Simulation ---
-        js.driver_lb.whileTrue(SimShowFOV(self))
+        #js.driver_lb.whileTrue(SimShowFOV(self))
         #js.driver_rb.onTrue(MoveTrainingBox(self))
 
         # This kills targeting mode!  DO NOT USE RB
