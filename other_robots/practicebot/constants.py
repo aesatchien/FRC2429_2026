@@ -210,7 +210,7 @@ class ShooterConstants:
     k_shooter_max_speed = 6500
 
     k_test_rpm = 2000
-    allowed_shooter_rpms = [0, 60] + [i for i in range(2000, 5601, 50)] + [5600]
+    allowed_shooter_rpms = [0, 60] + [i for i in range(2000, 5601, 100)] + [5600]
 
     # set inversions
     k_flywheel_left_leader_config.inverted(False)  # have to check which way it spins for positive RPM

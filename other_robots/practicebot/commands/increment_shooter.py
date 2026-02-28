@@ -22,7 +22,7 @@ class IncrementShooter(commands2.Command):  # change the name for your command
         # if you wish to add more information to the console logger, change self.extra_log_info
         # self.extra_log_info = "Target=7"  # (for example)
         self.shooter.change_speed(self.speed_change)
-        self.shooter.set_shooter_rpm(self.shooter.default_rpm)
+        # self.shooter.set_shooter_rpm(self.shooter.default_rpm)
 
     def execute(self) -> None:
         # runs 50x per second, so be careful about messages and timing
