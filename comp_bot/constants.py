@@ -186,7 +186,7 @@ class ShooterConstants:
     k_CANID_hopper = 6  # reserve 7
     k_hopper_config = SparkMaxConfig()
     k_hopper_config.inverted(False)
-    k_hopper_rpm = 1000  # TODO - decide if this can just be a voltage
+    k_hopper_rpm = 2500  # TODO - decide if this can just be a voltage
 
     # INDEXER
     k_CANID_indexer_left_leader, k_CANID_indexer_right_follower  = 8, 9
