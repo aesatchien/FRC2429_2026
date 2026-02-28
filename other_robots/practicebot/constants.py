@@ -164,14 +164,16 @@ class IntakeConstants:
     k_CANID_intake_left_leader = 4  # robot right, does not need inverted
     k_CANID_intake_right_follower = 5  # robot left, needs follower inverted
 
-    k_deploy_config = SparkMaxConfig()
+    k_deploy_config = SparkFlexConfig()
+    k_deploy_config.encoder.positionConversionFactor(1 / (4 * 40.5)) # TODO: figure out what's actually 90 degrees
+    k_deploy_config.encoder.velocityConversionFactor(1 / (4 * 40.5 * 60))  # now we are radians per second
     k_intake_crank_voltage = 4  # volts for now
 
     k_intake_left_leader_config, k_intake_right_follower_config = SparkMaxConfig(), SparkMaxConfig()
     k_intake_configs = [k_intake_left_leader_config, k_intake_right_follower_config, k_deploy_config]
     k_test_rpm = 1000  # pi * diameter roller / 60  to get inches per second
     k_fastest_rpm = 60
-    k_dropper_rpm = 10
+
     allowed_rpms = [0, 60] + [i for i in range(2000, 5601, 250)]
 
     k_number_of_encoder_ticks_from_stored_to_ground = 1  # trying the dumb way for now
