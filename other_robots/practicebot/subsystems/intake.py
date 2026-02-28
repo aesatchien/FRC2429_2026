@@ -99,15 +99,18 @@ class Intake(Subsystem):
         return self.current_rpm
 
     # TODO - get dropper position to ground and back up
+
+    def zero(self, down=False):
+        current_position = self.deploy_encoder.getPosition()
+        ic.k_deploy_config.absoluteEncoder.zeroOffset(
+            current_position)  # setting the encoder position to zero to ground the dropper consistantly
+        self.deploy_motor.configure(ic.k_deploy_config, self.rev_resets,
+                                    self.rev_persists)  # reconfigure to update the zero offset
     def set_down(self, down=True):
         # function that moves intake down to the ground, or up to stow it
         # passing a false would move the dropper up to stow
         # self.deployed set to False on start
         if not self.deployed and down:
-
-            current_position = self.deploy_encoder.getPosition()
-            ic.k_deploy_config.absoluteEncoder.zeroOffset(current_position)  # setting the encoder position to zero to ground the dropper consistantly
-            self.deploy_motor.configure(ic.k_deploy_config, self.rev_resets, self.rev_persists)  # reconfigure to update the zero offset
             self.deploy_controller.setReference(setpoint=ic.k_number_of_encoder_ticks_from_stored_to_ground, ctrl=SparkLowLevel.ControlType.kPosition, slot=rev.ClosedLoopSlot.kSlot0)
 
             self.deployed = True
