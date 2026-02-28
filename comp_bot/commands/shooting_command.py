@@ -28,7 +28,8 @@ class ShootingCommand(commands2.Command):  # change the name for your command
         # self.extra_log_info = "Target=7"  # (for example)
         self.counter = 0
         # self.shooter.set_shooter_rpm(sc.k_shooter_test_speed)
-        # self.shooter.set_indexer_rpm(sc.k_indexer_rpm)
+        # self.shooter.set_
+        # indexer_rpm(sc.k_indexer_rpm)
         # self.shooter.set_hopper_rpm(sc.k_hopper_rpm)
         if self.mode == "default":
             self.shooter.set_shooter_rpm(self.rpm) if self.rpm <= 5600 else self.shooter.set_shooter_rpm(sc.k_shooter_test_speed)
