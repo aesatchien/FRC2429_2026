@@ -8,19 +8,17 @@ from subsystems.shooter import Shooter
 class ShootingCommand(commands2.Command):  # change the name for your command
 
 
-    def __init__(self, shooter: Shooter, rpm=0, indent=0, mode="default") -> None:
+    def __init__(self, shooter: Shooter, indent=0) -> None:
         super().__init__()
         self.setName('Shooting') # change this to something appropriate for this command
         self.indent = indent
         self.shooter = shooter
-        self.rpm = rpm
         self.addRequirements(self.shooter)  # commandsv2 version of requirements
         self.extra_log_info = None
         self.counter = 0  # add a counter if you need to track iterations, remember to initialize in below
         # we want indexer and hopper to start after .1 seconds or 1/10 seconds. 
         # if it runs 50x per second, 50 * 1/10 is 5, so after 5 cycles, start the indexer and hopper
         self.delay_cycles = 5
-        self.mode = mode
 
     def initialize(self) -> None:
         # Called just before each time this Command runs
@@ -30,23 +28,9 @@ class ShootingCommand(commands2.Command):  # change the name for your command
         # self.shooter.set_shooter_rpm(sc.k_shooter_test_speed)
         # self.shooter.set_indexer_rpm(sc.k_indexer_rpm)
         # self.shooter.set_hopper_rpm(sc.k_hopper_rpm)
-        if self.mode == "default":
-            self.shooter.set_shooter_rpm(self.rpm) if self.rpm <= 5600 else self.shooter.set_shooter_rpm(sc.k_shooter_test_speed)
-            if self.shooter.rpm > 0:
-                self.shooter.set_indexer_rpm(sc.k_indexer_rpm)
-                self.shooter.set_hopper_rpm(sc.k_hopper_rpm)
-            else:
-                self.shooter.set_indexer_rpm(0)
-                self.shooter.set_hopper_rpm(0)
-
-        else:
-            self.shooter.set_shooter_rpm(self.shooter.default_rpm)
-            if self.shooter.default_rpm > 0:
-                self.shooter.set_indexer_rpm(sc.k_indexer_rpm)
-                self.shooter.set_hopper_rpm(sc.k_hopper_rpm)
-            else:
-                self.shooter.set_indexer_rpm(0)
-                self.shooter.set_hopper_rpm(0)
+        self.shooter.set_shooter_rpm(5000)
+        self.shooter.set_indexer_rpm(sc.k_indexer_rpm)
+        self.shooter.set_hopper_rpm(sc.k_hopper_rpm)
 
 
     def execute(self) -> None:

@@ -80,7 +80,7 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
             'right_x': hid.getRightX(),
             'trigger': hid.getRightTriggerAxis(),
             'robot_oriented': hid.getLeftBumperButton(),
-            'tracking_on': hid.getRightBumper(),
+            'tracking_on': None,
             'alliance': wpilib.DriverStation.getAlliance()
         }
 
@@ -197,7 +197,7 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
             raw_rot = 0
         
         desired_rot = raw_rot * multiplier
-        return self.manual_rot_limiter.calculate(desired_rot)
+        return desired_rot # self.manual_rot_limiter.calculate(desired_rot)
 
     def end(self, interrupted: bool) -> None:
         self.swerve.drive(0, 0, 0, fieldRelative=self.field_oriented, rate_limited=True)

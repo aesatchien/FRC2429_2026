@@ -182,6 +182,7 @@ class Targeting(Subsystem):
         pid_output = self.rot_pid.calculate(robot_pose.rotation().radians(), robot_to_hub_angle.radians())
         self.debug_pid = pid_output
         rot_output = pid_output
+        # rot_output = math.copysign(rot_output * rot_output, rot_output)
         
         # 9. Feedforward (Velocity Lead)
         # Calculate angular velocity required to track target while moving: omega = (v_field x r_target) / |r|^2

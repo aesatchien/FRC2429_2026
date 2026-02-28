@@ -19,7 +19,7 @@ _counter = count(1)
 k_enable_logging = True  # allow logging from Advantagescope (in swerve.py), but really we may as well start it here
 
 # starting position for odometry (real and in sim)
-k_start_x, k_start_y  = 2, 2
+k_start_x, k_start_y  = 2.79, 2.20
 
 # ------------  joysticks and other input ------------
 k_driver_controller_port = 0
@@ -164,7 +164,8 @@ class IntakeConstants:
     k_CANID_intake_left_leader = 4  # robot right, does not need inverted
     k_CANID_intake_right_follower = 5  # robot left, needs follower inverted
 
-    k_deploy_config = SparkMaxConfig()
+    k_deploy_config = SparkFlexConfig()
+    k_intake_crank_voltage = 4  # volts for now
 
     k_intake_left_leader_config, k_intake_right_follower_config = SparkMaxConfig(), SparkMaxConfig()
     k_intake_configs = [k_intake_left_leader_config, k_intake_right_follower_config, k_deploy_config]
@@ -172,6 +173,8 @@ class IntakeConstants:
     k_fastest_rpm = 60
     k_dropper_rpm = 10
     allowed_rpms = [0, 60] + [i for i in range(2000, 5601, 250)]
+
+    k_number_of_encoder_ticks_from_stored_to_ground = 1  # trying the dumb way for now
 
     k_intake_left_leader_config.inverted(True)
     k_intake_right_follower_config.follow(k_CANID_intake_left_leader, invert=False)  # depends on motor placement
@@ -185,7 +188,7 @@ class ShooterConstants:
     # HOPPER
     k_CANID_hopper = 6  # reserve 7
     k_hopper_config = SparkMaxConfig()
-    k_hopper_config.inverted(False)
+    k_hopper_config.inverted(True)
     k_hopper_rpm = 2500  # TODO - decide if this can just be a voltage
 
     # INDEXER
@@ -207,7 +210,7 @@ class ShooterConstants:
     k_shooter_max_speed = 6500
 
     k_test_rpm = 2000
-    allowed_shooter_rpms = [0, 60] + [i for i in range(2000, 5601, 50)] + [5600]
+    allowed_shooter_rpms = [0, 60] + [i for i in range(2000, 5601, 100)] + [5600]
 
     # set inversions
     k_flywheel_left_leader_config.inverted(False)  # have to check which way it spins for positive RPM

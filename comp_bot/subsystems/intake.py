@@ -20,7 +20,9 @@ class Intake(Subsystem):
         motor_type = rev.SparkMax.MotorType.kBrushless
         self.intake_motor = rev.SparkMax(ic.k_CANID_intake_left_leader, motor_type)
         self.intake_motor_follower = rev.SparkMax(ic.k_CANID_intake_right_follower, motor_type)
-        self.deploy_motor = rev.SparkMax(ic.k_CANID_dropper, motor_type)
+
+        motor_type = rev.SparkFlex.MotorType.kBrushless
+        self.deploy_motor = rev.SparkFlex(ic.k_CANID_dropper, motor_type)
 
         # convenient list of motors if we need to query or set all of them
         self.motors = [self.intake_motor, self.intake_motor_follower, self.deploy_motor]
@@ -29,7 +31,7 @@ class Intake(Subsystem):
         self.intake_controller = self.intake_motor.getClosedLoopController()
         self.intake_encoder = self.intake_motor.getEncoder()
         self.deploy_controller = self.deploy_motor.getClosedLoopController()
-        self.deploy_encoder = self.deploy_motor.getEncoder()
+        self.deploy_encoder = self.deploy_motor.getAbsoluteEncoder()
 
         # default parameters for the sparkmaxes reset and persist modes -
         self.rev_resets = rev.ResetMode.kResetSafeParameters
@@ -94,15 +96,30 @@ class Intake(Subsystem):
         self.deployed_pub.set(self.deployed)
 
     def get_rpm(self):
-        return self.intake_encoder.getVelocity()
+        return self.current_rpm
 
     # TODO - get dropper position to ground and back up
+
+    def zero(self, down=False):
+        current_position = self.deploy_encoder.getPosition()
+        ic.k_deploy_config.absoluteEncoder.zeroOffset(
+            current_position)  # setting the encoder position to zero to ground the dropper consistantly
+        self.deploy_motor.configure(ic.k_deploy_config, self.rev_resets,
+                                    self.rev_persists)  # reconfigure to update the zero offset
     def set_down(self, down=True):
         # function that moves intake down to the ground, or up to stow it
         # passing a false would move the dropper up to stow
-        self.deployed = down
+        # self.deployed set to False on start
+        if not self.deployed and down:
+            self.deploy_controller.setReference(setpoint=ic.k_number_of_encoder_ticks_from_stored_to_ground, ctrl=SparkLowLevel.ControlType.kPosition, slot=rev.ClosedLoopSlot.kSlot0)
+
+            self.deployed = True
+
         self.update_nt()
         return down
+
+    def run_crank(self, crank_voltage):
+        self.deploy_motor.setVoltage(crank_voltage)
 
     def toggle_intake(self, rpm):
         if self.intake_on:

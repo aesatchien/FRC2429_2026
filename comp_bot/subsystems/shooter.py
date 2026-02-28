@@ -141,6 +141,7 @@ class Shooter(Subsystem):
         # direction: 1 for faster, -1 for slower, 0 for same
         self.current_index = max(0, min(len(sc.allowed_shooter_rpms) - 1, self.current_index + change_speed))
         self.default_rpm = sc.allowed_shooter_rpms[self.current_index]
+        print("Shooting is now set to", self.default_rpm)
     
     def set_indexer_rpm(self, rpm=1000):
         feed_forward = min(12, 12 * rpm / 5600)

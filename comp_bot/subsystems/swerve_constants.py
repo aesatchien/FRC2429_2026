@@ -60,7 +60,8 @@ class DriveConstants:
     # ==========================================
     # Note that these are not the maximum possible speeds, rather the allowed maximum speeds
     kMaxSpeedMetersPerSecond = 4.75  # Sanjith started at 3.7, 4.25 was Haochen competition, 4.8 is full out on NEOs
-    kMaxAngularSpeed = 0.75 * math.tau # 0.5 * math.tau  # radians per second was 0.5 tau through AVR - too slow
+    kMaxAngularSpeed = 11 # 0.5 * math.tau  # radians per second was 0.5 tau through AVR - too slow
+    # our hardware can do 11.11 hertz =
     # TODO: actually figure out what the total max speed should be - vector sum?
     kMaxTotalSpeed = 1.1 * math.sqrt(2) * kMaxSpeedMetersPerSecond  # sum of angular and rotational, should probably do hypotenuse
     
@@ -211,14 +212,6 @@ class ModuleConstants:
     # ==========================================
     # PID & Feedforward
     # ==========================================
-    kDrivingP = 0
-    kDrivingI = 0
-    kDrivingD = 0
-    kDrivingFF = 1 / kDriveWheelFreeSpeedRps  # CJH tested 3/19/2023, works ok  - 0.2235
-    kDrivingMinOutput = -0.96 # why is this here?
-    kDrivingMaxOutput = 0.96
-    k_smartmotion_max_velocity = 3  # m/s
-    k_smartmotion_max_accel = 2  # m/s/s
 
     kTurningP = 0.3 #  CJH tested this 3/19/2023  and 0.25 was good.  Used in the wpilib PID controller, not rev
     kTurningI = 0.0
@@ -239,7 +232,7 @@ class ModuleConstants:
     # ==========================================
     k_driving_config = DriveConstants.ACTIVE_CONFIG['config_cls']()
     k_driving_config.inverted(DriveConstants.swerve_motor_inversions['drive_motors_inverted'])
-    k_driving_config.closedLoop.pidf(p=0, i=0, d=0, ff=1/kDriveWheelFreeSpeedRps)
+    k_driving_config.closedLoop.pidf(p=0.02, i=0, d=0, ff=1/kDriveWheelFreeSpeedRps)
     k_driving_config.closedLoop.minOutput(-0.96)
     k_driving_config.closedLoop.maxOutput(0.96)
     k_driving_config.closedLoop.IZone(0.001)
@@ -297,7 +290,7 @@ class TargetingConstants:
     """
     #  ROTATION PIDs -  AutoToPoseClean uses 0.7, Joystick uses 0.8.
     kAutoRotationPID = PIDConstants(0.7, 0.0, 0.0)  # auto_to_pose.py
-    kTeleopRotationPID = PIDConstants(1.8, 0.0, 0.0)  # targeting.py
+    kTeleopRotationPID = PIDConstants(0.5, 0.0, 0.06) # targeting.py
     
     # TRANSLATION PIDs for AutoToPose
     kAutoTranslationPID = PIDConstants(0.8, 0.1, 0.0)
