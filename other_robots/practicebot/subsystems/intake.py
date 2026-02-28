@@ -21,7 +21,7 @@ class Intake(Subsystem):
         self.intake_motor = rev.SparkMax(ic.k_CANID_intake_left_leader, motor_type)
         self.intake_motor_follower = rev.SparkMax(ic.k_CANID_intake_right_follower, motor_type)
 
-        motor_type = rev.SparkFlex.MotorType.kBrushed
+        motor_type = rev.SparkFlex.MotorType.kBrushless
         self.deploy_motor = rev.SparkFlex(ic.k_CANID_dropper, motor_type)
 
         # convenient list of motors if we need to query or set all of them
