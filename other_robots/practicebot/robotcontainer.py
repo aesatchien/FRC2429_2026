@@ -113,7 +113,7 @@ class RobotContainer:
             js.driver_left.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(0, dpad_output, 0), timeout=10))
             js.driver_right.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(0, -dpad_output, 0), timeout=10))
         else:
-            js.driver_up.whileTrue(ShootingCommand(shooter=self.shooter, rpm=5000))
+            js.driver_up.whileTrue(Intake_Deploy(intake=self.intake, direction='down'))
             js.driver_right.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=1))
             js.driver_left.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=-1))
             js.driver_down.whileTrue(StopShooter(shooter=self.shooter))
@@ -123,6 +123,9 @@ class RobotContainer:
         js.driver_back.whileTrue(Intake_Set(intake=self.intake, rpm=0))
         js.driver_x.whileTrue(Intake_Deploy(intake=self.intake, direction='up'))
         js.driver_b.whileTrue(Intake_Deploy(intake=self.intake, direction='down'))
+
+        js.driver_l_trigger.whileTrue(Intake_Set(intake=self.intake, rpm=2500))
+        js.driver_r_trigger.whileTrue(ShootingCommand(shooter=self.shooter, rpm=5000))
         
 
 
@@ -141,8 +144,8 @@ class RobotContainer:
         # This kills targeting mode!  DO NOT USE RB
         # js.driver_back.whileTrue(SwerveTest(self, self.swerve))
 
-        js.driver_l_trigger.debounce(0.1).whileTrue(RobotClimb(climber=self.climber, move_up=False, indent=0))
-        js.driver_r_trigger.debounce(0.1).whileTrue(RobotClimb(climber=self.climber, move_up=True, indent=0))
+        # js.driver_l_trigger.debounce(0.1).whileTrue(RobotClimb(climber=self.climber, move_up=False, indent=0))
+        # js.driver_r_trigger.debounce(0.1).whileTrue(RobotClimb(climber=self.climber, move_up=True, indent=0))
 
 
 

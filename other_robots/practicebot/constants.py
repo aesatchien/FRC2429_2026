@@ -174,6 +174,8 @@ class IntakeConstants:
     k_dropper_rpm = 10
     allowed_rpms = [0, 60] + [i for i in range(2000, 5601, 250)]
 
+    k_number_of_encoder_ticks_from_stored_to_ground = 1  # trying the dumb way for now
+
     k_intake_left_leader_config.inverted(True)
     k_intake_right_follower_config.follow(k_CANID_intake_left_leader, invert=False)  # depends on motor placement
 
@@ -187,7 +189,7 @@ class ShooterConstants:
     k_CANID_hopper = 6  # reserve 7
     k_hopper_config = SparkMaxConfig()
     k_hopper_config.inverted(True)
-    k_hopper_rpm = 1000  # TODO - decide if this can just be a voltage
+    k_hopper_rpm = 2500  # TODO - decide if this can just be a voltage
 
     # INDEXER
     k_CANID_indexer_left_leader, k_CANID_indexer_right_follower  = 8, 9

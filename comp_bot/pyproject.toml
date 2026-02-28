@@ -4,7 +4,7 @@
 
 [tool.robotpy]
 team_number = 2429
-robotpy_version = "2026.1.1"
+robotpy_version = "2026.2.1.1"
 # note you also have robot_name as an option here, changes the deploy path from default
 # good for multiple robots on one roborio - makes redeploying faster
 #
