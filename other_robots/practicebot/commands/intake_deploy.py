@@ -26,8 +26,9 @@ class Intake_Deploy(commands2.Command):  # change the name for your command
         pass
 
     def execute(self) -> None:
+
         self.intake.zero(down=False)
-        self.extra_log_info += self.intake.deploy_encoder.getPosition()
+        self.extra_log_info += self.deploy_encoder.getPosition()
         # self.intake.set_down(down=True) if self.direction == 'down' else self.intake.set_down(down=False)
 
         # intake_crank_voltage = ic.k_intake_crank_voltage

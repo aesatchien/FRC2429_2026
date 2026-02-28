@@ -1,3 +1,5 @@
+import math
+
 import ntcore
 from commands2 import Subsystem
 import rev
@@ -31,7 +33,7 @@ class Intake(Subsystem):
         self.intake_controller = self.intake_motor.getClosedLoopController()
         self.intake_encoder = self.intake_motor.getEncoder()
         self.deploy_controller = self.deploy_motor.getClosedLoopController()
-        self.deploy_encoder = self.deploy_motor.getAbsoluteEncoder()
+        self.deploy_encoder = self.deploy_motor.getEncoder()
 
         # default parameters for the sparkmaxes reset and persist modes -
         self.rev_resets = rev.ResetMode.kResetSafeParameters
@@ -100,18 +102,12 @@ class Intake(Subsystem):
 
     # TODO - get dropper position to ground and back up
 
-    def zero(self, down=False):
-        current_position = self.deploy_encoder.getPosition()
-        ic.k_deploy_config.absoluteEncoder.zeroOffset(
-            current_position)  # setting the encoder position to zero to ground the dropper consistantly
-        self.deploy_motor.configure(ic.k_deploy_config, self.rev_resets,
-                                    self.rev_persists)  # reconfigure to update the zero offset
     def set_down(self, down=True):
         # function that moves intake down to the ground, or up to stow it
         # passing a false would move the dropper up to stow
         # self.deployed set to False on start
         if not self.deployed and down:
-            self.deploy_controller.setReference(setpoint=ic.k_number_of_encoder_ticks_from_stored_to_ground, ctrl=SparkLowLevel.ControlType.kPosition, slot=rev.ClosedLoopSlot.kSlot0)
+            self.deploy_controller.setReference(setpoint=math.pi / 2, ctrl=SparkLowLevel.ControlType.kPosition, slot=rev.ClosedLoopSlot.kSlot0)
 
             self.deployed = True
 
