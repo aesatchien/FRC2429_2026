@@ -1,3 +1,5 @@
+import math
+
 import ntcore
 from commands2 import Subsystem
 import rev
@@ -47,7 +49,7 @@ class Intake(Subsystem):
 
         # initialize states
         self.intake_on = False
-        self.deployed = False
+        self.deployed = True
         self.current_rpm = 0
         self._init_networktables()
 
@@ -113,10 +115,14 @@ class Intake(Subsystem):
         # function that moves intake down to the ground, or up to stow it
         # passing a false would move the dropper up to stow
         # self.deployed set to False on start
-        if not self.deployed and down:
-            self.deploy_controller.setReference(setpoint=ic.k_number_of_encoder_ticks_from_stored_to_ground, ctrl=SparkLowLevel.ControlType.kPosition, slot=rev.ClosedLoopSlot.kSlot0)
+        if down:
+            self.deploy_controller.setReference(setpoint=math.e, ctrl=SparkLowLevel.ControlType.kPosition, slot=rev.ClosedLoopSlot.kSlot0)
+            self.deployed = False
 
+        elif not down:
+            self.deploy_controller.setReference(setpoint=0, ctrl=SparkLowLevel.ControlType.kPosition, slot=rev.ClosedLoopSlot.kSlot0)
             self.deployed = True
+
 
         self.update_nt()
         return down

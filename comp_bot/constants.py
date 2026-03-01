@@ -166,6 +166,7 @@ class IntakeConstants:
 
     k_deploy_config = SparkFlexConfig()
     k_deploy_config.inverted(True)
+    k_deploy_config.closedLoop.pidf(1, 0, 0, 0, slot=0)
     k_intake_crank_voltage = 4  # volts for now
 
     k_intake_left_leader_config, k_intake_right_follower_config = SparkMaxConfig(), SparkMaxConfig()
