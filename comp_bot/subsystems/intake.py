@@ -52,6 +52,8 @@ class Intake(Subsystem):
         self.deployed = True
         self.current_rpm = 0
         self.last_currents = [0,0,0,0,0]
+        self.calibrated = False
+        self.deployed_angle = 0 if constants.k_at_home else 147
         self._init_networktables()
 
     def _init_networktables(self):
@@ -69,6 +71,12 @@ class Intake(Subsystem):
         self.deployed_pub.set(self.deployed)
         self.deployer_angle_pub.set(self.deploy_encoder.getPosition())
         self.deployer_average_current_pub.set(0)
+
+    def update_nt(self):
+        self.intake_on_pub.set(self.intake_on)
+        self.intake_rpm_pub.set(self.current_rpm)
+        self.deployed_pub.set(self.deployed)
+        self.deployer_average_current_pub.set(sum(self.last_currents) / len(self.last_currents))
 
     def stop_intake(self):
         # three different ways to stop the intake
@@ -97,29 +105,17 @@ class Intake(Subsystem):
 
         self.update_nt()  # update all relevant state variables on networktables
 
-    def update_nt(self):
-        self.intake_on_pub.set(self.intake_on)
-        self.intake_rpm_pub.set(self.current_rpm)
-        self.deployed_pub.set(self.deployed)
-        self.deployer_average_current_pub.set(sum(self.last_currents) / len(self.last_currents))
-
     def get_rpm(self):
         return self.current_rpm
 
     # TODO - get dropper position to ground and back up
 
-    def zero(self, down=False):
-        current_position = self.deploy_encoder.getPosition()
-        ic.k_deploy_config.absoluteEncoder.zeroOffset(
-            current_position)  # setting the encoder position to zero to ground the dropper consistantly
-        self.deploy_motor.configure(ic.k_deploy_config, self.rev_resets,
-                                    self.rev_persists)  # reconfigure to update the zero offset
-    def go_e(self):
-        self.deploy_motor.set(.1)
-        #self.deploy_controller.setSetpoint(setpoint=math.e, ctrl=SparkLowLevel.ControlType.kPosition)
-        #                                    slot=rev.ClosedLoopSlot.kSlot0)
-        #leo did this
-        print("eeeeeeeeeeeeeeeee")
+    def get_average_current(self):
+        return sum(self.last_currents) / len(self.last_currents)
+
+    def deploy_stop(self):
+        self.deploy_motor.set(0)
+
     def set_down(self, down=True):
         # function that moves intake down to the ground, or up to stow it
         # passing a false would move the dropper up to stow

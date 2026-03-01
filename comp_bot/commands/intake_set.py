@@ -20,8 +20,6 @@ class Intake_Set(commands2.Command):  # change the name for your command
         # Called just before each time this Command runs
         # if you wish to add more information to the console logger, change self.extra_log_info
         # self.extra_log_info = "Target=7"  # (for example)
-        print(self.intake.get_rpm(), self.rpm)
-        print("LOOOK RIGHT HERE")
          # if the intake is already running, then we want to stop it instead of changing the speed
         self.intake.set_intake_rpm(self.rpm) if self.intake.get_rpm() < 10 else self.intake.stop_intake()
 

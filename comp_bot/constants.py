@@ -12,6 +12,8 @@ from helpers.utilities import set_config_defaults
 
 k_swerve_config = "comp"  # choose between practice bot and comp bot for now - they differ by swerve ofsets
 
+k_at_home = True  # used for intake calibration
+
 # Generator for unique counter offsets
 _counter = count(1)
 
@@ -170,7 +172,10 @@ class IntakeConstants:
     k_deploy_config.softLimit.forwardSoftLimitEnabled(False)
     k_deploy_config.softLimit.reverseSoftLimitEnabled(False)
 
-    k_intake_crank_voltage = 4  # volts for now
+    k_intake_crank_voltage = .5  # volts for now
+    k_deploy_current_peak = 35  # amps for now
+    k_top_angle = 147  # degrees when at top position
+    k_bottom_angle = 0  # degrees when at bottom position
 
     k_intake_left_leader_config, k_intake_right_follower_config = SparkMaxConfig(), SparkMaxConfig()
     k_intake_configs = [k_intake_left_leader_config, k_intake_right_follower_config, k_deploy_config]
