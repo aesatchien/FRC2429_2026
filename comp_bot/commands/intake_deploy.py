@@ -32,19 +32,18 @@ class Intake_Deploy(commands2.Command):  # change the name for your command
             self.done = True
         else:
             if self.direction == "down":
-                if self.intake.deployed_angle >= 0:
-                    self.intake.deploy_motor.set(-.1)
+                self.intake.deploy_motor.set(-.1)
                 
             elif self.direction == "up":
-                if self.intake.deployed_angle <= 147:
-                    self.intake.deploy_motor.set(.1)
+                self.intake.deploy_motor.set(.1)
 
     def execute(self) -> None:
         if self.intake.get_average_current() > ic.k_deploy_current_peak:
             if self.direction == "up":
-                self.deployed_angle = 147
+                self.intake.deployed_angle = 147
             elif self.direction == "down":
-                self.deployed_angle = 0
+                self.intake.deployed_angle = 0
+                self.intake.deployed = True
             self.done = True
             
 
@@ -61,5 +60,5 @@ class Intake_Deploy(commands2.Command):  # change the name for your command
         # put your safe cleanup code here - turn off motors, set LEDs, etc
         if interrupted:
             self.intake.calibrated = False
-            self.intake.deploy_angle = self.intake.deploy_encoder.getPosition()
         self.intake.deploy_stop()  # stop the dropper crank when the command ends
+        self.done = False
