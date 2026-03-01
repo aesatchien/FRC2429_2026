@@ -61,5 +61,5 @@ class Intake_Deploy(commands2.Command):  # change the name for your command
         # put your safe cleanup code here - turn off motors, set LEDs, etc
         if interrupted:
             self.intake.calibrated = False
-            self.deploy_angle = self.intake.deploy_encoder.getPosition()
+            self.intake.deploy_angle = self.intake.deploy_encoder.getPosition()
         self.intake.deploy_stop()  # stop the dropper crank when the command ends

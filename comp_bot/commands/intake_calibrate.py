@@ -37,7 +37,7 @@ class CalibrateIntake(commands2.Command):  # change the name for your command
         pass
 
     def isFinished(self) -> bool:
-        return self.intake.get_average_current > ic.k_deploy_current_peak
+        return self.intake.get_average_current() > ic.k_deploy_current_peak
         
     def end(self, interrupted: bool) -> None:
         # put your safe cleanup code here - turn off motors, set LEDs, etc
@@ -46,7 +46,5 @@ class CalibrateIntake(commands2.Command):  # change the name for your command
             self.intake.calibrated = False
         else:
             self.intake.calibrated = True
-            self.deployed_angle = 147
-            self.deployed = False
-
-
+            self.intake.deployed_angle = 147
+            self.intake.deployed = False
