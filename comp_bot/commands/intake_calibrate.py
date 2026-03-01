@@ -48,3 +48,4 @@ class CalibrateIntake(commands2.Command):  # change the name for your command
             self.intake.calibrated = True
             self.intake.deployed_angle = 147
             self.intake.deployed = False
+        print("Calibration status:", self.intake.calibrated)

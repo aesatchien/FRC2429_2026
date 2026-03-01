@@ -42,9 +42,9 @@ class Intake_Deploy(commands2.Command):  # change the name for your command
     def execute(self) -> None:
         if self.intake.get_average_current() > ic.k_deploy_current_peak:
             if self.direction == "up":
-                self.deployed_angle = 147
+                self.intake.deployed_angle = 147
             elif self.direction == "down":
-                self.deployed_angle = 0
+                self.intake.deployed_angle = 0
             self.done = True
             
 
