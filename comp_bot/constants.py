@@ -176,9 +176,12 @@ class IntakeConstants:
     k_intake_configs = [k_intake_left_leader_config, k_intake_right_follower_config, k_deploy_config]
     k_test_rpm = 1000  # pi * diameter roller / 60  to get inches per second
     k_fastest_rpm = 60
+    # gear box is 7 -> 38 -> 18 -> 50
+    # sprockets are 16 -> 48
+    gear_ratio = 7/38 * 18/50 * 16/48 # .066 or ~15
 
-    k_deploy_config.encoder.positionConversionFactor(math.tau / (4 * 11)) # TODO: figure out what's actually 90 degrees
-    k_deploy_config.encoder.velocityConversionFactor(math.tau / (4 * 11 * 60))  # now we are radians per second
+    k_deploy_config.encoder.positionConversionFactor(360 * gear_ratio)
+    k_deploy_config.encoder.velocityConversionFactor(360 / gear_ratio * 60)  # now we are radians per second
 
     allowed_rpms = [0, 60] + [i for i in range(2000, 5601, 250)]
 

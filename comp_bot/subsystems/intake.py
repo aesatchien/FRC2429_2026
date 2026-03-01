@@ -51,6 +51,7 @@ class Intake(Subsystem):
         self.intake_on = False
         self.deployed = True
         self.current_rpm = 0
+        self.last_currents = [0,0,0,0,0]
         self._init_networktables()
 
     def _init_networktables(self):
@@ -61,11 +62,13 @@ class Intake(Subsystem):
         self.intake_rpm_pub = self.inst.getDoubleTopic(f"{self.intake_prefix}/intake_rpm").publish()
         self.deployed_pub = self.inst.getBooleanTopic(f"{self.intake_prefix}/deployed").publish()
         self.deployer_angle_pub = self.inst.getDoubleTopic(f"{self.intake_prefix}/deploy_angle").publish()
+        self.deployer_average_current_pub = self.inst.getDoubleTopic(f"{self.intake_prefix}/deployer_average_current").publish()
         
         self.intake_on_pub.set(self.intake_on)
         self.intake_rpm_pub.set(self.current_rpm)
         self.deployed_pub.set(self.deployed)
         self.deployer_angle_pub.set(self.deploy_encoder.getPosition())
+        self.deployer_average_current_pub.set(0)
 
     def stop_intake(self):
         # three different ways to stop the intake
@@ -98,7 +101,7 @@ class Intake(Subsystem):
         self.intake_on_pub.set(self.intake_on)
         self.intake_rpm_pub.set(self.current_rpm)
         self.deployed_pub.set(self.deployed)
-        self.deployer_angle_pub.set(self.deploy_encoder.getPosition())
+        self.deployer_average_current_pub.set(sum(self.last_currents) / len(self.last_currents))
 
     def get_rpm(self):
         return self.current_rpm
@@ -112,8 +115,8 @@ class Intake(Subsystem):
         self.deploy_motor.configure(ic.k_deploy_config, self.rev_resets,
                                     self.rev_persists)  # reconfigure to update the zero offset
     def go_e(self):
-        # self.deploy_motor.set(1)
-        self.deploy_controller.setSetpoint(setpoint=math.e, ctrl=SparkLowLevel.ControlType.kPosition)
+        self.deploy_motor.set(.1)
+        #self.deploy_controller.setSetpoint(setpoint=math.e, ctrl=SparkLowLevel.ControlType.kPosition)
         #                                    slot=rev.ClosedLoopSlot.kSlot0)
         #leo did this
         print("eeeeeeeeeeeeeeeee")
@@ -147,7 +150,10 @@ class Intake(Subsystem):
 
     def periodic(self) -> None:
         self.counter += 1
-        self.update_nt()
         # SmartDashboard.putBoolean('intake_enable', self.intake_enable)
-        # if self.counter % 20 == 0:
-        #     self.intake_rpm_pub.set(self.intake_encoder.getVelocity())
+        if self.counter % 20 == 0:
+             self.intake_rpm_pub.set(self.intake_encoder.getVelocity())
+             self.deployer_angle_pub.set(self.deploy_encoder.getPosition())
+        self.last_currents[self.counter % len(self.last_currents)] = self.deploy_motor.getOutputCurrent()
+        if self.counter % 5 == 0:
+            self.deployer_average_current_pub.set(sum(self.last_currents) / len(self.last_currents))
