@@ -33,28 +33,20 @@ class ShootingCommand(commands2.Command):  # change the name for your command
         # self.shooter.set_hopper_rpm(sc.k_hopper_rpm)
         if self.mode == "default":
             self.shooter.set_shooter_rpm(self.rpm) if self.rpm <= 5600 else self.shooter.set_shooter_rpm(sc.k_shooter_test_speed)
-            if self.shooter.rpm > 0:
-                self.shooter.set_indexer_rpm(sc.k_indexer_rpm)
-                self.shooter.set_hopper_rpm(sc.k_hopper_rpm)
-            else:
-                self.shooter.set_indexer_rpm(0)
-                self.shooter.set_hopper_rpm(0)
 
         else:
             self.shooter.set_shooter_rpm(self.shooter.default_rpm)
-            if self.shooter.default_rpm > 0:
-                self.shooter.set_indexer_rpm(sc.k_indexer_rpm)
-                self.shooter.set_hopper_rpm(sc.k_hopper_rpm)
-            else:
-                self.shooter.set_indexer_rpm(0)
-                self.shooter.set_hopper_rpm(0)
 
 
     def execute(self) -> None:
         self.counter += 1
-        # if self.counter > self.delay_cycles and (self.shooter.indexer_on == False or self.shooter.hopper_on == False):
-        #     self.shooter.set_indexer_rpm(sc.k_indexer_rpm)
-        #     self.shooter.set_hopper_rpm(sc.k_hopper_rpm)
+        if self.counter > self.delay_cycles and (self.shooter.indexer_on == False or self.shooter.hopper_on == False):
+            if self.shooter.current_rpm > 0:
+                self.shooter.set_indexer_rpm(sc.k_indexer_rpm)
+                self.shooter.set_hopper_rpm(sc.k_hopper_rpm)
+            else:
+                self.shooter.set_indexer_rpm(0)
+                self.shooter.set_hopper_rpm(0)
         # runs 50x per second, so be careful about messages and timing
 
     def isFinished(self) -> bool:
