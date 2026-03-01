@@ -60,7 +60,7 @@ class DriveConstants:
     # ==========================================
     # Note that these are not the maximum possible speeds, rather the allowed maximum speeds
     kMaxSpeedMetersPerSecond = 4.75  # Sanjith started at 3.7, 4.25 was Haochen competition, 4.8 is full out on NEOs
-    kMaxAngularSpeed = 11 # 0.5 * math.tau  # radians per second was 0.5 tau through AVR - too slow
+    kMaxAngularSpeed = 7 # 0.5 * math.tau  # radians per second was 0.5 tau through AVR - too slow
     # our hardware can do 11.11 hertz =
     # TODO: actually figure out what the total max speed should be - vector sum?
     kMaxTotalSpeed = 1.1 * math.sqrt(2) * kMaxSpeedMetersPerSecond  # sum of angular and rotational, should probably do hypotenuse

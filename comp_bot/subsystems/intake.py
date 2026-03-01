@@ -111,6 +111,12 @@ class Intake(Subsystem):
             current_position)  # setting the encoder position to zero to ground the dropper consistantly
         self.deploy_motor.configure(ic.k_deploy_config, self.rev_resets,
                                     self.rev_persists)  # reconfigure to update the zero offset
+    def go_e(self):
+        # self.deploy_motor.set(1)
+        self.deploy_controller.setSetpoint(setpoint=math.e, ctrl=SparkLowLevel.ControlType.kPosition)
+        #                                    slot=rev.ClosedLoopSlot.kSlot0)
+        #leo did this
+        print("eeeeeeeeeeeeeeeee")
     def set_down(self, down=True):
         # function that moves intake down to the ground, or up to stow it
         # passing a false would move the dropper up to stow
@@ -118,10 +124,12 @@ class Intake(Subsystem):
         if down:
             self.deploy_controller.setReference(setpoint=math.e, ctrl=SparkLowLevel.ControlType.kPosition, slot=rev.ClosedLoopSlot.kSlot0)
             self.deployed = False
+            print("down boy")
 
         elif not down:
             self.deploy_controller.setReference(setpoint=0, ctrl=SparkLowLevel.ControlType.kPosition, slot=rev.ClosedLoopSlot.kSlot0)
             self.deployed = True
+            print("giddy up")
 
 
         self.update_nt()

@@ -9,7 +9,7 @@ from subsystems.intake import Intake
 class Intake_Deploy(commands2.Command):  # change the name for your command
 
 
-    def __init__(self, intake: Intake, direction='up', on_start=False, indent=0) -> None:
+    def __init__(self, intake: Intake, direction="down", on_start=False, indent=0) -> None:
         super().__init__()
         self.setName('Intake_Deploy')  # change this to something appropriate for this command
         self.direction = direction
@@ -23,11 +23,12 @@ class Intake_Deploy(commands2.Command):  # change the name for your command
         # Called just before each time this Command runs
         # if you wish to add more information to the console logger, change self.extra_log_info
         # self.extra_log_info = "Target=7"  # (for example)
-        pass
+        self.intake.go_e()
+        # self.intake.set_down(down=True) if self.direction == 'down' else self.intake.set_down(down=False)
+        print("im set at e")
 
     def execute(self) -> None:
-        self.intake.set_down(down=True) if self.direction == 'down' else self.intake.set_down(down=False)
-
+        pass
         # intake_crank_voltage = ic.k_intake_crank_voltage
         # if self.direction == 'up':
         #     self.intake.run_crank(intake_crank_voltage)

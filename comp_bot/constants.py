@@ -166,7 +166,10 @@ class IntakeConstants:
 
     k_deploy_config = SparkFlexConfig()
     k_deploy_config.inverted(True)
-    k_deploy_config.closedLoop.pidf(1, 0, 0, 0)
+    k_deploy_config.closedLoop.pidf(5, 0, 0, 1)
+    k_deploy_config.softLimit.forwardSoftLimitEnabled(False)
+    k_deploy_config.softLimit.reverseSoftLimitEnabled(False)
+
     k_intake_crank_voltage = 4  # volts for now
 
     k_intake_left_leader_config, k_intake_right_follower_config = SparkMaxConfig(), SparkMaxConfig()
@@ -215,7 +218,7 @@ class ShooterConstants:
     k_shooter_max_speed = 6500
 
     k_test_rpm = 2000
-    allowed_shooter_rpms = [0, 60] + [i for i in range(2000, 5601, 100)] + [5600]
+    allowed_shooter_rpms = [3000, 0, 60] + [i for i in range(2000, 5601, 200)]+ [5600]
 
     # set inversions
     k_flywheel_left_leader_config.inverted(False)  # have to check which way it spins for positive RPM
