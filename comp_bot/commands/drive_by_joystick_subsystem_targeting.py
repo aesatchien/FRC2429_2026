@@ -80,7 +80,7 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
             'right_x': hid.getRightX(),
             'trigger': hid.getRightTriggerAxis(),
             'robot_oriented': hid.getLeftBumperButton(),
-            'tracking_on': None,
+            'tracking_on': hid.getRightBumperButton(),  # always off, turn this on when in shooting mode
             'alliance': wpilib.DriverStation.getAlliance()
         }
 

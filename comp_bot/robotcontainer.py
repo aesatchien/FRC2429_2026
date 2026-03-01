@@ -115,8 +115,9 @@ class RobotContainer:
             js.driver_right.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(0, -dpad_output, 0), timeout=10))
         else:
             js.driver_up.onTrue(CalibrateIntake(intake=self.intake))
-            js.driver_right.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=1))
-            js.driver_left.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=-1))
+            js.driver_left.whileTrue(ShootingCommand(shooter=self.shooter, targeting=self.targeting))
+            # js.driver_right.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=1))
+            # js.driver_left.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=-1))
             js.driver_down.whileTrue(StopShooter(shooter=self.shooter))
 
         # --- Subsystems ---
@@ -124,7 +125,6 @@ class RobotContainer:
         js.driver_back.whileTrue(Intake_Set(intake=self.intake, rpm=0))
         js.driver_x.onTrue(Intake_Deploy(intake=self.intake, direction='up'))
         js.driver_b.onTrue(Intake_Deploy(intake=self.intake, direction='down'))
-        js.driver_rb.whileTrue(ShootingCommand(shooter=self.shooter, rpm=3500, mode="settoincrement"))
 
         # js.driver_l_trigger.whileTrue(Intake_Set(intake=self.intake, rpm=2500))
         # js.driver_r_trigger.whileTrue(ShootingCommand(shooter=self.shooter, rpm=5000))
