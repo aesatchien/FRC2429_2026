@@ -31,7 +31,7 @@ class Intake(Subsystem):
         self.intake_controller = self.intake_motor.getClosedLoopController()
         self.intake_encoder = self.intake_motor.getEncoder()
         self.deploy_controller = self.deploy_motor.getClosedLoopController()
-        self.deploy_encoder = self.deploy_motor.getAbsoluteEncoder()
+        self.deploy_encoder = self.deploy_motor.getEncoder()
 
         # default parameters for the sparkmaxes reset and persist modes -
         self.rev_resets = rev.ResetMode.kResetSafeParameters
@@ -58,10 +58,12 @@ class Intake(Subsystem):
         self.intake_on_pub = self.inst.getBooleanTopic(f"{self.intake_prefix}/intake_on").publish()
         self.intake_rpm_pub = self.inst.getDoubleTopic(f"{self.intake_prefix}/intake_rpm").publish()
         self.deployed_pub = self.inst.getBooleanTopic(f"{self.intake_prefix}/deployed").publish()
+        self.deployer_angle_pub = self.inst.getDoubleTopic(f"{self.intake_prefix}/deploy_angle").publish()
         
         self.intake_on_pub.set(self.intake_on)
         self.intake_rpm_pub.set(self.current_rpm)
         self.deployed_pub.set(self.deployed)
+        self.deployer_angle_pub.set(self.deploy_encoder.getPosition())
 
     def stop_intake(self):
         # three different ways to stop the intake
@@ -94,6 +96,7 @@ class Intake(Subsystem):
         self.intake_on_pub.set(self.intake_on)
         self.intake_rpm_pub.set(self.current_rpm)
         self.deployed_pub.set(self.deployed)
+        self.deployer_angle_pub.set(self.deploy_encoder.getPosition())
 
     def get_rpm(self):
         return self.current_rpm
@@ -130,7 +133,7 @@ class Intake(Subsystem):
 
     def periodic(self) -> None:
         self.counter += 1
-
+        self.update_nt()
         # SmartDashboard.putBoolean('intake_enable', self.intake_enable)
         # if self.counter % 20 == 0:
         #     self.intake_rpm_pub.set(self.intake_encoder.getVelocity())
