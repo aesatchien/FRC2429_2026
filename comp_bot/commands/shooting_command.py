@@ -16,7 +16,6 @@ class ShootingCommand(commands2.Command):  # change the name for your command
         self.indent = indent
         self.shooter = shooter
         self.targeting = targeting
-        self.rpm = self.targeting.get_target_rpm()  # TODO calculate real value at all times instead of grabbing var
         self.addRequirements(self.shooter)  # commandsv2 version of requirements
         self.extra_log_info = None
         self.counter = 0  # add a counter if you need to track iterations, remember to initialize in below
@@ -33,14 +32,15 @@ class ShootingCommand(commands2.Command):  # change the name for your command
         # self.shooter.set_
         # indexer_rpm(sc.k_indexer_rpm)
         # self.shooter.set_hopper_rpm(sc.k_hopper_rpm)
-        self.shooter.set_shooter_rpm(self.rpm) if self.rpm <= 5600 else self.shooter.set_shooter_rpm(sc.k_shooter_max_speed)
+        rpm = self.targeting.get_target_rpm()
+        self.shooter.set_shooter_rpm(rpm if rpm <= 5600 else sc.k_shooter_max_speed)
 
 
     def execute(self) -> None:
         self.counter += 1
-        self.rpm = self.targeting.get_target_rpm()
-        self.shooter.set_shooter_rpm(self.rpm) if self.rpm <= 5600 else self.shooter.set_shooter_rpm(sc.k_shooter_max_speed)
-        if self.counter > self.delay_cycles and (self.shooter.indexer_on == False or self.shooter.hopper_on == False):
+        rpm = self.targeting.get_target_rpm()
+        self.shooter.set_shooter_rpm(rpm if rpm <= 5600 else sc.k_shooter_max_speed)
+        if self.counter > self.delay_cycles and (not self.shooter.indexer_on or not self.shooter.hopper_on):
             if self.shooter.current_rpm > 0:
                 self.shooter.set_indexer_rpm(sc.k_indexer_rpm)
                 self.shooter.set_hopper_rpm(sc.k_hopper_rpm)

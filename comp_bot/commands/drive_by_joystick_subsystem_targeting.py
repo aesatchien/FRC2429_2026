@@ -10,7 +10,6 @@ from subsystems.targeting import Targeting
 from commands2.button import CommandXboxController
 from wpimath.geometry import Translation2d
 from wpimath.filter import Debouncer, SlewRateLimiter
-from wpimath.kinematics import ChassisSpeeds
 from subsystems.swerve_constants import DriveConstants as dc
 from helpers.log_command import log_command
 
@@ -110,23 +109,8 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
             if not self.last_tracking_on:
                 self.targeting.reset_state()
             
-            # Calculate commanded velocity for targeting
-            # This is better than measured velocity because it has 0 lag and works in Sim
-            if self.field_oriented:
-                # Convert Field-Relative commands (desired_fwd/strafe) back to Robot-Relative ChassisSpeeds
-                # We rotate by -RobotAngle to get Robot-Relative
-                field_vel = Translation2d(desired_fwd, desired_strafe).rotateBy(-inputs['robot_pose'].rotation())
-                vx = field_vel.X() * dc.kMaxSpeedMetersPerSecond
-                vy = field_vel.Y() * dc.kMaxSpeedMetersPerSecond
-            else:
-                vx = desired_fwd * dc.kMaxSpeedMetersPerSecond
-                vy = desired_strafe * dc.kMaxSpeedMetersPerSecond
-
             # Delegate to subsystem
-            desired_rot = self.targeting.calculate_target_rotation(
-                inputs['robot_pose'], 
-                ChassisSpeeds(vx, vy, 0)
-            )
+            desired_rot = self.targeting.get_rotation_output()
             
         elif self.last_tracking_on: # Falling Edge
             # Reset manual limiter to the LAST TARGETING SPEED to ensure smooth handoff

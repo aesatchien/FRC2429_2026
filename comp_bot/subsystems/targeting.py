@@ -1,4 +1,5 @@
 import math
+import typing
 import bisect
 import ntcore
 import wpilib
@@ -9,6 +10,9 @@ from wpimath.kinematics import ChassisSpeeds
 import constants
 from constants import ShooterConstants as sc
 from subsystems.swerve_constants import DriveConstants as dc, TargetingConstants as tc
+
+if typing.TYPE_CHECKING:
+    from subsystems.swerve import Swerve
 
 class InterpolatedLookupTable:
     """
@@ -41,9 +45,10 @@ class Targeting(Subsystem):
     It does not own hardware but performs the math to determine where the robot should look.
     """
     
-    def __init__(self) -> None:
+    def __init__(self, swerve: 'Swerve') -> None:
         super().__init__()
         self.setName('Targeting')
+        self.swerve = swerve
 
         # Targets (Blue and Red Hubs)
         self.bHubLocation = Translation2d(4.74, 4.05)
@@ -64,6 +69,7 @@ class Targeting(Subsystem):
         self.shot_error = 999.0
         self.last_calc_time = -1.0
         self.was_active = False
+        self.rotation_output = 0.0
 
         # Debugging variables
         self.debug_v_field = Translation2d()
@@ -101,6 +107,8 @@ class Targeting(Subsystem):
         self.rot_pid.reset()
         self.rot_overshot = False
         self.last_diff_radians = 100.0
+        self.rotation_output = 0.0
+        self.last_rot_output = 0.0
 
     def get_effective_distance(self) -> float:
         """Returns the distance from the predicted future robot pose to the target."""
@@ -118,11 +126,13 @@ class Targeting(Subsystem):
         """Returns True if the calculated shot endpoint is within tolerance of the target."""
         return self.shot_error < tc.kShotAccuracyToleranceMeters
 
-    def calculate_target_rotation(self, robot_pose: Pose2d, robot_vel: ChassisSpeeds) -> float:
-        """
-        Calculates the required rotation speed to track the hub.
-        Includes Lookahead, Physics Feedforward, PID, and Static Friction compensation.
-        """
+    def get_rotation_output(self) -> float:
+        return self.rotation_output
+
+    def update_tracked_values(self):
+        robot_pose = self.swerve.get_pose()
+        robot_vel = self.swerve.get_relative_speeds()
+
         self.counter += 1
         self.last_calc_time = wpilib.Timer.getFPGATimestamp()
         self.last_robot_pose = robot_pose
@@ -219,12 +229,13 @@ class Targeting(Subsystem):
         rot_output = math.copysign(min(abs(rot_output), rot_max), rot_output)
         
         self.last_rot_output = rot_output
-        return rot_output
-
+        self.rotation_output = rot_output
+        
     def periodic(self):
-        # Check if targeting is active (heuristic: calculated recently, e.g. < 0.1s ago)
-        is_active = (wpilib.Timer.getFPGATimestamp() - self.last_calc_time) < 0.1
+        self.update_tracked_values()
 
+        # --- Publishing ---
+        is_active = True
 
         if is_active:
             self.auto_active_pub.set(True)

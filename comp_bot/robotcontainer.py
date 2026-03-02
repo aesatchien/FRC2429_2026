@@ -67,7 +67,7 @@ class RobotContainer:
         # The robot's subsystems
         self.questnav = Questnav()  # going to break the silo convention and let the Swerve see the quest for now
         self.swerve = Swerve(questnav=self.questnav)
-        self.targeting = Targeting()
+        self.targeting = Targeting(swerve=self.swerve)
         self.vision = Vision()
         self.shooter = Shooter()
         self.intake = Intake()
