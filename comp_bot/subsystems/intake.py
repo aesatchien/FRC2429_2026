@@ -117,23 +117,25 @@ class Intake(Subsystem):
         self.deploy_motor.set(0)
 
     def set_down(self, position_to_go_to="down"):
-        # function that moves intake down to the ground, or up to stow it
-        # passing a false would move the dropper up to stow
-        # self.deployed set to False on start
+        # when position_to_go_to is "down", intake is lowered
         if position_to_go_to == "down":
             self.deploy_controller.setReference(setpoint=ic.k_bottom_angle, ctrl=SparkLowLevel.ControlType.kPosition, slot=rev.ClosedLoopSlot.kSlot0)
             self.deployed = True
+            self.deployed_angle = ic.k_bottom_angle
             print("down boy")
 
         elif position_to_go_to == "up":
             self.deploy_controller.setReference(setpoint=ic.k_top_angle, ctrl=SparkLowLevel.ControlType.kPosition, slot=rev.ClosedLoopSlot.kSlot0)
             self.deployed = False
+            self.deployed_angle = ic.k_top_angle
             print("giddy up")
 
         if self.intake.get_average_current() > ic.k_deploy_current_peak:
             print("Something got cooked.")
             self.intake.deploy_motor.set(0)
             self.done = True
+            self.deployed = False
+            self.deployed_angle = 0
 
 
         self.update_nt()
@@ -155,6 +157,7 @@ class Intake(Subsystem):
         if self.counter % 20 == 0:
              self.intake_rpm_pub.set(self.intake_encoder.getVelocity())
              self.deployer_angle_pub.set(self.deploy_encoder.getPosition())
+
         self.last_currents[self.counter % len(self.last_currents)] = self.deploy_motor.getOutputCurrent()
         if self.counter % 5 == 0:
             self.deployer_average_current_pub.set(sum(self.last_currents) / len(self.last_currents))
