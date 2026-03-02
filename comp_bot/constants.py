@@ -26,6 +26,8 @@ k_start_x, k_start_y  = 2.79, 2.20
 # ------------  joysticks and other input ------------
 k_driver_controller_port = 0
 k_co_driver_controller_port = 1
+k_bbox_2_port = 3
+k_bbox_1_port = 2
 
 # should be fine to burn on every reboot, but we can turn this off
 k_burn_flash = True
