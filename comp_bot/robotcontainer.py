@@ -116,8 +116,8 @@ class RobotContainer:
         else:
             js.driver_up.onTrue(CalibrateIntake(intake=self.intake))
             js.driver_left.whileTrue(ShootingCommand(shooter=self.shooter, targeting=self.targeting))
-            # js.driver_right.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=1))
-            # js.driver_left.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=-1))
+            #js.driver_right.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=1))
+            #js.driver_left.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=-1))
             js.driver_down.whileTrue(StopShooter(shooter=self.shooter))
 
         # --- Subsystems ---

@@ -94,6 +94,7 @@ class Targeting(Subsystem):
         self.shot_line_pub = self.inst.getStructArrayTopic(f"{auto_prefix}/shot_line", Pose2d).publish()
         self.is_ok_to_shoot_pub = self.inst.getBooleanTopic(f"{auto_prefix}/is_ok_to_shoot").publish()
         self.shot_error_pub = self.inst.getDoubleTopic(f"{auto_prefix}/shot_error").publish()
+        self.goal_rpm_pub = self.inst.getDoubleTopic(f"{auto_prefix}/goal_rpm").publish()
 
     def reset_state(self):
         """Resets the PID controller and tracking state. Call this when tracking starts."""
@@ -230,6 +231,7 @@ class Targeting(Subsystem):
             self.goal_pose_pub.set(Pose2d(self.debug_future_pose, self.debug_future_rotation))
             self.shot_line_pub.set([self.last_robot_pose, self.debug_shot_end])
             self.was_active = True
+            self.goal_rpm_pub.set(self.get_target_rpm())
         elif self.was_active:
             self.auto_active_pub.set(False)
             self.shot_line_pub.set([])

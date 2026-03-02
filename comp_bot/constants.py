@@ -129,7 +129,7 @@ class VisionConstants:
 
 class QuestConstants:
     k_counter_offset = next(_counter)
-    quest_to_robot = Transform2d(inchesToMeters(12.84), inchesToMeters(-6.60), Rotation2d().fromDegrees(270))
+    quest_to_robot = Transform2d(inchesToMeters(12.84), inchesToMeters(-6.60), Rotation2d().fromDegrees(90))
 
 
 class LedConstants:
@@ -226,7 +226,7 @@ class ShooterConstants:
     k_shooter_max_speed = 6500
 
     k_test_rpm = 2000
-    allowed_shooter_rpms = [3000, 0, 60] + [i for i in range(2000, 5601, 200)]+ [5600]
+    allowed_shooter_rpms = [0, 60] + [i for i in range(2000, 5601, 50)]+ [5600]
 
     # set inversions
     k_flywheel_left_leader_config.inverted(False)  # have to check which way it spins for positive RPM
@@ -265,11 +265,12 @@ class ShooterConstants:
     # Lookup Tables: Distance (meters) -> Value
     # These are example values. You must tune these on the field!
     k_distance_to_rpm = {
-        1.5: 3200,
-        2.0: 3500,
-        3.0: 4400,
-        4.0: 4650,
-        5.0: 5000
+        1.5: 3100,
+        2.0: 3300,
+        3.0: 4050,
+        3.5: 4300,
+        4.0: 4600,
+        4.5: 4900
     }
     
     # Distance (meters) -> Time of Flight (seconds)
