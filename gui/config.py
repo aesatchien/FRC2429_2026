@@ -90,21 +90,21 @@ COMMAND_LIST = ['MoveElevatorTop', 'MoveElevatorUp', 'MoveElevatorDown', 'MovePi
 
 # this config will be used to bind the NT topics to entries we can use later
 # todo - somehow make the camera names all update from a config file, but that means ui and robot code need to know
-DEFAULT_CAMERA = 'logi_front'  # used in camera worker as the one to go to first - can do switching logic there
+DEFAULT_CAMERA = 'ardu_right'  # used in camera worker as the one to go to first - can do switching logic there
 CAMERA_BASE_CONFIG = {
-    'logi_front': {'URL': 'http://10.24.29.12:1187/stream.mjpg',
-                   'BASE_TOPIC': 'LogitechFront',
-                     'NICKNAME': 'FRONT TAGS',
+    'ardu_right': {'URL': 'http://10.24.29.12:1186/stream.mjpg',
+                   'BASE_TOPIC': 'ArducamRight',
+                     'NICKNAME': 'ARDU RIGHT',
                       'INDICATOR_INDEX': 0},
     'logi_front_hsv': {'URL': 'http://10.24.29.12:1187/stream.mjpg',
                    'BASE_TOPIC': 'LogitechFront',
                     'NICKNAME': 'FRONT HSV',
                     'INDICATOR_INDEX': 1},
-    'logi_left': {'URL': 'http://10.24.29.12:1186/stream.mjpg',
+    'logi_left': {'URL': 'http://10.24.29.12:1187/stream.mjpg',
                   'BASE_TOPIC': 'LogitechLeft',
                   'NICKNAME': 'LEFT TAGS',
                   'INDICATOR_INDEX': 2},
-    'logi_left_hsv': {'URL': 'http://10.24.29.12:1186/stream.mjpg',
+    'logi_left_hsv': {'URL': 'http://10.24.29.12:1187/stream.mjpg',
                       'BASE_TOPIC': 'LogitechLeft',
                       'NICKNAME': 'LEFT HSV',
                       'INDICATOR_INDEX': 3},
@@ -112,8 +112,8 @@ CAMERA_BASE_CONFIG = {
                            'BASE_TOPIC': 'LogitechReef',
                            'NICKNAME': 'TBD HSV',
                            'TARGET_INDICATOR_NAME': 'qlabel_hsv_target_indicator'},  # has custom target indicator
-    'Raw logi left': {'URL': 'http://10.24.29.12:1181/stream.mjpg', 'skip':True},
-    'Raw logi front': {'URL': 'http://10.24.29.12:1182/stream.mjpg', 'skip':True},
+    'Raw ardu right': {'URL': 'http://10.24.29.12:1181/stream.mjpg', 'skip':True},
+    'Raw logi left': {'URL': 'http://10.24.29.12:1182/stream.mjpg', 'skip':True},
 
     'Debug': {'URL': 'http://127.0.0.1:1186/stream.mjpg', 'skip':True},
 }
