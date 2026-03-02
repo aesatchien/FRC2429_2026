@@ -32,19 +32,14 @@ class Intake_Deploy(commands2.Command):  # change the name for your command
             self.done = True
         else:
             if self.direction == "down":
-                self.intake.deploy_motor.set(-.1)
+                self.intake.set_down(position_to_go_to="down")
                 
             elif self.direction == "up":
-                self.intake.deploy_motor.set(.1)
+                self.intake.set_down(position_to_go_to="up")
+            self.done = True
 
     def execute(self) -> None:
-        if self.intake.get_average_current() > ic.k_deploy_current_peak:
-            if self.direction == "up":
-                self.intake.deployed_angle = 147
-            elif self.direction == "down":
-                self.intake.deployed_angle = 0
-                self.intake.deployed = True
-            self.done = True
+        pass
             
 
         # intake_crank_voltage = ic.k_intake_crank_voltage
@@ -53,7 +48,7 @@ class Intake_Deploy(commands2.Command):  # change the name for your command
         # else:
         #     self.intake.run_crank(-intake_crank_voltage)
     def isFinished(self) -> bool:
-        return self.done
+        return True
     
         
     def end(self, interrupted: bool) -> None:

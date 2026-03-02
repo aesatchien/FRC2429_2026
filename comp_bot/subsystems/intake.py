@@ -116,23 +116,28 @@ class Intake(Subsystem):
     def deploy_stop(self):
         self.deploy_motor.set(0)
 
-    def set_down(self, down=True):
+    def set_down(self, position_to_go_to="down"):
         # function that moves intake down to the ground, or up to stow it
         # passing a false would move the dropper up to stow
         # self.deployed set to False on start
-        if down:
-            self.deploy_controller.setReference(setpoint=math.e, ctrl=SparkLowLevel.ControlType.kPosition, slot=rev.ClosedLoopSlot.kSlot0)
-            self.deployed = False
+        if position_to_go_to == "down":
+            self.deploy_controller.setReference(setpoint=ic.k_bottom_angle, ctrl=SparkLowLevel.ControlType.kPosition, slot=rev.ClosedLoopSlot.kSlot0)
+            self.deployed = True
             print("down boy")
 
-        elif not down:
-            self.deploy_controller.setReference(setpoint=0, ctrl=SparkLowLevel.ControlType.kPosition, slot=rev.ClosedLoopSlot.kSlot0)
-            self.deployed = True
+        elif position_to_go_to == "up":
+            self.deploy_controller.setReference(setpoint=ic.k_top_angle, ctrl=SparkLowLevel.ControlType.kPosition, slot=rev.ClosedLoopSlot.kSlot0)
+            self.deployed = False
             print("giddy up")
+
+        if self.intake.get_average_current() > ic.k_deploy_current_peak:
+            print("Something got cooked.")
+            self.intake.deploy_motor.set(0)
+            self.done = True
 
 
         self.update_nt()
-        return down
+        return position_to_go_to == "down"
 
     def run_crank(self, crank_voltage):
         self.deploy_motor.setVoltage(crank_voltage)
