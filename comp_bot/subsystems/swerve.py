@@ -343,7 +343,7 @@ class Swerve (Subsystem):
             quest_pose = self.questnav.quest_pose # Quest subsystem now exposes the robot-relative pose directly
             delta_pos = current_pose.translation().distance(quest_pose.translation())
             if delta_pos < 5 and quest_accepted:  # if the quest is way off, we don't want to update from it
-                self.pose_estimator.addVisionMeasurement(quest_pose, ts, constants.DrivetrainConstants.k_pose_stdevs_disabled)
+                self.pose_estimator.addVisionMeasurement(quest_pose, ts, constants.DrivetrainConstants.k_pose_stdevs_small)
 
         
         # AprilTag Logic

@@ -77,7 +77,7 @@ class RobotContainer:
 
         # ----------  CONTROLLERS & DEFAULTS  ---------------
         self.bind_driver_buttons()
-        # self.bind_codriver_buttons()  # if we need to
+        self.bind_codriver_buttons()  # if we need to
 
         self.swerve.setDefaultCommand(DriveByJoystickSubsystemTargeting(
               container=self,
@@ -121,7 +121,7 @@ class RobotContainer:
             js.driver_down.whileTrue(StopShooter(shooter=self.shooter))
 
         # --- Subsystems ---
-        js.driver_lb.whileTrue(Intake_Set(intake=self.intake, rpm=3000))
+        js.driver_lb.whileTrue(Intake_Set(intake=self.intake, rpm=2500))
         js.driver_back.whileTrue(Intake_Set(intake=self.intake, rpm=0))
         js.driver_x.onTrue(Intake_Deploy(intake=self.intake, direction='up'))
         js.driver_b.onTrue(Intake_Deploy(intake=self.intake, direction='down'))
@@ -173,6 +173,7 @@ class RobotContainer:
         # js.driver_right.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=1))
         # js.driver_left.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=-1))
         js.bbox_shoot_override.whileTrue(StopShooter(shooter=self.shooter))
+        js.bbox_L1.whileTrue(SwerveTest(container=self, swerve=self.swerve))
 
     def initialize_dashboard(self):
         # ----------  DASHBOARD COMMANDS  ---------------
