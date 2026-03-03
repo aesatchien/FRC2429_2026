@@ -118,6 +118,7 @@ class Intake(Subsystem):
 
     def set_down(self, position_to_go_to="down"):
         # when position_to_go_to is "down", intake is lowered
+        pass
         if position_to_go_to == "down":
             self.deploy_controller.setReference(setpoint=ic.k_bottom_angle, ctrl=SparkLowLevel.ControlType.kPosition, slot=rev.ClosedLoopSlot.kSlot0)
             self.deployed = True
