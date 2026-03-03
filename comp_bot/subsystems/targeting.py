@@ -101,6 +101,7 @@ class Targeting(Subsystem):
         self.is_ok_to_shoot_pub = self.inst.getBooleanTopic(f"{auto_prefix}/is_ok_to_shoot").publish()
         self.shot_error_pub = self.inst.getDoubleTopic(f"{auto_prefix}/shot_error").publish()
         self.goal_rpm_pub = self.inst.getDoubleTopic(f"{auto_prefix}/goal_rpm").publish()
+        self.shot_distance_pub = self.inst.getDoubleTopic(f"{auto_prefix}/shot_distance").publish()
 
     def reset_state(self):
         """Resets the PID controller and tracking state. Call this when tracking starts."""
@@ -265,6 +266,8 @@ class Targeting(Subsystem):
             if is_active:
                 self.is_ok_to_shoot_pub.set(self.is_ok_to_shoot())
                 self.shot_error_pub.set(self.shot_error)
+                self.shot_distance_pub.set(self.effective_distance)
             else:
+                self.shot_distance_pub.set(0)
                 self.is_ok_to_shoot_pub.set(False)
                 self.shot_error_pub.set(999.0)
