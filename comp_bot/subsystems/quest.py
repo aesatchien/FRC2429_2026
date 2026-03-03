@@ -34,6 +34,7 @@ class Questnav(SubsystemBase):
         self.quest_has_synched = False  # use this to check in disabled whether to update the quest with the robot odometry
         self.use_quest = constants.k_use_quest_odometry
         self.quest_pose = Pose2d(-10, -10, Rotation2d.fromDegrees(0)) # initial pose if not connected / tracking
+        self.quest_pose_new = self.quest_pose
         self.quest_pose_old = self.quest_pose
 
         # Simulation variables
@@ -194,25 +195,26 @@ class Questnav(SubsystemBase):
 
         if wpilib.RobotBase.isReal() or self.questnav.is_connected():
             frames = self.questnav.get_all_unread_pose_frames()
-            frame_last = frames[-1] if len(frames) > 0 else None # only read the last frame if multiples are available
+            frame_last = frames[-1] if len(frames) > 0 else None # only read the last frame if multiple are available
 
             try:
                 # suppressing jumps - basic filter
                 self.quest_pose_old = self.quest_pose_new
-                self.quest_pose_new = frame_last.quest_pose_3d - self.quest_pose_old.translation()
+                self.quest_pose_new = frame_last.quest_pose_3d.toPose2d().transformBy(self.quest_to_robot)
                 translation = self.quest_pose_new.translation() - self.quest_pose_old.translation()
-                rotation = self.quest_pose_new_rotation() - self.quest_pose_old_rotation
+                rotation = self.quest_pose_new.rotation() - self.quest_pose_old.rotation()
 
                 if translation.norm() < 1.0 and abs(rotation.degrees()) < 10.0:
                     # No jump detected, accept new pose
                     self.quest_pose = self.quest_pose_new
                 else:
                     # Jump detected, ignore new pose
-                    print(f"Questnav pose jump detected: delta translation={translation.norm():.3f} m, delta rot={rotation.degrees():.2f} deg")
-                    self.quest_pose = self.quest_pose_old # use last good pose in cases of error
+                    print(f"Questnav pose jump detected: Δtranslation={translation.norm():.3f} m, Δrot={rotation.degrees():.2f} deg")
+                    self.quest_pose = self.quest_pose_old  # use last good pose in cases of error
 
             except Exception as e:
-                self.quest_pose = self.quest_pose_old # use last good pose in case of error
+                    # print(f"Error converting QuestNav Pose3d to Pose2d: {e}")
+                    self.quest_pose = self.quest_pose_old  # use last good pose in cases of error
 
         else:  # simulate a pose read ground truth from sim and apply the current "drift/error" of the Quest
             
