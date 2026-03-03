@@ -170,7 +170,7 @@ class IntakeConstants:
 
     k_deploy_config = SparkFlexConfig()
     k_deploy_config.inverted(True)
-    k_deploy_config.closedLoop.pidf(5, 0, 0, 1)
+    k_deploy_config.closedLoop.pidf(1, 0, 0, 0)
     k_deploy_config.softLimit.forwardSoftLimitEnabled(False)
     k_deploy_config.softLimit.reverseSoftLimitEnabled(False)
 
