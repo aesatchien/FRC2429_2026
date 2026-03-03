@@ -44,13 +44,7 @@ from commands.set_leds import SetLEDs
 from commands.sim_show_fov import SimShowFOV
 from commands.move_training_box import MoveTrainingBox
 from commands.swerve_test import SwerveTest
-from commands.robot_climb import RobotClimb
-from commands.increment_shooter import IncrementShooter
-from commands.stop_shooter import StopShooter
-
-from commands.shooting_command import ShootingCommand
-from commands.intake_set import Intake_Set
-from commands.intake_deploy import Intake_Deploy
+from autonomous.practice_1 import GoOverTheBump
 
 
 class RobotContainer:
@@ -219,12 +213,9 @@ class RobotContainer:
         # self.auto_chooser = AutoBuilder.buildAutoChooser('')  # this loops through the path planner deploy directory - must exist 
         self.auto_chooser = wpilib.SendableChooser()  #  use this if you don't have any pathplanner autos defined
         self.auto_chooser.setDefaultOption('1:  Wait *CODE*', PrintCommand("** Running wait auto **").andThen(commands2.WaitCommand(15)))
-        self.auto_chooser.addOption('2a: Drive 2s Straight *CODE*',
-                                    PrintCommand("** Running drive by velocity swerve leave auto **").
-                                    andThen(DriveByVelocitySwerve(self, self.swerve, Pose2d(0.1, 0, 0), 2)))
-        self.auto_chooser.addOption('2b: Drive 2s To Driver Station *CODE*',
-                                    PrintCommand("** Running drive by velocity swerve leave auto **").
-                                    andThen(DriveByVelocitySwerve(self, self.swerve, Pose2d(0.1, 0, 0), 2.5, field_relative=True)))
+        self.auto_chooser.addOption('2a: Drive 2s Straight *CODE*', PrintCommand("** Running drive by velocity swerve leave auto **").andThen(DriveByVelocitySwerve(self, self.swerve, Pose2d(0.1, 0, 0), 2)))
+        self.auto_chooser.addOption('2b: Drive 2s To Driver Station *CODE*', PrintCommand("** Running drive by velocity swerve leave auto **").andThen(DriveByVelocitySwerve(self, self.swerve, Pose2d(0.1, 0, 0), 2.5, field_relative=True)))
+        self.auto_chooser.addOption('3: Go Over The Bump *PATHPLANNER*', GoOverTheBump(container=self))
         wpilib.SmartDashboard.putData('autonomous routines', self.auto_chooser)  #
 
     def register_commands(self):
