@@ -106,6 +106,13 @@ class RobotContainer:
         # --- Drive & Navigation ---
         js.driver_y.onTrue(ResetFieldCentric(container=self, swerve=self.swerve, angle=0))
 
+        js.driver_a.whileTrue(commands2.ParallelCommandGroup(
+            ShootingCommand(shooter=self.shooter, targeting=self.targeting),
+            Intake_Deploy(intake=self.intake, position='shoot'),
+        ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=0)))
+        # does not work as an "andThen" for some reason
+        js.driver_a.onFalse(Intake_Deploy(intake=self.intake, position='down'))
+
         # D-Pad: Slow, smooth robot-centric alignment (Nudge)
         dpad_driving = False
         if dpad_driving:
@@ -184,12 +191,13 @@ class RobotContainer:
         js.bbox_2_6.whileTrue(ShootingCommand(shooter=self.shooter, targeting=self.targeting))
         js.bbox_2_8.whileTrue(StopShooter(shooter=self.shooter))
 
+        # this is a combo of shooting commands
         js.bbox_2_7.whileTrue(commands2.ParallelCommandGroup(
             ShootingCommand(shooter=self.shooter, targeting=self.targeting),
             Intake_Deploy(intake=self.intake, position='shoot'),
-        ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=0)
-        ).andThen(Intake_Deploy(intake=self.intake, position='down')))
-
+        ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=0)))
+        # does not work as an "andThen" for some reason
+        js.bbox_2_7.onFalse(Intake_Deploy(intake=self.intake, position='down'))
 
 
 
