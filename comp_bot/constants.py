@@ -168,28 +168,38 @@ class IntakeConstants:
     k_CANID_intake_left_leader = 4  # robot right, does not need inverted
     k_CANID_intake_right_follower = 5  # robot left, needs follower inverted
 
+
+    # Deploy gear box is 7 -> 38 and 18 -> 50,  sprockets are 16 -> 48
+    gear_ratio = 7/38 * 18/50 * 16/48 # one motor turn goes .022 on the outer axle for a stepdown of ~45
+    deploy_degrees_per_motor_rotation = 360 * gear_ratio
     k_deploy_config = SparkFlexConfig()
+    k_deploy_config.encoder.positionConversionFactor(deploy_degrees_per_motor_rotation)  # about 8 degrees per turn
+    k_deploy_config.encoder.velocityConversionFactor(deploy_degrees_per_motor_rotation * 60)  # rpm to degrees per second, about 0.13
+    vortex_max_rpm = 6784  # Vortex rpm at 12 V
+    crank_max_dps = vortex_max_rpm * deploy_degrees_per_motor_rotation * 60  # max degrees per second of the deploy motor at 12V
+
     k_deploy_config.inverted(True)
-    k_deploy_config.closedLoop.pidf(.01, 0, 0, 0)
     k_deploy_config.closedLoop.outputRange(-.3, .3, slot=rev.ClosedLoopSlot.kSlot0)
     k_deploy_config.softLimit.forwardSoftLimitEnabled(False)
     k_deploy_config.softLimit.reverseSoftLimitEnabled(False)
+    # Configure MAXMotion (The "Modern" Smart Motion) - Note: "maxMotion" object instead of "smartMotion"
+    # the problem here is now we are in degrees per second from above, not RPM
+    k_deploy_config.closedLoop.pidf(p=1e-3, i=0, d=0, ff=1 / crank_max_dps, slot=rev.ClosedLoopSlot.kSlot0)
+    k_deploy_config.closedLoop.maxMotion.cruiseVelocity(100, slot=rev.ClosedLoopSlot.kSlot0)
+    k_deploy_config.closedLoop.maxMotion.maxAcceleration(100, slot=rev.ClosedLoopSlot.kSlot0)
+    k_deploy_config.closedLoop.maxMotion.allowedClosedLoopError(0, slot=rev.ClosedLoopSlot.kSlot0)
+    ks_volts = 0.5
 
     k_intake_crank_voltage = .5  # volts for now
     k_deploy_current_peak = 35  # amps for now
     k_top_angle = 147  # degrees when at top position
     k_bottom_angle = 0  # degrees when at bottom position
+    k_shooting_angle = 60  # degrees when in shooting position - this is a guess, will need to be tuned
 
     k_intake_left_leader_config, k_intake_right_follower_config = SparkMaxConfig(), SparkMaxConfig()
     k_intake_configs = [k_intake_left_leader_config, k_intake_right_follower_config, k_deploy_config]
     k_test_rpm = 1000  # pi * diameter roller / 60  to get inches per second
     k_fastest_rpm = 60
-    # gear box is 7 -> 38 -> 18 -> 50
-    # sprockets are 16 -> 48
-    gear_ratio = 7/38 * 18/50 * 16/48 # .066 or ~15
-
-    k_deploy_config.encoder.positionConversionFactor(360 * gear_ratio)
-    k_deploy_config.encoder.velocityConversionFactor(360 / gear_ratio * 60)  # now we are radians per second
 
     allowed_rpms = [0, 60] + [i for i in range(2000, 5601, 250)]
 

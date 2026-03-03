@@ -177,7 +177,6 @@ class Shooter(Subsystem):
         self.shooter_on = True
         self.current_roller_rpm = rpm
         self.roller_on = True
-        self.hopper_on = True
 
         self.update_nt()
 

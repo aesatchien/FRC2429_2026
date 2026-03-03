@@ -1,6 +1,7 @@
 import math
 
 import ntcore
+import wpilib
 from commands2 import Subsystem
 import rev
 from rev import SparkBase, SparkLowLevel  # trying to save some typing
@@ -53,8 +54,16 @@ class Intake(Subsystem):
         self.current_rpm = 0
         self.last_currents = [0,0,0,0,0]
         self.calibrated = False
-        self.deployed_angle = 0 if constants.k_at_home else 147
+        self.deployed_angle = ic.k_bottom_angle if constants.k_at_home else ic.k_top_angle
+        self.setpoint = self.deployed_angle
+
+        # the functions below this may need to use networktables
         self._init_networktables()
+
+        # tell encoder where we are - TODO - try the absolute encoder - may not work because of the gearing
+        self.deploy_encoder.setPosition(self.setpoint)   # this sets the current value of the encoder, not the setpoint
+        self.set_intake_position(self.setpoint)  # this should maintain the current position
+
 
     def _init_networktables(self):
         self.inst = ntcore.NetworkTableInstance.getDefault()
@@ -86,7 +95,6 @@ class Intake(Subsystem):
 
         self.intake_on = False
         self.current_rpm = 0
-
         self.update_nt()  # update all relevant state variables on networktables
     
     def change_speed(self, change_speed=0):
@@ -99,11 +107,30 @@ class Intake(Subsystem):
         feed_forward = min(12, 12 * rpm / 5600)  # if there is no gearing, then this gets you close
         # self.set_dropper_down(down=True) if self.dropper_down == False else None
         self.intake_controller.setReference(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
-        print(f'set intake rpm to {rpm:.0f}')  # can now get time from the log command's timer
+        # print(f'set intake rpm to {rpm:.0f}')  # can now get time from the log command's timer
         self.intake_on = True
         self.current_rpm = rpm
 
         self.update_nt()  # update all relevant state variables on networktables
+
+    def set_intake_position(self, angle=0):
+        # CJH added on 20260303 to use max motion to set the dropper position
+        ks = 0  # TODO - see if we need one - we may need to actually model it as an arm for best performance
+        self.deploy_controller.setReference(setpoint=angle, ctrl=SparkLowLevel.ControlType.kMAXMotionPositionControl,
+                                             slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=ks)
+        print(f'  -- position to {angle:.0f}')  # TODO - delete after testing
+        self.deployed_angle = angle
+        self.setpoint = angle
+        self.deployed = True if angle < 45 else False  # not sure about this - we will have a shooting position too
+        self.update_nt()
+
+    def reset_encoder(self, angle):
+        self.deploy_controller.set(0)  # make it not react to the new position change while we reset the encoder
+        self.deploy_encoder.setPosition(angle)
+        self.set_intake_position(angle)  # now tell it to maintain the current position
+
+    def get_setpoint(self):
+        return self.setpoint
 
     def get_rpm(self):
         return self.current_rpm
@@ -119,45 +146,36 @@ class Intake(Subsystem):
     def set_down(self, position_to_go_to="down"):
         # when position_to_go_to is "down", intake is lowered
         if position_to_go_to == "down":
-            self.deploy_controller.setReference(setpoint=ic.k_bottom_angle, ctrl=SparkLowLevel.ControlType.kPosition, slot=rev.ClosedLoopSlot.kSlot0)
-            self.deployed = True
-            self.deployed_angle = ic.k_bottom_angle
+            self.set_intake_position(ic.k_bottom_angle)
             print("down boy")
 
         elif position_to_go_to == "up":
-            self.deploy_controller.setReference(setpoint=ic.k_top_angle, ctrl=SparkLowLevel.ControlType.kPosition, slot=rev.ClosedLoopSlot.kSlot0)
-            self.deployed = False
-            self.deployed_angle = ic.k_top_angle
+            self.set_intake_position(ic.k_top_angle)
             print("giddy up")
 
-        if self.intake.get_average_current() > ic.k_deploy_current_peak:
+        if self.deploy_controller.get_average_current() > ic.k_deploy_current_peak:
             print("Something got cooked.")
-            self.intake.deploy_motor.set(0)
+            self.deploy_motor.set(0)
             self.done = True
             self.deployed = False
             self.deployed_angle = 0
 
-
         self.update_nt()
         return position_to_go_to == "down"
 
-    def run_crank(self, crank_voltage):
-        self.deploy_motor.setVoltage(crank_voltage)
-
-    def toggle_intake(self, rpm):
-        if self.intake_on:
-            self.stop_intake()
-        else:
-            self.rpm = self.default_rpm if rpm is None else rpm
-            self.set_intake_rpm(self.rpm)
 
     def periodic(self) -> None:
         self.counter += 1
-        # SmartDashboard.putBoolean('intake_enable', self.intake_enable)
+
+        # keep track of the deploy currents in case we want to check for calibrating or a stall condition
+        self.last_currents[self.counter % len(self.last_currents)] = self.deploy_motor.getOutputCurrent()
+        if self.counter % 5 == 0:
+            self.deployer_average_current_pub.set(self.get_average_current())
+
         if self.counter % 20 == 0:
              self.intake_rpm_pub.set(self.intake_encoder.getVelocity())
              self.deployer_angle_pub.set(self.deploy_encoder.getPosition())
-
-        self.last_currents[self.counter % len(self.last_currents)] = self.deploy_motor.getOutputCurrent()
-        if self.counter % 5 == 0:
-            self.deployer_average_current_pub.set(sum(self.last_currents) / len(self.last_currents))
+             # this is not right in the simulation
+             if wpilib.RobotBase.isSimulation():
+                 self.intake_rpm_pub.set(self.current_rpm)
+                 self.deployer_angle_pub.set(self.setpoint)

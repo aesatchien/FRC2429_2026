@@ -103,8 +103,9 @@ class PhysicsEngine:
         # Animate intake deployment based on whether it's running
         test_state: bool = True if int(wpilib.getTime()) % 2 == 0 else False
         intake_state: bool = self.container.intake.intake_on
+        intake_postion = self.container.intake.get_setpoint()
         #self.mech.update_intake(self.container.intake.intake_on, self.container.intake.get_velocity())
-        self.mech.update_intake(deployed=intake_state, speed=1.0 if intake_state else 0.0)
+        self.mech.update_intake(angle=intake_postion, speed=1.0 if intake_state else 0.0)
         
         self.mech.update_hopper(1 if self.container.shooter.hopper_on else 0)
         self.mech.update_indexer(1 if self.container.shooter.indexer_on else 0)

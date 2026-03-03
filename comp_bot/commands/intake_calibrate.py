@@ -21,19 +21,8 @@ class CalibrateIntake(commands2.Command):  # change the name for your command
 
     def initialize(self) -> None:
         self.intake.deploy_motor.set(0.1)
-        # Called just before each time this Command runs
-        # if you wish to add more information to the console logger, change self.extra_log_info
-        # self.extra_log_info = "Target=7"  # (for example)
-
-        #self.intake.go_e()
-        # self.intake.set_down(down=True) if self.direction == 'down' else self.intake.set_down(down=False)
 
     def execute(self) -> None:
-        # intake_crank_voltage = ic.k_intake_crank_voltage
-        # if self.direction == 'up':
-        #     self.intake.run_crank(intake_crank_voltage)
-        # else:
-        #     self.intake.run_crank(-intake_crank_voltage)
         pass
 
     def isFinished(self) -> bool:
@@ -46,6 +35,7 @@ class CalibrateIntake(commands2.Command):  # change the name for your command
             self.intake.calibrated = False
         else:
             self.intake.calibrated = True
-            self.intake.deployed_angle = 147
+            self.intake.deployed_angle = ic.k_top_angle
+            self.intake.reset_encoder(ic.k_top_angle)
             self.intake.deployed = False
         print("Calibration status:", self.intake.calibrated)

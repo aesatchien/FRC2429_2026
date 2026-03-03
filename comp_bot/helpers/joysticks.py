@@ -39,27 +39,16 @@ copilot_r_trigger = copilot_controller.rightTrigger(axis_trigger_threshold)
 """
 Remember - buttons are 1-indexed, not zero
 """
-# The driver's controller
-bbox_1 = commands2.button.CommandJoystick(constants.k_bbox_1_port)
-bbox_2 = commands2.button.CommandJoystick(constants.k_bbox_2_port)
+# Button box contains two controllers, we make them joysticks 2 and 3
+bbox_1 = commands2.button.CommandJoystick(constants.k_bbox_1_port)  # port 2
+bbox_2 = commands2.button.CommandJoystick(constants.k_bbox_2_port)  # port 3
 
-bbox_kill = bbox_1.button(3)  # top left red 1
-bbox_TBD2 = bbox_1.button(4)  # top left red 2
-
-bbox_right = bbox_1.button(1)  # true when selected
-bbox_left = bbox_1.button(2)  #  and true when selected
-
-# print('Initializing robot state based on button box joystick:')
-# if bbox_right.getAsBoolean():
-#     robot_state.set_side(robot_state.Side.RIGHT)
-# else:
-#     robot_state.set_side(robot_state.Side.LEFT)
-
-bbox_intake_in = bbox_1.button(5)
-bbox_intake_out = bbox_1.button(6)
-bbox_intake_up = bbox_2.button(2)
-bbox_intake_down = bbox_2.button(1)
-
+bbox_1_1 = bbox_1.button(1)  # right joystick, true when selected
+bbox_1_2 = bbox_1.button(2)  # left joystick,  true when selected
+bbox_1_3 = bbox_1.button(3)  # top left red 1
+bbox_1_4 = bbox_1.button(4)  # top left red 2
+bbox_1_5 = bbox_1.button(5)
+bbox_1_6 = bbox_1.button(6)
 bbox_AB = bbox_1.button(7)
 bbox_CD = bbox_1.button(8)
 bbox_EF = bbox_1.button(9)
@@ -67,14 +56,17 @@ bbox_GH = bbox_1.button(10)
 bbox_IJ = bbox_1.button(11)
 bbox_KL = bbox_1.button(12)
 
-bbox_L1 = bbox_2.button(1)
-bbox_L2 = bbox_2.button(2)
-bbox_L3 = bbox_2.button(3)
-bbox_L4 = bbox_2.button(4)
-bbox_climb_down = bbox_2.button(5)
-bbox_drive_to_climb = bbox_2.button(7)
-bbox_shoot_override = bbox_2.button(8)  # this is lower down on the box
-bbox_shoot = bbox_2.button(6)
+bbox_2_1 = bbox_2.button(1)  # L1
+bbox_2_2 = bbox_2.button(2)  # L2
+bbox_2_3 = bbox_2.button(3)  # L3
+bbox_2_4 = bbox_2.button(4)  # L4
+bbox_2_5 = bbox_2.button(5)  # climb down
+bbox_2_6 = bbox_2.button(6)  # climb up ?
+bbox_2_7 = bbox_2.button(7)  #
+bbox_2_8 = bbox_2.button(8)  #
+
+# renaming some of them for clarity
+
 
 # Co-Driver Sticks (Axes as Triggers)
 # copilot_r_stick_positive_x = copilot_controller.axisGreaterThan(4, 0.5)
