@@ -174,20 +174,25 @@ class IntakeConstants:
     deploy_degrees_per_motor_rotation = 360 * gear_ratio
     k_deploy_config = SparkFlexConfig()
     k_deploy_config.encoder.positionConversionFactor(deploy_degrees_per_motor_rotation)  # about 8 degrees per turn
-    k_deploy_config.encoder.velocityConversionFactor(deploy_degrees_per_motor_rotation * 60)  # rpm to degrees per second, about 0.13
+    k_deploy_config.encoder.velocityConversionFactor(deploy_degrees_per_motor_rotation / 60)  # rpm to degrees per second, about 0.13
     vortex_max_rpm = 6784  # Vortex rpm at 12 V
-    crank_max_dps = vortex_max_rpm * deploy_degrees_per_motor_rotation * 60  # max degrees per second of the deploy motor at 12V
+    crank_max_dps = vortex_max_rpm * deploy_degrees_per_motor_rotation / 60  # max degrees per second of the deploy motor at 12V ~
 
     k_deploy_config.inverted(True)
-    k_deploy_config.closedLoop.outputRange(-.3, .3, slot=rev.ClosedLoopSlot.kSlot0)
+    k_deploy_config.closedLoop.outputRange(-.2, .2, slot=rev.ClosedLoopSlot.kSlot0)
     k_deploy_config.softLimit.forwardSoftLimitEnabled(False)
     k_deploy_config.softLimit.reverseSoftLimitEnabled(False)
     # Configure MAXMotion (The "Modern" Smart Motion) - Note: "maxMotion" object instead of "smartMotion"
-    # the problem here is now we are in degrees per second from above, not RPM
-    k_deploy_config.closedLoop.pidf(p=1e-3, i=0, d=0, ff=1 / crank_max_dps, slot=rev.ClosedLoopSlot.kSlot0)
-    k_deploy_config.closedLoop.maxMotion.cruiseVelocity(100, slot=rev.ClosedLoopSlot.kSlot0)
-    k_deploy_config.closedLoop.maxMotion.maxAcceleration(100, slot=rev.ClosedLoopSlot.kSlot0)
-    k_deploy_config.closedLoop.maxMotion.allowedClosedLoopError(0, slot=rev.ClosedLoopSlot.kSlot0)
+    # this is the setting for kPosition control - slot0 - WE USE THIS NOW
+    k_deploy_config.closedLoop.pidf(p=1e-2, i=1e-5, d=1e-2, ff=0, slot=rev.ClosedLoopSlot.kSlot0)
+    k_deploy_config.closedLoop.IMaxAccum(0.03, slot=rev.ClosedLoopSlot.kSlot0)
+    k_deploy_config.closedLoop.IZone(3, slot=rev.ClosedLoopSlot.kSlot0) # degrees less than which no I is applied
+    # this is the setting for kMaxMotionPosition control - slot1, TODO - make this work
+    # the problem here is now we are in degrees per second from above, not RPM  - never get rev to work unless no conversion factors
+    k_deploy_config.closedLoop.pidf(p=1e-5, i=0, d=0, ff=1/crank_max_dps, slot=rev.ClosedLoopSlot.kSlot1)
+    k_deploy_config.closedLoop.maxMotion.cruiseVelocity(250, slot=rev.ClosedLoopSlot.kSlot1)
+    k_deploy_config.closedLoop.maxMotion.maxAcceleration(500, slot=rev.ClosedLoopSlot.kSlot1)
+    k_deploy_config.closedLoop.maxMotion.allowedClosedLoopError(0, slot=rev.ClosedLoopSlot.kSlot1)
     ks_volts = 0.5
 
     k_intake_crank_voltage = .5  # volts for now
@@ -313,7 +318,7 @@ class ClimberConstants:
     k_climber_configs = [k_climber_config]
     k_test_rpm = 20  # pi * diameter roller / 60  to get inches per second
     k_fastest_rpm = 60
-    k_CANID_motor = 0
+    k_CANID_motor = 1
     k_number_of_encoder_ticks_per_motor_rotation = 42  # number of encoder ticks per wheel rotation, either 42 or 7000
     k_position_conversion_factor = .2  # TODO number of inches per encoder tick, this is wrong right now IDK what it is if their is a gear box etc
     # k_position_conversion_factor = (k_wheel_diameter_in * math.pi * k_meter_per_inch / k_gear_ratio) ?

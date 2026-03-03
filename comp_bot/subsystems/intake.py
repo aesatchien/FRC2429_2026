@@ -74,6 +74,9 @@ class Intake(Subsystem):
         self.deployed_pub = self.inst.getBooleanTopic(f"{self.intake_prefix}/deployed").publish()
         self.deployer_angle_pub = self.inst.getDoubleTopic(f"{self.intake_prefix}/deploy_angle").publish()
         self.deployer_average_current_pub = self.inst.getDoubleTopic(f"{self.intake_prefix}/deployer_average_current").publish()
+        self.deployer_output_pub = self.inst.getDoubleTopic(f"{self.intake_prefix}/deployer_output").publish()
+        self.deployer_velocity_pub = self.inst.getDoubleTopic(f"{self.intake_prefix}/deployer_velocity").publish()
+        self.deployer_setpoint_pub = self.inst.getDoubleTopic(f"{self.intake_prefix}/deployer_setpoint").publish()
         
         self.intake_on_pub.set(self.intake_on)
         self.intake_rpm_pub.set(self.current_rpm)
@@ -86,6 +89,7 @@ class Intake(Subsystem):
         self.intake_rpm_pub.set(self.current_rpm)
         self.deployed_pub.set(self.deployed)
         self.deployer_average_current_pub.set(sum(self.last_currents) / len(self.last_currents))
+        self.deployer_setpoint_pub.set(self.setpoint)
 
     def stop_intake(self):
         # three different ways to stop the intake
@@ -115,8 +119,8 @@ class Intake(Subsystem):
 
     def set_intake_position(self, angle=0):
         # CJH added on 20260303 to use max motion to set the dropper position
-        ks = 0  # TODO - see if we need one - we may need to actually model it as an arm for best performance
-        self.deploy_controller.setReference(setpoint=angle, ctrl=SparkLowLevel.ControlType.kMAXMotionPositionControl,
+        ks = 0.0  # TODO - see if we need one - we may need to actually model it as an arm for best performance
+        self.deploy_controller.setReference(setpoint=angle, ctrl=SparkLowLevel.ControlType.kPosition,
                                              slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=ks)
         print(f'  -- position to {angle:.0f}')  # TODO - delete after testing
         self.deployed_angle = angle
@@ -175,6 +179,9 @@ class Intake(Subsystem):
         if self.counter % 20 == 0:
              self.intake_rpm_pub.set(self.intake_encoder.getVelocity())
              self.deployer_angle_pub.set(self.deploy_encoder.getPosition())
+             self.deployer_output_pub.set(self.deploy_motor.getAppliedOutput())
+             self.deployer_velocity_pub.set(self.deploy_encoder.getVelocity())
+
              # this is not right in the simulation
              if wpilib.RobotBase.isSimulation():
                  self.intake_rpm_pub.set(self.current_rpm)
