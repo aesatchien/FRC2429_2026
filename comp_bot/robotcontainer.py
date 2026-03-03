@@ -163,6 +163,17 @@ class RobotContainer:
         # ----------  CO-DRIVER BUTTONS  ---------------
         print("Binding codriver buttons")
 
+        js.bbox_intake_in.whileTrue(Intake_Set(intake=self.intake, rpm=3000))
+        js.bbox_intake_out.whileTrue(Intake_Set(intake=self.intake, rpm=0))
+        js.bbox_intake_up.onTrue(Intake_Deploy(intake=self.intake, direction='up'))
+        js.bbox_intake_down.onTrue(Intake_Deploy(intake=self.intake, direction='down'))
+
+        js.bbox_shoot.onTrue(CalibrateIntake(intake=self.intake))
+        js.bbox_shoot.whileTrue(ShootingCommand(shooter=self.shooter, targeting=self.targeting))
+        # js.driver_right.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=1))
+        # js.driver_left.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=-1))
+        js.bbox_shoot_override.whileTrue(StopShooter(shooter=self.shooter))
+
     def initialize_dashboard(self):
         # ----------  DASHBOARD COMMANDS  ---------------
         # --------------   COMMANDS FOR GUI (ROBOT DEBUGGING) - 20250224 CJH

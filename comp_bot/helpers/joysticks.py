@@ -43,7 +43,7 @@ Remember - buttons are 1-indexed, not zero
 bbox_1 = commands2.button.CommandJoystick(constants.k_bbox_1_port)
 bbox_2 = commands2.button.CommandJoystick(constants.k_bbox_2_port)
 
-bbox_TBD1 = bbox_1.button(3)  # top left red 1
+bbox_kill = bbox_1.button(3)  # top left red 1
 bbox_TBD2 = bbox_1.button(4)  # top left red 2
 
 bbox_right = bbox_1.button(1)  # true when selected
@@ -55,8 +55,10 @@ bbox_left = bbox_1.button(2)  #  and true when selected
 # else:
 #     robot_state.set_side(robot_state.Side.LEFT)
 
-bbox_human_left = bbox_1.button(5)
-bbox_human_right = bbox_1.button(6)
+bbox_intake_in = bbox_1.button(5)
+bbox_intake_out = bbox_1.button(6)
+bbox_intake_up = bbox_2.button(2)
+bbox_intake_down = bbox_2.button(1)
 
 bbox_AB = bbox_1.button(7)
 bbox_CD = bbox_1.button(8)
@@ -69,10 +71,10 @@ bbox_L1 = bbox_2.button(1)
 bbox_L2 = bbox_2.button(2)
 bbox_L3 = bbox_2.button(3)
 bbox_L4 = bbox_2.button(4)
-bbox_intake_in = bbox_2.button(5)
-bbox_intake_in = bbox_2.button(7)
-bbox_climb_up = bbox_2.button(8)  # this is lower down on the box
-bbox_climb_down = bbox_2.button(6)
+bbox_climb_down = bbox_2.button(5)
+bbox_drive_to_climb = bbox_2.button(7)
+bbox_shoot_override = bbox_2.button(8)  # this is lower down on the box
+bbox_shoot = bbox_2.button(6)
 
 # Co-Driver Sticks (Axes as Triggers)
 # copilot_r_stick_positive_x = copilot_controller.axisGreaterThan(4, 0.5)
