@@ -30,7 +30,7 @@ class UIUpdater:
             'time': self._update_time,
             'monitor': self._update_monitor,
             'lcd': self._update_lcd,
-            'position': self._update_position,
+            'position': self._update_position,  # Legacy from 2024
             'hub': self._update_hub,  # Legacy from 2023
         }
 
@@ -73,7 +73,7 @@ class UIUpdater:
         drive_pose_sub = drive_props.get('subscriber')
         if not drive_pose_sub:
             return # Can't do anything without the robot pose
-        
+
         self.drive_pose = drive_pose_sub.get()
         quest_props = self.ui.widget_dict['quest_pose']
         quest_pose_sub = quest_props.get('subscriber')
@@ -108,7 +108,7 @@ class UIUpdater:
         else:
             if self.ui.qlabel_ghost.isVisible():
                 self.ui.qlabel_ghost.hide()
-        
+
         ghost_props['last_visible_value'] = is_visible
 
         # Update Target Pose (Array)
@@ -148,7 +148,7 @@ class UIUpdater:
             if 'FRAMECOUNT_SUB' in cam_props:
                 # Check how long ago the camera updated its _frames topic
                 is_alive = (now - cam_props['FRAMECOUNT_SUB'].getAtomic().time) < allowed_delay_us
-                
+
                 # Check for rising edge (False -> True) to count reconnections
                 if is_alive and not cam_props['IS_ALIVE']:
                     cam_props['RECONNECTION_COUNT'] += 1
@@ -176,34 +176,37 @@ class UIUpdater:
 
     def _update_shot_calculations(self):
         """ Calculates and displays shot distance and angle to speaker - legacy from 2024. """
-        alliance_sub = self.ui.widget_dict['qlabel_alliance_indicator'].get('subscriber')
-        if not alliance_sub:
-            return
+        # alliance_sub = self.ui.widget_dict['qlabel_alliance_indicator'].get('subscriber')
+        # if not alliance_sub:
+        #     return
+        #
+        # is_red_alliance = alliance_sub.get()
+        # k_speaker = [16.5, 5.555, 0] if is_red_alliance else [0, 5.55, 180]
+        # speaker_coords = (16.54, 5.56) if is_red_alliance else (0, 5.56)
+        #
+        # translation_origin_to_speaker = geo.Translation2d(k_speaker[0], k_speaker[1])
+        # translation_origin_to_robot = self.drive_pose.translation()
+        # translation_robot_to_speaker = translation_origin_to_speaker - translation_origin_to_robot
+        # desired_angle = translation_robot_to_speaker.angle().rotateBy(geo.Rotation2d(np.radians(180)))
+        # angle_to_speaker = self.drive_pose.rotation().degrees() - desired_angle.degrees()
+        # shot_distance = np.sqrt((speaker_coords[0] - self.drive_pose.X())**2 + (speaker_coords[1] - self.drive_pose.Y())**2)
+        #
+        # best_distance, dist_tolerance, angle_tolerance = 1.7, 0.4, 10
+        # shot_style = self.STYLE_OFF
+        # if best_distance - dist_tolerance < shot_distance < best_distance + dist_tolerance:
+        #     grey_val = int(225 * abs(best_distance - shot_distance))
+        #     in_angle = abs(angle_to_speaker) < angle_tolerance
+        #     text_color = '(0,0,0)' if self.ui.counter % 10 < 5 and in_angle else '(255,255,255)'
+        #     border_color = 'solid blue' if self.ui.counter % 10 < 5 and in_angle else 'solid black'
+        #     border_size = 6 if in_angle else 8
+        #     shot_style = f"border: {border_size}px {border_color}; border-radius: 7px; background-color:rgb({grey_val}, {int(225-grey_val)}, {grey_val}); color:rgb{text_color};"
+        # elif shot_distance >= best_distance + dist_tolerance:
+        #     shot_style = self.STYLE_DISCONNECTED
 
-        is_red_alliance = alliance_sub.get()
-        k_speaker = [16.5, 5.555, 0] if is_red_alliance else [0, 5.55, 180]
-        speaker_coords = (16.54, 5.56) if is_red_alliance else (0, 5.56)
-
-        translation_origin_to_speaker = geo.Translation2d(k_speaker[0], k_speaker[1])
-        translation_origin_to_robot = self.drive_pose.translation()
-        translation_robot_to_speaker = translation_origin_to_speaker - translation_origin_to_robot
-        desired_angle = translation_robot_to_speaker.angle().rotateBy(geo.Rotation2d(np.radians(180)))
-        angle_to_speaker = self.drive_pose.rotation().degrees() - desired_angle.degrees()
-        shot_distance = np.sqrt((speaker_coords[0] - self.drive_pose.X())**2 + (speaker_coords[1] - self.drive_pose.Y())**2)
-
-        best_distance, dist_tolerance, angle_tolerance = 1.7, 0.4, 10
-        shot_style = self.STYLE_OFF
-        if best_distance - dist_tolerance < shot_distance < best_distance + dist_tolerance:
-            grey_val = int(225 * abs(best_distance - shot_distance))
-            in_angle = abs(angle_to_speaker) < angle_tolerance
-            text_color = '(0,0,0)' if self.ui.counter % 10 < 5 and in_angle else '(255,255,255)'
-            border_color = 'solid blue' if self.ui.counter % 10 < 5 and in_angle else 'solid black'
-            border_size = 6 if in_angle else 8
-            shot_style = f"border: {border_size}px {border_color}; border-radius: 7px; background-color:rgb({grey_val}, {int(225-grey_val)}, {grey_val}); color:rgb{text_color};"
-        elif shot_distance >= best_distance + dist_tolerance:
-            shot_style = self.STYLE_DISCONNECTED
-
-        self.ui.qlabel_shot_distance.setText(f'SHOT DIST\n{shot_distance:.1f}m  {int(angle_to_speaker):>+3d}°')
+        shot_style = self.STYLE_DISCONNECTED
+        shot_distance_sub = self.ui.widget_dict['qlabel_shot_distance'].get('subscriber')
+        shot_distance = shot_distance_sub.get() if shot_distance_sub else 0
+        self.ui.qlabel_shot_distance.setText(f'SHOT DIST\n{shot_distance:.2f}m')
         self.ui.qlabel_shot_distance.setStyleSheet(shot_style)
 
     def _format_pose_string(self, label, pose):
@@ -334,8 +337,10 @@ class UIUpdater:
             return
 
         new_list = sub.get()
+        list_changed = False
         if new_list != props.get('last_value'):
             props['last_value'] = new_list
+            list_changed = True
             widget.blockSignals(True)
             widget.clear()
             widget.addItems(new_list)
@@ -345,7 +350,8 @@ class UIUpdater:
         selected_sub = props.get('selected_subscriber')
         if selected_sub:
             selected_routine = selected_sub.get()
-            if selected_routine != props.get('last_selected_value'):
+            # If the list changed, we MUST re-set the text because clear() wiped it
+            if list_changed or selected_routine != props.get('last_selected_value'):
                 props['last_selected_value'] = selected_routine
                 widget.blockSignals(True)
                 widget.setCurrentText(selected_routine)
@@ -383,7 +389,7 @@ class UIUpdater:
         props['last_value'] = config
         # This logic seems to always result in STYLE_ON, may need review
         position_style = self.STYLE_ON if config.upper() not in ['LOW_SHOOT', 'INTAKE'] else self.STYLE_ON
-        widget.setText(f'POS: {config.upper()}')
+        widget.setText(f'DIST: {config.upper()}')
         widget.setStyleSheet(position_style)
 
     def _update_hub(self, props):

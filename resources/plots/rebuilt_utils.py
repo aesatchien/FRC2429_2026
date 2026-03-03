@@ -166,8 +166,17 @@ def solve_angle_batch(angle_deg, distances, shot_height_m, check_h, max_safe_r, 
             # --- QUALITY CALCULATION ---
             # How close is the best shot to the center?
             # 0 error = 1.0 (Green), Max error = 0.0 (Red)
-            best_err = err_check[best_idx]
-            qual = 1.0 - (best_err / max_safe_r)
+
+            # Penalize near-side shots (short) more than far-side shots
+            best_x = x_at_check[best_idx]
+            signed_err = best_x - target_dist
+
+            if signed_err < 0:
+                weighted_err = abs(signed_err) * 1.5
+            else:
+                weighted_err = abs(signed_err)
+
+            qual = 1.0 - (weighted_err / max_safe_r)
             qual = np.clip(qual, 0.0, 1.0)
             
             # Convert to RPM

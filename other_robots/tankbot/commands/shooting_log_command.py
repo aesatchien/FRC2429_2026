@@ -31,7 +31,7 @@ class ShootingCommandLogging(commands2.Command):  # change the name for your com
         # if you wish to add more information to the console logger, change self.extra_log_info
         # self.extra_log_info = "Target=7"  # (for example)
         self.counter = 0
-        self.shooter.set_shooter_rpm(sc.k_test_speed)
+        self.shooter.set_shooter_rpm(self.shooter.current_rpm)
         if not self.continuous: # if its not continuous, set target to current position + 1/balls per rotation
             self.target = self.shooter.get_indexer_position() + ((1 / sc.k_indexer_balls_per_rotation) * self.balls)
         self.shooter.stop_indexer()
@@ -40,7 +40,7 @@ class ShootingCommandLogging(commands2.Command):  # change the name for your com
     def execute(self) -> None:
         self.counter += 1
         if self.counter > 10 and not self.shooter.indexer_on:
-            self.shooter.set_indexer_rpm(sc.k_test_rpm)
+            self.shooter.set_indexer_rpm(self.shooter.current_rpm)
         # runs 50x per second, so be careful about messages and timing
 
     def isFinished(self) -> bool:

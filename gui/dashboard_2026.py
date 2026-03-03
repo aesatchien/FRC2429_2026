@@ -165,6 +165,8 @@ class Ui(QtWidgets.QMainWindow):
                     new_entry['subscriber'] = self.ntinst.getStringArrayTopic(nt_topic).subscribe([])
                 elif style == 'position':
                     new_entry['subscriber'] = self.ntinst.getStringTopic(nt_topic).subscribe("")
+                else:
+                    print(f'cannont determine subsccriber type for - check style!')
 
             command_topic = config.get('command_topic')
             if command_topic:
