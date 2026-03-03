@@ -164,6 +164,9 @@ WIDGET_CONFIG = {
     'qlcd_intake_speed': {'widget_name': 'qlcd_intake_speed', 'nt_topic': '/SmartDashboard/intake_output', 'update_style': 'lcd'},
     'qlcd_climber_position': {'widget_name': 'qlcd_climber_position', 'nt_topic': '/SmartDashboard/climber_spark_angle', 'update_style': 'lcd'},
 
+    # REBUILT 2026 stuff
+    'qlabel_shot_distance': {'widget_name': 'qlabel_shot_distance', 'nt_topic': f'{auto_prefix}/shot_distance', 'update_style': 'hub'},
+
     # LEFTOVER TO SORT FROM previous years - legacy but infrastructure is there
     'qlabel_position_indicator': {'widget_name': 'qlabel_position_indicator', 'nt_topic': '/SmartDashboard/_target', 'update_style': 'position'},
     'hub_targets': {'widget_name': None, 'nt_topic': '/arducam_high//orange/targets', 'update_style': 'hub'},
