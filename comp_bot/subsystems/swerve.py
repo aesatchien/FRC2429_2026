@@ -147,7 +147,8 @@ class Swerve (Subsystem):
         self.ypr_pub = self.inst.getDoubleArrayTopic(f"{swerve_prefix}/_navx_YPR").publish()
 
         # Debugging publishers - pre-allocate list to avoid f-string creation in loop
-        self.abs_enc_pubs = [self.inst.getDoubleTopic(f"{swerve_prefix}/absolute {i}").publish() for i in range(4)]
+        module_names = ['LF', 'RF', 'LB', 'RB']  # TODO - just save this order somewhere and reuse it
+        self.abs_enc_pubs = [self.inst.getDoubleTopic(f"{swerve_prefix}/absolute_{name}").publish() for name in module_names]
         self.angles_pub = self.inst.getDoubleArrayTopic(f"{swerve_prefix}/_angles").publish()
 
         # TODO - these don't really belong in Swerve - but where do they belong?
