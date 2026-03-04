@@ -34,7 +34,7 @@ class ShootingCommand(commands2.Command):  # change the name for your command
         # self.shooter.set_hopper_rpm(sc.k_hopper_rpm)
         rpm = self.targeting.get_target_rpm()
         self.shooter.set_shooter_rpm(rpm if rpm <= 5600 else sc.k_shooter_max_speed)
-        self.shooter.stop_indexer()
+        self.shooter.set_indexer_rpm(-500)
         self.shooter.stop_hopper()
 
     def execute(self) -> None:
