@@ -4,7 +4,7 @@ from helpers.log_command import log_command  # outsource explicit logging clutte
 from subsystems.intake import Intake
 
 @log_command(console=True, nt=False, print_init=True, print_end=False)  # will print start and end messages
-class Intake_Set(commands2.Command):  # change the name for your command
+class Intake_Set_RPM(commands2.Command):  # change the name for your command
 
 
     def __init__(self, intake: Intake, rpm=1000, on_start=False, indent=0) -> None:
@@ -21,7 +21,7 @@ class Intake_Set(commands2.Command):  # change the name for your command
         # if you wish to add more information to the console logger, change self.extra_log_info
         # self.extra_log_info = "Target=7"  # (for example)
          # if the intake is already running, then we want to stop it instead of changing the speed
-        self.intake.set_intake_rpm(self.rpm) if self.intake.get_rpm() < 10 else self.intake.stop_intake()
+        self.intake.set_intake_rpm(self.rpm) if self.rpm > 10 else self.intake.stop_intake()
 
         self.extra_log_info = f"RPM={self.rpm}"  # updating log info here to get actual rpm
 
@@ -29,7 +29,7 @@ class Intake_Set(commands2.Command):  # change the name for your command
         pass
 
     def isFinished(self) -> bool:
-        return False
+        return True
         
     def end(self, interrupted: bool) -> None:
         # put your safe cleanup code here - turn off motors, set LEDs, etc

@@ -49,7 +49,7 @@ from commands.increment_shooter import IncrementShooter
 from commands.stop_shooter import StopShooter
 
 from commands.shooting_command import ShootingCommand
-from commands.intake_set import Intake_Set
+from commands.intake_set_rpm import Intake_Set_RPM
 from commands.intake_deploy import Intake_Deploy
 from commands.intake_calibrate import CalibrateIntake
 
@@ -77,7 +77,8 @@ class RobotContainer:
 
         # ----------  CONTROLLERS & DEFAULTS  ---------------
         self.bind_driver_buttons()
-        # self.bind_codriver_buttons()  # if we need to
+        self.bind_codriver_buttons()  # if we need to
+        self.bind_bbox_buttons()
 
         self.swerve.setDefaultCommand(DriveByJoystickSubsystemTargeting(
               container=self,
@@ -107,6 +108,13 @@ class RobotContainer:
         # --- Drive & Navigation ---
         js.driver_y.onTrue(ResetFieldCentric(container=self, swerve=self.swerve, angle=0))
 
+        js.driver_a.whileTrue(commands2.ParallelCommandGroup(
+            ShootingCommand(shooter=self.shooter, targeting=self.targeting),
+            Intake_Deploy(intake=self.intake, position='shoot'),
+        ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=0)))
+        # does not work as an "andThen" for some reason
+        js.driver_a.onFalse(Intake_Deploy(intake=self.intake, position='down'))
+
         # D-Pad: Slow, smooth robot-centric alignment (Nudge)
         dpad_driving = False
         if dpad_driving:
@@ -123,10 +131,10 @@ class RobotContainer:
             js.driver_down.whileTrue(StopShooter(shooter=self.shooter))
 
         # --- Subsystems ---
-        js.driver_lb.whileTrue(Intake_Set(intake=self.intake, rpm=3000))
-        js.driver_back.whileTrue(Intake_Set(intake=self.intake, rpm=0))
-        js.driver_x.onTrue(Intake_Deploy(intake=self.intake, direction='up'))
-        js.driver_b.onTrue(Intake_Deploy(intake=self.intake, direction='down'))
+        js.driver_lb.whileTrue(Intake_Set_RPM(intake=self.intake, rpm=2500))
+        js.driver_back.whileTrue(Intake_Set_RPM(intake=self.intake, rpm=0))
+        js.driver_x.onTrue(Intake_Deploy(intake=self.intake, position='up'))
+        js.driver_b.onTrue(Intake_Deploy(intake=self.intake, position='down'))
 
         js.bbox_intake_in.whileTrue(Intake_Set(intake=self.intake, rpm=3000))
         js.bbox_intake_out.whileTrue(Intake_Set(intake=self.intake, rpm=0))
@@ -177,16 +185,35 @@ class RobotContainer:
         # ----------  CO-DRIVER BUTTONS  ---------------
         print("Binding codriver buttons")
 
-        js.bbox_intake_in.whileTrue(Intake_Set(intake=self.intake, rpm=3000))
-        js.bbox_intake_out.whileTrue(Intake_Set(intake=self.intake, rpm=0))
-        js.bbox_intake_up.onTrue(Intake_Deploy(intake=self.intake, direction='up'))
-        js.bbox_intake_down.onTrue(Intake_Deploy(intake=self.intake, direction='down'))
+    def bind_bbox_buttons(self) -> None:
+        print("Binding bbox buttons")
 
-        js.bbox_shoot.onTrue(CalibrateIntake(intake=self.intake))
-        js.bbox_shoot.whileTrue(ShootingCommand(shooter=self.shooter, targeting=self.targeting))
-        # js.driver_right.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=1))
-        # js.driver_left.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=-1))
-        js.bbox_shoot_override.whileTrue(StopShooter(shooter=self.shooter))
+        js.bbox_1_3.whileTrue(SwerveTest(container=self, swerve=self.swerve))
+
+        # test the intake deploy positions on the L1-L4 buttons
+        js.bbox_2_1.whileTrue(CalibrateIntake(intake=self.intake))
+        js.bbox_2_2.onTrue(Intake_Deploy(intake=self.intake, position='down'))
+        js.bbox_2_3.onTrue(Intake_Deploy(intake=self.intake, position='shoot'))
+        js.bbox_2_4.onTrue(Intake_Deploy(intake=self.intake, position='up'))
+
+        # test the intake speed
+        js.bbox_AB.onTrue(Intake_Set_RPM(intake=self.intake, rpm=0))
+        js.bbox_CD.whileTrue(Intake_Set_RPM(intake=self.intake, rpm=2500))
+        js.bbox_EF.whileTrue(Intake_Set_RPM(intake=self.intake, rpm=3000))
+
+        # test the shooting commands
+        js.bbox_2_6.whileTrue(ShootingCommand(shooter=self.shooter, targeting=self.targeting))
+        js.bbox_2_8.whileTrue(StopShooter(shooter=self.shooter))
+
+        # this is a combo of shooting commands
+        js.bbox_2_7.whileTrue(commands2.ParallelCommandGroup(
+            ShootingCommand(shooter=self.shooter, targeting=self.targeting),
+            Intake_Deploy(intake=self.intake, position='shoot'),
+        ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=0)))
+        # does not work as an "andThen" for some reason
+        js.bbox_2_7.onFalse(Intake_Deploy(intake=self.intake, position='down'))
+
+
 
     def initialize_dashboard(self):
         # ----------  DASHBOARD COMMANDS  ---------------

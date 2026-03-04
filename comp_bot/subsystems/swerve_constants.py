@@ -149,7 +149,7 @@ class DriveConstants:
         'config_cls': SparkFlexConfig,
         'free_speed_rpm': 6784,
         'modules': {
-            'LF': {'driving_can': 21, 'turning_can': 20, 'port': 3, 'turning_offset': sf * 0.083},
+            'LF': {'driving_can': 21, 'turning_can': 20, 'port': 3, 'turning_offset': sf * 0.511},  # .475 worked then got off then changed to .511
             'LB': {'driving_can': 23, 'turning_can': 22, 'port': 1, 'turning_offset': sf * 0.432},
             'RF': {'driving_can': 25, 'turning_can': 24, 'port': 2, 'turning_offset': sf * 0.071},
             'RB': {'driving_can': 27, 'turning_can': 26, 'port': 0, 'turning_offset': sf * 0.035}
@@ -177,7 +177,7 @@ class DriveConstants:
         print(f'YOU ARE IN ENCODER ALIGNMENT TEST MODE -- DO NOT DRIVE!!!')
         # read the raw numbers from the encoders so we can write them all down for a given robot
         k_analog_encoder_scale_factor = 1.0  # override so we get the raw reading between 0 and 1
-        for key in ['LF', 'RF', 'LB', 'RB'] :
+        for key in ['LF', 'RF', 'LB', 'RB']:
             swerve_dict[key]['turning_offset'] = 0
     else:
         pass

@@ -131,7 +131,7 @@ class VisionConstants:
 
 class QuestConstants:
     k_counter_offset = next(_counter)
-    quest_to_robot = Transform2d(inchesToMeters(12.84), inchesToMeters(-6.60), Rotation2d().fromDegrees(90))
+    quest_to_robot = Transform2d(inchesToMeters(12.84), inchesToMeters(-6.60), Rotation2d().fromDegrees(270))
 
 
 class LedConstants:
@@ -168,27 +168,43 @@ class IntakeConstants:
     k_CANID_intake_left_leader = 4  # robot right, does not need inverted
     k_CANID_intake_right_follower = 5  # robot left, needs follower inverted
 
+
+    # Deploy gear box is 7 -> 38 and 18 -> 50,  sprockets are 16 -> 48
+    gear_ratio = 7/38 * 18/50 * 16/48 # one motor turn goes .022 on the outer axle for a stepdown of ~45
+    deploy_degrees_per_motor_rotation = 360 * gear_ratio
     k_deploy_config = SparkFlexConfig()
+    k_deploy_config.encoder.positionConversionFactor(deploy_degrees_per_motor_rotation)  # about 8 degrees per turn
+    k_deploy_config.encoder.velocityConversionFactor(deploy_degrees_per_motor_rotation / 60)  # rpm to degrees per second, about 0.13
+    vortex_max_rpm = 6784  # Vortex rpm at 12 V
+    crank_max_dps = vortex_max_rpm * deploy_degrees_per_motor_rotation / 60  # max degrees per second of the deploy motor at 12V ~
+
     k_deploy_config.inverted(True)
-    k_deploy_config.closedLoop.pidf(5, 0, 0, 1)
+    k_deploy_config.closedLoop.outputRange(-.2, .2, slot=rev.ClosedLoopSlot.kSlot0)
     k_deploy_config.softLimit.forwardSoftLimitEnabled(False)
     k_deploy_config.softLimit.reverseSoftLimitEnabled(False)
+    # Configure MAXMotion (The "Modern" Smart Motion) - Note: "maxMotion" object instead of "smartMotion"
+    # this is the setting for kPosition control - slot0 - WE USE THIS NOW
+    k_deploy_config.closedLoop.pidf(p=1e-2, i=1e-5, d=1e-2, ff=0, slot=rev.ClosedLoopSlot.kSlot0)
+    k_deploy_config.closedLoop.IMaxAccum(0.03, slot=rev.ClosedLoopSlot.kSlot0)
+    k_deploy_config.closedLoop.IZone(3, slot=rev.ClosedLoopSlot.kSlot0) # degrees less than which no I is applied
+    # this is the setting for kMaxMotionPosition control - slot1, TODO - make this work
+    # the problem here is now we are in degrees per second from above, not RPM  - never get rev to work unless no conversion factors
+    k_deploy_config.closedLoop.pidf(p=1e-5, i=0, d=0, ff=1/crank_max_dps, slot=rev.ClosedLoopSlot.kSlot1)
+    k_deploy_config.closedLoop.maxMotion.cruiseVelocity(250, slot=rev.ClosedLoopSlot.kSlot1)
+    k_deploy_config.closedLoop.maxMotion.maxAcceleration(500, slot=rev.ClosedLoopSlot.kSlot1)
+    k_deploy_config.closedLoop.maxMotion.allowedClosedLoopError(0, slot=rev.ClosedLoopSlot.kSlot1)
+    ks_volts = 0.5
 
     k_intake_crank_voltage = .5  # volts for now
     k_deploy_current_peak = 35  # amps for now
     k_top_angle = 147  # degrees when at top position
     k_bottom_angle = 0  # degrees when at bottom position
+    k_shooting_angle = 60  # degrees when in shooting position - this is a guess, will need to be tuned
 
     k_intake_left_leader_config, k_intake_right_follower_config = SparkMaxConfig(), SparkMaxConfig()
     k_intake_configs = [k_intake_left_leader_config, k_intake_right_follower_config, k_deploy_config]
     k_test_rpm = 1000  # pi * diameter roller / 60  to get inches per second
     k_fastest_rpm = 60
-    # gear box is 7 -> 38 -> 18 -> 50
-    # sprockets are 16 -> 48
-    gear_ratio = 7/38 * 18/50 * 16/48 # .066 or ~15
-
-    k_deploy_config.encoder.positionConversionFactor(360 * gear_ratio)
-    k_deploy_config.encoder.velocityConversionFactor(360 / gear_ratio * 60)  # now we are radians per second
 
     allowed_rpms = [0, 60] + [i for i in range(2000, 5601, 250)]
 
@@ -302,7 +318,7 @@ class ClimberConstants:
     k_climber_configs = [k_climber_config]
     k_test_rpm = 20  # pi * diameter roller / 60  to get inches per second
     k_fastest_rpm = 60
-    k_CANID_motor = 0
+    k_CANID_motor = 1
     k_number_of_encoder_ticks_per_motor_rotation = 42  # number of encoder ticks per wheel rotation, either 42 or 7000
     k_position_conversion_factor = .2  # TODO number of inches per encoder tick, this is wrong right now IDK what it is if their is a gear box etc
     # k_position_conversion_factor = (k_wheel_diameter_in * math.pi * k_meter_per_inch / k_gear_ratio) ?

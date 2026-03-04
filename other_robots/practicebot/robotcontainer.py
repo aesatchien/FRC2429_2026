@@ -49,8 +49,8 @@ from commands.increment_shooter import IncrementShooter
 from commands.stop_shooter import StopShooter
 
 from commands.shooting_command import ShootingCommand
-from commands.intake_set import Intake_Set
-from commands.intake_deploy import Intake_Deploy
+from commands.intake_set import IntakeSet
+from commands.intake_deploy import IntakeDeploy
 
 
 class RobotContainer:
@@ -113,16 +113,16 @@ class RobotContainer:
             js.driver_left.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(0, dpad_output, 0), timeout=10))
             js.driver_right.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(0, -dpad_output, 0), timeout=10))
         else:
-            js.driver_up.whileTrue(Intake_Deploy(intake=self.intake, direction='down'))
+            js.driver_up.whileTrue(IntakeDeploy(intake=self.intake, direction='down'))
             js.driver_right.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=1))
             js.driver_left.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=-1))
             js.driver_down.whileTrue(StopShooter(shooter=self.shooter))
 
         # --- Subsystems ---
-        js.driver_lb.whileTrue(Intake_Set(intake=self.intake, rpm=2500))
-        js.driver_back.whileTrue(Intake_Set(intake=self.intake, rpm=0))
-        js.driver_x.whileTrue(Intake_Deploy(intake=self.intake, direction='up'))
-        js.driver_b.whileTrue(Intake_Deploy(intake=self.intake, direction='down'))
+        js.driver_lb.whileTrue(IntakeSet(intake=self.intake, rpm=2500))
+        js.driver_back.whileTrue(IntakeSet(intake=self.intake, rpm=0))
+        js.driver_x.whileTrue(IntakeDeploy(intake=self.intake, direction='up'))
+        js.driver_b.whileTrue(IntakeDeploy(intake=self.intake, direction='down'))
         js.driver_rb.whileTrue(ShootingCommand(shooter=self.shooter, rpm=3500, mode="settoincrement"))
 
         # js.driver_l_trigger.whileTrue(Intake_Set(intake=self.intake, rpm=2500))

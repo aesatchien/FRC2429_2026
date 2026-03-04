@@ -4,12 +4,12 @@ from helpers.log_command import log_command  # outsource explicit logging clutte
 from subsystems.intake import Intake
 
 @log_command(console=True, nt=False, print_init=True, print_end=False)  # will print start and end messages
-class Intake_Set(commands2.Command):  # change the name for your command
+class IntakeSet(commands2.Command):  # change the name for your command
 
 
     def __init__(self, intake: Intake, rpm=1000, on_start=False, indent=0) -> None:
         super().__init__()
-        self.setName('Intake_Set')  # change this to something appropriate for this command
+        self.setName('IntakeSet')  # change this to something appropriate for this command
         self.rpm = rpm
         self.intake = intake
         self.indent = indent

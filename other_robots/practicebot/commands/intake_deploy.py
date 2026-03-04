@@ -6,12 +6,12 @@ from helpers.log_command import log_command  # outsource explicit logging clutte
 from subsystems.intake import Intake
 
 @log_command(console=True, nt=False, print_init=True, print_end=False)  # will print start and end messages
-class Intake_Deploy(commands2.Command):  # change the name for your command
+class IntakeDeploy(commands2.Command):  # change the name for your command
 
 
     def __init__(self, intake: Intake, direction='up', on_start=False, indent=0) -> None:
         super().__init__()
-        self.setName('Intake_Deploy')  # change this to something appropriate for this command
+        self.setName('IntakeDeploy')  # change this to something appropriate for this command
         self.direction = direction
         self.intake = intake
         self.indent = indent
@@ -26,9 +26,9 @@ class Intake_Deploy(commands2.Command):  # change the name for your command
         pass
 
     def execute(self) -> None:
-
-        self.intake.zero(down=False)
-        self.extra_log_info += self.deploy_encoder.getPosition()
+        pass
+        # self.intake.zero(down=False)  # WHAT?
+        # self.extra_log_info += self.deploy_encoder.getPosition()
         # self.intake.set_down(down=True) if self.direction == 'down' else self.intake.set_down(down=False)
 
         # intake_crank_voltage = ic.k_intake_crank_voltage

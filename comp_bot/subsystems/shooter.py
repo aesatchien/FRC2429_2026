@@ -23,10 +23,10 @@ class Shooter(Subsystem):
         self.indexer_left_leader = rev.SparkMax(sc.k_CANID_indexer_left_leader, motor_type)
         self.indexer_right_follower = rev.SparkMax(sc.k_CANID_indexer_right_follower, motor_type)
 
-        self.flywheel_left_leader = rev.SparkMax(sc.k_CANID_flywheel_left_leader, motor_type)
-        self.flywheel_right_follower = rev.SparkMax(sc.k_CANID_flywheel_right_follower, motor_type)
+        self.flywheel_left_leader = rev.SparkFlex(sc.k_CANID_flywheel_left_leader, motor_type)
+        self.flywheel_right_follower = rev.SparkFlex(sc.k_CANID_flywheel_right_follower, motor_type)
         # TODO - add rollers here and in list - decide if they are just followers or independent
-        self.roller_motor = rev.SparkMax(sc.k_CANID_flywheel_roller, motor_type)
+        self.roller_motor = rev.SparkFlex(sc.k_CANID_flywheel_roller, motor_type)
 
         # convenient list of motors if we need to query or set all of them - SAME ORDER AS COBSTANTS!
         self.motors = [self.hopper,
@@ -177,7 +177,6 @@ class Shooter(Subsystem):
         self.shooter_on = True
         self.current_roller_rpm = rpm
         self.roller_on = True
-        self.hopper_on = True
 
         self.update_nt()
 

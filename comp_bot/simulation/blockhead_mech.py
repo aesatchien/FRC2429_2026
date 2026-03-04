@@ -229,17 +229,13 @@ class BlockheadMech:
         self.front_wheel_ligament.setAngle(new_front_angle)
         self.front_wheel_ligament_2.setAngle(new_front_angle + 180)
 
-    def update_intake(self, deployed: bool, speed: float):
+    def update_intake(self, angle: float, speed: float):
         # Pivot relative to the vertical post (which is at 90 absolute).
         # Stowed: Folded back/up. Relative angle +60 -> Absolute 150.
         # Deployed: Down to ground. Relative angle -200 -> Absolute -110.
         
         # Note: appendLigament angle is relative to parent. Parent is 90 deg (vertical).
-        # target_angle = -135 if deployed else 30
-        abs_deployed = -45 # 90 - 135
-        abs_stowed = 120   # 90 + 30
-        target_abs = abs_deployed if deployed else abs_stowed
-        self.intake_arm.setAngle(self._get_rel_angle(target_abs, self.abs_intake_post))
+        self.intake_arm.setAngle(self._get_rel_angle(angle, self.abs_intake_post))
         
         # Animate bar moving along the intake arm
         if abs(speed) > 0:
