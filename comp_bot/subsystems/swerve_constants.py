@@ -177,7 +177,7 @@ class DriveConstants:
         print(f'YOU ARE IN ENCODER ALIGNMENT TEST MODE -- DO NOT DRIVE!!!')
         # read the raw numbers from the encoders so we can write them all down for a given robot
         k_analog_encoder_scale_factor = 1.0  # override so we get the raw reading between 0 and 1
-        for key in ['LF', 'RF', 'LB', 'RB'] :
+        for key in ['LF', 'RF', 'LB', 'RB']:
             swerve_dict[key]['turning_offset'] = 0
     else:
         pass

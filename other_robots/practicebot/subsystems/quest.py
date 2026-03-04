@@ -34,6 +34,8 @@ class Questnav(SubsystemBase):
         self.quest_has_synched = False  # use this to check in disabled whether to update the quest with the robot odometry
         self.use_quest = constants.k_use_quest_odometry
         self.quest_pose = Pose2d(-10, -10, Rotation2d.fromDegrees(0)) # initial pose if not connected / tracking
+        self.quest_pose_new = Pose2d(-10, -10, Rotation2d.fromDegrees(0))
+        self.quest_pose_old = Pose2d(-10, -10, Rotation2d.fromDegrees(0))
 
         # Simulation variables
         # Start with a large error to verify syncing works (e.g., Quest thinks world origin off by x=2, y=2)
@@ -119,8 +121,8 @@ class Questnav(SubsystemBase):
 
     def quest_reset_odometry(self) -> None:
         """Reset robot odometry at the Subwoofer."""
-        red_pose = Pose2d(14.0, 4.00, Rotation2d.fromDegrees(0))
-        blue_pose = Pose2d(3., 4.00, Rotation2d.fromDegrees(180))
+        red_pose = Pose2d(13.5, 5.5, Rotation2d.fromDegrees(180))
+        blue_pose = Pose2d(3.5, 2.5, Rotation2d.fromDegrees(0))
 
         if DriverStation.getAlliance() == DriverStation.Alliance.kRed:
             new_pose = red_pose
@@ -191,25 +193,35 @@ class Questnav(SubsystemBase):
 
         self.questnav.command_periodic()
 
-        # todo - this should be simplified
         if wpilib.RobotBase.isReal() or self.questnav.is_connected():
             frames = self.questnav.get_all_unread_pose_frames()
-            for frame in frames:
-                if self.questnav.is_connected() and self.questnav.is_tracking():  # i think RT had a typo here and was checking True vs self.questnav.is_connected (the fn, not the return val)
-                    try:
-                        self.quest_pose = frame.quest_pose_3d.toPose2d().transformBy(self.quest_to_robot)
-                        quest_pose_old = self.quest_pose
-                    except Exception as e:
-                        print(f"Error converting QuestNav Pose3d to Pose2d: {e}")
-                        self.quest_pose = quest_pose_old  # use last good pose in cases of error
-                        continue
+            frame_last = frames[-1] if len(frames) > 0 else None # only read the last frame if multiple are available
 
+            try:
+                # suppressing jumps - basic filter
+                self.quest_pose_old = self.quest_pose_new
+                self.quest_pose_new = frame_last.quest_pose_3d.toPose2d().transformBy(self.quest_to_robot)
+                translation = self.quest_pose_new.translation() - self.quest_pose_old.translation()
+                rotation = self.quest_pose_new.rotation() - self.quest_pose_old.rotation()
+
+                if translation.norm() < 1.0 and abs(rotation.degrees()) < 10.0:
+                    # No jump detected, accept new pose
+                    self.quest_pose = self.quest_pose_new
+                else:
+                    # Jump detected, ignore new pose
+                    print(f"Questnav pose jump detected: Δtranslation={translation.norm():.3f} m, Δrot={rotation.degrees():.2f} deg")
+                    self.quest_pose = self.quest_pose_old  # use last good pose in cases of error
+
+            except Exception as e:
+                    # print(f"Error converting QuestNav Pose3d to Pose2d: {e}")
+                    self.quest_pose = self.quest_pose_old  # use last good pose in cases of error
+            
         else:  # simulate a pose read ground truth from sim and apply the current "drift/error" of the Quest
             
             # Add a random walk to the error to simulate drift
             self.sim_offset_from_truth = Transform2d(
-                self.sim_offset_from_truth.X() + (random.random() - 0.5) * 2 * self.walk_xy,
-                self.sim_offset_from_truth.Y() + (random.random() - 0.5) * 2 * self.walk_xy,
+                self.sim_offset_from_truth.X() + (random.random() - 0.5) * 0.1 * self.walk_xy,
+                self.sim_offset_from_truth.Y() + (random.random() - 0.5) * 0.1 * self.walk_xy,
                 Rotation2d.fromDegrees(self.sim_offset_from_truth.rotation().degrees() + (random.random() - 0.5) * 2 * self.walk_deg)
             )
 
@@ -222,11 +234,6 @@ class Questnav(SubsystemBase):
                 ground_truth.rotation() + self.sim_offset_from_truth.rotation()
             )
 
-        # does this belong here?  not sure what it's for - CJH
-        # self.quest_pose = self.get_pose().transformBy(self.quest_to_robot)
-
-        # why do we need more than one field?  does this get read by the quest itself
-        # self.quest_field.setRobotPose(self.quest_pose)
 
         if self.counter % 10 == 0:
             if 0 < self.quest_pose.x < 17.658 and 0 < self.quest_pose.y < 8.131 and self.questnav.is_connected():
