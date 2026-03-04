@@ -131,7 +131,7 @@ class VisionConstants:
 
 class QuestConstants:
     k_counter_offset = next(_counter)
-    quest_to_robot = Transform2d(inchesToMeters(12.84), inchesToMeters(-6.60), Rotation2d().fromDegrees(90))
+    quest_to_robot = Transform2d(inchesToMeters(12.84), inchesToMeters(-6.60), Rotation2d().fromDegrees(270))
 
 
 class LedConstants:
