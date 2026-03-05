@@ -3,10 +3,12 @@
 import typing
 import wpilib
 import commands2
+from wpimath.units import inchesToMeters
 
 from helpers import log_command
 from robotcontainer import RobotContainer
 from subsystems.led import Led  # allows indexing of LED colors
+from simulation.blockhead_mech import BlockheadMech
 
 wpilib.DriverStation.silenceJoystickConnectionWarning(True)
 
@@ -29,6 +31,7 @@ class MyRobot(commands2.TimedCommandRobot):
         # autonomous chooser on the dashboard.
         self.container = RobotContainer()
         self.alliance_zone = None
+        self.mech = BlockheadMech()
 
     def disabledInit(self) -> None:
         """This function is called once each time the robot enters Disabled mode."""
@@ -107,10 +110,28 @@ class MyRobot(commands2.TimedCommandRobot):
     def robotPeriodic(self) -> None:
         # commented out 2025 0305 CJH - this should never have been in here
         # wpilib.SmartDashboard.putNumber("ajs turn commanded", self.container.driver_command_controller.getRightX())
-        return super().robotPeriodic()
-    
-    def allianceInform(self):
-        return self.alliance_zone
+        super().robotPeriodic()
+
+        # Update Mechanism2d visualization (works on Real Robot and Sim)
+        if self.mech:
+            # Intake
+            self.mech.update_intake(angle=self.container.intake.get_setpoint(),
+                                    speed=1.0 if self.container.intake.intake_on else 0.0)
+
+            # Shooter
+            self.mech.update_hopper(1 if self.container.shooter.hopper_on else 0)
+            if self.container.shooter.indexer_on:
+                indexer_speed = 1 if self.container.shooter.get_indexer_rpm() > 0 else -1
+            else:
+                indexer_speed = 0
+            self.mech.update_indexer(indexer_speed)
+            self.mech.update_shooter(self.container.shooter.current_rpm if self.container.shooter.shooter_on else 0)
+
+            # Climber & Ball
+            if hasattr(self.container, 'climber'):
+                self.mech.update_climber(height_from_ground=inchesToMeters(self.container.climber.get_pos()))
+            self.mech.update_ball(inchesToMeters(45), inchesToMeters(2))
+
 
 if __name__ == "__main__":
     wpilib.run(MyRobot)

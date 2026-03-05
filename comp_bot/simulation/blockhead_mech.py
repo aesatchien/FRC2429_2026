@@ -259,6 +259,8 @@ class BlockheadMech:
             self.indexer_anim_dist += speed * inchesToMeters(0.1)
             if self.indexer_anim_dist > self.indexer_length:
                 self.indexer_anim_dist = 0
+            if self.indexer_anim_dist < 0:
+                self.indexer_anim_dist = self.indexer_length
             self.indexer_spacer.setLength(self.indexer_anim_dist)
 
     def update_shooter(self, rpm: float):

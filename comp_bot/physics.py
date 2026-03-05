@@ -14,7 +14,6 @@ from simulation import sim_utils
 from simulation.swerve_sim import SwerveSim
 from simulation.gamepiece_sim import GamepieceSim
 from simulation.vision_sim import VisionSim
-from simulation.blockhead_mech import BlockheadMech
 from subsystems.climber import Climber
 
 class PhysicsEngine:
@@ -37,7 +36,6 @@ class PhysicsEngine:
         self.swerve_sim = SwerveSim(physics_controller, robot)
         self.gamepiece_sim = GamepieceSim(self.field)
         self.vision_sim = VisionSim(self.field)
-        self.mech = BlockheadMech()
 
         # Ghost Robot linger state
         self.last_ghost_update_time = 0
@@ -92,28 +90,3 @@ class PhysicsEngine:
             if now - self.last_ghost_update_time > self.ghost_linger_duration:
                 self.target_object.setPoses([])
                 self.shotline_object.setPoses([])
-
-        # ----------------- Update Mechanisms (Stubs) -----------------
-        # For now, just calling them to ensure no errors until subsystems are built
-        
-        # Animate drivetrain wheels based on forward speed
-        chassis_velocity = 0.5 if int(wpilib.getTime()) % 5 == 0 else 0
-        self.mech.update_drivetrain(chassis_velocity)
-        
-        # Animate intake deployment based on whether it's running
-        test_state: bool = True if int(wpilib.getTime()) % 2 == 0 else False
-        intake_state: bool = self.container.intake.intake_on
-        intake_postion = self.container.intake.get_setpoint()
-        #self.mech.update_intake(self.container.intake.intake_on, self.container.intake.get_velocity())
-        self.mech.update_intake(angle=intake_postion, speed=1.0 if intake_state else 0.0)
-        
-        self.mech.update_hopper(1 if self.container.shooter.hopper_on else 0)
-        self.mech.update_indexer(1 if self.container.shooter.indexer_on else 0)
-        self.mech.update_shooter(self.container.shooter.current_rpm if self.container.shooter.shooter_on else 0)
-
-
-        #climber_height = inchesToMeters(22 + 8 * math.sin(1 * wpilib.getTime()))  # 22±8 inches
-        self.mech.update_climber(height_from_ground=inchesToMeters(self.container.climber.get_pos()))  # sets the climber's position to one of the three possible heights of bar
-
-        # Update ball position (static for now)
-        self.mech.update_ball(inchesToMeters(45), inchesToMeters(2))
