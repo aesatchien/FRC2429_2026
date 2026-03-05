@@ -151,8 +151,6 @@ class RobotContainer:
         # js.driver_l_trigger.whileTrue(Intake_Set(intake=self.intake, rpm=2500))
         # js.driver_r_trigger.whileTrue(ShootingCommand(shooter=self.shooter, rpm=5000))
 
-
-
         # --- Vision & Automation ---
         # Align to Pose (Front/Left)
         #js.driver_a.debounce(0.1).whileTrue(AutoToPoseClean(self, self.swerve, target_pose=None, use_vision=True, cameras=['logi_front_hsv'], control_type='not_pathplanner'))
@@ -170,9 +168,6 @@ class RobotContainer:
 
         # js.driver_l_trigger.debounce(0.1).whileTrue(RobotClimb(climber=self.climber, move_up=False, indent=0))
         # js.driver_r_trigger.debounce(0.1).whileTrue(RobotClimb(climber=self.climber, move_up=True, indent=0))
-
-
-
 
         # --- Debug & Simulation ---
         # test a setting of the swerve modules straight before running the auto to tag
