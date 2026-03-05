@@ -120,7 +120,11 @@ class MyRobot(commands2.TimedCommandRobot):
 
             # Shooter
             self.mech.update_hopper(1 if self.container.shooter.hopper_on else 0)
-            self.mech.update_indexer(1 if self.container.shooter.indexer_on else 0)
+            if self.container.shooter.indexer_on:
+                indexer_speed = 1 if self.container.shooter.get_indexer_rpm() > 0 else -1
+            else:
+                indexer_speed = 0
+            self.mech.update_indexer(indexer_speed)
             self.mech.update_shooter(self.container.shooter.current_rpm if self.container.shooter.shooter_on else 0)
 
             # Climber & Ball
