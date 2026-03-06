@@ -92,7 +92,7 @@ COMMAND_LIST = ['MoveElevatorTop', 'MoveElevatorUp', 'MoveElevatorDown', 'MovePi
 # todo - somehow make the camera names all update from a config file, but that means ui and robot code need to know
 DEFAULT_CAMERA = 'ardu_right'  # used in camera worker as the one to go to first - can do switching logic there
 CAMERA_BASE_CONFIG = {
-    'ardu_right': {'URL': 'http://10.24.29.12:1186/stream.mjpg',
+    'arducam_right': {'URL': 'http://10.24.29.12:1186/stream.mjpg',
                    'BASE_TOPIC': 'ArducamRight',
                      'NICKNAME': 'ARDU RIGHT',
                       'INDICATOR_INDEX': 0},
