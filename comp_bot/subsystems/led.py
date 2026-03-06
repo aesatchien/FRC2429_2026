@@ -31,13 +31,18 @@ class Led(commands2.Subsystem):
                    'animation_data': [(int(150 + 60 * (i / constants.LedConstants.k_led_count)), 255, 255) for i in range(constants.LedConstants.k_led_count)], 'use_hsv': True, 'use_mode': False}
         kPOLKA = {'name': "POLKA", "on_color": None, "off_color": None, "animated": True, "frequency": 2, "duty_cycle": None,
                   'animation_data': [(255, 255, 255) if i % 2 == 0 else (0, 0, 0) for i in range(constants.LedConstants.k_led_count)], 'use_hsv': False, 'use_mode': False}
-        # non-animated indicators
+        # non-animated indicators (flashing is not an animation)
         kSUCCESS = {'name': "SUCCESS", "on_color": [0, 255, 0], "off_color": [0, 0, 0],             "animated": False, "frequency": 3, "duty_cycle": 0.5, 'use_mode': False}
         kSUCCESSFLASH = {'name': "SUCCESS + MODE", "on_color": [0, 255, 0], "off_color": [0, 0, 0], "animated": False, "frequency": 3, "duty_cycle": 0.5, 'use_mode': True}
         kWHITEFLASH = {'name': "SUCCESS + MODE", "on_color": [255, 255, 255], "off_color": [0, 0, 0], "animated": False, "frequency": 10, "duty_cycle": 0.5, 'use_mode': False}
         kFAILURE = {'name': "FAILURE", "on_color": [255, 0, 0], "off_color": [0, 0, 0],             "animated": False, "frequency": 3, "duty_cycle": 0.5, 'use_mode': False}
         kFAILUREFLASH = {'name': "FAILURE + MODE", "on_color": [255, 0, 0], "off_color": [0, 0, 0], "animated": False, "frequency": 3, "duty_cycle": 0.5, 'use_mode': True}
         kNONE = {'name': "NONE", "on_color": [255, 0, 0], "off_color": [0, 0, 0],                   "animated": False, "frequency": 3, "duty_cycle": 0.5, 'use_mode': False}
+
+        # Rebuilt specific indicators
+        kINTAKEON = {'name': "INTAKEON", "on_color": [255, 255, 0], "off_color": [0, 0, 0],         "animated": False, "frequency": 3, "duty_cycle": 1, 'use_mode': False}
+        kINTAKEOFF = {'name': "INTAKEOFF", "on_color": [255, 255, 0], "off_color": [0, 0, 0],       "animated": False, "frequency": 4, "duty_cycle": 0.5, 'use_mode': False}
+
 
     class Mode(Enum):
         """ Mode class is for showing robot's current scoring mode and is the default during teleop """
@@ -180,15 +185,21 @@ class Led(commands2.Subsystem):
 
                     # Calculate duty cycle timing
                     duty_cycle = self.indicator.value.get("duty_cycle", 0.5)  # Default to 50% if not specified
-                    on_time = period * duty_cycle
-                    off_time = period * (1 - duty_cycle)
-
-                    if self.toggle_state and time_since_toggle >= on_time:
-                        self.toggle_state = False
-                        self.last_toggle_time = current_time
-                    elif not self.toggle_state and time_since_toggle >= off_time:
+                    
+                    if duty_cycle >= 1.0:
                         self.toggle_state = True
-                        self.last_toggle_time = current_time
+                    elif duty_cycle <= 0.0:
+                        self.toggle_state = False
+                    else:
+                        on_time = period * duty_cycle
+                        off_time = period * (1 - duty_cycle)
+
+                        if self.toggle_state and time_since_toggle >= on_time:
+                            self.toggle_state = False
+                            self.last_toggle_time = current_time
+                        elif not self.toggle_state and time_since_toggle >= off_time:
+                            self.toggle_state = True
+                            self.last_toggle_time = current_time
 
                     # Determine color based on toggle state
                     if self.toggle_state:

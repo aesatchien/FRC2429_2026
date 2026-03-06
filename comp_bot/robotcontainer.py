@@ -111,7 +111,7 @@ class RobotContainer:
         js.driver_a.whileTrue(commands2.ParallelCommandGroup(
             ShootingCommand(shooter=self.shooter, targeting=self.targeting),
             Intake_Deploy(intake=self.intake, position='shoot'),
-        ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=0)))
+        ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
         # does not work as an "andThen" for some reason
         js.driver_a.onFalse(Intake_Deploy(intake=self.intake, position='down'))
 
@@ -131,8 +131,8 @@ class RobotContainer:
             js.driver_down.whileTrue(StopShooter(shooter=self.shooter))
 
         # --- Subsystems ---
-        js.driver_lb.whileTrue(Intake_Set_RPM(intake=self.intake, rpm=2500))
-        js.driver_back.whileTrue(Intake_Set_RPM(intake=self.intake, rpm=0))
+        js.driver_lb.onTrue(Intake_Set_RPM(intake=self.intake, rpm=2500, led=self.led))
+        js.driver_back.onTrue(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
         js.driver_x.onTrue(Intake_Deploy(intake=self.intake, position='up'))
         js.driver_b.onTrue(Intake_Deploy(intake=self.intake, position='down'))
 
@@ -192,9 +192,9 @@ class RobotContainer:
         js.bbox_2_4.onTrue(Intake_Deploy(intake=self.intake, position='up'))
 
         # test the intake speed
-        js.bbox_AB.onTrue(Intake_Set_RPM(intake=self.intake, rpm=0))
-        js.bbox_CD.whileTrue(Intake_Set_RPM(intake=self.intake, rpm=2500))
-        js.bbox_EF.whileTrue(Intake_Set_RPM(intake=self.intake, rpm=3000))
+        js.bbox_AB.onTrue(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
+        js.bbox_CD.whileTrue(Intake_Set_RPM(intake=self.intake, rpm=2500, led=self.led))
+        js.bbox_EF.whileTrue(Intake_Set_RPM(intake=self.intake, rpm=3000, led=self.led))
 
         # test the shooting commands
         js.bbox_2_6.whileTrue(ShootingCommand(shooter=self.shooter, targeting=self.targeting))
@@ -204,7 +204,7 @@ class RobotContainer:
         js.bbox_2_7.whileTrue(commands2.ParallelCommandGroup(
             ShootingCommand(shooter=self.shooter, targeting=self.targeting),
             Intake_Deploy(intake=self.intake, position='shoot'),
-        ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=0)))
+        ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
         # does not work as an "andThen" for some reason
         js.bbox_2_7.onFalse(Intake_Deploy(intake=self.intake, position='down'))
 
@@ -230,8 +230,8 @@ class RobotContainer:
         wpilib.SmartDashboard.putData(f'{command_prefix}/SetSuccess', SetLEDs(container=self, led=self.led, indicator=Led.Indicator.kSUCCESS))
         wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeRetract', Intake_Deploy(intake=self.intake, position='up'))
         wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeDeploy', Intake_Deploy(intake=self.intake, position='down'))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeStart', Intake_Set_RPM(intake=self.intake, rpm=3000))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeStop', Intake_Set_RPM(intake=self.intake, rpm=0))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeStart', Intake_Set_RPM(intake=self.intake, rpm=3000, led=self.led))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeStop', Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
         wpilib.SmartDashboard.putData(f'{command_prefix}/IndexerStart', commands2.InstantCommand(lambda: self.shooter.set_indexer_rpm(constants.ShooterConstants.k_indexer_rpm)))
         wpilib.SmartDashboard.putData(f'{command_prefix}/IndexerStop',commands2.InstantCommand(lambda: self.shooter.stop_indexer()))
         wpilib.SmartDashboard.putData(f'{command_prefix}/HopperStart', commands2.InstantCommand(lambda: self.shooter.set_hopper_rpm(constants.ShooterConstants.k_hopper_rpm)))
