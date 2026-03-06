@@ -7,7 +7,7 @@ import math
 from helpers.log_command import log_command
 
 
-@log_command(console=True, nt=False, print_init=True, print_end=True)
+@log_command(console=True, nt=False, print_init=True, print_end=False)
 class ResetFieldCentric(commands2.Command):
 
     def __init__(self, container, swerve: Swerve, angle: float=0, indent=0) -> None:

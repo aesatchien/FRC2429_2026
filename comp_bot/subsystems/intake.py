@@ -122,7 +122,7 @@ class Intake(Subsystem):
         ks = 0.0  # TODO - see if we need one - we may need to actually model it as an arm for best performance
         self.deploy_controller.setReference(setpoint=angle, ctrl=SparkLowLevel.ControlType.kPosition,
                                              slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=ks)
-        print(f'  -- position to {angle:.0f}')  # TODO - delete after testing
+        # print(f'  -- intake position to {angle:.0f}')  # TODO - delete after testing
         self.deployed_angle = angle
         self.setpoint = angle
         self.deployed = True if angle < 45 else False  # not sure about this - we will have a shooting position too

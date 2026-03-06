@@ -120,7 +120,7 @@ class Shooter(Subsystem):
     def stop_indexer(self):
         # setting everything off, then updating
         self.indexer_controller.setReference(setpoint=0, ctrl=SparkLowLevel.ControlType.kMAXMotionVelocityControl, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=0)
-        print("Setting indexer rpm to 0")
+        print("  setting indexer rpm to 0")
         self.indexer_on = False
         self.current_indexer_rpm = 0
 
@@ -129,7 +129,7 @@ class Shooter(Subsystem):
     def stop_hopper(self):
         # setting everything off, then updating
         self.hopper_controller.setReference(setpoint=0, ctrl=SparkLowLevel.ControlType.kMAXMotionVelocityControl, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=0)
-        print("Setting hopper rpm to 0")
+        print("  setting hopper rpm to 0")
         self.hopper_on = False
         self.current_hopper_rpm = 0
 
@@ -141,12 +141,12 @@ class Shooter(Subsystem):
         # direction: 1 for faster, -1 for slower, 0 for same
         self.current_index = max(0, min(len(sc.allowed_shooter_rpms) - 1, self.current_index + change_speed))
         self.default_rpm = sc.allowed_shooter_rpms[self.current_index]
-        print("Shooting is now set to", self.default_rpm)
+        print("  shooting is now set to", self.default_rpm)
     
     def set_indexer_rpm(self, rpm=1000):
         feed_forward = min(12, 12 * rpm / 5600)
         self.indexer_controller.setReference(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
-        print(f"Setting indexer rpm to {rpm:.0f}")
+        print(f"  setting indexer rpm to {rpm:.0f}")
         self.current_indexer_rpm = rpm
         self.indexer_on = True
         self.update_nt()
@@ -157,7 +157,7 @@ class Shooter(Subsystem):
     def set_hopper_rpm(self, rpm=1000):
         feed_forward = min(12, 12 * rpm / 5600)
         self.hopper_controller.setReference(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
-        print(f"Setting hopper rpm to {rpm:.0f}")
+        print(f"  setting hopper rpm to {rpm:.0f}")
         self.current_hopper_rpm = rpm
         self.hopper_on = True
         self.update_nt()
