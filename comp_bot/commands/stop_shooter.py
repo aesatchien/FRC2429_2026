@@ -3,7 +3,7 @@ from helpers.log_command import log_command  # outsource explicit logging clutte
 
 from subsystems.shooter import Shooter
 
-@log_command(console=True, nt=False, print_init=True, print_end=True)  # will print start and end messages
+@log_command(console=True, nt=False, print_init=True, print_end=False)  # will print start and end messages
 class StopShooter(commands2.Command):  # change the name for your command
 
 

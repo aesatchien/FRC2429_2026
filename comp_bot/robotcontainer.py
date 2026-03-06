@@ -124,7 +124,7 @@ class RobotContainer:
             js.driver_left.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(0, dpad_output, 0), timeout=10))
             js.driver_right.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(0, -dpad_output, 0), timeout=10))
         else:
-            js.driver_up.onTrue(CalibrateIntake(intake=self.intake))
+            js.driver_up.whileTrue(CalibrateIntake(intake=self.intake))
             js.driver_left.whileTrue(ShootingCommand(shooter=self.shooter, targeting=self.targeting))
             #js.driver_right.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=1))
             #js.driver_left.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=-1))
@@ -228,19 +228,30 @@ class RobotContainer:
 
         # experimental, not used on dash
         wpilib.SmartDashboard.putData(f'{command_prefix}/SetSuccess', SetLEDs(container=self, led=self.led, indicator=Led.Indicator.kSUCCESS))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeRetract', Intake_Deploy(intake=self.intake, position='up'))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeDeploy', Intake_Deploy(intake=self.intake, position='down'))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeStart', Intake_Set_RPM(intake=self.intake, rpm=3000))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeStop', Intake_Set_RPM(intake=self.intake, rpm=0))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/IndexerStart', commands2.InstantCommand(lambda: self.shooter.set_indexer_rpm(constants.ShooterConstants.k_indexer_rpm)))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/IndexerStop',commands2.InstantCommand(lambda: self.shooter.stop_indexer()))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/HopperStart', commands2.InstantCommand(lambda: self.shooter.set_hopper_rpm(constants.ShooterConstants.k_hopper_rpm)))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/HopperStop',commands2.InstantCommand(lambda: self.shooter.stop_hopper()))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/ShooterStop', StopShooter(shooter=self.shooter))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/ShooterStart', commands2.InstantCommand(lambda: self.shooter.set_shooter_rpm(constants.ShooterConstants.k_shooter_test_speed)))
+
 
         # commands for pyqt dashboard - please do not remove
-        COMMAND_LIST = [CANStatus(container=self), ]
+        COMMAND_LIST = [CANStatus(container=self),
+                        ResetFieldCentric(container=self, swerve=self.swerve, angle=0)]
         for cmd in COMMAND_LIST:
             wpilib.SmartDashboard.putData(f'{command_prefix}/{cmd.getName()}', cmd)
         #wpilib.SmartDashboard.putData(f'{command_prefix}/CANStatus', CANStatus(container=self))
 
         # You can and should use the exact same list of commands in the gui to watch for
         # These are left in to demonstrate a complete UI - the real one will be full of Commands (python classes), not strings
-        FAKE_COMMAND_LIST = ['MoveElevatorTop', 'MoveElevatorUp', 'MoveElevatorDown', 'MovePivotUp', 'MovePivotDown',
-            'MoveWristUp', 'MoveWristDown', 'IntakeOn', 'IntakeOff', 'IntakeReverse', 'MoveClimberDown',
-            'MoveClimberUp', 'GoToStow', 'GoToL1', 'GoToL2', 'GoToL3', 'GoToL4', 'CanStatus', 'ResetFlex',
-            'CalElevatorUp', 'CalElevatorDown', 'RecalWrist', 'CalWristUp', 'CalWristDown', 'GyroReset']
+        FAKE_COMMAND_LIST = [
+            # 'IntakeReverse', 'MoveClimberDown', 'MoveClimberUp', 'ResetFlex', 'GyroReset',
+            'FakeCommand']
         for cmd in FAKE_COMMAND_LIST:
             # The `lambda cmd=cmd:` is a common Python technique called the "default argument hack".
             # Lambdas in loops have "late binding," meaning they capture the variable `cmd`, not its value.
@@ -248,7 +259,7 @@ class RobotContainer:
             # because that's what `cmd` is when the loop finishes.
             # By setting `cmd=cmd` as a default argument, we force the lambda to capture
             # the *current* value of `cmd` during each iteration of the loop.
-            wpilib.SmartDashboard.putData(f'{command_prefix}/{cmd}', commands2.InstantCommand(lambda cmd: print(f'Called {cmd} at {wpilib.Timer.getFPGATimestamp():.1f}s'))
+            wpilib.SmartDashboard.putData(f'{command_prefix}/{cmd}', commands2.InstantCommand(lambda cmd=cmd: print(f'Called {cmd} at {wpilib.Timer.getFPGATimestamp():.1f}s'))
                                           .alongWith(commands2.WaitCommand(2)).ignoringDisable(True))
 
         # end pyqt dashboard section
