@@ -1,4 +1,6 @@
 import commands2
+import wpilib
+
 from helpers.log_command import log_command  # outsource explicit logging clutter to a single line
 
 from constants import ShooterConstants as sc
@@ -10,7 +12,7 @@ from subsystems.targeting import Targeting
 class ShootingCommand(commands2.Command):  # change the name for your command
 
 
-    def __init__(self, shooter: Shooter, targeting: Targeting, indent=0) -> None:
+    def __init__(self, shooter: Shooter, targeting: Targeting, indent=0, auto_timeout=None) -> None:
         super().__init__()
         self.setName('Shooting') # change this to something appropriate for this command
         self.indent = indent
@@ -22,6 +24,8 @@ class ShootingCommand(commands2.Command):  # change the name for your command
         # we want indexer and hopper to start after .1 seconds or 1/10 seconds. 
         # if it runs 50x per second, 50 * 1/10 is 5, so after 5 cycles, start the indexer and hopper
         self.delay_cycles = 50  # CJH setting this to 1s to be safe - will need to ask the shooter if it is at speed
+        self.auto_timeout = auto_timeout
+        self.timer = wpilib.Timer()
 
     def initialize(self) -> None:
         # Called just before each time this Command runs
@@ -36,6 +40,8 @@ class ShootingCommand(commands2.Command):  # change the name for your command
         self.shooter.set_shooter_rpm(rpm if rpm <= 5600 else sc.k_shooter_max_speed)
         self.shooter.set_indexer_rpm(-500)
         self.shooter.stop_hopper()
+        self.timer.reset()
+        self.timer.start()
 
     def execute(self) -> None:
         self.counter += 1
@@ -52,7 +58,10 @@ class ShootingCommand(commands2.Command):  # change the name for your command
 
     def isFinished(self) -> bool:
         # True: fire once and end; False: run forever until interrupted; logic has it end when code returns True
-        return False
+        if self.auto_timeout is None:
+            return False
+        else:
+            return self.timer.get() > self.auto_timeout
         
     def end(self, interrupted: bool) -> None:
         # put your safe cleanup code here - turn off motors, set LEDs, etc

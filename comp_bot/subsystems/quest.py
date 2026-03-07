@@ -142,6 +142,8 @@ class Questnav(SubsystemBase):
         else:
             # In Real life, "Sync" means agree with the Robot's Odometry
             # Although, really, the swerve sim is basically serving that same sim ground truth
+
+            print("Real robot synched to questnav")
             self.set_quest_pose(self.drive_pose_sub.get())
 
         self.quest_synched_pub.set(self.quest_has_synched)
