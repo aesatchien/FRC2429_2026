@@ -3,6 +3,8 @@ import robotpy_apriltag
 import wpilib
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 
+import constants
+
 # This data is initialized once when the module is first imported.
 # TODO -  right now all the libraries are messed up, so we have to do this manually  - 20260118 CJH
 #layout = robotpy_apriltag.AprilTagFieldLayout.loadField(robotpy_apriltag.AprilTagField.k2026RebuiltWelded)
@@ -23,8 +25,25 @@ def get_tag_distance(tag_id, current_pose):
     distance = current_pose.translation().distance(tag_pose.translation())
     return distance
 
+def get_auto_ball_pose(pose:Pose2d, alliance):
+    print(f"alliance: {alliance}, pose: {pose}")
+    if alliance == wpilib.DriverStation.Alliance.kRed:
+        theta = math.pi
+        x = 9.0
+    else:
+        theta = 0
+        x = 7.5
+    y = 5.68 if pose.Y() > constants.FieldConstants.k_field_width / 2 else 2.1
+    #print(f"pose.Y =={pose.Y():.1f}")
+
+    return Pose2d(x, y, Rotation2d(theta))
+
+def get_shooting_pose(pose:Pose2d, alliance):
+    pass
+
 def get_nearest_tag(current_pose, destination='stage'):
     """ Return the nearest allowed tag to a given pose """
+
     if destination == 'reef':
         # get all distances to the stage tags
         tags = [6, 7, 8, 9, 10, 11, 17, 18, 19, 20, 21,

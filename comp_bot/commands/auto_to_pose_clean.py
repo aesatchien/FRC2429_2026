@@ -15,7 +15,7 @@ from subsystems.swerve import Swerve
 from subsystems.led import Led
 from subsystems.vision import Vision
 from helpers.log_command import log_command
-from helpers.apriltag_utils import get_nearest_tag
+from helpers.apriltag_utils import get_nearest_tag, get_auto_ball_pose, get_shooting_pose
 
 
 @log_command(console=True, nt=False, print_init=True, print_end=True)
@@ -35,7 +35,7 @@ class AutoToPoseClean(commands2.Command):  #
     """
 
     def __init__(self, container, swerve: Swerve, target_pose: Pose2d, use_vision=False, cameras=None,
-                 nearest=False, from_robot_state=False, control_type='not_pathplanner', indent=0,
+                 mode=None, from_robot_state=False, control_type='not_pathplanner', indent=0,
                  offset: Transform2d = None) -> None:
         super().__init__()
         self.setName('AutoToPoseClean')  # using the pathplanner controller instead
@@ -49,7 +49,7 @@ class AutoToPoseClean(commands2.Command):  #
         # --- Configuration ---
         self.control_type = control_type
         self.from_robot_state = from_robot_state
-        self.nearest = nearest  # only use nearest tags as the target
+        self.mode = mode  # only use nearest tags as the target
         self.use_vision = use_vision  # use the cameras to tell us where to go
         self.cameras = cameras  # which cameras to use
         self.offset = offset  # offset in robot frame (x=forward, y=left, rot=ccw)
@@ -168,12 +168,19 @@ class AutoToPoseClean(commands2.Command):  #
         """Calculates the target pose based on the selected mode."""
         current_pose = self.container.swerve.get_pose()
 
-        if self.nearest:
+        if self.mode == "nearest":
             # 1. Nearest Tag Mode
             nearest_tag = get_nearest_tag(current_pose=current_pose, destination='reef')
             self.container.robot_state.set_reef_goal_by_tag(nearest_tag)
             target = self.container.robot_state.reef_goal_pose
             # Mirroring handled below
+
+        elif self.mode == "ball_pickup":
+            target = get_auto_ball_pose(pose=current_pose, alliance=wpilib.DriverStation.getAlliance())
+            return target
+        elif self.mode == "shooting":
+            target = get_shooting_pose(pose=current_pose, alliance=wpilib.DriverStation.getAlliance())
+            return target
 
         elif self.from_robot_state:
             # 2. Robot State Mode

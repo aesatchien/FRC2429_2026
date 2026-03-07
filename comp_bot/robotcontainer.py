@@ -31,6 +31,7 @@ from subsystems.targeting import Targeting
 
 # 2429 "auto" commands - just an organizational division of commands
 from autonomous.autonomous_shooting import AutoShootingGroup
+from autonomous.auto_shoot_and_pickup import AutoShootAndPickup
 
 # 2429 commands
 #from commands.auto_to_pose import AutoToPose
@@ -282,14 +283,15 @@ class RobotContainer:
         # ----------  AUTONOMOUS CHOOSER SECTION  ---------------
         # self.auto_chooser = AutoBuilder.buildAutoChooser('')  # this loops through the path planner deploy directory - must exist 
         self.auto_chooser = wpilib.SendableChooser()  #  use this if you don't have any pathplanner autos defined
-        self.auto_chooser.setDefaultOption('1:  Wait *CODE*', PrintCommand("** Running wait auto **").andThen(commands2.WaitCommand(15)))
+        self.auto_chooser.addOption('1:  Wait *CODE*', PrintCommand("** Running wait auto **").andThen(commands2.WaitCommand(15)))
         self.auto_chooser.addOption('2a: Drive 2s Straight *CODE*',
                                     PrintCommand("** Running drive by velocity swerve leave auto **").
                                     andThen(DriveByVelocitySwerve(self, self.swerve, Pose2d(0.1, 0, 0), 2)))
         self.auto_chooser.addOption('2b: Drive 2s To Driver Station *CODE*',
                                     PrintCommand("** Running drive by velocity swerve leave auto **").
                                     andThen(DriveByVelocitySwerve(self, self.swerve, Pose2d(0.1, 0, 0), 2.5, field_relative=True)))
-        self.auto_chooser.addOption('3a: Auto Shoot and Move *CODE*', AutoShootingGroup(self, indent=0))
+        self.auto_chooser.addOption('3a: Auto Shoot *CODE*', AutoShootingGroup(self, indent=0))
+        self.auto_chooser.setDefaultOption('3b: Auto Shoot and Move *CODE*', AutoShootAndPickup(self, indent=0))
         wpilib.SmartDashboard.putData('autonomous routines', self.auto_chooser)  #
 
     def register_commands(self):

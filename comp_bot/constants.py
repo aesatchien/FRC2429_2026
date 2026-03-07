@@ -12,7 +12,7 @@ from helpers.utilities import set_config_defaults
 
 k_swerve_config = "comp"  # choose between practice bot and comp bot for now - they differ by swerve ofsets
 
-k_at_home = True  # used for intake calibration
+k_at_home = False  # used for intake calibration
 
 # Generator for unique counter offsets
 _counter = count(1)
@@ -199,12 +199,12 @@ class IntakeConstants:
     k_deploy_current_peak = 35  # amps for now
     k_top_angle = 147  # degrees when at top position
     k_bottom_angle = 0  # degrees when at bottom position
-    k_shooting_angle = 60  # degrees when in shooting position - this is a guess, will need to be tuned
+    k_shooting_angle = 75  # degrees when in shooting position - this is a guess, will need to be tuned
 
     k_intake_left_leader_config, k_intake_right_follower_config = SparkMaxConfig(), SparkMaxConfig()
     k_intake_configs = [k_intake_left_leader_config, k_intake_right_follower_config, k_deploy_config]
     k_test_rpm = 1000  # pi * diameter roller / 60  to get inches per second
-    k_fastest_rpm = 60
+    k_intake_default_rpm = 2500
 
     allowed_rpms = [0, 60] + [i for i in range(2000, 5601, 250)]
 
