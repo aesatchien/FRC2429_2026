@@ -146,7 +146,7 @@ class Shooter(Subsystem):
     def set_indexer_rpm(self, rpm=1000):
         feed_forward = min(12, 12 * rpm / 5600)
         self.indexer_controller.setReference(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
-        print(f"  setting indexer rpm to {rpm:.0f}")
+        # print(f"  setting indexer rpm to {rpm:.0f}")
         self.current_indexer_rpm = rpm
         self.indexer_on = True
         self.update_nt()
@@ -155,9 +155,9 @@ class Shooter(Subsystem):
         return self.current_indexer_rpm
 
     def set_hopper_rpm(self, rpm=1000):
-        feed_forward = min(12, 12 * rpm / 5600)
+        feed_forward = max(-12, min(12, 12 * rpm / 5600))
         self.hopper_controller.setReference(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
-        print(f"  setting hopper rpm to {rpm:.0f}")
+        # print(f"  setting hopper rpm to {rpm:.0f}")
         self.current_hopper_rpm = rpm
         self.hopper_on = True
         self.update_nt()

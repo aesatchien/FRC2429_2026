@@ -119,7 +119,7 @@ class MyRobot(commands2.TimedCommandRobot):
                                     speed=1.0 if self.container.intake.intake_on else 0.0)
 
             # Shooter
-            self.mech.update_hopper(1 if self.container.shooter.hopper_on else 0)
+            self.mech.update_hopper(self.container.shooter.current_hopper_rpm / 6000)
             if self.container.shooter.indexer_on:
                 indexer_speed = 1 if self.container.shooter.get_indexer_rpm() > 0 else -1
             else:

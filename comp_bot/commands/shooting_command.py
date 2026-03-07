@@ -12,7 +12,7 @@ from subsystems.targeting import Targeting
 class ShootingCommand(commands2.Command):  # change the name for your command
 
 
-    def __init__(self, shooter: Shooter, targeting: Targeting, indent=0, auto_timeout=None) -> None:
+    def __init__(self, shooter: Shooter, targeting: Targeting=None, indent=0, auto_timeout=None, rpm=0) -> None:
         super().__init__()
         self.setName('Shooting') # change this to something appropriate for this command
         self.indent = indent
@@ -26,6 +26,7 @@ class ShootingCommand(commands2.Command):  # change the name for your command
         self.delay_cycles = 50  # CJH setting this to 1s to be safe - will need to ask the shooter if it is at speed
         self.auto_timeout = auto_timeout
         self.timer = wpilib.Timer()
+        self.rpm = rpm
 
     def initialize(self) -> None:
         # Called just before each time this Command runs
@@ -36,7 +37,10 @@ class ShootingCommand(commands2.Command):  # change the name for your command
         # self.shooter.set_
         # indexer_rpm(sc.k_indexer_rpm)
         # self.shooter.set_hopper_rpm(sc.k_hopper_rpm)
-        rpm = self.targeting.get_target_rpm()
+        if self.rpm > 0:
+            rpm = self.rpm
+        else:
+            rpm = self.targeting.get_target_rpm()
         self.shooter.set_shooter_rpm(rpm if rpm <= 5600 else sc.k_shooter_max_speed)
         self.shooter.set_indexer_rpm(-500)
         self.shooter.stop_hopper()
@@ -45,12 +49,18 @@ class ShootingCommand(commands2.Command):  # change the name for your command
 
     def execute(self) -> None:
         self.counter += 1
-        rpm = self.targeting.get_target_rpm()
+        rpm = self.targeting.get_target_rpm() if self.rpm <= 0 else self.rpm
+
+        sign = 1 if self.counter % 30 < 25 else -1
+        # print(f"sign: {sign} and counter % 50: {self.counter % 50}")
+
         self.shooter.set_shooter_rpm(rpm if rpm <= 5600 else sc.k_shooter_max_speed)
-        if self.counter > self.delay_cycles and (not self.shooter.indexer_on or not self.shooter.hopper_on):
-            if self.shooter.current_rpm > 0:
+        if self.counter > self.delay_cycles: # and (not self.shooter.indexer_on or not self.shooter.hopper_on):
+            if True: # self.shooter.current_rpm > 0:
                 self.shooter.set_indexer_rpm(sc.k_indexer_rpm)
-                self.shooter.set_hopper_rpm(sc.k_hopper_rpm)
+                self.shooter.set_hopper_rpm(sc.k_hopper_rpm * sign)
+                # print(f"sc.k_hopper_rpm: {sc.k_hopper_rpm * sign}")
+
             else:
                 self.shooter.stop_indexer()
                 self.shooter.stop_hopper()
