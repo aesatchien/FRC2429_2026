@@ -30,13 +30,14 @@ from subsystems.targeting import Targeting
 # from subsystems.questnav_2429 import QuestnavModule
 
 # 2429 "auto" commands - just an organizational division of commands
+from autonomous.autonomous_shooting import AutoShootingGroup
 
 # 2429 commands
 #from commands.auto_to_pose import AutoToPose
 from commands.auto_to_pose_clean import AutoToPoseClean
 from commands.auto_track_vision_target import AutoTrackVisionTarget
 from commands.can_status import CANStatus
-from commands.drive_by_distance_swerve import DriveByVelocitySwerve
+from commands.drive_by_velocity_swerve import DriveByVelocitySwerve
 from commands.drive_by_joystick_subsystem_targeting import DriveByJoystickSubsystemTargeting
 from commands.reset_field_centric import ResetFieldCentric
 from commands.rumble_command import RumbleCommand
@@ -114,6 +115,10 @@ class RobotContainer:
         ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
         # does not work as an "andThen" for some reason
         js.driver_a.onFalse(Intake_Deploy(intake=self.intake, position='down'))
+
+        # start / stop tracking
+        js.driver_rb.onTrue(commands2.InstantCommand(lambda: self.targeting.start_tracking()))
+        js.driver_rb.onFalse(commands2.InstantCommand(lambda: self.targeting.stop_tracking()))
 
         # D-Pad: Slow, smooth robot-centric alignment (Nudge)
         dpad_driving = False
@@ -284,6 +289,7 @@ class RobotContainer:
         self.auto_chooser.addOption('2b: Drive 2s To Driver Station *CODE*',
                                     PrintCommand("** Running drive by velocity swerve leave auto **").
                                     andThen(DriveByVelocitySwerve(self, self.swerve, Pose2d(0.1, 0, 0), 2.5, field_relative=True)))
+        self.auto_chooser.addOption('3a: Auto Shoot and Move *CODE*', AutoShootingGroup(self, indent=0))
         wpilib.SmartDashboard.putData('autonomous routines', self.auto_chooser)  #
 
     def register_commands(self):

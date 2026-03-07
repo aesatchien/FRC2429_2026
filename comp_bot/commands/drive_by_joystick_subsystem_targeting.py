@@ -79,7 +79,8 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
             'right_x': hid.getRightX(),
             'trigger': hid.getRightTriggerAxis(),
             'robot_oriented': hid.getLeftBumperButton(),
-            'tracking_on': hid.getRightBumperButton(),  # always off, turn this on when in shooting mode
+            # 'tracking_on': hid.getRightBumperButton(),  # use a button to turn on tracking
+            'tracking_on': self.container.targeting.get_tracking_state(),  # now instead of a button
             'alliance': wpilib.DriverStation.getAlliance()
         }
 
@@ -105,7 +106,7 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
         raw_rot = -inputs['right_x']
         
         if inputs['tracking_on']:
-            # Rising Edge: Reset targeting state
+            # Rising Edge: Reset targeting state  # TODO - just handle this in targeting
             if not self.last_tracking_on:
                 self.targeting.reset_state()
             

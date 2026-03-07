@@ -58,6 +58,9 @@ class Targeting(Subsystem):
         self.rot_pid = PIDController(tc.kTeleopRotationPID.kP, tc.kTeleopRotationPID.kI, tc.kTeleopRotationPID.kD)
         self.rot_pid.enableContinuousInput(-math.pi, math.pi)
 
+        # Turning on from outside
+        self.robot_is_tracking = False
+
         # Tracking state
         self.rot_overshot = False
         self.last_diff_radians = 100.0
@@ -110,6 +113,15 @@ class Targeting(Subsystem):
         self.last_diff_radians = 100.0
         self.rotation_output = 0.0
         self.last_rot_output = 0.0
+
+    # now the autos and external commands can set this and swerve will track
+    def start_tracking(self):
+        self.robot_is_tracking = True
+    def stop_tracking(self):
+        self.robot_is_tracking = False
+    def get_tracking_state(self):
+        return self.robot_is_tracking
+
 
     def get_effective_distance(self) -> float:
         """Returns the distance from the predicted future robot pose to the target."""
