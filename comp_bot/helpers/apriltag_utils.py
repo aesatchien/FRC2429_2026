@@ -39,7 +39,17 @@ def get_auto_ball_pose(pose:Pose2d, alliance):
     return Pose2d(x, y, Rotation2d(theta))
 
 def get_shooting_pose(pose:Pose2d, alliance):
-    pass
+    print(f"alliance: {alliance}, pose: {pose}")
+    if alliance == wpilib.DriverStation.Alliance.kRed:
+        theta = math.pi
+        x = 14
+    else:
+        theta = 0
+        x = 3
+    y = 5.68 if pose.Y() > constants.FieldConstants.k_field_width / 2 else 2.1
+    # print(f"pose.Y =={pose.Y():.1f}")
+
+    return Pose2d(x, y, Rotation2d(theta))
 
 def get_nearest_tag(current_pose, destination='stage'):
     """ Return the nearest allowed tag to a given pose """
