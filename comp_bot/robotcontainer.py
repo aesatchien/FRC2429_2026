@@ -194,6 +194,11 @@ class RobotContainer:
     def bind_bbox_buttons(self) -> None:
         print("Binding bbox buttons")
 
+        js.bbox_1_1.onTrue(commands2.InstantCommand(lambda: self.shooter.set_shooting_offset(250)))
+        js.bbox_1_2.onTrue(commands2.InstantCommand(lambda: self.shooter.set_shooting_offset(-250)))
+        js.bbox_1_1.onFalse(commands2.InstantCommand(lambda: self.shooter.set_shooting_offset(0)))
+        js.bbox_1_2.onFalse(commands2.InstantCommand(lambda: self.shooter.set_shooting_offset(0)))
+
         js.bbox_1_3.whileTrue(SwerveTest(container=self, swerve=self.swerve))
 
         # test the intake deploy positions on the L1-L4 buttons

@@ -71,6 +71,10 @@ class Shooter(Subsystem):
         self.current_index = 0
         self.voltage = 0
         self._init_networktables()
+        self.shooting_offset = 0
+
+    def set_shooting_offset(self, value):
+        self.shooting_offset = value
 
     def _init_networktables(self):
         self.inst = ntcore.NetworkTableInstance.getDefault()
@@ -175,11 +179,11 @@ class Shooter(Subsystem):
         ks = 0 if rpm < 1 else sc.ks_volts  # otherwise it still just turns at 0
         self.roller_controller.setReference(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kMAXMotionVelocityControl,
                                              slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=ks)
-        self.flywheel_controller.setReference(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kMAXMotionVelocityControl,
+        self.flywheel_controller.setReference(setpoint=rpm + self.shooting_offset, ctrl=SparkLowLevel.ControlType.kMAXMotionVelocityControl,
                                              slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=ks)
 
         #print(f'  -- setflywheel rpm to {rpm:.0f}')  # want to say what time it is, but can't import the container's timer easily
-        self.current_rpm = rpm
+        self.current_rpm = rpm + self.shooting_offset
         self.shooter_on = True
         self.current_roller_rpm = rpm
         self.roller_on = True
