@@ -23,7 +23,7 @@ class ShootingCommand(commands2.Command):  # change the name for your command
         self.counter = 0  # add a counter if you need to track iterations, remember to initialize in below
         # we want indexer and hopper to start after .1 seconds or 1/10 seconds. 
         # if it runs 50x per second, 50 * 1/10 is 5, so after 5 cycles, start the indexer and hopper
-        self.delay_cycles = 50  # CJH setting this to 1s to be safe - will need to ask the shooter if it is at speed
+        self.delay_cycles = 37  # Trentan: this is .75 seconds
         self.auto_timeout = auto_timeout
         self.timer = wpilib.Timer()
         self.rpm = rpm
@@ -42,7 +42,7 @@ class ShootingCommand(commands2.Command):  # change the name for your command
         else:
             rpm = self.targeting.get_target_rpm()
         self.shooter.set_shooter_rpm(rpm if rpm <= 5600 else sc.k_shooter_max_speed)
-        self.shooter.set_indexer_rpm(-500)
+        self.shooter.set_indexer_rpm(-1000)
         self.shooter.stop_hopper()
         self.timer.reset()
         self.timer.start()

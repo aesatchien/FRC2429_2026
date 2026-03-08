@@ -37,28 +37,29 @@ class TwoCycle(commands2.SequentialCommandGroup):
         self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=constants.IntakeConstants.k_intake_default_rpm))
 
         self.addCommands(commands2.ParallelCommandGroup(
-            commands2.WaitCommand(1).andThen(Intake_Deploy(intake=container.intake, position='down', indent=1)),
+            commands2.WaitCommand(0.5).andThen(Intake_Deploy(intake=container.intake, position='down', indent=1)),
             AutoToPoseClean(container=self.container, swerve=self.container.swerve, target_pose=None,
                             mode="ball_pickup", from_robot_state=True, control_type='not_pathplanner')
         ))
 
-        self.addCommands(Intake_Deploy(intake=container.intake, position='down', indent=1))
-
         # flight simulator rules - y axis is reversed, so negative numbers go forward on field relative
         #self.addCommands(DriveByVelocitySwerve(self.container, self.container.swerve, Pose2d(-0.25, 0, 0), field_relative=True, indent=1, timeout=2))
-        self.addCommands(AutoToPoseClean(container=self.container, swerve=self.container.swerve, target_pose=None, mode="ball_pickup", from_robot_state=True,control_type='not_pathplanner'))
-
         self.addCommands(AutoToPoseClean(container=self.container, swerve=self.container.swerve, target_pose=None,
                             mode="shooting", from_robot_state=True, control_type='not_pathplanner')
 
         )
 
+        self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=0))
+        self.addCommands(commands2.WaitCommand(0.25))
+        self.addCommands(Intake_Deploy(intake=container.intake, position='shoot', indent=1))
+
+        self.addCommands(commands2.WaitCommand(0.25))
+
         self.addCommands(commands2.ParallelRaceGroup(
             ShootingCommand(shooter=container.shooter, targeting=container.targeting, indent=1, auto_timeout=5),
             DriveByJoystickSubsystemTargeting(self.container, swerve=self.container.swerve, controller=js.driver_controller, targeting=container.targeting)
         ))
+
         self.addCommands(commands2.InstantCommand(lambda: self.container.targeting.stop_tracking()))
-
-
         self.addCommands(commands2.PrintCommand(f"{'    ' * indent}** Finished {self.getName()} **"))
 
