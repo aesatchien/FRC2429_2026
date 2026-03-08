@@ -45,15 +45,24 @@
       "/SmartDashboard/Command/CalWristDown": "Command",
       "/SmartDashboard/Command/CalWristUp": "Command",
       "/SmartDashboard/Command/CanStatus": "Command",
+      "/SmartDashboard/Command/FakeCommand": "Command",
       "/SmartDashboard/Command/GoToL1": "Command",
       "/SmartDashboard/Command/GoToL2": "Command",
       "/SmartDashboard/Command/GoToL3": "Command",
       "/SmartDashboard/Command/GoToL4": "Command",
       "/SmartDashboard/Command/GoToStow": "Command",
       "/SmartDashboard/Command/GyroReset": "Command",
+      "/SmartDashboard/Command/HopperStart": "Command",
+      "/SmartDashboard/Command/HopperStop": "Command",
+      "/SmartDashboard/Command/IndexerStart": "Command",
+      "/SmartDashboard/Command/IndexerStop": "Command",
+      "/SmartDashboard/Command/IntakeDeploy": "Command",
       "/SmartDashboard/Command/IntakeOff": "Command",
       "/SmartDashboard/Command/IntakeOn": "Command",
+      "/SmartDashboard/Command/IntakeRetract": "Command",
       "/SmartDashboard/Command/IntakeReverse": "Command",
+      "/SmartDashboard/Command/IntakeStart": "Command",
+      "/SmartDashboard/Command/IntakeStop": "Command",
       "/SmartDashboard/Command/LED Indicator": "String Chooser",
       "/SmartDashboard/Command/LED Mode": "String Chooser",
       "/SmartDashboard/Command/MoveClimberDown": "Command",
@@ -70,12 +79,16 @@
       "/SmartDashboard/Command/QuestSyncOdometry": "Command",
       "/SmartDashboard/Command/QuestSyncToggle": "Command",
       "/SmartDashboard/Command/RecalWrist": "Command",
+      "/SmartDashboard/Command/Reset field centric": "Command",
       "/SmartDashboard/Command/ResetFlex": "Command",
       "/SmartDashboard/Command/RobotScoringMode": "String Chooser",
       "/SmartDashboard/Command/SetSuccess": "Command",
+      "/SmartDashboard/Command/ShooterStart": "Command",
+      "/SmartDashboard/Command/ShooterStop": "Command",
       "/SmartDashboard/Field": "Field2d",
       "/SmartDashboard/LED Indicator": "String Chooser",
       "/SmartDashboard/LED Mode": "String Chooser",
+      "/SmartDashboard/Mech Side View": "Mechanism2d",
       "/SmartDashboard/QUEST_FIELD": "Field2d",
       "/SmartDashboard/Quest/EnableToggle": "Command",
       "/SmartDashboard/Quest/Field": "Field2d",
@@ -225,8 +238,8 @@
         },
         "bottom": 743,
         "builtin": "",
-        "height": 8.051901817321777,
-        "image": "C:\\CJH\\python\\FRC\\2026\\resources\\sim\\2026-field_crop.png",
+        "height": 8.0,
+        "image": "C:\\Users\\tenta\\OneDrive\\Desktop\\FRC2429_2026\\resources\\sim\\2026-field_crop.png",
         "left": 95,
         "logitech_reef_FOV": {
           "color": [
@@ -240,21 +253,23 @@
         },
         "right": 1521,
         "top": 48,
-        "width": 17.54825210571289,
+        "width": 16.5,
         "window": {
-          "name": "Practicebot 2026beta",
+          "name": "Practicebot 2026",
           "visible": true
         }
       },
       "/SmartDashboard/SimField": {
-        "bottom": 1638,
+        "bottom": 743,
+        "builtin": "",
         "height": 8.051901817321777,
-        "left": 534,
-        "right": 3466,
-        "top": 291,
+        "image": "C:\\Users\\tenta\\OneDrive\\Desktop\\FRC2429_2026\\resources\\sim\\2026-field_crop.png",
+        "left": 95,
+        "right": 1521,
+        "top": 48,
         "width": 17.54825210571289,
         "window": {
-          "visible": true
+          "name": "2026"
         }
       }
     }
