@@ -90,7 +90,7 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
         
         # --- Drive Mode & Multipliers ---
         turbo = self.turbo_limiter.calculate(inputs['trigger']**2)
-        slowmode_multiplier = 0.2 + 0.8 * turbo
+        slowmode_multiplier = dc.kSlowModeCap + ((1 - dc.kSlowModeCap) * turbo)
         angular_slowmode_multiplier = 0.5 + 0.5 * turbo
 
         # --- Field Oriented Logic ---
