@@ -47,6 +47,7 @@ class AutoShootAndPickup(commands2.SequentialCommandGroup):
         # flight simulator rules - y axis is reversed, so negative numbers go forward on field relative
         #self.addCommands(DriveByVelocitySwerve(self.container, self.container.swerve, Pose2d(-0.25, 0, 0), field_relative=True, indent=1, timeout=2))
         self.addCommands(AutoToPoseClean(container=self.container, swerve=self.container.swerve, target_pose=None, mode="ball_pickup", from_robot_state=True,control_type='not_pathplanner'))
+        
 
         self.addCommands(commands2.PrintCommand(f"{'    ' * indent}** Finished {self.getName()} **"))
 

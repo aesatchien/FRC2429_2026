@@ -32,6 +32,7 @@ from subsystems.targeting import Targeting
 # 2429 "auto" commands - just an organizational division of commands
 from autonomous.autonomous_shooting import AutoShootingGroup
 from autonomous.auto_shoot_and_pickup import AutoShootAndPickup
+from autonomous.twocycle import TwoCycle
 
 # 2429 commands
 #from commands.auto_to_pose import AutoToPose
@@ -135,6 +136,7 @@ class RobotContainer:
                 ShootingCommand(shooter=self.shooter, rpm=3300),
             Intake_Deploy(intake=self.intake, position='shoot'),
             ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
+            js.driver_up.onFalse(Intake_Deploy(intake=self.intake, position='down'))
             #js.driver_right.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=1))
             #js.driver_left.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=-1))
             js.driver_down.whileTrue(StopShooter(shooter=self.shooter))
@@ -294,7 +296,8 @@ class RobotContainer:
                                     PrintCommand("** Running drive by velocity swerve leave auto **").
                                     andThen(DriveByVelocitySwerve(self, self.swerve, Pose2d(0.1, 0, 0), 2.5, field_relative=True)))
         self.auto_chooser.addOption('3a: Auto Shoot *CODE*', AutoShootingGroup(self, indent=0))
-        self.auto_chooser.setDefaultOption('3b: Auto Shoot and Move *CODE*', AutoShootAndPickup(self, indent=0))
+        self.auto_chooser.addOption('3b: Auto Shoot and Move *CODE*', AutoShootAndPickup(self, indent=0))
+        self.auto_chooser.setDefaultOption('3c: Two Cycles *CODE*', TwoCycle(self, indent=0))
         wpilib.SmartDashboard.putData('autonomous routines', self.auto_chooser)  #
 
     def register_commands(self):

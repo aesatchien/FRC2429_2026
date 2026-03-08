@@ -11,10 +11,10 @@ from commands.auto_to_pose_clean import AutoToPoseClean
 from helpers import joysticks as js
 from wpimath.geometry import Pose2d
 
-class AutoShootAndPickup(commands2.SequentialCommandGroup):
+class TwoCycle(commands2.SequentialCommandGroup):
     def __init__(self, container, indent=0) -> None:
         super().__init__()
-        self.setName(f'AutoShootAndPickup')
+        self.setName(f'TwoCycle')
         self.container = container
         self.addCommands(commands2.PrintCommand(f"{'    ' * indent}** Started {self.getName()} **"))
 
@@ -26,7 +26,7 @@ class AutoShootAndPickup(commands2.SequentialCommandGroup):
 
         # because the drive by velocity needs swerve, we have to actively use the swerve to auto target
         self.addCommands(commands2.ParallelRaceGroup(
-            ShootingCommand(shooter=container.shooter, targeting=container.targeting, indent=1, auto_timeout=5),
+            ShootingCommand(shooter=container.shooter, targeting=container.targeting, indent=1, auto_timeout=3.5),
             DriveByJoystickSubsystemTargeting(self.container, swerve=self.container.swerve, controller=js.driver_controller, targeting=container.targeting)
         ))
 
@@ -48,7 +48,17 @@ class AutoShootAndPickup(commands2.SequentialCommandGroup):
         #self.addCommands(DriveByVelocitySwerve(self.container, self.container.swerve, Pose2d(-0.25, 0, 0), field_relative=True, indent=1, timeout=2))
         self.addCommands(AutoToPoseClean(container=self.container, swerve=self.container.swerve, target_pose=None, mode="ball_pickup", from_robot_state=True,control_type='not_pathplanner'))
 
-        self.addCommand(AutoToPoseClean(container=self.container, swerve=self.container.swerve, target_pose=None, mode="shooting", from_robot_state=True, control_type='not_pathplanner'))
+        self.addCommands(AutoToPoseClean(container=self.container, swerve=self.container.swerve, target_pose=None,
+                            mode="shooting", from_robot_state=True, control_type='not_pathplanner')
+
+        )
+
+        self.addCommands(commands2.ParallelRaceGroup(
+            ShootingCommand(shooter=container.shooter, targeting=container.targeting, indent=1, auto_timeout=5),
+            DriveByJoystickSubsystemTargeting(self.container, swerve=self.container.swerve, controller=js.driver_controller, targeting=container.targeting)
+        ))
+        self.addCommands(commands2.InstantCommand(lambda: self.container.targeting.stop_tracking()))
+
 
         self.addCommands(commands2.PrintCommand(f"{'    ' * indent}** Finished {self.getName()} **"))
 
