@@ -11,10 +11,10 @@ from commands.auto_to_pose_clean import AutoToPoseClean
 from helpers import joysticks as js
 from wpimath.geometry import Pose2d
 
-class FillShootFill(commands2.SequentialCommandGroup):
+class FillShootFillShoot(commands2.SequentialCommandGroup):
     def __init__(self, container, indent=0) -> None:
         super().__init__()
-        self.setName(f'FillShootFill')
+        self.setName(f'FillShootFillShoot')
         self.container = container
         self.addCommands(commands2.PrintCommand(f"{'    ' * indent}** Started {self.getName()} **"))
 
@@ -46,13 +46,16 @@ class FillShootFill(commands2.SequentialCommandGroup):
 
         # flight simulator rules - y axis is reversed, so negative numbers go forward on field relative
         #self.addCommands(DriveByVelocitySwerve(self.container, self.container.swerve, Pose2d(-0.25, 0, 0), field_relative=True, indent=1, timeout=2))
-        self.addCommands(AutoToPoseClean(container=self.container, swerve=self.container.swerve, target_pose=None, mode="ball_pickup", from_robot_state=True,control_type='not_pathplanner').withTimeout(5))
+        self.addCommands(AutoToPoseClean(container=self.container, swerve=self.container.swerve, target_pose=None,
+                            mode="ball_pickup", from_robot_state=True,control_type='not_pathplanner').withTimeout(5)
+        )
 
         self.addCommands(AutoToPoseClean(container=self.container, swerve=self.container.swerve, target_pose=None,
                             mode="shooting", from_robot_state=True, control_type='not_pathplanner').withTimeout(5)
         )
 
-        self.addCommands(Intake_Deploy(intake=container.intake, position='shooting', indent=1))
+        self.addCommands(Intake_Deploy(intake=self.container.intake, position='shooting', indent=1))
+        self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=0))
 
         self.addCommands(commands2.InstantCommand(lambda: self.container.targeting.start_tracking()))
 
@@ -74,6 +77,18 @@ class FillShootFill(commands2.SequentialCommandGroup):
         self.addCommands(AutoToPoseClean(container=self.container, swerve=self.container.swerve, target_pose=None,
                             mode="shooting", from_robot_state=True, control_type='not_pathplanner').withTimeout(5)
         )
+        self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=0))
+        self.addCommands(Intake_Deploy(intake=self.container.intake, position='shooting', indent=1))
+
+        self.addCommands(commands2.InstantCommand(lambda: self.container.targeting.start_tracking()))
+
+        self.addCommands(commands2.ParallelRaceGroup(
+            ShootingCommand(shooter=self.container.shooter, targeting=container.targeting
+                            , indent=1, auto_timeout=5),
+            DriveByJoystickSubsystemTargeting(self.container, swerve=self.container.swerve,
+                                              controller=js.driver_controller, targeting=container.targeting)
+        ))
+        self.addCommands(commands2.InstantCommand(lambda: self.container.targeting.stop_tracking()))
 
         self.addCommands(commands2.PrintCommand(f"{'    ' * indent}** Finished {self.getName()} **"))
 

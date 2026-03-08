@@ -34,6 +34,7 @@ from autonomous.autonomous_shooting import AutoShootingGroup
 from autonomous.auto_shoot_and_pickup import AutoShootAndPickup
 from autonomous.twocycle import TwoCycle
 from autonomous.fill_shoot_fill import FillShootFill
+from autonomous.fill_shoot_fill_shoot import FillShootFillShoot
 
 # 2429 commands
 #from commands.auto_to_pose import AutoToPose
@@ -133,20 +134,27 @@ class RobotContainer:
             js.driver_right.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(0, -dpad_output, 0), timeout=10))
         else:
             # js.driver_up.whileTrue(CalibrateIntake(intake=self.intake))
-            js.driver_up.whileTrue(commands2.ParallelCommandGroup(
-                ShootingCommand(shooter=self.shooter, rpm=3300),
-            Intake_Deploy(intake=self.intake, position='shoot'),
-            ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
-            js.driver_up.onFalse(Intake_Deploy(intake=self.intake, position='down'))
+            js.driver_up.onTrue(Intake_Deploy(intake=self.intake, position='up'))
             #js.driver_right.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=1))
             #js.driver_left.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=-1))
-            js.driver_down.whileTrue(StopShooter(shooter=self.shooter))
+            js.driver_down.onTrue(Intake_Deploy(intake=self.intake, position='down'))
 
         # --- Subsystems ---
+        # Giving Jeremy faster and slower fixed speeds
         js.driver_lb.onTrue(Intake_Set_RPM(intake=self.intake, rpm=2500, led=self.led))
         js.driver_back.onTrue(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
-        js.driver_x.onTrue(Intake_Deploy(intake=self.intake, position='up'))
-        js.driver_b.onTrue(Intake_Deploy(intake=self.intake, position='down'))
+
+        js.driver_x.whileTrue(commands2.ParallelCommandGroup(
+            ShootingCommand(shooter=self.shooter, rpm=3300),
+            Intake_Deploy(intake=self.intake, position='shoot'),
+        ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
+        js.driver_x.onFalse(Intake_Deploy(intake=self.intake, position='down'))
+
+        js.driver_b.whileTrue(commands2.ParallelCommandGroup(
+            ShootingCommand(shooter=self.shooter, rpm=4500),
+            Intake_Deploy(intake=self.intake, position='shoot'),
+        ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
+        js.driver_b.onFalse(Intake_Deploy(intake=self.intake, position='down'))
 
         #js.bbox_intake_in.whileTrue(Intake_Set_RPM(intake=self.intake, rpm=3000))
         #js.bbox_intake_out.whileTrue(Intake_Set_RPM(intake=self.intake, rpm=0))
@@ -195,8 +203,8 @@ class RobotContainer:
     def bind_bbox_buttons(self) -> None:
         print("Binding bbox buttons")
 
-        js.bbox_1_1.onTrue(commands2.InstantCommand(lambda: self.shooter.set_shooting_offset(250)))
-        js.bbox_1_2.onTrue(commands2.InstantCommand(lambda: self.shooter.set_shooting_offset(-250)))
+        js.bbox_1_1.onTrue(commands2.InstantCommand(lambda: self.shooter.set_shooting_offset(125)))
+        js.bbox_1_2.onTrue(commands2.InstantCommand(lambda: self.shooter.set_shooting_offset(-125)))
         js.bbox_1_1.onFalse(commands2.InstantCommand(lambda: self.shooter.set_shooting_offset(0)))
         js.bbox_1_2.onFalse(commands2.InstantCommand(lambda: self.shooter.set_shooting_offset(0)))
 
@@ -303,8 +311,9 @@ class RobotContainer:
                                     andThen(DriveByVelocitySwerve(self, self.swerve, Pose2d(0.1, 0, 0), 2.5, field_relative=True)))
         self.auto_chooser.addOption('3a: Auto Shoot *CODE*', AutoShootingGroup(self, indent=0))
         self.auto_chooser.addOption('3b: Auto Shoot and Move *CODE*', AutoShootAndPickup(self, indent=0))
-        self.auto_chooser.setDefaultOption('3c: Two Cycles *CODE*', TwoCycle(self, indent=0))
-        self.auto_chooser.addOption('3d: Fill Shoot Fill *CODE*', FillShootFill(self, indent=0))
+        self.auto_chooser.addOption('3c: Two Cycles *CODE*', TwoCycle(self, indent=0))
+        self.auto_chooser.setDefaultOption('3d: Fill Shoot Fill *CODE*', FillShootFill(self, indent=0))
+        self.auto_chooser.addOption('3e: Fill Shoot Fill Shoot *CODE*', FillShootFillShoot(self, indent=0))
         wpilib.SmartDashboard.putData('autonomous routines', self.auto_chooser)  #
 
     def register_commands(self):
