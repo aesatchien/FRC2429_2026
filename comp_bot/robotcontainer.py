@@ -33,6 +33,7 @@ from subsystems.targeting import Targeting
 from autonomous.autonomous_shooting import AutoShootingGroup
 from autonomous.auto_shoot_and_pickup import AutoShootAndPickup
 from autonomous.twocycle import TwoCycle
+from autonomous.fill_shoot_fill import FillShootFill
 
 # 2429 commands
 #from commands.auto_to_pose import AutoToPose
@@ -303,6 +304,7 @@ class RobotContainer:
         self.auto_chooser.addOption('3a: Auto Shoot *CODE*', AutoShootingGroup(self, indent=0))
         self.auto_chooser.addOption('3b: Auto Shoot and Move *CODE*', AutoShootAndPickup(self, indent=0))
         self.auto_chooser.setDefaultOption('3c: Two Cycles *CODE*', TwoCycle(self, indent=0))
+        self.auto_chooser.addOption('3d: Fill Shoot Fill *CODE*', FillShootFill(self, indent=0))
         wpilib.SmartDashboard.putData('autonomous routines', self.auto_chooser)  #
 
     def register_commands(self):

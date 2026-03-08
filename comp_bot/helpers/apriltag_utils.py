@@ -38,6 +38,17 @@ def get_auto_ball_pose(pose:Pose2d, alliance):
 
     return Pose2d(x, y, Rotation2d(theta))
 
+def get_auto_ball_pp_pose(pose:Pose2d, alliance):
+    print(f"alliance: {alliance}, pose: {pose}")
+    if alliance == wpilib.DriverStation.Alliance.kRed:
+        theta = math.pi
+        x = 8.0
+    else:
+        theta = 0
+        x = 8.5
+    y = 5.68 if pose.Y() > constants.FieldConstants.k_field_width / 2 else 2.1
+    return Pose2d(x, y, Rotation2d(theta))
+
 def get_shooting_pose(pose:Pose2d, alliance):
     print(f"alliance: {alliance}, pose: {pose}")
     if alliance == wpilib.DriverStation.Alliance.kRed:

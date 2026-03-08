@@ -15,7 +15,7 @@ from subsystems.swerve import Swerve
 from subsystems.led import Led
 from subsystems.vision import Vision
 from helpers.log_command import log_command
-from helpers.apriltag_utils import get_nearest_tag, get_auto_ball_pose, get_shooting_pose
+from helpers.apriltag_utils import get_nearest_tag, get_auto_ball_pose, get_shooting_pose, get_auto_ball_pp_pose
 
 
 @log_command(console=True, nt=False, print_init=True, print_end=True)
@@ -178,6 +178,10 @@ class AutoToPoseClean(commands2.Command):  #
         elif self.mode == "ball_pickup":
             target = get_auto_ball_pose(pose=current_pose, alliance=wpilib.DriverStation.getAlliance())
             return target
+
+        elif self.mode == "ball_pickup++":
+            return get_auto_ball_pp_pose(pose=current_pose, alliance=wpilib.DriverStation.getAlliance())
+
         elif self.mode == "shooting":
             target = get_shooting_pose(pose=current_pose, alliance=wpilib.DriverStation.getAlliance())
             return target
