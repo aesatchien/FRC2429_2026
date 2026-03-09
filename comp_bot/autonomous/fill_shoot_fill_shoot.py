@@ -20,6 +20,7 @@ class FillShootFillShoot(commands2.SequentialCommandGroup):
 
         # self.addCommands(commands2.InstantCommand(lambda: self.container.targeting.start_tracking()))
 
+        # moves the intake down
         self.addCommands(Intake_Deploy(intake=container.intake, position='down', indent=1))
 
         # self.addCommands(commands2.WaitCommand(0.5))
@@ -34,6 +35,7 @@ class FillShootFillShoot(commands2.SequentialCommandGroup):
 
         # self.addCommands(commands2.InstantCommand(lambda: self.container.targeting.stop_tracking()))
 
+        # activates the intake
         self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=constants.IntakeConstants.k_intake_default_rpm))
 
         # self.addCommands(commands2.ParallelCommandGroup(
@@ -46,6 +48,8 @@ class FillShootFillShoot(commands2.SequentialCommandGroup):
 
         # flight simulator rules - y axis is reversed, so negative numbers go forward on field relative
         #self.addCommands(DriveByVelocitySwerve(self.container, self.container.swerve, Pose2d(-0.25, 0, 0), field_relative=True, indent=1, timeout=2))
+
+        # moves to the neutral zone to intake fuel --> come back to shoot
         self.addCommands(AutoToPoseClean(container=self.container, swerve=self.container.swerve, target_pose=None,
                             mode="ball_pickup", from_robot_state=True,control_type='not_pathplanner').withTimeout(5)
         )
@@ -54,11 +58,14 @@ class FillShootFillShoot(commands2.SequentialCommandGroup):
                             mode="shooting", from_robot_state=True, control_type='not_pathplanner').withTimeout(5)
         )
 
-        self.addCommands(Intake_Deploy(intake=self.container.intake, position='shooting', indent=1))
+        # Raises the intake to shooting position
+        self.addCommands(Intake_Deploy(intake=self.container.intake, position='shoot', indent=1))
         self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=0))
 
+        # Tracks the hub
         self.addCommands(commands2.InstantCommand(lambda: self.container.targeting.start_tracking()))
 
+        #Shoots fuel and stops tracking
         self.addCommands(commands2.ParallelRaceGroup(
             ShootingCommand(shooter=container.shooter, targeting=container.targeting
                             , indent=1, auto_timeout=5),
@@ -66,19 +73,21 @@ class FillShootFillShoot(commands2.SequentialCommandGroup):
         ))
         self.addCommands(commands2.InstantCommand(lambda: self.container.targeting.stop_tracking()))
 
+        # Moves the intake down
         self.addCommands(Intake_Deploy(intake=container.intake, position='down', indent=1))
 
         self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=constants.IntakeConstants.k_intake_default_rpm))
 
+        # Repeat what happened above
         self.addCommands(AutoToPoseClean(container=self.container, swerve=self.container.swerve, target_pose=None,
-                            mode="ball_pickup++", from_robot_state=True, control_type='not_pathplanner').withTimeout(5)
+                            mode="ball_pickup++", from_robot_state=True, control_type='not_pathplanner').withTimeout(4.5)
         )
 
         self.addCommands(AutoToPoseClean(container=self.container, swerve=self.container.swerve, target_pose=None,
-                            mode="shooting", from_robot_state=True, control_type='not_pathplanner').withTimeout(5)
+                            mode="shooting", from_robot_state=True, control_type='not_pathplanner').withTimeout(4.5)
         )
         self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=0))
-        self.addCommands(Intake_Deploy(intake=self.container.intake, position='shooting', indent=1))
+        self.addCommands(Intake_Deploy(intake=self.container.intake, position='shoot', indent=1))
 
         self.addCommands(commands2.InstantCommand(lambda: self.container.targeting.start_tracking()))
 

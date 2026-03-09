@@ -29,10 +29,10 @@ def get_auto_ball_pose(pose:Pose2d, alliance):
     print(f"alliance: {alliance}, pose: {pose}")
     if alliance == wpilib.DriverStation.Alliance.kRed:
         theta = math.pi
-        x = 9.0
+        x = 9.5
     else:
         theta = 0
-        x = 7.5
+        x = 7.0
     y = 5.68 if pose.Y() > constants.FieldConstants.k_field_width / 2 else 2.1
     #print(f"pose.Y =={pose.Y():.1f}")
 

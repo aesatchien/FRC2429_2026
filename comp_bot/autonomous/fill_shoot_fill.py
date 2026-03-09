@@ -52,7 +52,7 @@ class FillShootFill(commands2.SequentialCommandGroup):
                             mode="shooting", from_robot_state=True, control_type='not_pathplanner').withTimeout(5)
         )
 
-        self.addCommands(Intake_Deploy(intake=container.intake, position='shooting', indent=1))
+        self.addCommands(Intake_Deploy(intake=container.intake, position='shoot', indent=1))
 
         self.addCommands(commands2.InstantCommand(lambda: self.container.targeting.start_tracking()))
 
