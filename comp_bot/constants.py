@@ -279,6 +279,9 @@ class ShooterConstants:
                                 k_flywheel_roller_config]
 
     set_config_defaults(k_shooter_configs)
+    k_indexer_left_leader_config.smartCurrentLimit(30)
+    k_indexer_right_follower_config.smartCurrentLimit(30)
+
 
     # Lookup Tables: Distance (meters) -> Value
     # These are example values. You must tune these on the field!
