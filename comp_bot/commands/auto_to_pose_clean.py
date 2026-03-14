@@ -36,7 +36,7 @@ class AutoToPoseClean(commands2.Command):  #
 
     def __init__(self, container, swerve: Swerve, target_pose: Pose2d, use_vision=False, cameras=None,
                  mode=None, from_robot_state=False, control_type='not_pathplanner', indent=0,
-                 offset: Transform2d = None) -> None:
+                 offset: Transform2d = None, tolerance_type='exact') -> None:
         super().__init__()
         self.setName('AutoToPoseClean')  # using the pathplanner controller instead
         
@@ -53,11 +53,14 @@ class AutoToPoseClean(commands2.Command):  #
         self.use_vision = use_vision  # use the cameras to tell us where to go
         self.cameras = cameras  # which cameras to use
         self.offset = offset  # offset in robot frame (x=forward, y=left, rot=ccw)
+        self.tolerance_type = tolerance_type
         self.print_debug = True
         
         # --- State ---
         self.counter = 0
         self.tolerance_counter = 0
+        self.rotation_achieved = False
+        self.translation_achieved = False
         self.abort = False
 
         # CJH added a slew rate limiter 20250323 - it jolts and browns out the robot if it servos to full speed
@@ -148,6 +151,8 @@ class AutoToPoseClean(commands2.Command):  #
             self.last_diff_y = 99
             self.last_diff_radians = 9
             self.tolerance_counter = 0
+            self.rotation_achieved = False
+            self.translation_achieved = False
             self.rot_limiter.reset(0)
             self.x_limiter.reset(0)
             self.y_limiter.reset(0)
@@ -301,13 +306,17 @@ class AutoToPoseClean(commands2.Command):  #
         y_output = self.y_limiter.calculate(y_output)
         rot_output = self.rot_limiter.calculate(rot_output)
 
+        if self.tolerance_type == 'fast' and (self.x_overshot or self.y_overshot):
+            x_output = 0.0
+            y_output = 0.0
+
         # 7. Drive
         self.swerve.drive(x_output, y_output, rot_output, fieldRelative=True, rate_limited=False, keep_angle=False)
 
         # 8. Check Tolerance
-        rotation_achieved = abs(math.degrees(diff_radians)) < ac.k_rotation_tolerance.degrees()
-        translation_achieved = error_vector.norm() < ac.k_translation_tolerance_meters
-        if rotation_achieved and translation_achieved:
+        self.rotation_achieved = abs(math.degrees(diff_radians)) < ac.k_rotation_tolerance.degrees()
+        self.translation_achieved = error_vector.norm() < ac.k_translation_tolerance_meters
+        if self.rotation_achieved and self.translation_achieved:
             self.tolerance_counter += 1
         else:
             self.tolerance_counter = 0
@@ -327,7 +336,18 @@ class AutoToPoseClean(commands2.Command):  #
                 self.rot_measured_pub.set(robot_pose.rotation().degrees())
 
     def isFinished(self) -> bool:
-        return self.tolerance_counter > 10 or self.abort
+        if self.abort:
+            return True
+            
+        if self.tolerance_type == 'fast':
+            if self.rotation_achieved:
+                if self.translation_achieved or self.tolerance_counter > 0:
+                    return True
+                if self.x_overshot or self.y_overshot:
+                    return True
+            return False
+            
+        return self.tolerance_counter > 10
 
     def end(self, interrupted: bool) -> None:
         if wpilib.RobotBase.isSimulation():  # Cancel the Ghost Robot
