@@ -156,7 +156,7 @@ class DrivetrainConstants:
     # HIGH numbers = LOW trust  (~ big stdev = we don't trust it much) 2m is high, 0.1m is small
     k_pose_stdevs_large = (2, 2, 10)  # use when you don't trust the april tags - stdev x, stdev y, stdev theta
     k_pose_stdevs_disabled = (1, 1, 2)  # use when we are disabled to quickly get updates
-    k_pose_stdevs_small = (0.1, 0.1, 10)  # use when you do trust the tags
+    k_pose_stdevs_small = (0.1, 0.1, 0.1)  # use when you do trust the tags
 
     # for now, the remaining constants are in swerve_constants.py
 
@@ -197,7 +197,7 @@ class IntakeConstants:
 
     k_intake_crank_voltage = .5  # volts for now
     k_deploy_current_peak = 35  # amps for now
-    k_top_angle = 147  # degrees when at top position
+    k_top_angle = 145  # degrees when at top position
     k_bottom_angle = 0  # degrees when at bottom position
     k_shooting_angle = 75  # degrees when in shooting position - this is a guess, will need to be tuned
 

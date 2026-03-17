@@ -35,6 +35,7 @@ from autonomous.auto_shoot_and_pickup import AutoShootAndPickup
 from autonomous.twocycle import TwoCycle
 from autonomous.fill_shoot_fill import FillShootFill
 from autonomous.fill_shoot_fill_shoot import FillShootFillShoot
+from autonomous.teleop_cycle import TeleopCycle
 
 # 2429 commands
 #from commands.auto_to_pose import AutoToPose
@@ -155,6 +156,8 @@ class RobotContainer:
             Intake_Deploy(intake=self.intake, position='shoot'),
         ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
         js.driver_b.onFalse(Intake_Deploy(intake=self.intake, position='down'))
+
+        js.driver_start.whileTrue(TeleopCycle(container=self))
 
         #js.bbox_intake_in.whileTrue(Intake_Set_RPM(intake=self.intake, rpm=3000))
         #js.bbox_intake_out.whileTrue(Intake_Set_RPM(intake=self.intake, rpm=0))
