@@ -50,6 +50,7 @@ from commands.set_leds import SetLEDs
 from commands.sim_show_fov import SimShowFOV
 from commands.move_training_box import MoveTrainingBox
 from commands.swerve_test import SwerveTest
+from commands.swerve_set_x import SwerveSetX
 from commands.robot_climb import RobotClimb
 from commands.increment_shooter import IncrementShooter
 from commands.stop_shooter import StopShooter
@@ -143,6 +144,7 @@ class RobotContainer:
         # --- Subsystems ---
         # Giving Jeremy faster and slower fixed speeds
         js.driver_lb.onTrue(Intake_Set_RPM(intake=self.intake, rpm=2500, led=self.led))
+        js.driver_lt.whileTrue(SwerveSetX(swerve=self.swerve))
         js.driver_back.onTrue(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
 
         js.driver_x.whileTrue(commands2.ParallelCommandGroup(
