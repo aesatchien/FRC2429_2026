@@ -221,9 +221,15 @@ class RobotContainer:
         js.bbox_1_6.onTrue(commands2.InstantCommand(lambda: self.questnav.quest_sync_odometry()).ignoringDisable(True))
         js.bbox_1_7.onTrue(commands2.InstantCommand(lambda: self.questnav.quest_unsync_odometry()).ignoringDisable(True))
 
-        js.bbox_1_8.onTrue(Intake_Deploy(intake=self.intake, position='up'))
+        js.bbox_1_8.whileTrue(
+            Intake_Deploy(intake=self.intake, position='up').andThen(
+            Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
+        )
 
-        js.bbox_1_9.whileTrue(Intake_Deploy(intake=self.intake, position='shoot'))
+        js.bbox_1_9.whileTrue(
+            Intake_Deploy(intake=self.intake, position='shoot').andThen(
+            Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
+        )
 
         js.bbox_1_10.whileTrue(
             Intake_Deploy(intake=self.intake, position='down').andThen(
