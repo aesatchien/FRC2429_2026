@@ -3,6 +3,7 @@ from helpers.log_command import log_command  # outsource explicit logging clutte
 
 from subsystems.intake import Intake
 from subsystems.led import Led
+import math
 
 @log_command(console=True, nt=False, print_init=True, print_end=False)  # will print start and end messages
 class Intake_Set_RPM(commands2.Command):  # change the name for your command
@@ -26,7 +27,7 @@ class Intake_Set_RPM(commands2.Command):  # change the name for your command
         # self.extra_log_info = "Target=7"  # (for example)
          # if the intake is already running, then we want to stop it instead of changing the speed
         # self.previous_rpm = self.intake.get_rpm()
-        self.intake.set_intake_rpm(self.rpm) if self.rpm > 0 else self.intake.stop_intake()
+        self.intake.set_intake_rpm(self.rpm) if math.fabs(self.rpm) > 1 else self.intake.stop_intake()
 
         self.extra_log_info = f"RPM={self.rpm}"  # updating log info here to get actual rpm
 

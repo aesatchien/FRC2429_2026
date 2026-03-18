@@ -131,7 +131,7 @@ class VisionConstants:
 
 class QuestConstants:
     k_counter_offset = next(_counter)
-    quest_to_robot = Transform2d(inchesToMeters(12.84), inchesToMeters(-6.60), Rotation2d().fromDegrees(270))
+    quest_to_robot = Transform2d(inchesToMeters(-14), inchesToMeters(-8), Rotation2d().fromDegrees(270))
 
 
 class LedConstants:
@@ -259,14 +259,15 @@ class ShooterConstants:
 
     # Configure MAXMotion (The "Modern" Smart Motion) - Note: "maxMotion" object instead of "smartMotion"
     k_flywheel_left_leader_config.closedLoop.maxMotion.cruiseVelocity(6000, slot=rev.ClosedLoopSlot.kSlot0)
-    k_flywheel_left_leader_config.closedLoop.maxMotion.maxAcceleration(6000, slot=rev.ClosedLoopSlot.kSlot0)
+    k_flywheel_left_leader_config.closedLoop.maxMotion.maxAcceleration(8000, slot=rev.ClosedLoopSlot.kSlot0)
     k_flywheel_left_leader_config.closedLoop.maxMotion.allowedClosedLoopError(0, slot=rev.ClosedLoopSlot.kSlot0)
     ks_volts = 0.5
+    k_flywheel_left_leader_config.encoder.quadratureMeasurementPeriod(20)
 
     # Configure Roller to match Flywheel (MaxMotion)
     k_flywheel_roller_config.closedLoop.pidf(p=1e-4, i=0, d=0, ff=1 / vortex_max_rpm, slot=rev.ClosedLoopSlot.kSlot0)
     k_flywheel_roller_config.closedLoop.maxMotion.cruiseVelocity(6000, slot=rev.ClosedLoopSlot.kSlot0)
-    k_flywheel_roller_config.closedLoop.maxMotion.maxAcceleration(18000, slot=rev.ClosedLoopSlot.kSlot0)
+    k_flywheel_roller_config.closedLoop.maxMotion.maxAcceleration(8000, slot=rev.ClosedLoopSlot.kSlot0)
     k_flywheel_roller_config.closedLoop.maxMotion.allowedClosedLoopError(0, slot=rev.ClosedLoopSlot.kSlot0)
     k_flywheel_roller_config.encoder.quadratureMeasurementPeriod(20)
     # k_flywheel_roller_config.encoder.quadratureAverageDepth(20)

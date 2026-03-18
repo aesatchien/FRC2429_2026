@@ -118,9 +118,9 @@ class RobotContainer:
         js.driver_a.whileTrue(commands2.ParallelCommandGroup(
             ShootingCommand(shooter=self.shooter, targeting=self.targeting),
             Intake_Deploy(intake=self.intake, position='shoot'),
-        ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
+        ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=500, led=self.led)))
         # does not work as an "andThen" for some reason
-        js.driver_a.onFalse(Intake_Deploy(intake=self.intake, position='down'))
+        js.driver_a.onFalse(Intake_Deploy(intake=self.intake, position='down').andThen(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
 
         # start / stop tracking
         js.driver_rb.onTrue(commands2.InstantCommand(lambda: self.targeting.start_tracking()))
@@ -280,19 +280,25 @@ class RobotContainer:
             SetLEDs(container=self, led=self.led, indicator=selected_value)))
         wpilib.SmartDashboard.putData(f'{command_prefix}/LED Indicator', self.led_indicator_chooser)
 
-        # experimental, not used on dash
+        # set all subsystems - used on dash
         wpilib.SmartDashboard.putData(f'{command_prefix}/SetSuccess', SetLEDs(container=self, led=self.led, indicator=Led.Indicator.kSUCCESS))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeRetract', Intake_Deploy(intake=self.intake, position='up'))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeStow', Intake_Deploy(intake=self.intake, position='up'))
         wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeDeploy', Intake_Deploy(intake=self.intake, position='down'))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeStart', Intake_Set_RPM(intake=self.intake, rpm=3000, led=self.led))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeStop', Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/IndexerStart', commands2.InstantCommand(lambda: self.shooter.set_indexer_rpm(constants.ShooterConstants.k_indexer_rpm)))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/IndexerStop',commands2.InstantCommand(lambda: self.shooter.stop_indexer()))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/HopperStart', commands2.InstantCommand(lambda: self.shooter.set_hopper_rpm(constants.ShooterConstants.k_hopper_rpm)))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/HopperStop',commands2.InstantCommand(lambda: self.shooter.stop_hopper()))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/ShooterStop', StopShooter(shooter=self.shooter))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/ShooterStart', commands2.InstantCommand(lambda: self.shooter.set_shooter_rpm(constants.ShooterConstants.k_shooter_test_speed)))
-
+        wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeShoot', Intake_Deploy(intake=self.intake, position='shoot'))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeOn', Intake_Set_RPM(intake=self.intake, rpm=3000, led=self.led))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeOff', Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeReverse', Intake_Set_RPM(intake=self.intake, rpm=-500, led=self.led))
+        # ---
+        wpilib.SmartDashboard.putData(f'{command_prefix}/HopperOn', commands2.InstantCommand(lambda: self.shooter.set_hopper_rpm(constants.ShooterConstants.k_hopper_rpm)))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/HopperOff',commands2.InstantCommand(lambda: self.shooter.stop_hopper()))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/HopperReverse', commands2.InstantCommand(lambda: self.shooter.set_hopper_rpm(-500)))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/IndexerOn', commands2.InstantCommand(lambda: self.shooter.set_indexer_rpm(constants.ShooterConstants.k_indexer_rpm)))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/IndexerOff', commands2.InstantCommand(lambda: self.shooter.stop_indexer()))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/IndexerReverse', commands2.InstantCommand(lambda: self.shooter.set_indexer_rpm(-500)))
+        # ---
+        wpilib.SmartDashboard.putData(f'{command_prefix}/ShooterOn', commands2.InstantCommand(lambda: self.shooter.set_shooter_rpm(constants.ShooterConstants.k_shooter_test_speed)))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/ShooterOff', StopShooter(shooter=self.shooter))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/ShooterReverse', commands2.InstantCommand(lambda: self.shooter.set_shooter_rpm(-500)))
 
         # commands for pyqt dashboard - please do not remove
         COMMAND_LIST = [CANStatus(container=self),
