@@ -259,9 +259,10 @@ class ShooterConstants:
 
     # Configure MAXMotion (The "Modern" Smart Motion) - Note: "maxMotion" object instead of "smartMotion"
     k_flywheel_left_leader_config.closedLoop.maxMotion.cruiseVelocity(6000, slot=rev.ClosedLoopSlot.kSlot0)
-    k_flywheel_left_leader_config.closedLoop.maxMotion.maxAcceleration(6000, slot=rev.ClosedLoopSlot.kSlot0)
+    k_flywheel_left_leader_config.closedLoop.maxMotion.maxAcceleration(8000, slot=rev.ClosedLoopSlot.kSlot0)
     k_flywheel_left_leader_config.closedLoop.maxMotion.allowedClosedLoopError(0, slot=rev.ClosedLoopSlot.kSlot0)
     ks_volts = 0.5
+    k_flywheel_left_leader_config.encoder.quadratureMeasurementPeriod(20)
 
     # Configure Roller to match Flywheel (MaxMotion)
     k_flywheel_roller_config.closedLoop.pidf(p=1e-4, i=0, d=0, ff=1 / vortex_max_rpm, slot=rev.ClosedLoopSlot.kSlot0)
