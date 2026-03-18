@@ -82,11 +82,12 @@ REF_TR_PX = (532, 16)      # Top-Right pixel (Field X=17.6, Y=8.2)
 # Commands with special properties (e.g., custom topics, flash behavior) are defined separately.
 # You can and should use the exact same list of commands in the robotcontainer.py to putdata to NT
 # There needs to be correctly text-wrapped labels in the UI (e.g. qlabel_gyro_reset_indicator)
-COMMAND_LIST = ['MoveElevatorTop', 'MoveElevatorUp', 'MoveElevatorDown', 'MovePivotUp', 'MovePivotDown',
-                'MoveWristUp', 'MoveWristDown', 'IntakeOn', 'IntakeOff', 'IntakeReverse',
-                'MoveClimberDown', 'MoveClimberUp', 'GoToStow', 'GoToL1', 'GoToL2', 'GoToL3', 'GoToL4',
-                'CanStatus', 'ResetFlex', 'CalElevatorUp', 'CalElevatorDown', 'RecalWrist', 'CalWristUp',
-                'CalWristDown','GyroReset']
+COMMAND_LIST = ['IntakeStow', 'IntakeDeploy', 'IntakeShoot',
+                'IntakeOn', 'IntakeOff', 'IntakeReverse',
+                'HopperOn', 'HopperOff', 'HopperReverse',
+                'IndexerOn', 'IndexerOff', 'IndexerReverse',
+                'ShooterOn', 'ShooterOff', 'ShooterReverse',
+                'CanStatus', 'ResetFlex','GyroReset']
 
 # this config will be used to bind the NT topics to entries we can use later
 # todo - somehow make the camera names all update from a config file, but that means ui and robot code need to know
