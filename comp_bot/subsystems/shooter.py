@@ -81,6 +81,7 @@ class Shooter(Subsystem):
         self.nt_prefix = "/SmartDashboard/Shooter"  # TODO = move to constants
         self.shooter_on_pub = self.inst.getBooleanTopic(f"{self.nt_prefix}/shooter_on").publish()
         self.shooter_rpm_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/shooter_rpm").publish()
+        self.measured_shooter_rpm_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/measured_shooter_rpm").publish()
         self.indexer_on_pub = self.inst.getBooleanTopic(f"{self.nt_prefix}/indexer_on").publish()
         self.indexer_rpm_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/indexer_rpm").publish()
         self.hopper_on_pub = self.inst.getBooleanTopic(f"{self.nt_prefix}/hopper_on").publish()
@@ -98,6 +99,7 @@ class Shooter(Subsystem):
         self.hopper_rpm_pub.set(self.current_hopper_rpm)
         self.roller_on_pub.set(self.roller_on)
         self.roller_rpm_pub.set(self.current_roller_rpm)
+        self.measured_shooter_rpm_pub.set(self.flywheel_encoder.getVelocity())
 
 
     def stop_shooter(self):
@@ -205,8 +207,8 @@ class Shooter(Subsystem):
         self.counter += 1
 
         # SmartDashboard.putBoolean('shooter_enable', self.shooter_enable)
-        if self.counter % 2 == 0:
-
+        if self.counter % 10 == 0:
+            self.update_nt()
             if self.shooter_on:
                 pass
                 # self.flywheel_encoder_rm_pub.set(self.flywheel_encoder.getVelocity())

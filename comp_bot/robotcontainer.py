@@ -144,7 +144,7 @@ class RobotContainer:
         # --- Subsystems ---
         # Giving Jeremy faster and slower fixed speeds
         js.driver_lb.onTrue(Intake_Set_RPM(intake=self.intake, rpm=2500, led=self.led))
-        js.driver_lt.whileTrue(SwerveSetX(swerve=self.swerve))
+        js.driver_l_trigger.whileTrue(SwerveSetX(container=self, swerve=self.swerve))
         js.driver_back.onTrue(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
 
         js.driver_x.whileTrue(commands2.ParallelCommandGroup(
@@ -215,6 +215,28 @@ class RobotContainer:
 
         js.bbox_1_3.whileTrue(SwerveTest(container=self, swerve=self.swerve))
 
+        js.bbox_1_4.whileTrue(SwerveTest(container=self, swerve=self.swerve))
+
+        js.bbox_1_5.onTrue(commands2.InstantCommand(lambda: self.questnav.quest_enabled_toggle(force='off')).ignoringDisable(True))
+        js.bbox_1_6.onTrue(commands2.InstantCommand(lambda: self.questnav.quest_sync_odometry()).ignoringDisable(True))
+        js.bbox_1_7.onTrue(commands2.InstantCommand(lambda: self.questnav.quest_unsync_odometry()).ignoringDisable(True))
+
+        js.bbox_1_8.onTrue(Intake_Deploy(intake=self.intake, position='up'))
+
+        js.bbox_1_9.whileTrue(commands2.ParallelCommandGroup(
+            ShootingCommand(shooter=self.shooter, targeting=self.targeting),
+            Intake_Deploy(intake=self.intake, position='shoot'),
+        ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
+        js.bbox_1_9.onFalse(Intake_Deploy(intake=self.intake, position='down'))
+
+        js.bbox_1_10.whileTrue(
+            Intake_Deploy(intake=self.intake, position='down').andThen(
+            Intake_Set_RPM(intake=self.intake, rpm=3000, led=self.led))
+        )
+
+        js.bbox_1_11.onTrue(IncrementShooter(shooter=self.shooter, speed_change=-250))
+        js.bbox_1_12.onTrue(IncrementShooter(shooter=self.shooter, speed_change=250))
+
         # test the intake deploy positions on the L1-L4 buttons
         js.bbox_2_1.whileTrue(CalibrateIntake(intake=self.intake))
         js.bbox_2_2.onTrue(Intake_Deploy(intake=self.intake, position='down'))
@@ -222,9 +244,9 @@ class RobotContainer:
         js.bbox_2_4.onTrue(Intake_Deploy(intake=self.intake, position='up'))
 
         # test the intake speed
-        js.bbox_AB.onTrue(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
-        js.bbox_CD.whileTrue(Intake_Set_RPM(intake=self.intake, rpm=2500, led=self.led))
-        js.bbox_EF.whileTrue(Intake_Set_RPM(intake=self.intake, rpm=3000, led=self.led))
+        #js.bbox_AB.onTrue(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
+        #js.bbox_CD.whileTrue(Intake_Set_RPM(intake=self.intake, rpm=2500, led=self.led))
+        #js.bbox_EF.whileTrue(Intake_Set_RPM(intake=self.intake, rpm=3000, led=self.led))
 
         # test the shooting commands
         js.bbox_2_6.whileTrue(ShootingCommand(shooter=self.shooter, targeting=self.targeting))

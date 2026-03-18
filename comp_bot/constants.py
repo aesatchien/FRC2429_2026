@@ -223,7 +223,7 @@ class ShooterConstants:
     k_CANID_hopper = 6  # reserve 7
     k_hopper_config = SparkMaxConfig()
     k_hopper_config.inverted(True)
-    k_hopper_rpm = 3000  # TODO - decide if this can just be a voltage
+    k_hopper_rpm = 5000  # TODO - decide if this can just be a voltage
 
     # INDEXER
     k_CANID_indexer_left_leader, k_CANID_indexer_right_follower  = 8, 9
@@ -266,8 +266,11 @@ class ShooterConstants:
     # Configure Roller to match Flywheel (MaxMotion)
     k_flywheel_roller_config.closedLoop.pidf(p=1e-4, i=0, d=0, ff=1 / vortex_max_rpm, slot=rev.ClosedLoopSlot.kSlot0)
     k_flywheel_roller_config.closedLoop.maxMotion.cruiseVelocity(6000, slot=rev.ClosedLoopSlot.kSlot0)
-    k_flywheel_roller_config.closedLoop.maxMotion.maxAcceleration(6000, slot=rev.ClosedLoopSlot.kSlot0)
+    k_flywheel_roller_config.closedLoop.maxMotion.maxAcceleration(18000, slot=rev.ClosedLoopSlot.kSlot0)
     k_flywheel_roller_config.closedLoop.maxMotion.allowedClosedLoopError(0, slot=rev.ClosedLoopSlot.kSlot0)
+    k_flywheel_roller_config.encoder.quadratureMeasurementPeriod(20)
+    # k_flywheel_roller_config.encoder.quadratureAverageDepth(20)
+
 
 
     # set all configs - make sure you keep this order in the subsystem
