@@ -266,7 +266,7 @@ class ShooterConstants:
     # Configure Roller to match Flywheel (MaxMotion)
     k_flywheel_roller_config.closedLoop.pidf(p=1e-4, i=0, d=0, ff=1 / vortex_max_rpm, slot=rev.ClosedLoopSlot.kSlot0)
     k_flywheel_roller_config.closedLoop.maxMotion.cruiseVelocity(6000, slot=rev.ClosedLoopSlot.kSlot0)
-    k_flywheel_roller_config.closedLoop.maxMotion.maxAcceleration(18000, slot=rev.ClosedLoopSlot.kSlot0)
+    k_flywheel_roller_config.closedLoop.maxMotion.maxAcceleration(8000, slot=rev.ClosedLoopSlot.kSlot0)
     k_flywheel_roller_config.closedLoop.maxMotion.allowedClosedLoopError(0, slot=rev.ClosedLoopSlot.kSlot0)
     k_flywheel_roller_config.encoder.quadratureMeasurementPeriod(20)
     # k_flywheel_roller_config.encoder.quadratureAverageDepth(20)
