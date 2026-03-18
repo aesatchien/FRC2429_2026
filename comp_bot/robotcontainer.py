@@ -223,11 +223,7 @@ class RobotContainer:
 
         js.bbox_1_8.onTrue(Intake_Deploy(intake=self.intake, position='up'))
 
-        js.bbox_1_9.whileTrue(commands2.ParallelCommandGroup(
-            ShootingCommand(shooter=self.shooter, targeting=self.targeting),
-            Intake_Deploy(intake=self.intake, position='shoot'),
-        ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
-        js.bbox_1_9.onFalse(Intake_Deploy(intake=self.intake, position='down'))
+        js.bbox_1_9.whileTrue(Intake_Deploy(intake=self.intake, position='shoot'))
 
         js.bbox_1_10.whileTrue(
             Intake_Deploy(intake=self.intake, position='down').andThen(
