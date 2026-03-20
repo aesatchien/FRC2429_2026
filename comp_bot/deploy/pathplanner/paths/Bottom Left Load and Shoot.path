@@ -3,13 +3,45 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 3.143478260869565,
+        "x": 3.3,
         "y": 0.6267080745341604
       },
       "prevControl": null,
       "nextControl": {
-        "x": 4.143478260869566,
+        "x": 4.300000000000001,
         "y": 0.6267080745341604
+      },
+      "isLocked": false,
+      "linkedName": null
+    },
+    {
+      "anchor": {
+        "x": 5.918278571428572,
+        "y": 0.6267080745341604
+      },
+      "prevControl": {
+        "x": 5.1538071428571435,
+        "y": 0.6207928571428567
+      },
+      "nextControl": {
+        "x": 6.665391725899145,
+        "y": 0.6324889795613824
+      },
+      "isLocked": false,
+      "linkedName": null
+    },
+    {
+      "anchor": {
+        "x": 6.926693204350949,
+        "y": 0.5248739908889521
+      },
+      "prevControl": {
+        "x": 6.6955299911913695,
+        "y": 0.6200767685886547
+      },
+      "nextControl": {
+        "x": 7.157856417510528,
+        "y": 0.4296712131892496
       },
       "isLocked": false,
       "linkedName": null
@@ -62,23 +94,27 @@
   ],
   "rotationTargets": [
     {
-      "waypointRelativePos": 0.6679920477137175,
+      "waypointRelativePos": 0.13878007834359266,
+      "rotationDegrees": 0.0
+    },
+    {
+      "waypointRelativePos": 3.352546166759931,
       "rotationDegrees": 90.0
     },
     {
-      "waypointRelativePos": 2.1679920477137173,
+      "waypointRelativePos": 4.301622831561277,
       "rotationDegrees": 90.0
     },
     {
-      "waypointRelativePos": 2.9105367793240555,
+      "waypointRelativePos": 4.9105367793240555,
       "rotationDegrees": 34.647133353529995
     }
   ],
   "constraintZones": [
     {
       "name": "Constraints Zone",
-      "minWaypointRelativePos": 0.8242924528301891,
-      "maxWaypointRelativePos": 2.122641509433962,
+      "minWaypointRelativePos": 2.3,
+      "maxWaypointRelativePos": 4.1226415094339615,
       "constraints": {
         "maxVelocity": 1.5,
         "maxAcceleration": 3.0,
@@ -99,7 +135,7 @@
     },
     {
       "name": "shoot",
-      "waypointRelativePos": 3.0,
+      "waypointRelativePos": 5.0,
       "endWaypointRelativePos": null,
       "command": null
     }
@@ -120,7 +156,7 @@
   "folder": null,
   "idealStartingState": {
     "velocity": 0,
-    "rotation": 0.0
+    "rotation": 45.0
   },
   "useDefaultConstraints": true
 }
