@@ -54,6 +54,7 @@ class ShootingCommand(commands2.Command):  # change the name for your command
         sign = 1 if self.counter % 30 < 25 else -1
         # print(f"sign: {sign} and counter % 50: {self.counter % 50}")
 
+        rpm = rpm if self.counter > 75 else rpm + 500
         self.shooter.set_shooter_rpm(rpm if rpm <= 5600 else sc.k_shooter_max_speed)
         if self.counter > self.delay_cycles: # and (not self.shooter.indexer_on or not self.shooter.hopper_on):
             if True: # self.shooter.current_rpm > 0:

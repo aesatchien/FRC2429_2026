@@ -138,7 +138,7 @@ class LedConstants:
 
     k_counter_offset = next(_counter)
     k_nt_debugging = False  # print extra values to NT for debugging
-    k_led_count = 40  # correct as of 2025 0305
+    k_led_count = 8  # correct as of 2026 0319
     k_led_count_ignore = 4  # flat ones not for the height indicator
     k_led_pwm_port = 0  # correct as of 2025 0305
 
@@ -197,7 +197,7 @@ class IntakeConstants:
 
     k_intake_crank_voltage = .5  # volts for now
     k_deploy_current_peak = 35  # amps for now
-    k_top_angle = 145  # degrees when at top position
+    k_top_angle = 143  # degrees when at top position
     k_bottom_angle = 0  # degrees when at bottom position
     k_shooting_angle = 75  # degrees when in shooting position - this is a guess, will need to be tuned
 
@@ -288,14 +288,14 @@ class ShooterConstants:
 
 
     # Lookup Tables: Distance (meters) -> Value
-    # These are example values. You must tune these on the field!
+    fudge_factor = 1.05
     k_distance_to_rpm = {
-        1.5: 3100,
-        2.0: 3300,
-        3.0: 4050,
-        3.5: 4300,
-        4.0: 4600,
-        4.5: 4900
+        1.5: 3100*fudge_factor,
+        2.0: 3300*fudge_factor,
+        3.0: 4050*fudge_factor,
+        3.5: 4300*fudge_factor,
+        4.0: 4600*fudge_factor,
+        4.5: 4900*fudge_factor
     }
     
     # Distance (meters) -> Time of Flight (seconds)

@@ -17,7 +17,7 @@ class Intake_Set_RPM(commands2.Command):  # change the name for your command
         self.indent = indent
         self.on_start = on_start
         self.led = led
-
+        self.previous_rpm = 0
         # self.previous_rpm = 1000  # assume we were on
         self.addRequirements(self.intake)  # commandsv2 version of requirements
 
@@ -26,7 +26,7 @@ class Intake_Set_RPM(commands2.Command):  # change the name for your command
         # if you wish to add more information to the console logger, change self.extra_log_info
         # self.extra_log_info = "Target=7"  # (for example)
          # if the intake is already running, then we want to stop it instead of changing the speed
-        # self.previous_rpm = self.intake.get_rpm()
+        self.previous_rpm = self.intake.get_rpm()
         self.intake.set_intake_rpm(self.rpm) if math.fabs(self.rpm) > 1 else self.intake.stop_intake()
 
         self.extra_log_info = f"RPM={self.rpm}"  # updating log info here to get actual rpm
@@ -40,11 +40,11 @@ class Intake_Set_RPM(commands2.Command):  # change the name for your command
     def end(self, interrupted: bool) -> None:
         pass
         # put your safe cleanup code here - turn off motors, set LEDs, etc
-        # if self.led is not None:
-        #     if abs(self.rpm) > 1:
-        #         self.led.set_indicator(Led.Indicator.kINTAKEON)
-        #     elif abs(self.previous_rpm) > 1:  # flash only if we were already moving
-        #         commands2.CommandScheduler.getInstance().schedule(
-        #             self.led.set_indicator_with_timeout(Led.Indicator.kINTAKEOFF, timeout=1.5))
-        #     else:
-        #         pass  # do nothing if we are now off and were already off
+        if self.led is not None:
+            if abs(self.rpm) > 1:
+                self.led.set_indicator(Led.Indicator.kINTAKEON)
+            elif abs(self.previous_rpm) > 1:  # flash only if we weren't already moving
+                commands2.CommandScheduler.getInstance().schedule(
+                    self.led.set_indicator_with_timeout(Led.Indicator.kINTAKEOFF, timeout=1.5))
+            else:
+                pass  # do nothing if we are now off and were already off
