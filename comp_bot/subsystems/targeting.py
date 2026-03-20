@@ -50,9 +50,11 @@ class Targeting(Subsystem):
         self.setName('Targeting')
         self.swerve = swerve
 
-        # Targets (Blue and Red Hubs)
-        self.bHubLocation = Translation2d(4.74, 4.05)
-        self.rHubLocation = Translation2d(12.1, 4.05)
+        # Targets (Blue and Red Hubs)  Updated 20260320 because it was 12 to 20 cm off
+        # Y is easy - 4.035.  X is given in the manual as 4.028 to the edge, so add half of the 1.19 wide
+        # welded and Andymark are off by about 1cm - should not matter much
+        self.bHubLocation = Translation2d(4.62, constants.FieldConstants.k_field_width/2)
+        self.rHubLocation = Translation2d(11.91, constants.FieldConstants.k_field_width/2)
 
         # PID for rotation tracking
         self.rot_pid = PIDController(tc.kTeleopRotationPID.kP, tc.kTeleopRotationPID.kI, tc.kTeleopRotationPID.kD)
