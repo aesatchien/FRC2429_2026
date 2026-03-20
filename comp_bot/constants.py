@@ -12,7 +12,7 @@ from helpers.utilities import set_config_defaults
 
 k_swerve_config = "comp"  # choose between practice bot and comp bot for now - they differ by swerve ofsets
 
-k_at_home = False  # used for intake calibration
+k_at_home = True  # used for intake calibration
 
 # Generator for unique counter offsets
 _counter = count(1)
@@ -259,7 +259,7 @@ class ShooterConstants:
 
     # Configure MAXMotion (The "Modern" Smart Motion) - Note: "maxMotion" object instead of "smartMotion"
     k_flywheel_left_leader_config.closedLoop.maxMotion.cruiseVelocity(6000, slot=rev.ClosedLoopSlot.kSlot0)
-    k_flywheel_left_leader_config.closedLoop.maxMotion.maxAcceleration(8000, slot=rev.ClosedLoopSlot.kSlot0)
+    k_flywheel_left_leader_config.closedLoop.maxMotion.maxAcceleration(10000, slot=rev.ClosedLoopSlot.kSlot0)
     k_flywheel_left_leader_config.closedLoop.maxMotion.allowedClosedLoopError(0, slot=rev.ClosedLoopSlot.kSlot0)
     ks_volts = 0.5
     k_flywheel_left_leader_config.encoder.quadratureMeasurementPeriod(20)

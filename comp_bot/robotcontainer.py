@@ -117,7 +117,8 @@ class RobotContainer:
 
         js.driver_a.whileTrue(commands2.ParallelCommandGroup(
             ShootingCommand(shooter=self.shooter, targeting=self.targeting),
-            Intake_Deploy(intake=self.intake, position='shoot'),
+            commands2.SequentialCommandGroup(commands2.WaitCommand(1.5),
+                                             Intake_Deploy(intake=self.intake, position='shoot')),
         ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=500, led=self.led)))
         # does not work as an "andThen" for some reason
         js.driver_a.onFalse(Intake_Deploy(intake=self.intake, position='down').andThen(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))

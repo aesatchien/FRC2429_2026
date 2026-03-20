@@ -51,20 +51,21 @@ class ShootingCommand(commands2.Command):  # change the name for your command
         self.counter += 1
         rpm = self.targeting.get_target_rpm() if self.rpm <= 0 else self.rpm
 
-        sign = 1 if self.counter % 30 < 25 else -1
+        hopper_sign = 1 #  if self.counter % 30 < 25 else -1
         # print(f"sign: {sign} and counter % 50: {self.counter % 50}")
 
-        rpm = rpm if self.counter > 75 else rpm + 500
+        rpm = rpm if self.counter > 75 else rpm + 500  # leo making it faster at the first half second
         self.shooter.set_shooter_rpm(rpm if rpm <= 5600 else sc.k_shooter_max_speed)
-        if self.counter > self.delay_cycles: # and (not self.shooter.indexer_on or not self.shooter.hopper_on):
-            if True: # self.shooter.current_rpm > 0:
-                self.shooter.set_indexer_rpm(sc.k_indexer_rpm)
-                self.shooter.set_hopper_rpm(sc.k_hopper_rpm * sign)
-                # print(f"sc.k_hopper_rpm: {sc.k_hopper_rpm * sign}")
 
-            else:
-                self.shooter.stop_indexer()
-                self.shooter.stop_hopper()
+        if self.counter > self.delay_cycles: # and (not self.shooter.indexer_on or not self.shooter.hopper_on):
+            self.shooter.set_indexer_rpm(sc.k_indexer_rpm)
+        if self.counter > self.delay_cycles + 10:
+            self.shooter.set_hopper_rpm(sc.k_hopper_rpm * hopper_sign)
+
+        else:
+            pass
+            #self.shooter.stop_indexer()
+            #self.shooter.stop_hopper()
         # runs 50x per second, so be careful about messages and timing
 
     def isFinished(self) -> bool:
