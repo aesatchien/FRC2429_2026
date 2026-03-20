@@ -56,7 +56,7 @@ def get_shooting_pose(pose:Pose2d, alliance):
         x = 13.5
     else:
         theta = 41 * math.tau / 360
-        x = 2.5
+        x = 3
     y = 5.68 if pose.Y() > constants.FieldConstants.k_field_width / 2 else 2.1
 
     if pose.Y() > constants.FieldConstants.k_field_width / 2:

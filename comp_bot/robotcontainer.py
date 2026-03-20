@@ -115,9 +115,11 @@ class RobotContainer:
         # --- Drive & Navigation ---
         js.driver_y.onTrue(ResetFieldCentric(container=self, swerve=self.swerve, angle=0))
 
+        # --- The current shooting cycle
+        # slow intake rollers, start the shooting cycle, then raise the intake after a short wait
         js.driver_a.whileTrue(commands2.ParallelCommandGroup(
             ShootingCommand(shooter=self.shooter, targeting=self.targeting),
-            commands2.SequentialCommandGroup(commands2.WaitCommand(1.5),
+            commands2.SequentialCommandGroup(commands2.WaitCommand(constants.AutoConstants.k_intake_raise_delay),
                                              Intake_Deploy(intake=self.intake, position='shoot')),
         ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=500, led=self.led)))
         # does not work as an "andThen" for some reason
@@ -348,8 +350,8 @@ class RobotContainer:
         self.auto_chooser.addOption('3a: Auto Shoot *CODE*', AutoShootingGroup(self, indent=0))
         self.auto_chooser.addOption('3b: Auto Shoot and Move *CODE*', AutoShootAndPickup(self, indent=0))
         self.auto_chooser.addOption('3c: Two Cycles *CODE*', TwoCycle(self, indent=0))
-        self.auto_chooser.setDefaultOption('3d: Fill Shoot Fill *CODE*', FillShootFill(self, indent=0))
-        self.auto_chooser.addOption('3e: Fill Shoot Fill Shoot *CODE*', FillShootFillShoot(self, indent=0))
+        self.auto_chooser.addOption('3d: Fill Shoot Fill *CODE*', FillShootFill(self, indent=0))
+        self.auto_chooser.setDefaultOption('3e: Fill Shoot Fill Shoot *CODE*', FillShootFillShoot(self, indent=0))
         wpilib.SmartDashboard.putData('autonomous routines', self.auto_chooser)  #
 
     def register_commands(self):

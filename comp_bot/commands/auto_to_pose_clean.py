@@ -306,9 +306,9 @@ class AutoToPoseClean(commands2.Command):  #
         y_output = self.y_limiter.calculate(y_output)
         rot_output = self.rot_limiter.calculate(rot_output)
 
-        if self.tolerance_type == 'fast' and (self.x_overshot or self.y_overshot):
-            x_output = 0.0
-            y_output = 0.0
+        # if self.tolerance_type == 'fast' and (self.x_overshot or self.y_overshot):
+        #     x_output = 0.0
+        #     y_output = 0.0
 
         # 7. Drive
         self.swerve.drive(x_output, y_output, rot_output, fieldRelative=True, rate_limited=False, keep_angle=False)
@@ -343,10 +343,11 @@ class AutoToPoseClean(commands2.Command):  #
             if self.rotation_achieved:
                 if self.translation_achieved or self.tolerance_counter > 0:
                     return True
-                if self.x_overshot or self.y_overshot:
+                if self.x_overshot and self.y_overshot:  # this was an OR and it triggered immediately
                     return True
             return False
-            
+
+        # For 'exact' tolerance, we require 10 consecutive cycles within tolerance to ensure stability
         return self.tolerance_counter > 10
 
     def end(self, interrupted: bool) -> None:
