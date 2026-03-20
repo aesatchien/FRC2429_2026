@@ -332,4 +332,4 @@ class ClimberConstants:
 
 class AutoConstants:
     k_intake_raise_delay = 1.5  # how long to wait after starting the shooting cycle before raising the intake
-    k_shooting_timeout = 5.5  # duration of shooting command
+    k_shooting_timeout = 5.0  # duration of shooting command in autonomous

@@ -75,7 +75,6 @@ class FillShootFillShoot(commands2.SequentialCommandGroup):
         )
 
 
-
         # -----  PHASE IV:  EMPTY THE HOPPER (as above) -----
         self.addCommands(commands2.InstantCommand(lambda: self.container.targeting.start_tracking()))
         self.addCommands(commands2.ParallelRaceGroup(
@@ -91,5 +90,7 @@ class FillShootFillShoot(commands2.SequentialCommandGroup):
             ).withTimeout(ac.k_shooting_timeout)
         ))
         self.addCommands(commands2.InstantCommand(lambda: self.container.targeting.stop_tracking()))
+
+        self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=0))
 
         self.addCommands(commands2.PrintCommand(f"{'    ' * indent}** Finished {self.getName()} **"))

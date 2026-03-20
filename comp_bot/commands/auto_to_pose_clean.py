@@ -287,7 +287,7 @@ class AutoToPoseClean(commands2.Command):  #
         # 4. Apply Stiction Breaking (Minimum Output)
         # If we haven't overshot yet, but we are close, ensure we apply enough power to move
         rot_max, rot_min = 0.5, 0.1
-        trans_max, trans_min = 0.3, 0.1
+        trans_max, trans_min = 0.5, 0.1  # max was previously 0.3 in 2025 - well under control
 
         if abs(x_output) < trans_min and not self.x_overshot and abs(diff_x) > ac.k_translation_tolerance_meters:
             x_output = math.copysign(trans_min, x_output)
