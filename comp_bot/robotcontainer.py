@@ -364,7 +364,7 @@ class RobotContainer:
                 Intake_Set_RPM(intake=self.intake, rpm=2500, led=self.led)
             )
         )
-        NamedCommands.registerCommand('start_shooter_nothing_else', commands2.instantCommand(lambda: self.container.shooter.set_shooter_rpm(sc.k_fire_up_speed)))
+        NamedCommands.registerCommand('start_shooter_nothing_else', commands2.InstantCommand(lambda: self.container.shooter.set_shooter_rpm(sc.k_fire_up_speed)))
         NamedCommands.registerCommand('shooting_command', ShootingCommand(shooter=self.shooter, targeting=self.targeting))
         
 
