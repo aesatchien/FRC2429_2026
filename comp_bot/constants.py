@@ -12,7 +12,7 @@ from helpers.utilities import set_config_defaults
 
 k_swerve_config = "comp"  # choose between practice bot and comp bot for now - they differ by swerve ofsets
 
-k_at_home = True  # used for intake calibration
+k_at_home = False  # used for intake calibration
 
 # Generator for unique counter offsets
 _counter = count(1)

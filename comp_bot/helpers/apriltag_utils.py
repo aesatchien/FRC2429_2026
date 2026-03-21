@@ -49,7 +49,7 @@ def get_auto_ball_pp_pose(pose:Pose2d, alliance):
     else:
         theta = 0
         x = (constants.FieldConstants.k_field_length / 2) - x_offset
-    y = 5.68 if pose.Y() > constants.FieldConstants.k_field_width / 2 else 2.1
+    y = 5.38 if pose.Y() > constants.FieldConstants.k_field_width / 2 else 2.4
     return Pose2d(x, y, Rotation2d(theta))
 
 def get_shooting_pose(pose:Pose2d, alliance):
