@@ -241,6 +241,7 @@ class ShooterConstants:
     # ROLLER
     k_flywheel_roller_config = SparkFlexConfig()
 
+    k_fire_up_speed = 3800
     k_shooter_test_speed = 4000
     k_shooter_max_speed = 6500
 

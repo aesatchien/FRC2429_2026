@@ -102,8 +102,8 @@
       "rotationDegrees": 90.0
     },
     {
-      "waypointRelativePos": 4.301622831561277,
-      "rotationDegrees": 90.0
+      "waypointRelativePos": 4.309317496827411,
+      "rotationDegrees": 71.03876598491205
     },
     {
       "waypointRelativePos": 4.9105367793240555,
@@ -128,14 +128,14 @@
   "pointTowardsZones": [],
   "eventMarkers": [
     {
-      "name": "activate intake",
-      "waypointRelativePos": 0,
+      "name": "deploy_and_start_intake",
+      "waypointRelativePos": 0.8364955357142856,
       "endWaypointRelativePos": null,
       "command": null
     },
     {
-      "name": "shoot",
-      "waypointRelativePos": 5.0,
+      "name": "start_shooter_nothing_else",
+      "waypointRelativePos": 4.167286706349207,
       "endWaypointRelativePos": null,
       "command": null
     }

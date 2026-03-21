@@ -14,6 +14,7 @@ from pathplannerlib.auto import AutoBuilder, NamedCommands
 # 2429 helper files
 import constants
 from helpers import joysticks as js
+from constants import ShooterConstants as sc
 
 # 2429 subsystems
 from subsystems import swerve_constants
@@ -359,6 +360,14 @@ class RobotContainer:
         # this is for PathPlanner, so it can call our commands.  Note they do not magically show up in pathplanner
         # you have to add them there, and then it remembers your list of commands.  so name them wisely
         NamedCommands.registerCommand('robot_state_left', commands2.cmd.runOnce(lambda: setattr(self.robot_state, 'side', RobotState.Side.LEFT)).ignoringDisable(True))
+        NamedCommands.registerCommand('deploy_and_start_intake', Intake_Deploy(intake=self.intake, position='down').andThen(
+                Intake_Set_RPM(intake=self.intake, rpm=2500, led=self.led)
+            )
+        )
+        NamedCommands.registerCommand('start_shooter_nothing_else', commands2.instantCommand(lambda: self.container.shooter.set_shooter_rpm(sc.k_fire_up_speed)))
+        NamedCommands.registerCommand('shooting_command', ShootingCommand(shooter=self.shooter, targeting=self.targeting))
+        
+
 
     def get_autonomous_command(self):
         # return DriveByVelocitySwerve(self, self.swerve, Pose2d(0.1, 0, 0), 2)
