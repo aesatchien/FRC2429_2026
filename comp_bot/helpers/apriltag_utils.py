@@ -4,6 +4,7 @@ import wpilib
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 
 import constants
+from constants import FieldConstants as fc, AutoConstants as cac
 
 # This data is initialized once when the module is first imported.
 # TODO -  right now all the libraries are messed up, so we have to do this manually  - 20260118 CJH
@@ -25,45 +26,22 @@ def get_tag_distance(tag_id, current_pose):
     distance = current_pose.translation().distance(tag_pose.translation())
     return distance
 
-def get_auto_ball_pose(pose:Pose2d, alliance):
-    print(f"alliance: {alliance}, pose: {pose}")
-    x_offset = 1.0  # this many meters short of the halfway line
+def auto_reflect_pose(robot_pose:Pose2d, goal_pose:Pose2d, alliance, is_shooting=False):
+    print(f"alliance: {alliance}, robot_pose: {robot_pose}, goal_pose: {goal_pose}")
     if alliance == wpilib.DriverStation.Alliance.kRed:
-        theta = math.pi
-        x = (constants.FieldConstants.k_field_length / 2) + x_offset
+        # x and theta for lower half red
+        theta = math.pi - goal_pose.rotation().radians()
+        x = fc.k_field_length - goal_pose.X()
     else:
-        theta = 0
-        x = (constants.FieldConstants.k_field_length / 2) - x_offset
-    y = 5.68 if pose.Y() > constants.FieldConstants.k_field_width / 2 else 2.1
-    #print(f"pose.Y =={pose.Y():.1f}")
+        # x and theta for lower half blue
+        theta = goal_pose.rotation().radians()
+        x = goal_pose.X()
 
-    return Pose2d(x, y, Rotation2d(theta))
+    # reflect y about the center if we're on the top half of the field
+    y = fc.k_field_width - goal_pose.Y() if robot_pose.Y() > fc.k_field_width / 2 else goal_pose.Y()
 
-def get_auto_ball_pp_pose(pose:Pose2d, alliance):
-    print(f"alliance: {alliance}, pose: {pose}")
-    # go to the halfway line
-    x_offset = 0.1  # this much less than the halfway line
-    if alliance == wpilib.DriverStation.Alliance.kRed:
-        theta = math.pi
-        x = (constants.FieldConstants.k_field_length / 2) + x_offset
-    else:
-        theta = 0
-        x = (constants.FieldConstants.k_field_length / 2) - x_offset
-    y = 5.38 if pose.Y() > constants.FieldConstants.k_field_width / 2 else 2.4
-    return Pose2d(x, y, Rotation2d(theta))
-
-def get_shooting_pose(pose:Pose2d, alliance):
-    print(f"alliance: {alliance}, pose: {pose}")
-    if alliance == wpilib.DriverStation.Alliance.kRed:
-        theta = math.pi - 44 * math.tau /360
-        x = 13.5
-    else:
-        theta = 44 * math.tau / 360
-        x = 3
-
-    y = 5.68 if pose.Y() > constants.FieldConstants.k_field_width / 2 else 2.1
-
-    if pose.Y() > constants.FieldConstants.k_field_width / 2:
+    # for a shooting pose, flip theta if we're on the top half of the field, so we face the hub
+    if is_shooting and robot_pose.Y() > fc.k_field_width / 2:
         theta = -theta
 
     # print(f"pose.Y =={pose.Y():.1f}")

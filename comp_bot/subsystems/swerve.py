@@ -18,7 +18,7 @@ from pathplannerlib.config import ModuleConfig, RobotConfig
 
 import constants
 from .swervemodule_2429 import SwerveModule
-from .swerve_constants import DriveConstants as dc, AutoConstants as ac, ModuleConstants as mc
+from .swerve_constants import DriveConstants as dc, AutoConstantsSwerve as ac, ModuleConstants as mc
 from helpers.utilities import compare_motors
 import helpers.apriltag_utils as atu
 from subsystems.quest import Questnav

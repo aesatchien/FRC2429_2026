@@ -11,7 +11,7 @@ from commands2.button import CommandXboxController
 from wpimath.geometry import Translation2d
 from wpimath.filter import Debouncer, SlewRateLimiter
 from wpimath.kinematics import ChassisSpeeds
-from subsystems.swerve_constants import DriveConstants as dc, AutoConstants as ac, TargetingConstants as tc
+from subsystems.swerve_constants import DriveConstants as dc, AutoConstantsSwerve as ac, TargetingConstants as tc
 from helpers.log_command import log_command
 from helpers.utilities import deprecated
 

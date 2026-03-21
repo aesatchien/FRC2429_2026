@@ -3,6 +3,7 @@ from itertools import count
 import math
 import wpilib
 import rev
+import wpimath.units
 from rev import ClosedLoopSlot, SparkClosedLoopController, SparkFlexConfig, SparkMax, SparkMaxConfig
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d, Transform2d
 from wpimath.units import inchesToMeters, lbsToKilograms
@@ -333,3 +334,8 @@ class ClimberConstants:
 class AutoConstants:
     k_intake_raise_delay = 1.5  # how long to wait after starting the shooting cycle before raising the intake
     k_shooting_timeout = 5.0  # duration of shooting command in autonomous
+
+    # these three poses are for reflecting about the center in auto
+    k_shooting_pose = Pose2d(3.0, 2.1, 44 * math.pi / 180)  # bottom left position for shooting in auto
+    k_first_ball_pickup_pose = Pose2d(FieldConstants.k_field_length/2 -1, 2.1, 0)
+    k_second_ball_pickup_pose = Pose2d(FieldConstants.k_field_length/2 -0.5, 2.3, 0)

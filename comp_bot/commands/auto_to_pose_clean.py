@@ -10,13 +10,13 @@ from wpimath.geometry import Pose2d, Translation2d, Rotation2d, Transform2d
 from wpimath.filter import SlewRateLimiter
 
 import constants
-from subsystems.swerve_constants import DriveConstants as dc, AutoConstants as ac, TargetingConstants as tc
+from constants import AutoConstants as cac
+from subsystems.swerve_constants import DriveConstants as dc, AutoConstantsSwerve as ac, TargetingConstants as tc
 from subsystems.swerve import Swerve
 from subsystems.led import Led
 from subsystems.vision import Vision
 from helpers.log_command import log_command
-from helpers.apriltag_utils import get_nearest_tag, get_auto_ball_pose, get_shooting_pose, get_auto_ball_pp_pose
-
+from helpers.apriltag_utils import get_nearest_tag, auto_reflect_pose
 
 @log_command(console=True, nt=False, print_init=True, print_end=True)
 class AutoToPoseClean(commands2.Command):  #
@@ -181,15 +181,13 @@ class AutoToPoseClean(commands2.Command):  #
             # Mirroring handled below
 
         elif self.mode == "ball_pickup":
-            target = get_auto_ball_pose(pose=current_pose, alliance=wpilib.DriverStation.getAlliance())
-            return target
+            return auto_reflect_pose(robot_pose=current_pose, goal_pose=cac.k_first_ball_pickup_pose, alliance=wpilib.DriverStation.getAlliance(), is_shooting=False)
 
         elif self.mode == "ball_pickup++":
-            return get_auto_ball_pp_pose(pose=current_pose, alliance=wpilib.DriverStation.getAlliance())
+            return auto_reflect_pose(robot_pose=current_pose, goal_pose=cac.k_second_ball_pickup_pose, alliance=wpilib.DriverStation.getAlliance(), is_shooting=False)
 
         elif self.mode == "shooting":
-            target = get_shooting_pose(pose=current_pose, alliance=wpilib.DriverStation.getAlliance())
-            return target
+            return auto_reflect_pose(robot_pose=current_pose, goal_pose=cac.k_shooting_pose, alliance=wpilib.DriverStation.getAlliance(), is_shooting=True)
 
         elif self.from_robot_state:
             # 2. Robot State Mode

@@ -5,7 +5,7 @@ from wpilib import SmartDashboard
 from wpimath.controller import PIDController
 from wpimath.geometry import Pose2d
 
-from subsystems.swerve_constants import AutoConstants as ac
+from subsystems.swerve_constants import AutoConstantsSwerve as ac
 from subsystems.swerve import Swerve
 from subsystems.led import Led
 from helpers.log_command import log_command
