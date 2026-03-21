@@ -59,6 +59,8 @@ class DriveToPoseCustomControl(commands2.Command):
         self.last_diff_x = 999
         self.last_diff_y = 999
         self.last_diff_radians = 1
+        self.error_distance = 999.0
+        self.error_degrees = 999.0
 
         self.create_controllers()
         self._init_networktables()
@@ -112,6 +114,8 @@ class DriveToPoseCustomControl(commands2.Command):
         self.last_diff_x = 99  
         self.last_diff_y = 99
         self.last_diff_radians = 9
+        self.error_distance = 999.0
+        self.error_degrees = 999.0
         self.tolerance_counter = 0
         self.rotation_achieved = False
         self.translation_achieved = False
@@ -151,6 +155,9 @@ class DriveToPoseCustomControl(commands2.Command):
         diff_x = error_vector.X()
         diff_y = error_vector.Y()
         diff_radians = (self.target_pose.rotation() - robot_pose.rotation()).radians()
+        
+        self.error_distance = error_vector.norm()
+        self.error_degrees = abs(math.degrees(diff_radians))
 
         if abs(diff_x) > abs(self.last_diff_x) and self.counter > 0: self.x_overshot = True
         self.last_diff_x = diff_x
@@ -162,7 +169,7 @@ class DriveToPoseCustomControl(commands2.Command):
         self.last_diff_radians = diff_radians
 
         rot_max, rot_min = 0.5, 0.1
-        trans_max, trans_min = 0.4, 0.1 
+        trans_max, trans_min = 0.45, 0.1
 
         if abs(x_output) < trans_min and not self.x_overshot and abs(diff_x) > ac.k_translation_tolerance_meters:
             x_output = math.copysign(trans_min, x_output)
@@ -204,10 +211,10 @@ class DriveToPoseCustomControl(commands2.Command):
 
     def isFinished(self) -> bool:
         if self.abort: return True
+        # condition where we want to be fast - sloppy is ok
         if self.tolerance_type == 'fast':
-            if self.rotation_achieved and (self.translation_achieved or self.tolerance_counter > 1 or (self.x_overshot and self.y_overshot)):
-                return True
-            return False
+            return self.error_distance < 0.10 and self.error_degrees < 10.0
+        # default condition where we want to be exact
         return self.tolerance_counter > 10
 
     def end(self, interrupted: bool) -> None:

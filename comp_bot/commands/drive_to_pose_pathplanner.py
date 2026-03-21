@@ -53,6 +53,8 @@ class DriveToPosePathPlanner(commands2.Command):
         self.last_diff_x = 999
         self.last_diff_y = 999
         self.last_diff_radians = 1
+        self.error_distance = 999.0
+        self.error_degrees = 999.0
 
         self.target_state = PathPlannerTrajectoryState()
         self.target_state.feedforwards = DriveFeedforwards()
@@ -98,6 +100,8 @@ class DriveToPosePathPlanner(commands2.Command):
         self.last_diff_x = 99  
         self.last_diff_y = 99
         self.last_diff_radians = 9
+        self.error_distance = 999.0
+        self.error_degrees = 999.0
         self.tolerance_counter = 0
         self.rotation_achieved = False
         self.translation_achieved = False
@@ -121,6 +125,9 @@ class DriveToPosePathPlanner(commands2.Command):
 
         error_vector = self.target_pose.translation() - robot_pose.translation()
         diff_radians = (self.target_pose.rotation() - robot_pose.rotation()).radians()
+        
+        self.error_distance = error_vector.norm()
+        self.error_degrees = abs(math.degrees(diff_radians))
 
         self.rotation_achieved = abs(math.degrees(diff_radians)) < ac.k_rotation_tolerance.degrees()
         self.translation_achieved = error_vector.norm() < ac.k_translation_tolerance_meters
@@ -133,10 +140,10 @@ class DriveToPosePathPlanner(commands2.Command):
 
     def isFinished(self) -> bool:
         if self.abort: return True
+        # condition where we want to be fast - sloppy is ok
         if self.tolerance_type == 'fast':
-            if self.rotation_achieved and (self.translation_achieved or self.tolerance_counter > 1):
-                return True
-            return False
+            return self.error_distance < 0.10 and self.error_degrees < 10.0
+        # default condition where we want to be exact
         return self.tolerance_counter > 10
 
     def end(self, interrupted: bool) -> None:

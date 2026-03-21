@@ -1,6 +1,6 @@
 import wpilib
 import commands2
-from commands2 import SequentialCommandGroup, WaitCommand
+from commands2 import SequentialCommandGroup, WaitCommand, ParallelCommandGroup, InstantCommand
 
 import constants
 from constants import AutoConstants as ac
@@ -30,16 +30,26 @@ class FillShootFillShoot(commands2.SequentialCommandGroup):
         # self.addCommands(commands2.WaitCommand(0.5))
 
         # activates the intake
-        self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=constants.IntakeConstants.k_intake_default_rpm))
+        self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=ac.k_intake_roller_rpm))
 
         # moves to the neutral zone to intake fuel --> come back to shoot
         self.addCommands(DriveToPoseCustomControl(container=self.container, swerve=self.container.swerve,
-                            target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_first_ball_pickup_pose, wpilib.DriverStation.getAlliance(), is_shooting=False), tolerance_type='exact').withTimeout(5)
+                            target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_first_ball_pickup_pose, wpilib.DriverStation.getAlliance(), is_shooting=False),
+                                                  tolerance_type='fast').withTimeout(5)
         )
 
-        self.addCommands(DriveToPoseCustomControl(container=self.container, swerve=self.container.swerve,
-                            target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_shooting_pose, wpilib.DriverStation.getAlliance(), is_shooting=True), tolerance_type='exact').withTimeout(5)
-        )
+        # start the shooter on the way back so we don't waste a second letting it spin up
+        self.addCommands(
+            ParallelCommandGroup(
+            DriveToPoseCustomControl(container=self.container, swerve=self.container.swerve,
+                                     target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_shooting_pose,
+                                                                                    wpilib.DriverStation.getAlliance(), is_shooting=True),
+                                     tolerance_type='fast').withTimeout(5),
+            SequentialCommandGroup(
+                WaitCommand(1), InstantCommand(lambda: self.container.shooter.set_shooter_rpm(ac.k_shooter_startup_rpm)))
+        ))
+
+
 
         # -----  PHASE II:  SHOOT INITIAL HOPPER -----
         #
@@ -50,7 +60,7 @@ class FillShootFillShoot(commands2.SequentialCommandGroup):
         # Starts the shooting cycle and then raises the intake after a delay to prevent compression and jams
         # forces it to die when the first command finishes
         self.addCommands(commands2.ParallelRaceGroup(
-            ShootingCommand(shooter=container.shooter, targeting=container.targeting, indent=1, auto_timeout=ac.k_shooting_timeout),
+            ShootingCommand(shooter=container.shooter, targeting=container.targeting, indent=1, auto_timeout=ac.k_shooting_timeout, delay_cycles=10),
             DriveByJoystickSubsystemTargeting(self.container, swerve=self.container.swerve, controller=js.driver_controller, targeting=container.targeting),
             SequentialCommandGroup(
                 WaitCommand(ac.k_intake_raise_delay),
@@ -65,23 +75,31 @@ class FillShootFillShoot(commands2.SequentialCommandGroup):
         # -----  PHASE III:  FILL HOPPER AGAIN -----
         # Moves the intake down
         self.addCommands(Intake_Deploy(intake=container.intake, position='down', indent=1))
-        self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=constants.IntakeConstants.k_intake_default_rpm))
+        self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=ac.k_intake_roller_rpm))
 
         # Repeat what happened above
         self.addCommands(DriveToPoseCustomControl(container=self.container, swerve=self.container.swerve,
-                            target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_second_ball_pickup_pose, wpilib.DriverStation.getAlliance(), is_shooting=False), tolerance_type='fast').withTimeout(4.5)
+                            target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_second_ball_pickup_pose, wpilib.DriverStation.getAlliance(), is_shooting=False),
+                                                  tolerance_type='fast').withTimeout(4.5)
         )
 
-        self.addCommands(DriveToPoseCustomControl(container=self.container, swerve=self.container.swerve,
-                            target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_shooting_pose, wpilib.DriverStation.getAlliance(), is_shooting=True), tolerance_type='exact').withTimeout(4.5)
-        )
+        # start the shooter on the way back so we don't waste a second letting it spin up
+        self.addCommands(
+            ParallelCommandGroup(
+            DriveToPoseCustomControl(container=self.container, swerve=self.container.swerve,
+                                     target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_shooting_pose,
+                                                                                    wpilib.DriverStation.getAlliance(), is_shooting=True),
+                                     tolerance_type='fast').withTimeout(5),
+            SequentialCommandGroup(
+                WaitCommand(1), InstantCommand(lambda: self.container.shooter.set_shooter_rpm(ac.k_shooter_startup_rpm)))
+        ))
 
 
         # -----  PHASE IV:  EMPTY THE HOPPER (as above) -----
         self.addCommands(commands2.InstantCommand(lambda: self.container.targeting.start_tracking()))
         self.addCommands(commands2.ParallelRaceGroup(
             ShootingCommand(shooter=container.shooter, targeting=container.targeting, indent=1,
-                            auto_timeout=ac.k_shooting_timeout),
+                            auto_timeout=ac.k_shooting_timeout, delay_cycles=10),
             DriveByJoystickSubsystemTargeting(self.container, swerve=self.container.swerve,
                                               controller=js.driver_controller, targeting=container.targeting),
             SequentialCommandGroup(

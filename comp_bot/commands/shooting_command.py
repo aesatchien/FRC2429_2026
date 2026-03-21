@@ -12,7 +12,7 @@ from subsystems.targeting import Targeting
 class ShootingCommand(commands2.Command):  # change the name for your command
 
 
-    def __init__(self, shooter: Shooter, targeting: Targeting=None, indent=0, auto_timeout=None, rpm=0, offset=0) -> None:
+    def __init__(self, shooter: Shooter, targeting: Targeting=None, indent=0, auto_timeout=None, rpm=0, delay_cycles=50) -> None:
         super().__init__()
         self.setName('Shooting') # change this to something appropriate for this command
         self.indent = indent
@@ -23,7 +23,7 @@ class ShootingCommand(commands2.Command):  # change the name for your command
         self.counter = 0  # add a counter if you need to track iterations, remember to initialize in below
         # we want indexer and hopper to start after .1 seconds or 1/10 seconds. 
         # if it runs 50x per second, 50 * 1/10 is 5, so after 5 cycles, start the indexer and hopper
-        self.delay_cycles = 50  # Trentan: this is .75 seconds, was 37, 50 seems good for aluminum shooter
+        self.delay_cycles = delay_cycles  # Trentan: this is .75 seconds, was 37, 50 seems good for aluminum shooter
         self.auto_timeout = auto_timeout
         self.timer = wpilib.Timer()
         self.rpm = rpm
@@ -42,24 +42,29 @@ class ShootingCommand(commands2.Command):  # change the name for your command
         else:
             rpm = self.targeting.get_target_rpm()
         self.shooter.set_shooter_rpm(rpm if rpm <= 5600 else sc.k_shooter_max_speed)
-        self.shooter.set_indexer_rpm(-1000)
-        self.shooter.stop_hopper()
+
+        # maintain a timer - need to implement this for auto time out and for delay time instead of cycles
         self.timer.reset()
         self.timer.start()
+
+       # initialize indexer and hopper
+        self.shooter.set_indexer_rpm(-1000)
+        self.shooter.stop_hopper()
+
+        self.extra_log_info = f"delay={self.delay_cycles}"  # (for example)
 
     def execute(self) -> None:
         self.counter += 1
         rpm = self.targeting.get_target_rpm() if self.rpm <= 0 else self.rpm
 
-        hopper_sign = 1 #  if self.counter % 30 < 25 else -1
-        # print(f"sign: {sign} and counter % 50: {self.counter % 50}")
+        hopper_sign = 1 # WAS agitating with  "if self.counter % 30 < 25 else -1" but we don't need that
 
-        rpm = rpm if self.counter > 50 else rpm + 500  # leo making it faster at the first half second
+        rpm = rpm if self.counter > self.delay_cycles else rpm + 500  # leo making it faster during spinup
         self.shooter.set_shooter_rpm(rpm if rpm <= 5600 else sc.k_shooter_max_speed)
 
         if self.counter > self.delay_cycles: # and (not self.shooter.indexer_on or not self.shooter.hopper_on):
             self.shooter.set_indexer_rpm(sc.k_indexer_rpm)
-        if self.counter > self.delay_cycles + 10:
+        if self.counter > self.delay_cycles + 10:  # let the indexer spin up before we start forcing balls in
             self.shooter.set_hopper_rpm(sc.k_hopper_rpm * hopper_sign)
 
         else:
