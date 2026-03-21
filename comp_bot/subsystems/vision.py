@@ -175,6 +175,22 @@ class Vision(SubsystemBase):
         # Return the one with the minimum distance (norm of translation)
         return min(valid_poses, key=lambda p: p.translation().norm())
 
+    def get_vision_target_pose(self, current_pose: Pose2d, cameras: list[str] = None, offset: Transform2d = None) -> Pose2d | None:
+        """Calculates a field-relative target pose from vision. Returns None if target not found."""
+        relative_pose = self.nearest_to_robot(cameras)
+        
+        if relative_pose is not None:
+            if offset is not None:
+                rx = relative_pose.X() + offset.X()
+                ry = relative_pose.Y() + offset.Y()
+                rrot = relative_pose.rotation() + offset.rotation()
+                relative_pose = Pose2d(rx, ry, rrot)
+                
+            rel_tf = Transform2d(relative_pose.translation(), relative_pose.rotation())
+            return current_pose.transformBy(rel_tf)  # Vision is relative to robot, no field mirroring needed
+            
+        return None
+
     def set_training_box(self, data: list[float]) -> None:
         """Update the training box parameters on the coprocessor."""
         self.training_box_entry.set(data)

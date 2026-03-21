@@ -81,6 +81,40 @@ def get_nearest_tag(current_pose, destination='stage'):
     return sorted_tags[0]  # changed this in 2025 instead of updated_pose
 
 
+def pose_from_nearest_tag(robot_state, current_pose: Pose2d, destination='reef') -> Pose2d:
+    """Calculates the target pose based on the nearest AprilTag."""
+    nearest_tag = get_nearest_tag(current_pose=current_pose, destination=destination)
+    robot_state.set_reef_goal_by_tag(nearest_tag)
+    target = robot_state.reef_goal_pose
+    
+    if wpilib.DriverStation.getAlliance() == wpilib.DriverStation.Alliance.kRed:
+        mid_x = fc.k_field_length / 2
+        mid_y = fc.k_field_width / 2
+        target = target.rotateAround(point=Translation2d(mid_x, mid_y), rot=Rotation2d(math.pi))
+        
+    return target
+
+def pose_from_robot_state(robot_state) -> Pose2d:
+    """Retrieves the reef goal pose from RobotState and applies alliance mirroring."""
+    target = robot_state.reef_goal_pose
+    
+    if wpilib.DriverStation.getAlliance() == wpilib.DriverStation.Alliance.kRed:
+        mid_x = fc.k_field_length / 2
+        mid_y = fc.k_field_width / 2
+        target = target.rotateAround(point=Translation2d(mid_x, mid_y), rot=Rotation2d(math.pi))
+        
+    return target
+
+def pose_from_static(target_pose: Pose2d) -> Pose2d:
+    """Applies alliance mirroring to a static pose."""
+    target = target_pose
+    if wpilib.DriverStation.getAlliance() == wpilib.DriverStation.Alliance.kRed:
+        mid_x = fc.k_field_length / 2
+        mid_y = fc.k_field_width / 2
+        target = target.rotateAround(point=Translation2d(mid_x, mid_y), rot=Rotation2d(math.pi))
+        
+    return target
+
 #  ---------   DEPRECATED REEFSCAPE STUFF
 # Mapping from letter to tag ID and which side of the reef face it corresponds to.
 # Note: 'e' is the right side of tag 22, 'f' is the left side, etc.
@@ -138,5 +172,3 @@ def get_reefscape_scoring_pose(letter: str) -> Pose2d:
 
 # Dictionary to store robot poses for reefscape autos
 k_useful_robot_poses_blue = {letter: get_reefscape_scoring_pose(letter) for letter in 'abcdefghijkl'}
-
-

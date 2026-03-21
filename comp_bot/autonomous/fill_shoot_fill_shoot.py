@@ -1,3 +1,4 @@
+import wpilib
 import commands2
 from commands2 import SequentialCommandGroup, WaitCommand
 
@@ -8,9 +9,10 @@ from commands.drive_by_joystick_subsystem_targeting import DriveByJoystickSubsys
 from commands.intake_deploy import Intake_Deploy
 from commands.intake_set_rpm import Intake_Set_RPM
 from commands.shooting_command import ShootingCommand
-from commands.auto_to_pose_clean import AutoToPoseClean
+from commands.drive_to_pose_custom_control import DriveToPoseCustomControl
 
 from helpers import joysticks as js
+from helpers.apriltag_utils import auto_reflect_pose
 from wpimath.geometry import Pose2d
 
 class FillShootFillShoot(commands2.SequentialCommandGroup):
@@ -31,12 +33,12 @@ class FillShootFillShoot(commands2.SequentialCommandGroup):
         self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=constants.IntakeConstants.k_intake_default_rpm))
 
         # moves to the neutral zone to intake fuel --> come back to shoot
-        self.addCommands(AutoToPoseClean(container=self.container, swerve=self.container.swerve, target_pose=None,
-                            mode="ball_pickup", from_robot_state=True, control_type='not_pathplanner', tolerance_type='exact').withTimeout(5)
+        self.addCommands(DriveToPoseCustomControl(container=self.container, swerve=self.container.swerve,
+                            target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_first_ball_pickup_pose, wpilib.DriverStation.getAlliance(), is_shooting=False), tolerance_type='exact').withTimeout(5)
         )
 
-        self.addCommands(AutoToPoseClean(container=self.container, swerve=self.container.swerve, target_pose=None,
-                            mode="shooting", from_robot_state=True, control_type='not_pathplanner', tolerance_type='exact').withTimeout(5)
+        self.addCommands(DriveToPoseCustomControl(container=self.container, swerve=self.container.swerve,
+                            target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_shooting_pose, wpilib.DriverStation.getAlliance(), is_shooting=True), tolerance_type='exact').withTimeout(5)
         )
 
         # -----  PHASE II:  SHOOT INITIAL HOPPER -----
@@ -66,12 +68,12 @@ class FillShootFillShoot(commands2.SequentialCommandGroup):
         self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=constants.IntakeConstants.k_intake_default_rpm))
 
         # Repeat what happened above
-        self.addCommands(AutoToPoseClean(container=self.container, swerve=self.container.swerve, target_pose=None,
-                            mode="ball_pickup++", from_robot_state=True, control_type='not_pathplanner', tolerance_type='fast').withTimeout(4.5)
+        self.addCommands(DriveToPoseCustomControl(container=self.container, swerve=self.container.swerve,
+                            target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_second_ball_pickup_pose, wpilib.DriverStation.getAlliance(), is_shooting=False), tolerance_type='fast').withTimeout(4.5)
         )
 
-        self.addCommands(AutoToPoseClean(container=self.container, swerve=self.container.swerve, target_pose=None,
-                            mode="shooting", from_robot_state=True, control_type='not_pathplanner', tolerance_type='exact').withTimeout(4.5)
+        self.addCommands(DriveToPoseCustomControl(container=self.container, swerve=self.container.swerve,
+                            target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_shooting_pose, wpilib.DriverStation.getAlliance(), is_shooting=True), tolerance_type='exact').withTimeout(4.5)
         )
 
 
