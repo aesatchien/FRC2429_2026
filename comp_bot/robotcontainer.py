@@ -36,6 +36,7 @@ from autonomous.auto_shoot_and_pickup import AutoShootAndPickup
 from autonomous.twocycle import TwoCycle
 from autonomous.fill_shoot_fill import FillShootFill
 from autonomous.fill_shoot_fill_shoot import FillShootFillShoot
+from autonomous.fill_shoot_fill_shoot_trench import FillShootFillShootTrench
 from autonomous.teleop_cycle import TeleopCycle
 
 # 2429 commands
@@ -353,6 +354,7 @@ class RobotContainer:
         self.auto_chooser.addOption('3c: Two Cycles *CODE*', TwoCycle(self, indent=0))
         self.auto_chooser.addOption('3d: Fill Shoot Fill *CODE*', FillShootFill(self, indent=0))
         self.auto_chooser.setDefaultOption('3e: Fill Shoot Fill Shoot *CODE*', FillShootFillShoot(self, indent=0))
+        self.auto_chooser.setDefaultOption('3f Fill Shoot Fill Shoot Trench *CODE*', FillShootFillShootTrench(self, indent=0))
         wpilib.SmartDashboard.putData('autonomous routines', self.auto_chooser)  #
 
     def register_commands(self):
