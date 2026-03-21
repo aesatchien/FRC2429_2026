@@ -29,13 +29,6 @@ class FillShootFillShootTrench(commands2.SequentialCommandGroup):
 
 
         # -----  PHASE I:  DRIVE TO FILL HOPPER  -----
-        # moves the intake down
-        self.addCommands(Intake_Deploy(intake=container.intake, position='down', indent=1))
-
-        # self.addCommands(commands2.WaitCommand(0.5))
-
-        # activates the intake
-        self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=ac.k_intake_roller_rpm))
 
         # moves to the neutral zone to intake fuel --> come back to shoot
         if self.container.swerve.get_pose().Y() > constants.FieldConstants.k_field_width / 2:
@@ -49,6 +42,7 @@ class FillShootFillShootTrench(commands2.SequentialCommandGroup):
 
         # Starts the shooting cycle and then raises the intake after a delay to prevent compression and jams
         # forces it to die when the first command finishes
+        """
         self.addCommands(commands2.ParallelRaceGroup(
             ShootingCommand(shooter=container.shooter, targeting=container.targeting, indent=1, auto_timeout=ac.k_shooting_timeout, delay_cycles=10),
             DriveByJoystickSubsystemTargeting(self.container, swerve=self.container.swerve, controller=js.driver_controller, targeting=container.targeting),
@@ -61,6 +55,7 @@ class FillShootFillShootTrench(commands2.SequentialCommandGroup):
         ))
         # stops tracking
         self.addCommands(commands2.InstantCommand(lambda: self.container.targeting.stop_tracking()))
+        """
 
         # -----  PHASE III:  FILL HOPPER AGAIN -----
         # Moves the intake down
