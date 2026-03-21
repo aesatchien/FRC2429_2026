@@ -38,8 +38,10 @@ class FillShootFillShootTrench(commands2.SequentialCommandGroup):
         self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=ac.k_intake_roller_rpm))
 
         # moves to the neutral zone to intake fuel --> come back to shoot
-        self.addCommands(AutoBuilder.followPath(PathPlannerPath.fromPathFile('deploy/pathplanner/paths/Bottom Left Load and Shoot.path'))
-        )
+        if self.container.swerve.get_pose().Y() > constants.FieldConstants.k_field_width / 2:
+            self.addCommands(AutoBuilder.followPath(PathPlannerPath.fromPathFile('Top Left Load and Shoot')))
+        else:
+            self.addCommands(AutoBuilder.followPath(PathPlannerPath.fromPathFile('Bottom Left Load and Shoot')))
 
         # -----  PHASE II:  SHOOT INITIAL HOPPER -----
         # Tracks the hub
