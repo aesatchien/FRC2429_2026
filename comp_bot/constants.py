@@ -340,6 +340,6 @@ class AutoConstants:
     k_shooter_startup_rpm = 3800  # set shooter during transit back - very close to the RPM of the shooting position
 
     # these three poses are for reflecting about the center in auto
-    k_shooting_pose = Pose2d(3.0, 2.15, 44 * math.pi / 180)  # bottom left position for shooting in auto
+    k_shooting_pose = Pose2d(3.0, 2.3, 44 * math.pi / 180)  # bottom left position for shooting in auto
     k_first_ball_pickup_pose = Pose2d(FieldConstants.k_field_length/2 -0.8, 2.1, 0)
     k_second_ball_pickup_pose = Pose2d(FieldConstants.k_field_length/2 -0.3, 2.6, 0)
