@@ -36,6 +36,10 @@ class Questnav(SubsystemBase):
         self.quest_pose = Pose2d(-10, -10, Rotation2d.fromDegrees(0)) # initial pose if not connected / tracking
         self.quest_pose_new = self.quest_pose
         self.quest_pose_old = self.quest_pose
+
+        # add members to handle lost tracking (the double-tap issue)
+        self.missed_frame_count = 0
+        self.k_max_missed_frames = 25  # 0.5 seconds at 50Hz
         self.was_tracking = False
 
         # Simulation variables
@@ -205,6 +209,7 @@ class Questnav(SubsystemBase):
 
             # FIX: Exception Fall-Through. Only process if actively tracking AND frames exist.
             if is_tracking and frames:
+                self.missed_frame_count = 0  # Reset watchdog
                 frame_last = frames[-1]  # only read the last frame if multiple are available
 
                 try:
@@ -237,7 +242,12 @@ class Questnav(SubsystemBase):
                     self.was_tracking = False  # Actively flag blackout state on exception
             else:
                 # Blackout / Passthrough occurred due to bump or actual tracking loss.
-                self.was_tracking = False
+                self.missed_frame_count += 1
+                if self.missed_frame_count > self.k_max_missed_frames:
+                    self.was_tracking = False
+                    # Optional: Print a warning to the driver station that the data stream is dead
+                    print(f"Detecting a lost QuestNav at FPGA timestamp: {wpilib.Timer.getFPGATimestamp():.1f}s")
+
 
         else:  # simulate a pose read ground truth from sim and apply the current "drift/error" of the Quest
 
