@@ -1,5 +1,4 @@
 # 2429 FRC code for 2025 season - Reefscape
-from sys import prefix
 
 import wpilib
 from wpimath.geometry import Pose2d
@@ -9,7 +8,7 @@ from commands2.printcommand import PrintCommand
 # pathplanner stuff
 from pathplannerlib.pathfinders import LocalADStar
 from pathplannerlib.pathfinding import Pathfinding
-from pathplannerlib.auto import AutoBuilder, NamedCommands
+from pathplannerlib.auto import NamedCommands
 
 # 2429 helper files
 import constants
@@ -17,7 +16,6 @@ from helpers import joysticks as js
 from constants import ShooterConstants as sc
 
 # 2429 subsystems
-from subsystems import swerve_constants
 from subsystems.led import Led
 from subsystems.quest import Questnav
 from subsystems.robot_state import RobotState
@@ -25,7 +23,6 @@ from subsystems.swerve import Swerve
 from subsystems.vision import Vision
 from subsystems.shooter import Shooter
 from subsystems.intake import Intake
-from subsystems.climber import Climber
 from subsystems.targeting import Targeting
 
 # from subsystems.questnav_2429 import QuestnavModule
@@ -41,20 +38,13 @@ from autonomous.teleop_cycle import TeleopCycle
 
 # 2429 commands
 #from commands.auto_to_pose import AutoToPose
-from commands.auto_to_pose_clean import AutoToPoseClean
-from commands.auto_track_vision_target import AutoTrackVisionTarget
 from commands.can_status import CANStatus
 from commands.drive_by_velocity_swerve import DriveByVelocitySwerve
 from commands.drive_by_joystick_subsystem_targeting import DriveByJoystickSubsystemTargeting
 from commands.reset_field_centric import ResetFieldCentric
-from commands.rumble_command import RumbleCommand
 from commands.set_leds import SetLEDs
-from commands.sim_show_fov import SimShowFOV
-from commands.move_training_box import MoveTrainingBox
 from commands.swerve_test import SwerveTest
 from commands.swerve_set_x import SwerveSetX
-from commands.robot_climb import RobotClimb
-from commands.increment_shooter import IncrementShooter
 from commands.stop_shooter import StopShooter
 
 from commands.shooting_command import ShootingCommand
