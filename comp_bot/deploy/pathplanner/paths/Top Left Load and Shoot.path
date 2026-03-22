@@ -141,22 +141,26 @@
   "pointTowardsZones": [],
   "eventMarkers": [
     {
-      "name": "hello",
-      "waypointRelativePos": 0,
-      "endWaypointRelativePos": null,
-      "command": null
-    },
-    {
       "name": "deploy_and_start_intake",
       "waypointRelativePos": 1.7645662967289721,
       "endWaypointRelativePos": null,
-      "command": null
+      "command": {
+        "type": "named",
+        "data": {
+          "name": "deploy_and_start_intake"
+        }
+      }
     },
     {
       "name": "start_shooter_nothing_else",
       "waypointRelativePos": 4.203280154789719,
       "endWaypointRelativePos": null,
-      "command": null
+      "command": {
+        "type": "named",
+        "data": {
+          "name": "start_shooter_nothing_else"
+        }
+      }
     }
   ],
   "globalConstraints": {
