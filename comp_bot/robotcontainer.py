@@ -351,13 +351,13 @@ class RobotContainer:
         # ----------  PATHPLANNER COMMANDS  ---------------
         # this is for PathPlanner, so it can call our commands.  Note they do not magically show up in pathplanner
         # you have to add them there, and then it remembers your list of commands.  so name them wisely
-        NamedCommands.registerCommand('robot_state_left', commands2.cmd.runOnce(lambda: setattr(self.robot_state, 'side', RobotState.Side.LEFT)).ignoringDisable(True))
         NamedCommands.registerCommand('deploy_and_start_intake', Intake_Deploy(intake=self.intake, position='down').andThen(
                 Intake_Set_RPM(intake=self.intake, rpm=2500, led=self.led)
             )
         )
         NamedCommands.registerCommand('start_shooter_nothing_else', commands2.InstantCommand(lambda: self.container.shooter.set_shooter_rpm(sc.k_fire_up_speed)))
         NamedCommands.registerCommand('shooting_command', ShootingCommand(shooter=self.shooter, targeting=self.targeting))
+        NamedCommands.registerCommand('hello', commands2.PrintCommand("hello!"))
         
 
 

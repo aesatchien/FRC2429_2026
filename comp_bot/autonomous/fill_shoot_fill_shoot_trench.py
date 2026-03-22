@@ -31,12 +31,12 @@ class FillShootFillShootTrench(commands2.SequentialCommandGroup):
 
 
         # -----  PHASE I:  DRIVE TO FILL HOPPER  -----
-        self.addCommands(Intake_Deploy(intake=container.intake, position='down', indent=1))
+        #self.addCommands(Intake_Deploy(intake=container.intake, position='down', indent=1))
 
         # self.addCommands(commands2.WaitCommand(0.5))
 
         # activates the intake
-        self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=ac.k_intake_roller_rpm))
+        #self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=ac.k_intake_roller_rpm))
 
         # moves to the neutral zone to intake fuel --> come back to shoot
         self.addCommands(
