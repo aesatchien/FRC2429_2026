@@ -5,10 +5,12 @@ from pathplannerlib.commands import FollowPathCommand
 from pathplannerlib.path import PathPlannerPath
 
 import commands2
-from commands2 import SequentialCommandGroup, WaitCommand, ParallelCommandGroup, InstantCommand
+from commands2 import SequentialCommandGroup, WaitCommand, ParallelCommandGroup, InstantCommand, ConditionalCommand
 
 import constants
 from constants import AutoConstants as ac
+from constants import FieldConstants as fc
+
 from commands.drive_by_velocity_swerve import DriveByVelocitySwerve
 from commands.drive_by_joystick_subsystem_targeting import DriveByJoystickSubsystemTargeting
 from commands.intake_deploy import Intake_Deploy
@@ -23,7 +25,7 @@ from wpimath.geometry import Pose2d
 class FillShootFillShootTrench(commands2.SequentialCommandGroup):
     def __init__(self, container, indent=0) -> None:
         super().__init__()
-        self.setName(f'FillShootFillShoot')
+        self.setName(f'FillShootFillShootTrench')
         self.container = container
         self.addCommands(commands2.PrintCommand(f"{'    ' * indent}** Started {self.getName()} **"))
 
@@ -37,10 +39,14 @@ class FillShootFillShootTrench(commands2.SequentialCommandGroup):
         self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=ac.k_intake_roller_rpm))
 
         # moves to the neutral zone to intake fuel --> come back to shoot
-        if self.container.swerve.get_pose().Y() > constants.FieldConstants.k_field_width / 2:
-            self.addCommands(AutoBuilder.followPath(PathPlannerPath.fromPathFile('Top Left Load and Shoot')))
-        else:
-            self.addCommands(AutoBuilder.followPath(PathPlannerPath.fromPathFile('Bottom Left Load and Shoot')))
+        self.addCommands(
+            ConditionalCommand(
+                AutoBuilder.followPath(PathPlannerPath.fromPathFile('Bottom Left Load and Shoot')),
+                AutoBuilder.followPath(PathPlannerPath.fromPathFile('Top Left Load and Shoot')),
+                self.get_is_right
+            )
+
+        )
 
         # -----  PHASE II:  SHOOT INITIAL HOPPER -----
         # Tracks the hub
@@ -48,7 +54,7 @@ class FillShootFillShootTrench(commands2.SequentialCommandGroup):
 
         # Starts the shooting cycle and then raises the intake after a delay to prevent compression and jams
         # forces it to die when the first command finishes
-        """
+        
         self.addCommands(commands2.ParallelRaceGroup(
             ShootingCommand(shooter=container.shooter, targeting=container.targeting, indent=1, auto_timeout=ac.k_shooting_timeout, delay_cycles=10),
             DriveByJoystickSubsystemTargeting(self.container, swerve=self.container.swerve, controller=js.driver_controller, targeting=container.targeting),
@@ -61,7 +67,6 @@ class FillShootFillShootTrench(commands2.SequentialCommandGroup):
         ))
         # stops tracking
         self.addCommands(commands2.InstantCommand(lambda: self.container.targeting.stop_tracking()))
-        """
 
         # -----  PHASE III:  FILL HOPPER AGAIN -----
         # Moves the intake down
@@ -105,3 +110,8 @@ class FillShootFillShootTrench(commands2.SequentialCommandGroup):
         self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=0))
 
         self.addCommands(commands2.PrintCommand(f"{'    ' * indent}** Finished {self.getName()} **"))
+
+    def get_is_right(self):
+        alliance_color = wpilib.DriverStation.getAlliance() == wpilib.DriverStation.Alliance.kBlue
+        is_left = self.container.swerve.get_pose().Y() > fc.k_field_width / 2
+        return alliance_color ^ is_left
