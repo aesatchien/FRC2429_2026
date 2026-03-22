@@ -36,6 +36,7 @@ class Questnav(SubsystemBase):
         self.quest_pose = Pose2d(-10, -10, Rotation2d.fromDegrees(0)) # initial pose if not connected / tracking
         self.quest_pose_new = self.quest_pose
         self.quest_pose_old = self.quest_pose
+        self.was_tracking = False
 
         # Simulation variables
         # Start with a large error to verify syncing works (e.g., Quest thinks world origin off by x=2, y=2)
@@ -195,39 +196,60 @@ class Questnav(SubsystemBase):
 
         self.questnav.command_periodic()
 
-        if wpilib.RobotBase.isReal() or self.questnav.is_connected():
+        # Cache these states so we can build strict acceptance criteria later
+        is_connected = self.questnav.is_connected()
+        is_tracking = self.questnav.is_tracking()
+
+        if wpilib.RobotBase.isReal() or is_connected:  # we can play with the quest during sim
             frames = self.questnav.get_all_unread_pose_frames()
-            frame_last = frames[-1] if len(frames) > 0 else None # only read the last frame if multiple are available
 
-            try:
-                # suppressing jumps - basic filter
-                self.quest_pose_old = self.quest_pose_new
-                self.quest_pose_new = frame_last.quest_pose_3d.toPose2d().transformBy(self.quest_to_robot)
-                translation = self.quest_pose_new.translation() - self.quest_pose_old.translation()
-                rotation = self.quest_pose_new.rotation() - self.quest_pose_old.rotation()
+            # FIX: Exception Fall-Through. Only process if actively tracking AND frames exist.
+            if is_tracking and frames:
+                frame_last = frames[-1]  # only read the last frame if multiple are available
 
-                if translation.norm() < 1.0 and abs(rotation.degrees()) < 10.0:
-                    # No jump detected, accept new pose
-                    self.quest_pose = self.quest_pose_new
-                else:
-                    # Jump detected, ignore new pose
-                    print(f"Questnav pose jump detected: Δtranslation={translation.norm():.3f} m, Δrot={rotation.degrees():.2f} deg")
-                    self.quest_pose = self.quest_pose_old  # use last good pose in cases of error
+                try:
+                    self.quest_pose_new = frame_last.quest_pose_3d.toPose2d().transformBy(self.quest_to_robot)
 
-            except Exception as e:
+                    # FIX: Re-entry Jump Filter Bug.
+                    # If tracking just restored, bypass the jump filter to snap to the new reality.
+                    if not self.was_tracking:
+                        self.quest_pose = self.quest_pose_new
+                        print(f"Quest tracking restored. Bypassing jump filter for first frame.")
+                    else:
+                        # suppressing jumps - basic filter
+                        translation = self.quest_pose_new.translation() - self.quest_pose.translation()
+                        rotation = self.quest_pose_new.rotation() - self.quest_pose.rotation()
+
+                        if translation.norm() < 1.0 and abs(rotation.degrees()) < 10.0:
+                            # No jump detected, accept new pose
+                            self.quest_pose = self.quest_pose_new
+                        else:
+                            # Jump detected, ignore new pose
+                            print(
+                                f"Questnav pose jump detected: Δtranslation={translation.norm():.3f} m, Δrot={rotation.degrees():.2f} deg")
+                            # We don't update self.quest_pose here. It stays stale, but will be strictly rejected below.
+
+                    self.was_tracking = True  # Successfully processed a valid tracking frame
+
+                except Exception as e:
                     # print(f"Error converting QuestNav Pose3d to Pose2d: {e}")
-                    self.quest_pose = self.quest_pose_old  # use last good pose in cases of error
+                    print(f"Error processing Quest frame: {e}")
+                    self.was_tracking = False  # Actively flag blackout state on exception
+            else:
+                # Blackout / Passthrough occurred due to bump or actual tracking loss.
+                self.was_tracking = False
 
         else:  # simulate a pose read ground truth from sim and apply the current "drift/error" of the Quest
-            
+
             # Add a random walk to the error to simulate drift
             self.sim_offset_from_truth = Transform2d(
                 self.sim_offset_from_truth.X() + (random.random() - 0.5) * 2 * self.walk_xy,
                 self.sim_offset_from_truth.Y() + (random.random() - 0.5) * 2 * self.walk_xy,
-                Rotation2d.fromDegrees(self.sim_offset_from_truth.rotation().degrees() + (random.random() - 0.5) * 2 * self.walk_deg)
+                Rotation2d.fromDegrees(
+                    self.sim_offset_from_truth.rotation().degrees() + (random.random() - 0.5) * 2 * self.walk_deg)
             )
 
-            ground_truth:Pose2d = self.ground_truth_sub.get()
+            ground_truth: Pose2d = self.ground_truth_sub.get()
             # Apply the offset (Transform) to the ground truth Pose
             # FIX: Apply offset field-relatively (simple addition) instead of robot-relatively (transformBy)
             self.quest_pose = Pose2d(
@@ -235,27 +257,26 @@ class Questnav(SubsystemBase):
                 ground_truth.Y() + self.sim_offset_from_truth.Y(),
                 ground_truth.rotation() + self.sim_offset_from_truth.rotation()
             )
+            self.was_tracking = True  # Sim never loses tracking
 
-        # does this belong here?  not sure what it's for - CJH
-        # self.quest_pose = self.get_pose().transformBy(self.quest_to_robot)
-
-        # why do we need more than one field?  does this get read by the quest itself
-        # self.quest_field.setRobotPose(self.quest_pose)
 
         if self.counter % 10 == 0:
-            if 0 < self.quest_pose.x < 17.658 and 0 < self.quest_pose.y < 8.131 and self.questnav.is_connected():
+            in_bounds = 0 < self.quest_pose.x < 17.658 and 0 < self.quest_pose.y < 8.131
+
+            # FIX: The Stale Data Trap.
+            # STRICT ACCEPTANCE: Only accept if in bounds AND currently tracking AND didn't just error out.
+            if in_bounds and is_connected and is_tracking and self.was_tracking:
                 self.quest_pose_accepted = True
             else:
                 self.quest_pose_accepted = False
-            
+
             # poses used in gui and advantagescope
             self.quest_pose_pub.set(self.quest_pose)
-            #self.pose_pub.set([self.quest_pose.X(), self.quest_pose.Y(), self.quest_pose.rotation().degrees()])  # legacy GUI version
-
+            # self.pose_pub.set([self.quest_pose.X(), self.quest_pose.Y(), self.quest_pose.rotation().degrees()])  # legacy GUI version
 
             self.quest_accepted_pub.set(self.quest_pose_accepted)  # GUI uses as VALID
-            self.quest_connected_pub.set(self.questnav.is_connected())  # GUI uses as heartbeat
-            self.quest_tracking_pub.set(self.questnav.is_tracking())  # GUI follows to see if tracking
+            self.quest_connected_pub.set(is_connected)  # GUI uses as heartbeat
+            self.quest_tracking_pub.set(is_tracking)  # GUI follows to see if tracking
 
             self.quest_battery_pub.set(self.questnav.get_battery_percent())
             self.quest_latency_pub.set(self.questnav.get_latency())
@@ -263,5 +284,5 @@ class Questnav(SubsystemBase):
             self.quest_frame_count_pub.set(self.questnav.get_frame_count())
 
         # ping the quest every few seconds in sim to check to get a connection to physical hardware
-        if wpilib.RobotBase.isSimulation() and self.counter % 200 == 0 and not self.questnav.is_connected():
+        if wpilib.RobotBase.isSimulation() and self.counter % 200 == 0 and not is_connected:
             self._ping_connection()
