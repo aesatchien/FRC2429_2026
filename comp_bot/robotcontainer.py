@@ -14,6 +14,7 @@ from pathplannerlib.auto import NamedCommands
 import constants
 from helpers import joysticks as js
 from constants import ShooterConstants as sc
+from constants import IntakeConstants as ic
 
 # 2429 subsystems
 from subsystems.led import Led
@@ -221,9 +222,10 @@ class RobotContainer:
             Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
         )
 
-        js.bbox_1_9.whileTrue(
-            Intake_Deploy(intake=self.intake, position='shoot').andThen(
-            Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
+        js.bbox_1_9.onTrue(
+            (commands2.InstantCommand(lambda: self.intake.set_intake_position(ic.k_shooting_angle)).andThen(
+            commands2.InstantCommand(lambda: self.intake.set_intake_rpm(500)))
+            )
         )
 
         js.bbox_1_10.whileTrue(
