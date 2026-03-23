@@ -231,7 +231,7 @@ class Swerve (Subsystem):
     def setX(self) -> None:
         """Sets the wheels into an X formation to prevent movement."""
         angles = [45, -45, -45, 45]
-        print('Setting Swerve X')
+        # print('Setting Swerve X')
         for angle, swerve_module in zip(angles, self.swerve_modules):
             # setDesiredState filters you out if your speed is less than a threshold, so gotta give it a small amount
             swerve_module.setDesiredState(SwerveModuleState(0.005, Rotation2d.fromDegrees(angle)))
