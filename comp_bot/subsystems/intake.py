@@ -105,6 +105,17 @@ class Intake(Subsystem):
         # direction: 1 for faster, -1 for slower, 0 for same
         self.current_index = max(0, min(len(ic.allowed_rpms) - 1, self.current_index + change_speed))
         self.default_rpm = ic.allowed_rpms[self.current_index]
+    
+    def zero_intake(self):
+        self.deploy_stop()
+        self.deployed_angle = ic.k_bottom_angle
+        self.deployed = True
+        self.deploy_encoder.setPosition(ic.k_bottom_angle)
+        ks = 0.0  # TODO see if we need one
+        self.deploy_controller.setReference(setpoint=ic.k_bottom_angle, ctrl=SparkLowLevel.ControlType.kPosition,
+                                             slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=ks)
+        self.update_nt()
+
 
     def set_intake_rpm(self, rpm=3500):
         # TODO - incorporate a PID to handle voltage sag from multiple balls

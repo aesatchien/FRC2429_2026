@@ -207,6 +207,8 @@ class RobotContainer:
         # js.bbox_1_1.onTrue(commands2.InstantCommand(lambda: self.shooter.set_shooting_offset(125)))
         # js.bbox_1_1.onFalse(commands2.InstantCommand(lambda: self.shooter.set_shooting_offset(0)))
 
+        js.bbox_1_1.onTrue(commands2.InstantCommand(lambda: self.intake.zero_intake()))
+
         js.bbox_1_2.onTrue(CalibrateIntake(intake=self.intake))
 
         # js.bbox_1_3.whileTrue(Kill?)
