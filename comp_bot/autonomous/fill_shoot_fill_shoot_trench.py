@@ -92,8 +92,8 @@ class FillShootFillShootTrench(commands2.SequentialCommandGroup):
 
         self.addCommands(
             ConditionalCommand(
-                AutoBuilder.followPath(PathPlannerPath.fromPathFile('Bottom_Bump_Load_and_Shoot')),
-                AutoBuilder.followPath(PathPlannerPath.fromPathFile('Top_Bump_Load_and_Shoot')),
+                AutoBuilder.followPath(PathPlannerPath.fromPathFile('Right_Bump_Load_and_Shoot')),
+                AutoBuilder.followPath(PathPlannerPath.fromPathFile('Left_Bump_Load_and_Shoot')),
                 self.get_is_right
             )
 
