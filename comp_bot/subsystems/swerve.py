@@ -231,15 +231,17 @@ class Swerve (Subsystem):
     def setX(self) -> None:
         """Sets the wheels into an X formation to prevent movement."""
         angles = [45, -45, -45, 45]
-        print('Setting Swerve X')
+        # print('Setting Swerve X')
         for angle, swerve_module in zip(angles, self.swerve_modules):
-            swerve_module.setDesiredState(SwerveModuleState(0, Rotation2d.fromDegrees(angle)))
+            # setDesiredState filters you out if your speed is less than a threshold, so gotta give it a small amount
+            swerve_module.setDesiredState(SwerveModuleState(0.005, Rotation2d.fromDegrees(angle)))
 
     def set_straight(self):
         """Sets the wheels straight so we can push the robot."""
         angles = [0, 0, 0, 0]
         for angle, swerve_module in zip(angles, self.swerve_modules):
-            swerve_module.setDesiredState(SwerveModuleState(0, Rotation2d.fromDegrees(angle)))
+            # setDesiredState filters you out if your speed is less than a threshold, so gotta give it a small amount
+            swerve_module.setDesiredState(SwerveModuleState(0.005, Rotation2d.fromDegrees(angle)))
 
     def setModuleStates(self, desiredStates: typing.Tuple[SwerveModuleState]) -> None:
         desiredStates = SwerveDrive4Kinematics.desaturateWheelSpeeds(desiredStates, dc.kMaxTotalSpeed)
