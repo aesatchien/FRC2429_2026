@@ -3,6 +3,8 @@
 import time
 import math
 import numpy as np
+import os
+import subprocess
 import wpimath.geometry as geo
 import ntcore
 import config
@@ -22,6 +24,8 @@ class UIUpdater:
         self.ui = ui
         self.drive_pose = geo.Pose2d()  # Store pose for other calculations
         self.flash_on = False
+        self.dtap_start_time = 0.0
+        self.dtap_last_fix_time = 0.0
 
         # Map update styles from config to specific update functions
         self.updaters = {
@@ -45,6 +49,7 @@ class UIUpdater:
         self._update_pose_and_field()  # Must be called first to get latest pose
         self._update_camera_indicators()  # Check camera connection states
         self._update_shot_calculations()  # Depends on pose data
+        self._check_questnav_passthrough_issue()
 
         # Use the dispatcher for all other standard widgets based on their update style
         for widget_props in self.ui.widget_dict.values():
@@ -66,6 +71,44 @@ class UIUpdater:
         widget = self.ui.widget_dict['qlabel_nt_connected']['widget']
         style = self.STYLE_ON if self.ui.ntinst.isConnected() else self.STYLE_DISCONNECTED
         widget.setStyleSheet(style)
+
+    def _check_questnav_passthrough_issue(self):
+        """Monitors QuestNav passthrough state and restarts app via adb if stuck."""
+        dtap_props = self.ui.widget_dict.get('qlabel_questnav_dtap_indicator')
+        if not dtap_props:
+            return
+
+        sub = dtap_props.get('subscriber')
+        if not sub:
+            return
+
+        is_in_passthrough = sub.get()
+        current_time = time.time()
+
+        if is_in_passthrough:
+            # Start the timer if it just became True
+            if self.dtap_start_time == 0.0:
+                self.dtap_start_time = current_time
+                print(f"[{current_time:.2f}] We have detected a QuestNav passthru condition.", flush=True)
+
+            # If True for more than 1 second
+            if (current_time - self.dtap_start_time) > 1.0:
+                # Check cooldown of 1 second since last fix
+                if (current_time - self.dtap_last_fix_time) > 1.0:
+                    print(f"[{current_time:.2f}] QuestNav has been in passthrough for > 1s. We have seen the problem.", flush=True)
+                    
+                    try:
+                        adb_path = os.path.join(os.path.dirname(__file__), "adb", "adb.exe")
+                        cmd = [adb_path, "-s", "192.168.86.49:5802", "shell", "am", "start", "-n", "gg.QuestNav.QuestNav/com.unity3d.player.UnityPlayerGameActivity"]
+                        subprocess.Popen(cmd)
+                        print(f"[{time.time():.2f}] ADB command sent. We have dealt with it. Waiting for cooldown...", flush=True)
+                    except Exception as e:
+                        print(f"Failed to execute QuestNav ADB fix: {e}", flush=True)
+                        
+                    self.dtap_last_fix_time = current_time
+                    self.dtap_start_time = current_time  # Reset the start time so it requires another full second to trigger again if it remains True
+        else:
+            self.dtap_start_time = 0.0
 
     def _update_pose_and_field(self):
         """Updates the robot and quest pose on the field graphic."""
