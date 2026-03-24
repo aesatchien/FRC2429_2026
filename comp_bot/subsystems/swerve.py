@@ -1,5 +1,6 @@
 import math
 import typing
+import time
 
 import navx
 import ntcore
@@ -341,12 +342,23 @@ class Swerve (Subsystem):
     def _update_vision_measurements(self, current_pose, ts):
 
         # QuestNav Logic - since swerve was instantiated with the questnav, it should use it just fine
-        if self.questnav.use_quest and self.questnav.quest_has_synched and self.counter % 5 == 0:
+        if self.questnav.use_quest and self.questnav.quest_has_synched and self.counter % 4 == 0:
             quest_accepted = self.questnav.is_pose_accepted()
             quest_pose = self.questnav.quest_pose # Quest subsystem now exposes the robot-relative pose directly
             delta_pos = current_pose.translation().distance(quest_pose.translation())
-            if delta_pos < 5 and quest_accepted:  # if the quest is way off, we don't want to update from it
-                self.pose_estimator.addVisionMeasurement(quest_pose, ts, constants.DrivetrainConstants.k_pose_stdevs_large)
+            if delta_pos < 4 and quest_accepted:  # if the quest is way off, we don't want to update from it
+                # Calculate the packet latency in its native time domain
+                if self.questnav.mock_questnav:
+                    latency_sec = (ntcore._now() / 1e6) - self.questnav.quest_pose_timestamp
+                else:
+                    latency_sec = time.time() - self.questnav.quest_pose_timestamp
+                
+                # Apply that latency to the FPGA Match Time (protect against negative clock jitter)
+                quest_fpga_timestamp = ts - max(0.0, latency_sec)
+
+                if self.counter % 500 == 0:
+                    print(f"Attempting to update odometry with quest: {quest_pose}, {quest_fpga_timestamp:.3f}, latency {latency_sec*1000:.1f}ms")
+                self.pose_estimator.addVisionMeasurement(quest_pose, quest_fpga_timestamp, constants.DrivetrainConstants.k_pose_stdevs_large)
 
         
         # AprilTag Logic
@@ -359,7 +371,8 @@ class Swerve (Subsystem):
                     
                     # Check for stale tags (e.g. > 0.5s latency) using NT timestamp
                     # 500,000 microseconds = 0.5 seconds
-                    if ntcore._now() - timestamp_us > 500000:
+                    latency_us = ntcore._now() - timestamp_us
+                    if latency_us > 500000:
                         continue
 
                     tag_id = int(tag_data[0])
@@ -375,13 +388,18 @@ class Swerve (Subsystem):
                     use_tag = False if self.gyro.getRate() > 90 else use_tag  # no more than n degrees per second turning if using a tag
 
                     if use_tag:
+                        tag_latency_sec = max(0.0, latency_us / 1_000_000.0)
+                        tag_fpga_timestamp = ts - tag_latency_sec
+
                         # Standard deviations tell the pose estimator how much to "trust" this measurement.
                         # Smaller numbers = more trust. We trust vision more when disabled and stationary.
                         # Units are (x_meters, y_meters, rotation_radians).
                         tag_distance = atu.get_tag_distance(tag_id, current_pose)  # also available from NT
                         # TODO - adjust stdevs based on distance to tag.  Likely just multiply by distance, which will always be 1-5 meters
                         sdevs = constants.DrivetrainConstants.k_pose_stdevs_large if DriverStation.isEnabled() else constants.DrivetrainConstants.k_pose_stdevs_disabled
-                        self.pose_estimator.addVisionMeasurement(tag_pose, timestamp_us / 1e6, sdevs)
+                        if self.counter % 500 == 0:
+                            print(f"Attempting to update odometry with tags: {tag_pose}, {tag_fpga_timestamp:.3f}, latency{tag_latency_sec*1000}ms ")
+                        self.pose_estimator.addVisionMeasurement(tag_pose, tag_fpga_timestamp, sdevs)
 
     def _update_odometry(self, ts):
         if RobotBase.isReal():
@@ -393,7 +411,7 @@ class Swerve (Subsystem):
         self.pose_pub.set(pose)
         # self.pose_pub.set([pose.X(), pose.Y(), pose.rotation().degrees()])  # legacy version
 
-        # allow averaging to AprilTags on coprocessors when disabled
+        # allow averaging to AprilTags on coprocessors when disabled OR when we are sitting still
         if constants.k_allow_tag_averaging and wpilib.DriverStation.isDisabled():
             self.allow_tag_averaging_pub.set(True)
         else:

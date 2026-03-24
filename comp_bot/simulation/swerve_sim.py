@@ -79,6 +79,11 @@ class SwerveSim:
         if constants.SimConstants.k_use_live_tags_in_sim:
             self._snap_to_live_tags()
 
+        # Snap to real Quest hardware if we are doing hardware-in-the-loop testing
+        q_sys = self.robot.container.questnav
+        if (not constants.SimConstants.k_mock_questnav and q_sys.use_quest and q_sys.quest_has_synched and q_sys.is_pose_accepted()):
+            self._snap_to_quest()
+
     def _snap_to_live_tags(self):
         """
         If a live camera sees a tag, move the simulated robot to that location.
@@ -112,3 +117,10 @@ class SwerveSim:
                     
                     # Only use the first valid tag we find to avoid fighting
                     return
+
+    def _snap_to_quest(self):
+        """If the physical Quest headset provides a tracking update, teleport the sim robot to match it."""
+        quest_pose = self.robot.container.questnav.quest_pose
+        current_sim_pose = self.physics_controller.get_pose()
+        transform = Transform2d(current_sim_pose, quest_pose)
+        self.physics_controller.move_robot(transform)

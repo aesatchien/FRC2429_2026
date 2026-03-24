@@ -36,11 +36,19 @@ class Questnav(SubsystemBase):
         self.quest_pose = Pose2d(-10, -10, Rotation2d.fromDegrees(0)) # initial pose if not connected / tracking
         self.quest_pose_new = self.quest_pose
         self.quest_pose_old = self.quest_pose
+        self.quest_pose_timestamp = 0.0
 
         # add members to handle lost tracking (the double-tap issue)
         self.missed_frame_count = 0
         self.k_max_missed_frames = 25  # 0.5 seconds at 50Hz
         self.was_tracking = False
+        self.was_connected = False
+        self.disconnected_count = 0
+        self.k_max_disconnected_frames = 25  # 0.5 seconds at 50Hz
+        self.expecting_jump = False
+
+        # Simulation override: True = use random walk sim, False = use real headset in sim
+        self.mock_questnav = wpilib.RobotBase.isSimulation() and getattr(constants.SimConstants, 'k_mock_questnav', True)
 
         # Simulation variables
         # Start with a large error to verify syncing works (e.g., Quest thinks world origin off by x=2, y=2)
@@ -81,6 +89,9 @@ class Questnav(SubsystemBase):
         self.quest_latency_pub = self.inst.getDoubleTopic(f"{quest_prefix}/quest_Latency").publish()
         self.quest_lost_count_pub = self.inst.getDoubleTopic(f"{quest_prefix}/quest_tracking_lost_count").publish()
         self.quest_frame_count_pub = self.inst.getDoubleTopic(f"{quest_prefix}/quest_frame_count").publish()
+        
+        # Entry for external ADB script to monitor and clear
+        self.quest_passthrough_entry = self.inst.getBooleanTopic(f"{quest_prefix}/quest_in_passthrough").getEntry(False)
 
         # ------------- Subscribers -------------
         # Subscribe to the drive_pose published by Swerve (now a Struct)
@@ -107,8 +118,9 @@ class Questnav(SubsystemBase):
     def set_quest_pose(self, pose: Pose2d) -> None:
         # set the pose of the Questnav, transforming from robot center top questnav coordinate
         self.questnav.set_pose(Pose3d(pose.transformBy(self.quest_to_robot.inverse())))
+        self.expecting_jump = True
         
-        if wpilib.RobotBase.isSimulation() and not self.questnav.is_connected():
+        if self.mock_questnav:
             # In Sim, calculate the error needed so that (Truth + Error) = TargetPose
             # This allows us to "reset" the quest to a specific field location even if the robot isn't there
             ground_truth = self.ground_truth_sub.get()
@@ -126,6 +138,10 @@ class Questnav(SubsystemBase):
 
     def quest_reset_odometry(self) -> None:
         """Reset robot odometry at the Subwoofer."""
+        if not self.mock_questnav and not self.questnav.is_connected():
+            print(f"*** Cannot reset QuestNav: Headset not connected at {Timer.getFPGATimestamp():.1f}s ***")
+            return
+
         red_pose = Pose2d(14.0, 4.00, Rotation2d.fromDegrees(0))
         blue_pose = Pose2d(3., 4.00, Rotation2d.fromDegrees(180))
 
@@ -139,9 +155,13 @@ class Questnav(SubsystemBase):
         self.quest_unsync_odometry()
 
     def quest_sync_odometry(self) -> None:
+        if not self.mock_questnav and not self.questnav.is_connected():
+            print(f"*** Cannot sync QuestNav: Headset not connected at {Timer.getFPGATimestamp():.1f}s ***")
+            return
+
         self.quest_has_synched = True  # let the robot know we have been synched so we don't automatically do it again
         
-        if wpilib.RobotBase.isSimulation() and not self.questnav.is_connected():
+        if self.mock_questnav:
             # In Sim, "Sync" means agree with Ground Truth (remove all drift/error)
             self.set_quest_pose(self.ground_truth_sub.get())
         else:
@@ -204,7 +224,17 @@ class Questnav(SubsystemBase):
         is_connected = self.questnav.is_connected()
         is_tracking = self.questnav.is_tracking()
 
-        if wpilib.RobotBase.isReal() or is_connected:  # we can play with the quest during sim
+        if not is_connected:
+            self.disconnected_count += 1
+            if self.disconnected_count > self.k_max_disconnected_frames and self.was_connected:
+                print(f"*** QuestNav connection dropped for >0.5s at {wpilib.Timer.getFPGATimestamp():.1f}s. Forcing unsync. ***")
+                self.quest_unsync_odometry()
+                self.was_connected = False
+        else:
+            self.disconnected_count = 0
+            self.was_connected = True
+
+        if not self.mock_questnav:  # True for Real Robot, or Sim when hardware-in-the-loop is enabled
             frames = self.questnav.get_all_unread_pose_frames()
 
             # FIX: Exception Fall-Through. Only process if actively tracking AND frames exist.
@@ -215,24 +245,15 @@ class Questnav(SubsystemBase):
                 try:
                     self.quest_pose_new = frame_last.quest_pose_3d.toPose2d().transformBy(self.quest_to_robot)
 
-                    # FIX: Re-entry Jump Filter Bug.
-                    # If tracking just restored, bypass the jump filter to snap to the new reality.
+                    self.quest_pose = self.quest_pose_new
+                    self.quest_pose_timestamp = frame_last.data_timestamp
+                    
                     if not self.was_tracking:
-                        self.quest_pose = self.quest_pose_new
-                        print(f"Quest tracking restored. Bypassing jump filter for first frame.")
-                    else:
-                        # suppressing jumps - basic filter
-                        translation = self.quest_pose_new.translation() - self.quest_pose.translation()
-                        rotation = self.quest_pose_new.rotation() - self.quest_pose.rotation()
-
-                        if translation.norm() < 1.0 and abs(rotation.degrees()) < 10.0:
-                            # No jump detected, accept new pose
-                            self.quest_pose = self.quest_pose_new
-                        else:
-                            # Jump detected, ignore new pose
-                            print(
-                                f"Questnav pose jump detected: Δtranslation={translation.norm():.3f} m, Δrot={rotation.degrees():.2f} deg")
-                            # We don't update self.quest_pose here. It stays stale, but will be strictly rejected below.
+                        print(f"Quest tracking restored.")
+                        # Defensively clear the flag when tracking successfully resumes
+                        self.quest_passthrough_entry.set(False)
+                        
+                    self.expecting_jump = False
 
                     self.was_tracking = True  # Successfully processed a valid tracking frame
 
@@ -243,8 +264,10 @@ class Questnav(SubsystemBase):
             else:
                 # Blackout / Passthrough occurred due to bump or actual tracking loss.
                 self.missed_frame_count += 1
-                if self.missed_frame_count > self.k_max_missed_frames and not self.was_tracking:
+                if self.missed_frame_count > self.k_max_missed_frames and self.was_tracking:
                     self.was_tracking = False
+                    # Trigger the external ADB script
+                    self.quest_passthrough_entry.set(True)
                     # Optional: Print a warning to the driver station that the data stream is dead
                     print(f"Detecting a lost QuestNav at FPGA timestamp: {wpilib.Timer.getFPGATimestamp():.1f}s")
 
@@ -259,7 +282,8 @@ class Questnav(SubsystemBase):
                     self.sim_offset_from_truth.rotation().degrees() + (random.random() - 0.5) * 2 * self.walk_deg)
             )
 
-            ground_truth: Pose2d = self.ground_truth_sub.get()
+            ground_truth_atomic = self.ground_truth_sub.getAtomic()
+            ground_truth: Pose2d = ground_truth_atomic.value
             # Apply the offset (Transform) to the ground truth Pose
             # FIX: Apply offset field-relatively (simple addition) instead of robot-relatively (transformBy)
             self.quest_pose = Pose2d(
@@ -267,6 +291,7 @@ class Questnav(SubsystemBase):
                 ground_truth.Y() + self.sim_offset_from_truth.Y(),
                 ground_truth.rotation() + self.sim_offset_from_truth.rotation()
             )
+            self.quest_pose_timestamp = ground_truth_atomic.time / 1_000_000.0
             self.was_tracking = True  # Sim never loses tracking
 
 
@@ -294,5 +319,5 @@ class Questnav(SubsystemBase):
             self.quest_frame_count_pub.set(self.questnav.get_frame_count())
 
         # ping the quest every few seconds in sim to check to get a connection to physical hardware
-        if wpilib.RobotBase.isSimulation() and self.counter % 200 == 0 and not is_connected:
+        if wpilib.RobotBase.isSimulation() and not self.mock_questnav and self.counter % 200 == 0 and not is_connected:
             self._ping_connection()
