@@ -104,13 +104,21 @@ class CameraManager:
 
     def check_url(self, url):
         try:
-            code = urllib.request.urlopen(url, timeout=0.2).getcode()
-            return code == 200
+            # Explicitly close the stream so we don't exhaust the camera server's client limit
+            with urllib.request.urlopen(url, timeout=1.0) as response:
+                return response.getcode() == 200
         except Exception as e:
             print(f'Failure: attempted to check {url} with exception {e}')
         return False
 
     def toggle_camera_thread(self):
+        # Act as a true toggle: If it is already running, shut it down.
+        if self.thread is not None and self.thread.isRunning():
+            self.worker.stop()
+            self.thread.quit()
+            self.ui.qt_text_status.appendPlainText(f'{datetime.today().strftime("%H:%M:%S")}: Terminating camera thread (User toggled off)')
+            return
+            
         live_cams = [self.check_url(d['URL']) for d in self.ui.camera_dict.values() if 'URL' in d]
 
         if any(live_cams):
@@ -130,12 +138,5 @@ class CameraManager:
                 self.worker.finished.connect(self.thread.quit)
                 self.thread.start()
                 self.ui.qt_text_status.appendPlainText(f'{datetime.today().strftime("%H:%M:%S")}: Restarting camera thread')
-            else:
-                self.ui.qt_text_status.appendPlainText(f'{datetime.today().strftime("%H:%M:%S")}: Camera thread already running.')
         else:
-            if self.thread is not None and self.thread.isRunning():
-                self.worker.stop()
-                self.thread.quit()
-                self.ui.qt_text_status.appendPlainText(f'{datetime.today().strftime("%H:%M:%S")}: Terminating camera thread: no valid servers')
-            else:
-                self.ui.qt_text_status.appendPlainText(f'{datetime.today().strftime("%H:%M:%S")}: No valid camera servers, unable to start thread')
+            self.ui.qt_text_status.appendPlainText(f'{datetime.today().strftime("%H:%M:%S")}: No valid camera servers, unable to start thread')
