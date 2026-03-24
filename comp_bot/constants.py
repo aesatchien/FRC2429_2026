@@ -185,7 +185,7 @@ class IntakeConstants:
     k_deploy_config.softLimit.reverseSoftLimitEnabled(False)
     # Configure MAXMotion (The "Modern" Smart Motion) - Note: "maxMotion" object instead of "smartMotion"
     # this is the setting for kPosition control - slot0 - WE USE THIS NOW
-    k_deploy_config.closedLoop.pidf(p=1e-2, i=1e-5, d=1e-2, ff=0, slot=rev.ClosedLoopSlot.kSlot0)
+    k_deploy_config.closedLoop.pidf(p=1e-2, i=1e-8, d=1e-3, ff=0, slot=rev.ClosedLoopSlot.kSlot0)
     k_deploy_config.closedLoop.IMaxAccum(0.03, slot=rev.ClosedLoopSlot.kSlot0)
     k_deploy_config.closedLoop.IZone(3, slot=rev.ClosedLoopSlot.kSlot0) # degrees less than which no I is applied
     # this is the setting for kMaxMotionPosition control - slot1, TODO - make this work

@@ -243,7 +243,7 @@ class Questnav(SubsystemBase):
             else:
                 # Blackout / Passthrough occurred due to bump or actual tracking loss.
                 self.missed_frame_count += 1
-                if self.missed_frame_count > self.k_max_missed_frames:
+                if self.missed_frame_count > self.k_max_missed_frames and not self.was_tracking:
                     self.was_tracking = False
                     # Optional: Print a warning to the driver station that the data stream is dead
                     print(f"Detecting a lost QuestNav at FPGA timestamp: {wpilib.Timer.getFPGATimestamp():.1f}s")
