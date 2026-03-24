@@ -166,7 +166,7 @@ class Ui(QtWidgets.QMainWindow):
                 elif style == 'position':
                     new_entry['subscriber'] = self.ntinst.getStringTopic(nt_topic).subscribe("")
                 else:
-                    print(f'cannont determine subsccriber type for - check style!')
+                    print(f'[{self.ui_updater.get_elapsed_time():.1f}] cannot determine subscriber type for - check style!')
 
             command_topic = config.get('command_topic')
             if command_topic:
@@ -239,15 +239,15 @@ class Ui(QtWidgets.QMainWindow):
             # Check if the topic has data. If time is 0, it means no value has been set (by robot or us).
             atomic_val = sub.getAtomic()
             if atomic_val.time == 0:
-                print(f'Warning: {label} clicked but NT topic {sub.getTopic().getName()} has no value (Robot not connected?).', flush=True)
+                print(f'[{self.ui_updater.get_elapsed_time():.1f}] Warning: {label} clicked but NT topic {sub.getTopic().getName()} has no value (Robot not connected?).', flush=True)
                 return
 
             # Toggle based on current state of the command topic
             toggled_state = not atomic_val.value
-            print(f'You clicked {label}. Firing command at {datetime.today().strftime("%H:%M:%S")} ...', flush=True)
+            print(f'[{self.ui_updater.get_elapsed_time():.1f}] You clicked {label}. Firing command ...', flush=True)
             pub.set(toggled_state)
         else:
-            print(f'Warning: {label} clicked but NT Publisher or Subscriber is missing.', flush=True)
+            print(f'[{self.ui_updater.get_elapsed_time():.1f}] Warning: {label} clicked but NT Publisher or Subscriber is missing.', flush=True)
 
 
     def initialize_widgets(self):
@@ -273,7 +273,7 @@ class Ui(QtWidgets.QMainWindow):
         try:
             layout = TAG_LAYOUT
         except Exception as e:
-            print(f"Error loading AprilTag layout: {e}")
+            print(f"[{self.ui_updater.get_elapsed_time():.1f}] Error loading AprilTag layout: {e}")
             return
 
         field_width = self.qgroupbox_field.width()

@@ -26,6 +26,7 @@ class UIUpdater:
         self.flash_on = False
         self.dtap_start_time = 0.0
         self.dtap_last_fix_time = 0.0
+        self.start_time = time.time()
 
         # Map update styles from config to specific update functions
         self.updaters = {
@@ -37,6 +38,10 @@ class UIUpdater:
             'position': self._update_position,  # Legacy from 2024
             'hub': self._update_hub,  # Legacy from 2023
         }
+        
+    def get_elapsed_time(self):
+        """Returns the number of seconds since the GUI started."""
+        return time.time() - self.start_time
 
     def update_widgets(self):
         """Main update loop. Orchestrates calls to specialized update functions."""
@@ -83,27 +88,27 @@ class UIUpdater:
             return
 
         is_in_passthrough = sub.get()
-        current_time = time.time()
+        current_time = self.get_elapsed_time()
 
         if is_in_passthrough:
             # Start the timer if it just became True
             if self.dtap_start_time == 0.0:
                 self.dtap_start_time = current_time
-                print(f"[{current_time:.2f}] We have detected a QuestNav passthru condition.", flush=True)
+                print(f"[{current_time:.1f}] We have detected a QuestNav passthru condition.", flush=True)
 
             # If True for more than 1 second
             if (current_time - self.dtap_start_time) > 1.0:
                 # Check cooldown of 1 second since last fix
                 if (current_time - self.dtap_last_fix_time) > 1.0:
-                    print(f"[{current_time:.2f}] QuestNav has been in passthrough for > 1s. We have seen the problem.", flush=True)
+                    print(f"[{current_time:.1f}] QuestNav has been in passthrough for > 1s. We have seen the problem.", flush=True)
                     
                     try:
                         adb_path = os.path.join(os.path.dirname(__file__), "adb", "adb.exe")
                         cmd = [adb_path, "-s", "192.168.86.49:5802", "shell", "am", "start", "-n", "gg.QuestNav.QuestNav/com.unity3d.player.UnityPlayerGameActivity"]
                         subprocess.Popen(cmd)
-                        print(f"[{time.time():.2f}] ADB command sent. We have dealt with it. Waiting for cooldown...", flush=True)
+                        print(f"[{current_time:.1f}] ADB command sent. We have dealt with it. Waiting for cooldown...", flush=True)
                     except Exception as e:
-                        print(f"Failed to execute QuestNav ADB fix: {e}", flush=True)
+                        print(f"[{current_time:.1f}] Failed to execute QuestNav ADB fix: {e}", flush=True)
                         
                     self.dtap_last_fix_time = current_time
                     self.dtap_start_time = current_time  # Reset the start time so it requires another full second to trigger again if it remains True
