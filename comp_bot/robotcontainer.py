@@ -14,6 +14,7 @@ from pathplannerlib.auto import NamedCommands
 import constants
 from helpers import joysticks as js
 from constants import ShooterConstants as sc
+from constants import IntakeConstants as ic
 
 # 2429 subsystems
 from subsystems.led import Led
@@ -203,12 +204,14 @@ class RobotContainer:
     def bind_bbox_buttons(self) -> None:
         print("Binding bbox buttons")
 
-        js.bbox_1_1.onTrue(commands2.InstantCommand(lambda: self.shooter.set_shooting_offset(125)))
-        js.bbox_1_2.onTrue(commands2.InstantCommand(lambda: self.shooter.set_shooting_offset(-125)))
-        js.bbox_1_1.onFalse(commands2.InstantCommand(lambda: self.shooter.set_shooting_offset(0)))
-        js.bbox_1_2.onFalse(commands2.InstantCommand(lambda: self.shooter.set_shooting_offset(0)))
+        # js.bbox_1_1.onTrue(commands2.InstantCommand(lambda: self.shooter.set_shooting_offset(125)))
+        # js.bbox_1_1.onFalse(commands2.InstantCommand(lambda: self.shooter.set_shooting_offset(0)))
 
-        js.bbox_1_3.whileTrue(SwerveTest(container=self, swerve=self.swerve))
+        js.bbox_1_1.onTrue(commands2.InstantCommand(lambda: self.intake.zero_intake()))
+
+        js.bbox_1_2.onTrue(CalibrateIntake(intake=self.intake))
+
+        # js.bbox_1_3.whileTrue(Kill?)
 
         js.bbox_1_4.whileTrue(SwerveTest(container=self, swerve=self.swerve))
 
@@ -221,9 +224,10 @@ class RobotContainer:
             Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
         )
 
-        js.bbox_1_9.whileTrue(
-            Intake_Deploy(intake=self.intake, position='shoot').andThen(
-            Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
+        js.bbox_1_9.onTrue(
+            (commands2.InstantCommand(lambda: self.intake.set_intake_position(ic.k_shooting_angle)).andThen(
+            commands2.InstantCommand(lambda: self.intake.set_intake_rpm(500)))
+            )
         )
 
         js.bbox_1_10.whileTrue(
@@ -235,27 +239,27 @@ class RobotContainer:
         js.bbox_1_12.onTrue(commands2.InstantCommand(lambda: self.shooter.set_shooting_offset(250)))
 
         # test the intake deploy positions on the L1-L4 buttons
-        js.bbox_2_1.whileTrue(CalibrateIntake(intake=self.intake))
-        js.bbox_2_2.onTrue(Intake_Deploy(intake=self.intake, position='down'))
-        js.bbox_2_3.onTrue(Intake_Deploy(intake=self.intake, position='shoot'))
-        js.bbox_2_4.onTrue(Intake_Deploy(intake=self.intake, position='up'))
+        # js.bbox_2_1.whileTrue(CalibrateIntake(intake=self.intake))
+        # js.bbox_2_2.onTrue(Intake_Deploy(intake=self.intake, position='down'))
+        # js.bbox_2_3.onTrue(Intake_Deploy(intake=self.intake, position='shoot'))
+        # js.bbox_2_4.onTrue(Intake_Deploy(intake=self.intake, position='up'))
 
-        # test the intake speed
-        #js.bbox_AB.onTrue(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
-        #js.bbox_CD.whileTrue(Intake_Set_RPM(intake=self.intake, rpm=2500, led=self.led))
-        #js.bbox_EF.whileTrue(Intake_Set_RPM(intake=self.intake, rpm=3000, led=self.led))
+        # # test the intake speed
+        # #js.bbox_AB.onTrue(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
+        # #js.bbox_CD.whileTrue(Intake_Set_RPM(intake=self.intake, rpm=2500, led=self.led))
+        # #js.bbox_EF.whileTrue(Intake_Set_RPM(intake=self.intake, rpm=3000, led=self.led))
 
-        # test the shooting commands
-        js.bbox_2_6.whileTrue(ShootingCommand(shooter=self.shooter, targeting=self.targeting))
-        js.bbox_2_8.whileTrue(StopShooter(shooter=self.shooter))
+        # # test the shooting commands
+        # js.bbox_2_6.whileTrue(ShootingCommand(shooter=self.shooter, targeting=self.targeting))
+        # js.bbox_2_8.whileTrue(StopShooter(shooter=self.shooter))
 
-        # this is a combo of shooting commands
-        js.bbox_2_7.whileTrue(commands2.ParallelCommandGroup(
-            ShootingCommand(shooter=self.shooter, targeting=self.targeting),
-            Intake_Deploy(intake=self.intake, position='shoot'),
-        ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
-        # does not work as an "andThen" for some reason
-        js.bbox_2_7.onFalse(Intake_Deploy(intake=self.intake, position='down'))
+        # # this is a combo of shooting commands
+        # js.bbox_2_7.whileTrue(commands2.ParallelCommandGroup(
+        #     ShootingCommand(shooter=self.shooter, targeting=self.targeting),
+        #     Intake_Deploy(intake=self.intake, position='shoot'),
+        # ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
+        # # does not work as an "andThen" for some reason
+        # js.bbox_2_7.onFalse(Intake_Deploy(intake=self.intake, position='down'))
 
 
 
@@ -351,13 +355,13 @@ class RobotContainer:
         # ----------  PATHPLANNER COMMANDS  ---------------
         # this is for PathPlanner, so it can call our commands.  Note they do not magically show up in pathplanner
         # you have to add them there, and then it remembers your list of commands.  so name them wisely
-        NamedCommands.registerCommand('robot_state_left', commands2.cmd.runOnce(lambda: setattr(self.robot_state, 'side', RobotState.Side.LEFT)).ignoringDisable(True))
         NamedCommands.registerCommand('deploy_and_start_intake', Intake_Deploy(intake=self.intake, position='down').andThen(
                 Intake_Set_RPM(intake=self.intake, rpm=2500, led=self.led)
             )
         )
-        NamedCommands.registerCommand('start_shooter_nothing_else', commands2.InstantCommand(lambda: self.container.shooter.set_shooter_rpm(sc.k_fire_up_speed)))
+        NamedCommands.registerCommand('start_shooter_nothing_else', commands2.InstantCommand(lambda: self.shooter.set_shooter_rpm(sc.k_fire_up_speed)))
         NamedCommands.registerCommand('shooting_command', ShootingCommand(shooter=self.shooter, targeting=self.targeting))
+        NamedCommands.registerCommand('hello', commands2.PrintCommand("hello!"))
         
 
 

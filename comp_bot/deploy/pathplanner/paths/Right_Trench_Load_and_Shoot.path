@@ -140,13 +140,23 @@
       "name": "deploy_and_start_intake",
       "waypointRelativePos": 0.8364955357142856,
       "endWaypointRelativePos": null,
-      "command": null
+      "command": {
+        "type": "named",
+        "data": {
+          "name": "deploy_and_start_intake"
+        }
+      }
     },
     {
       "name": "shooting_command",
       "waypointRelativePos": 4.418123904789722,
       "endWaypointRelativePos": null,
-      "command": null
+      "command": {
+        "type": "named",
+        "data": {
+          "name": "start_shooter_nothing_else"
+        }
+      }
     }
   ],
   "globalConstraints": {
@@ -167,5 +177,5 @@
     "velocity": 0,
     "rotation": 45.0
   },
-  "useDefaultConstraints": false
+  "useDefaultConstraints": true
 }

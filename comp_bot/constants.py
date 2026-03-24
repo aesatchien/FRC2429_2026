@@ -13,7 +13,7 @@ from helpers.utilities import set_config_defaults
 
 k_swerve_config = "comp"  # choose between practice bot and comp bot for now - they differ by swerve ofsets
 
-k_at_home = False  # used for intake calibration
+k_at_home = True  # used for intake calibration
 
 # Generator for unique counter offsets
 _counter = count(1)
@@ -185,7 +185,7 @@ class IntakeConstants:
     k_deploy_config.softLimit.reverseSoftLimitEnabled(False)
     # Configure MAXMotion (The "Modern" Smart Motion) - Note: "maxMotion" object instead of "smartMotion"
     # this is the setting for kPosition control - slot0 - WE USE THIS NOW
-    k_deploy_config.closedLoop.pidf(p=1e-2, i=1e-5, d=1e-2, ff=0, slot=rev.ClosedLoopSlot.kSlot0)
+    k_deploy_config.closedLoop.pidf(p=1e-2, i=1e-8, d=1e-3, ff=0, slot=rev.ClosedLoopSlot.kSlot0)
     k_deploy_config.closedLoop.IMaxAccum(0.03, slot=rev.ClosedLoopSlot.kSlot0)
     k_deploy_config.closedLoop.IZone(3, slot=rev.ClosedLoopSlot.kSlot0) # degrees less than which no I is applied
     # this is the setting for kMaxMotionPosition control - slot1, TODO - make this work
@@ -340,6 +340,6 @@ class AutoConstants:
     k_shooter_startup_rpm = 3800  # set shooter during transit back - very close to the RPM of the shooting position
 
     # these three poses are for reflecting about the center in auto
-    k_shooting_pose = Pose2d(3.0, 2.15, 44 * math.pi / 180)  # bottom left position for shooting in auto
+    k_shooting_pose = Pose2d(3.0, 2.3, 44 * math.pi / 180)  # bottom left position for shooting in auto
     k_first_ball_pickup_pose = Pose2d(FieldConstants.k_field_length/2 -0.8, 2.1, 0)
     k_second_ball_pickup_pose = Pose2d(FieldConstants.k_field_length/2 -0.3, 2.6, 0)
