@@ -62,6 +62,8 @@ command_prefix = r'/SmartDashboard/Command'  # DIFFERENT FROM ROBOT CODE: the ro
 auto_prefix    = r'/SmartDashboard/Auto'
 base_prefix    = r'/SmartDashboard'  #  TODO - eventually nothing should be in here
 
+# Questnav stuff
+QUESTNAV_ADB_ADDRESS = '10.24.29.99:5802'  # ADB target for restarting QuestNav
 # FIELD CONFIGURATION
 SHOW_APRILTAGS = True
 TAG_LAYOUT = robotpy_apriltag.AprilTagFieldLayout('2026-rebuilt-welded_json')  # hack until they fix the navx

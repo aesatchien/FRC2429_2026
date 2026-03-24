@@ -104,7 +104,7 @@ class UIUpdater:
                     
                     try:
                         adb_path = os.path.join(os.path.dirname(__file__), "adb", "adb.exe")
-                        cmd = [adb_path, "-s", "192.168.86.49:5802", "shell", "am", "start", "-n", "gg.QuestNav.QuestNav/com.unity3d.player.UnityPlayerGameActivity"]
+                        cmd = [adb_path, "-s", config.QUESTNAV_ADB_ADDRESS, "shell", "am", "start", "-n", "gg.QuestNav.QuestNav/com.unity3d.player.UnityPlayerGameActivity"]
                         subprocess.Popen(cmd)
                         print(f"[{current_time:.1f}] ADB command sent. We have dealt with it. Waiting for cooldown...", flush=True)
                     except Exception as e:
