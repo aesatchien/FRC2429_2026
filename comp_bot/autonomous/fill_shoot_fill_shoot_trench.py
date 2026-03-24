@@ -41,8 +41,8 @@ class FillShootFillShootTrench(commands2.SequentialCommandGroup):
         # moves to the neutral zone to intake fuel --> come back to shoot
         self.addCommands(
             ConditionalCommand(
-                AutoBuilder.followPath(PathPlannerPath.fromPathFile('Bottom Left Load and Shoot')),
-                AutoBuilder.followPath(PathPlannerPath.fromPathFile('Top Left Load and Shoot')),
+                AutoBuilder.followPath(PathPlannerPath.fromPathFile('Right_Trench_Load_and_Shoot')),
+                AutoBuilder.followPath(PathPlannerPath.fromPathFile('Left_Trench_Load_and_Shoot')),
                 self.get_is_right
             )
 
@@ -70,25 +70,34 @@ class FillShootFillShootTrench(commands2.SequentialCommandGroup):
 
         # -----  PHASE III:  FILL HOPPER AGAIN -----
         # Moves the intake down
-        self.addCommands(Intake_Deploy(intake=container.intake, position='down', indent=1))
-        self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=ac.k_intake_roller_rpm))
+        # self.addCommands(Intake_Deploy(intake=container.intake, position='down', indent=1))
+        # self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=ac.k_intake_roller_rpm))
 
-        # Repeat what happened above
-        self.addCommands(DriveToPoseCustomControl(container=self.container, swerve=self.container.swerve,
-                            target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_second_ball_pickup_pose, wpilib.DriverStation.getAlliance(), is_shooting=False),
-                                                  tolerance_type='fast').withTimeout(4.5)
-        )
+        # # Repeat what happened above
+        # self.addCommands(DriveToPoseCustomControl(container=self.container, swerve=self.container.swerve,
+        #                     target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_second_ball_pickup_pose, wpilib.DriverStation.getAlliance(), is_shooting=False),
+        #                                           tolerance_type='fast').withTimeout(4.5)
+        # )
 
-        # start the shooter on the way back so we don't waste a second letting it spin up
+        # # start the shooter on the way back so we don't waste a second letting it spin up
+        # self.addCommands(
+        #     ParallelCommandGroup(
+        #     DriveToPoseCustomControl(container=self.container, swerve=self.container.swerve,
+        #                              target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_shooting_pose,
+        #                                                                             wpilib.DriverStation.getAlliance(), is_shooting=True),
+        #                              tolerance_type='fast').withTimeout(5),
+        #     SequentialCommandGroup(
+        #         WaitCommand(1), InstantCommand(lambda: self.container.shooter.set_shooter_rpm(ac.k_shooter_startup_rpm)))
+        # ))
+
         self.addCommands(
-            ParallelCommandGroup(
-            DriveToPoseCustomControl(container=self.container, swerve=self.container.swerve,
-                                     target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_shooting_pose,
-                                                                                    wpilib.DriverStation.getAlliance(), is_shooting=True),
-                                     tolerance_type='fast').withTimeout(5),
-            SequentialCommandGroup(
-                WaitCommand(1), InstantCommand(lambda: self.container.shooter.set_shooter_rpm(ac.k_shooter_startup_rpm)))
-        ))
+            ConditionalCommand(
+                AutoBuilder.followPath(PathPlannerPath.fromPathFile('Bottom_Bump_Load_and_Shoot')),
+                AutoBuilder.followPath(PathPlannerPath.fromPathFile('Top_Bump_Load_and_Shoot')),
+                self.get_is_right
+            )
+
+        )
 
 
         # -----  PHASE IV:  EMPTY THE HOPPER (as above) -----
