@@ -3,6 +3,7 @@
 import typing
 import wpilib
 import commands2
+import constants
 from wpimath.units import inchesToMeters
 
 from helpers import log_command
@@ -99,9 +100,28 @@ class MyRobot(commands2.TimedCommandRobot):
         # this line or comment it out.
         if self.autonomousCommand:
             self.autonomousCommand.cancel()
+            
+        self.stationary_counter = 0
 
     def teleopPeriodic(self) -> None:
         """This function is called periodically during operator control"""
+        # Auto-resync QuestNav if it drops during teleop (e.g., from a passthrough bump)
+        if constants.k_allow_quest_auto_resync and self.container.questnav.use_quest and not self.container.questnav.quest_has_synched:
+            speeds = self.container.swerve.get_relative_speeds()
+            is_stationary = abs(speeds.vx) < 0.1 and abs(speeds.vy) < 0.1 and abs(speeds.omega) < 0.1
+            
+            seeing_tag = any(sub.get() > 0 for sub in self.container.swerve.count_subscribers)
+            
+            if is_stationary and seeing_tag:
+                self.stationary_counter += 1
+            else:
+                self.stationary_counter = 0
+                
+            # Wait 0.5 seconds (25 loops) of being stationary with a tag in view to let the pose settle
+            if self.stationary_counter > 25:  
+                print(f"*** Auto-resyncing QuestNav in Teleop at {wpilib.Timer.getFPGATimestamp():.1f}s ***")
+                self.container.questnav.quest_sync_odometry()
+                self.stationary_counter = 0  # reset so we don't spam if headset isn't fully awake yet
 
     def testInit(self) -> None:
         # Cancels all running commands at the start of test mode
