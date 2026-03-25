@@ -169,25 +169,32 @@ class Targeting(Subsystem):
         else:
             target_location = self.bHubLocation
 
-        # 3. Calculate Dynamic Lookahead (Time of Flight)
+        # 3. Calculate Dynamic Lookahead (Time of Flight) - two-pass iteration
+        # Pass 1: estimate ToF from current distance
         current_dist = robot_pose.translation().distance(target_location)
-        # Look up Time of Flight based on current distance
         lookahead_time = self.tof_map.get(current_dist)
 
-        # 4. Predict future position
+        # 4. Predict future position (preliminary)
+        future_robot_location_0 = robot_pose.translation() + (v_field * lookahead_time)
+
+        # Pass 2: refine ToF using the distance from the preliminary future position
+        # This corrects for the fact that the robot will be closer or farther when it actually shoots
+        effective_dist_0 = future_robot_location_0.distance(target_location)
+        lookahead_time = self.tof_map.get(effective_dist_0)
+
+        # Final future position using refined ToF
         future_robot_location = robot_pose.translation() + (v_field * lookahead_time)
         self.debug_v_field = v_field
         self.debug_future_pose = future_robot_location
-        
+
         # 5. Calculate Effective Distance (for Shooter RPM)
         self.effective_distance = future_robot_location.distance(target_location)
         self.target_rpm = self.rpm_map.get(self.effective_distance)
 
         # --- Calculate Shot Line for Visualization ---
-        # Where the ball goes if we shoot NOW with CURRENT heading
-        # Endpoint = CurrentPos + (RobotVel * t) + (ShotVel * t)
-        # (ShotVel * t) is just a vector of length effective_distance in the direction of the robot
-        shot_vector = Translation2d(self.effective_distance, 0).rotateBy(robot_pose.rotation())
+        # Shot vector direction is toward the hub, not along robot heading
+        robot_to_hub_angle = (target_location - future_robot_location).angle()
+        shot_vector = Translation2d(self.effective_distance, 0).rotateBy(robot_to_hub_angle)
         robot_motion_vector = v_field * lookahead_time
         
         end_point_translation = robot_pose.translation() + robot_motion_vector + shot_vector
@@ -196,8 +203,7 @@ class Targeting(Subsystem):
         # Calculate shot error (distance from shot endpoint to target center)
         self.shot_error = end_point_translation.distance(target_location)
         
-        # 6. Calculate setpoint angle based on future position (Lookahead)
-        robot_to_hub_angle = (target_location - future_robot_location).angle()
+        # 6. Setpoint angle already calculated above (robot_to_hub_angle) for shot vector
         self.debug_future_rotation = robot_to_hub_angle
 
         # 7. Calculate vector from current position for Feedforward
