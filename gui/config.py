@@ -62,6 +62,8 @@ command_prefix = r'/SmartDashboard/Command'  # DIFFERENT FROM ROBOT CODE: the ro
 auto_prefix    = r'/SmartDashboard/Auto'
 base_prefix    = r'/SmartDashboard'  #  TODO - eventually nothing should be in here
 
+# Questnav stuff
+QUESTNAV_ADB_ADDRESS = '10.24.29.99:5802'  # ADB target for restarting QuestNav
 # FIELD CONFIGURATION
 SHOW_APRILTAGS = True
 TAG_LAYOUT = robotpy_apriltag.AprilTagFieldLayout('2026-rebuilt-welded_json')  # hack until they fix the navx
@@ -143,6 +145,7 @@ WIDGET_CONFIG = {
     'qlabel_questnav_heartbeat_indicator': {'widget_name': 'qlabel_questnav_heartbeat_indicator', 'nt_topic': f'{quest_prefix}/quest_connected', 'update_style': 'indicator'},
     'qlabel_questnav_inbounds_indicator': {'widget_name': 'qlabel_questnav_inbounds_indicator', 'nt_topic': f'{quest_prefix}/quest_pose_accepted', 'update_style': 'indicator'},
     'qlabel_questnav_tracking_indicator': {'widget_name': 'qlabel_questnav_tracking_indicator', 'nt_topic': f'{quest_prefix}/quest_tracking', 'update_style': 'indicator'},
+    'qlabel_questnav_dtap_indicator': {'widget_name': 'qlabel_questnav_dtap_indicator','nt_topic': f'{quest_prefix}/quest_in_passthrough', 'flash':True, 'update_style': 'indicator'},
     'qlabel_questnav_sync_toggle_indicator': {'widget_name': 'qlabel_questnav_sync_toggle_indicator', 'nt_topic': f'{quest_prefix}/questnav_synched', 'command_topic': f'{command_prefix}/QuestSyncToggle/running', 'update_style': 'indicator'},
     'qlabel_questnav_reset_indicator': {'widget_name': 'qlabel_questnav_reset_indicator', 'nt_topic': f'{quest_prefix}/QuestResetOdometry/running', 'command_topic': f'{command_prefix}/QuestResetOdometry/running', 'update_style': 'indicator'},
     'qlabel_questnav_enabled_toggle_indicator': {'widget_name': 'qlabel_questnav_enabled_toggle_indicator', 'nt_topic': f'{quest_prefix}/questnav_in_use', 'command_topic': f'{command_prefix}/QuestEnableToggle/running', 'update_style': 'indicator'},
