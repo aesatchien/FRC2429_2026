@@ -16,16 +16,16 @@
     },
     {
       "anchor": {
-        "x": 8.093899390596118,
-        "y": 3.499232396603513
+        "x": 8.156422182468695,
+        "y": 3.9133094812164577
       },
       "prevControl": {
-        "x": 9.64095208525878,
-        "y": 2.59495674965342
+        "x": 9.703474877131358,
+        "y": 3.009033834266365
       },
       "nextControl": {
-        "x": 7.734452355124777,
-        "y": 3.7093346133324747
+        "x": 7.7969751469973545,
+        "y": 4.12341169794542
       },
       "isLocked": false,
       "linkedName": null
@@ -46,18 +46,22 @@
   ],
   "rotationTargets": [
     {
-      "waypointRelativePos": 0.24831414473684182,
+      "waypointRelativePos": 0.5,
       "rotationDegrees": 0.0
     },
     {
-      "waypointRelativePos": 2.0,
-      "rotationDegrees": 52.0
+      "waypointRelativePos": 1.2584856396866841,
+      "rotationDegrees": 160.0
+    },
+    {
+      "waypointRelativePos": 1.7493472584856455,
+      "rotationDegrees": 100.0
     }
   ],
   "constraintZones": [
     {
       "name": "Bump",
-      "minWaypointRelativePos": 0,
+      "minWaypointRelativePos": 0.05263157894736842,
       "maxWaypointRelativePos": 0.2624055631868133,
       "constraints": {
         "maxVelocity": 2.0,
@@ -70,8 +74,8 @@
     },
     {
       "name": "Bump2",
-      "minWaypointRelativePos": 1.718020260989011,
-      "maxWaypointRelativePos": 2.0,
+      "minWaypointRelativePos": 1.7105263157894737,
+      "maxWaypointRelativePos": 1.9210526315789476,
       "constraints": {
         "maxVelocity": 2.0,
         "maxAcceleration": 3.0,
@@ -97,7 +101,7 @@
     },
     {
       "name": "start_shooter_nothing_else",
-      "waypointRelativePos": 1.1150591777408638,
+      "waypointRelativePos": 1.3881578947368405,
       "endWaypointRelativePos": null,
       "command": {
         "type": "named",
