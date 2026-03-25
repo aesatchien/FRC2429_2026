@@ -13,7 +13,7 @@ from helpers.utilities import set_config_defaults
 
 k_swerve_config = "comp"  # choose between practice bot and comp bot for now - they differ by swerve ofsets
 
-k_at_home = True  # used for intake calibration
+k_at_home = True  # used for intake calibration - True means we start with the intake out
 
 # Generator for unique counter offsets
 _counter = count(1)
@@ -22,7 +22,7 @@ _counter = count(1)
 k_enable_logging = True  # allow logging from Advantagescope (in swerve.py), but really we may as well start it here
 
 # starting position for odometry (real and in sim)
-k_start_x, k_start_y  = 2.79, 2.20
+k_start_x, k_start_y = 2.79, 2.20
 
 # ------------  joysticks and other input ------------
 k_driver_controller_port = 0
@@ -218,6 +218,15 @@ class IntakeConstants:
     k_intake_right_follower_config.follow(k_CANID_intake_left_leader, invert=False)  # depends on motor placement
 
     set_config_defaults(k_intake_configs)
+
+    # in case we do a profiled subsystem - just using a cheap PID on the sparkmax bangs a bit too much
+    k_max_velocity_rad_per_second = math.pi
+    k_max_acceleration_rad_per_sec_squared = math.pi
+    k_kS_volts = 0.01  # constant to always add, uses the sign of velocity
+    k_kG_volts = 0.56 / 1.0  # 10lbs at 11in COM, cuts in half with two motors, goes up with mass and distance, down with efficiency
+    k_kV_volt_second_per_radian = 4.75  # stays the same with one or two motors, based on the NEO vortex itself and gear ratio
+    k_kA_volt_second_squared_per_meter = 0.10 / 1.0  # cuts in half with 2 motors, but we only use one
+    k_starting_angle = math.radians(k_bottom_angle) if k_at_home else math.radians(k_top_angle)
 
 class ShooterConstants:
 
