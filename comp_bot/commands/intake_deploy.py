@@ -25,6 +25,8 @@ class Intake_Deploy(commands2.Command):  # change the name for your command
             self.intake.set_intake_position(angle=ic.k_top_angle)
         elif self.position == "shoot":
             self.intake.set_intake_position(angle=ic.k_shooting_angle)
+        elif self.position == "shoot2":
+            self.intake.set_intake_position(angle=ic.k_second_shooting_angle)
 
     def execute(self) -> None:
         pass

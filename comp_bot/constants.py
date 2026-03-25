@@ -201,6 +201,7 @@ class IntakeConstants:
     k_top_angle = 143  # degrees when at top position
     k_bottom_angle = 0  # degrees when at bottom position
     k_shooting_angle = 75  # degrees when in shooting position - this is a guess, will need to be tuned
+    k_second_shooting_angle = 90
 
     k_intake_left_leader_config, k_intake_right_follower_config = SparkMaxConfig(), SparkMaxConfig()
     k_intake_configs = [k_intake_left_leader_config, k_intake_right_follower_config, k_deploy_config]

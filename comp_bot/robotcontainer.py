@@ -1,6 +1,7 @@
 # 2429 FRC code for 2025 season - Reefscape
 
 import wpilib
+from commands2 import InstantCommand
 from wpimath.geometry import Pose2d
 import commands2
 from commands2.printcommand import PrintCommand
@@ -113,7 +114,9 @@ class RobotContainer:
         js.driver_a.whileTrue(commands2.ParallelCommandGroup(
             ShootingCommand(shooter=self.shooter, targeting=self.targeting),
             commands2.SequentialCommandGroup(commands2.WaitCommand(constants.AutoConstants.k_intake_raise_delay),
-                                             Intake_Deploy(intake=self.intake, position='shoot')),
+                                             Intake_Deploy(intake=self.intake, position='shoot'),
+                                             commands2.WaitCommand(constants.AutoConstants.k_intake_raise_delay),
+                                             Intake_Deploy(intake=self.intake, position='shoot2')),
         ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=500, led=self.led)))
         # does not work as an "andThen" for some reason
         js.driver_a.onFalse(Intake_Deploy(intake=self.intake, position='down').andThen(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
@@ -139,7 +142,7 @@ class RobotContainer:
 
         # --- Subsystems ---
         # Giving Jeremy faster and slower fixed speeds
-        js.driver_lb.onTrue(Intake_Set_RPM(intake=self.intake, rpm=2500, led=self.led))
+        js.driver_lb.onTrue(Intake_Set_RPM(intake=self.intake, rpm=1500, led=self.led))
         js.driver_l_trigger.whileTrue(SwerveSetX(container=self, swerve=self.swerve))
         js.driver_back.onTrue(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
 
@@ -155,8 +158,7 @@ class RobotContainer:
         ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
         js.driver_b.onFalse(Intake_Deploy(intake=self.intake, position='down'))
 
-        js.driver_start.whileTrue(TeleopCycle(container=self))
-
+        js.driver_start.whileTrue(Intake_Deploy(self.intake, "down").andThen(Intake_Set_RPM(self.intake, -constants.IntakeConstants.k_intake_default_rpm).alongWith(InstantCommand(lambda: self.shooter.set_hopper_rpm(-constants.ShooterConstants.k_hopper_rpm)))))
         #js.bbox_intake_in.whileTrue(Intake_Set_RPM(intake=self.intake, rpm=3000))
         #js.bbox_intake_out.whileTrue(Intake_Set_RPM(intake=self.intake, rpm=0))
         #js.bbox_intake_up.onTrue(Intake_Deploy(intake=self.intake, direction='up'))
@@ -209,7 +211,7 @@ class RobotContainer:
 
         js.bbox_1_1.onTrue(commands2.InstantCommand(lambda: self.intake.zero_intake()))
 
-        js.bbox_1_2.onTrue(CalibrateIntake(intake=self.intake))
+        # js.bbox_1_2.onTrue(CalibrateIntake(intake=self.intake))
 
         # js.bbox_1_3.whileTrue(Kill?)
 
