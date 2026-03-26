@@ -2616,7 +2616,7 @@ background-color:rgb(10, 10, 227);</string>
     <property name="geometry">
      <rect>
       <x>590</x>
-      <y>90</y>
+      <y>80</y>
       <width>110</width>
       <height>20</height>
      </rect>
@@ -2726,7 +2726,7 @@ background-color:rgb(0, 20, 250);</string>
     <property name="geometry">
      <rect>
       <x>590</x>
-      <y>250</y>
+      <y>253</y>
       <width>110</width>
       <height>23</height>
      </rect>
@@ -2749,7 +2749,7 @@ background-color:rgb(0, 20, 250);</string>
     <property name="geometry">
      <rect>
       <x>590</x>
-      <y>230</y>
+      <y>234</y>
       <width>110</width>
       <height>17</height>
      </rect>
@@ -2765,7 +2765,7 @@ background-color:rgb(0, 20, 250);</string>
     <property name="geometry">
      <rect>
       <x>590</x>
-      <y>174</y>
+      <y>177</y>
       <width>110</width>
       <height>23</height>
      </rect>
@@ -2778,7 +2778,7 @@ background-color:rgb(0, 20, 250);</string>
     <property name="geometry">
      <rect>
       <x>590</x>
-      <y>146</y>
+      <y>149</y>
       <width>110</width>
       <height>23</height>
      </rect>
@@ -2819,7 +2819,7 @@ background-color:rgb(0, 20, 250);</string>
     <property name="geometry">
      <rect>
       <x>590</x>
-      <y>116</y>
+      <y>125</y>
       <width>110</width>
       <height>20</height>
      </rect>
@@ -2851,7 +2851,7 @@ color:rgb(230,230,230);</string>
     <property name="geometry">
      <rect>
       <x>590</x>
-      <y>200</y>
+      <y>203</y>
       <width>110</width>
       <height>23</height>
      </rect>
@@ -2864,13 +2864,44 @@ color:rgb(230,230,230);</string>
     <property name="geometry">
      <rect>
       <x>590</x>
-      <y>227</y>
+      <y>231</y>
       <width>110</width>
       <height>3</height>
      </rect>
     </property>
     <property name="orientation">
      <enum>Qt::Horizontal</enum>
+    </property>
+   </widget>
+   <widget class="QLabel" name="qlabel_fms_connected_indicator">
+    <property name="geometry">
+     <rect>
+      <x>590</x>
+      <y>103</y>
+      <width>110</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>MS Shell Dlg 2</family>
+      <pointsize>8</pointsize>
+      <bold>true</bold>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">border: 7px;
+border-radius: 7px;
+background-color:rgb(180, 180,180);</string>
+    </property>
+    <property name="text">
+     <string>FMS Connected</string>
+    </property>
+    <property name="textFormat">
+     <enum>Qt::AutoText</enum>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignCenter</set>
     </property>
    </widget>
    <zorder>tabWidget</zorder>
@@ -2888,6 +2919,7 @@ color:rgb(230,230,230);</string>
    <zorder>qlabel_alliance_indicator</zorder>
    <zorder>qt_button_ping_quest</zorder>
    <zorder>line</zorder>
+   <zorder>qlabel_fms_connected_indicator</zorder>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
