@@ -9,6 +9,17 @@ from rev import SparkBase, SparkLowLevel  # trying to save some typing
 
 import constants
 from constants import IntakeConstants as ic
+import math
+
+import ntcore
+import wpilib
+from commands2 import Subsystem, TrapezoidProfileSubsystem
+import wpimath.trajectory, wpimath.controller
+import rev
+from rev import SparkBase, SparkLowLevel  # trying to save some typing
+
+import constants
+from constants import IntakeConstants as ic
 
 
 class IntakeTPS(TrapezoidProfileSubsystem):
@@ -73,7 +84,7 @@ class IntakeTPS(TrapezoidProfileSubsystem):
         self.last_currents = [0,0,0,0,0]
         self.bumper_switch = wpilib.DigitalInput(9)
         self.is_calibrated = False
-        self._allow_calibration = True
+        self._allow_calibration = False
         self.deployed_angle = ic.k_bottom_angle if constants.k_at_home else ic.k_top_angle
         self.setpoint = self.deployed_angle
 

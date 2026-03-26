@@ -72,7 +72,7 @@ class RobotContainer:
         self.targeting = Targeting(swerve=self.swerve)
         self.vision = Vision()
         self.shooter = Shooter()
-        self.intake = IntakeTPS()
+        self.intake = Intake()
         # self.climber = Climber()
         self.robot_state = RobotState()  # currently has a callback that LED can register
         self.led = Led(robot_state=self.robot_state)  # may want LED last because it may want to know about other systems

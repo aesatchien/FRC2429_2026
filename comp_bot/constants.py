@@ -13,7 +13,7 @@ from helpers.utilities import set_config_defaults
 
 k_swerve_config = "comp"  # choose between practice bot and comp bot for now - they differ by swerve ofsets
 
-k_at_home = True  # used for intake calibration - True means we start with the intake out
+k_at_home = False  # used for intake calibration - True means we start with the intake out
 
 # Generator for unique counter offsets
 _counter = count(1)
@@ -53,7 +53,7 @@ mech_prefix = r'/Mech' # SPECIAL CASE: the SmartDashboard.putData auto prepends 
 k_swerve_debugging_messages = True
 # multiple attempts at tags this year - TODO - use l/r or up/down tilted cameras again, gives better data
 k_use_quest_odometry = True
-k_allow_quest_auto_resync = True
+k_allow_quest_auto_resync = False
 k_use_photontags = False  # take tags from photonvision camera
 k_use_CJH_tags = True  # take tags from the pis
 k_allow_tag_averaging = True
@@ -187,7 +187,7 @@ class IntakeConstants:
     k_deploy_config.softLimit.reverseSoftLimitEnabled(False)
     # Configure MAXMotion (The "Modern" Smart Motion) - Note: "maxMotion" object instead of "smartMotion"
     # this is the setting for kPosition control - slot0 - WE USE THIS NOW
-    k_deploy_config.closedLoop.pidf(p=1e-2, i=1e-8, d=1e-3, ff=0, slot=rev.ClosedLoopSlot.kSlot0)
+    k_deploy_config.closedLoop.pidf(p=1e-2, i=1e-6, d=1e0, ff=0, slot=rev.ClosedLoopSlot.kSlot0)
     k_deploy_config.closedLoop.IMaxAccum(0.03, slot=rev.ClosedLoopSlot.kSlot0)
     k_deploy_config.closedLoop.IZone(3, slot=rev.ClosedLoopSlot.kSlot0) # degrees less than which no I is applied
     # this is the setting for kMaxMotionPosition control - slot1, TODO - make this work
@@ -218,6 +218,7 @@ class IntakeConstants:
     k_intake_right_follower_config.follow(k_CANID_intake_left_leader, invert=False)  # depends on motor placement
 
     set_config_defaults(k_intake_configs)
+    k_deploy_config.smartCurrentLimit(50)  # can't lift the new one with 40A
 
     # in case we do a profiled subsystem - just using a cheap PID on the sparkmax bangs a bit too much
     k_max_velocity_rad_per_second = math.pi
