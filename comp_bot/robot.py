@@ -34,6 +34,7 @@ class MyRobot(commands2.TimedCommandRobot):
         self.alliance_zone = None
         self.mech = BlockheadMech()
 
+
     def disabledInit(self) -> None:
         """This function is called once each time the robot enters Disabled mode."""
         self.disabled_counter = 1
@@ -57,8 +58,6 @@ class MyRobot(commands2.TimedCommandRobot):
                     self.container.led.set_indicator(Led.Indicator.kPOLKA)
                     self.alliance_zone = None
 
-        if self.disabled_counter % 1000 == 0:
-            pass
         if self.disabled_counter % 500 == 0:
             # check on the questnav - auto synch it if we have been up more than 10s and have not synched yet
             # but attempt to see if we have a good starting tag (logitech reef)

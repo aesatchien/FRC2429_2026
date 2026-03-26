@@ -1,7 +1,7 @@
 import math
 from enum import Enum
 import commands2
-from wpilib import Timer
+from wpilib import Timer, DriverStation
 from wpimath.geometry import Rotation2d
 import ntcore
 import constants
@@ -45,9 +45,13 @@ class RobotState(commands2.Subsystem):
         # this should auto-update the lists for the dashboard.  you can iterate over enums
         self.states_dict = {state.value["name"]: state for state in self.State}
 
+        # keep track of FMS
+        self._last_fms = False
+
     def _init_networktables(self):
         self.inst = ntcore.NetworkTableInstance.getDefault()
         self.state_pub = self.inst.getStringTopic(f"{constants.status_prefix}/_robot_state").publish()
+        self.fms_pub = self.inst.getStringTopic(f"{constants.status_prefix}/_fms_attached").publish()
 
     # put in a callback so the logic to LED is not circular
     def register_callback(self, callback):
@@ -79,3 +83,16 @@ class RobotState(commands2.Subsystem):
         self.counter += 1  # Increment the main counter
         if self.counter % 10 == 0:  # Execute every 5 cycles (10Hz update rate)
             pass
+
+        if self.counter % 200 == 0:  # let's check if we have connected to the FMS
+            fms = DriverStation.isFMSAttached()
+            just_connected = fms and not self._last_fms
+            if just_connected:
+                print("**** Just connected to FMS! ****")
+                self.fms_pub.set(True)
+
+            if not fms and self._last_fms:
+                print("**** Just lost connection to FMS! ****")
+                self.fms_pub.set(False)
+
+            self._last_fms = fms

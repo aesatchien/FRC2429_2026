@@ -2726,7 +2726,7 @@ background-color:rgb(0, 20, 250);</string>
     <property name="geometry">
      <rect>
       <x>590</x>
-      <y>234</y>
+      <y>250</y>
       <width>110</width>
       <height>23</height>
      </rect>
@@ -2739,7 +2739,7 @@ background-color:rgb(0, 20, 250);</string>
     <property name="geometry">
      <rect>
       <x>590</x>
-      <y>264</y>
+      <y>280</y>
       <width>110</width>
       <height>23</height>
      </rect>
@@ -2749,7 +2749,7 @@ background-color:rgb(0, 20, 250);</string>
     <property name="geometry">
      <rect>
       <x>590</x>
-      <y>214</y>
+      <y>230</y>
       <width>110</width>
       <height>17</height>
      </rect>
@@ -2847,6 +2847,32 @@ color:rgb(230,230,230);</string>
      <set>Qt::AlignCenter</set>
     </property>
    </widget>
+   <widget class="QPushButton" name="qt_button_ping_quest">
+    <property name="geometry">
+     <rect>
+      <x>590</x>
+      <y>200</y>
+      <width>110</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Ping Quest</string>
+    </property>
+   </widget>
+   <widget class="Line" name="line">
+    <property name="geometry">
+     <rect>
+      <x>590</x>
+      <y>227</y>
+      <width>110</width>
+      <height>3</height>
+     </rect>
+    </property>
+    <property name="orientation">
+     <enum>Qt::Horizontal</enum>
+    </property>
+   </widget>
    <zorder>tabWidget</zorder>
    <zorder>qt_text_status</zorder>
    <zorder>tabWidget_2</zorder>
@@ -2860,6 +2886,8 @@ color:rgb(230,230,230);</string>
    <zorder>qt_button_swap_sim</zorder>
    <zorder>qlabel_camera_view</zorder>
    <zorder>qlabel_alliance_indicator</zorder>
+   <zorder>qt_button_ping_quest</zorder>
+   <zorder>line</zorder>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
