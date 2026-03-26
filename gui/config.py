@@ -130,6 +130,7 @@ WIDGET_CONFIG = {
     'qcombobox_autonomous_routines': {'widget_name': 'qcombobox_autonomous_routines', 'nt_topic': rf'{base_prefix}/autonomous routines/options',
                                       'selected_topic': rf'{base_prefix}/autonomous routines/selected', 'update_style': 'combo'},
     'qlabel_nt_connected': {'widget_name': 'qlabel_nt_connected', 'update_style': 'connection'},
+    'qlabel_fms_connected': {'widget_name': 'qlabel_fms_connected_indicator', 'nt_topic': f'{status_prefix}/_fms_attached', 'update_style': 'indicator'},
     'qlabel_matchtime': {'widget_name': 'qlabel_matchtime', 'nt_topic': f'{base_prefix}/match_time', 'update_style': 'time'},
     'qlabel_alliance_indicator': {'widget_name': 'qlabel_alliance_indicator', 'nt_topic': '/FMSInfo/IsRedAlliance', 'update_style': 'indicator',
                                         'style_on': "border: 7px; border-radius: 7px; background-color:rgb(225, 0, 0); color:rgb(200, 200, 200);",

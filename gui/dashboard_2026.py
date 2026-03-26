@@ -5,7 +5,7 @@
 import os
 import cv2
 import numpy as np
-import time
+import time, subprocess
 from datetime import datetime
 from pathlib import Path
 
@@ -34,6 +34,41 @@ print("[DEBUG] OpenCV version:", cv2.__version__)
 cv2.setNumThreads(4)  # Disable multithreading
 cv2.ocl.setUseOpenCL(True)
 
+class SubprocessWorker(QtCore.QObject):
+    """
+    A worker that runs a subprocess command in a separate thread and streams its output.
+    This prevents the GUI from freezing while waiting for the command to complete.
+    """
+    finished = QtCore.pyqtSignal()
+    output_ready = QtCore.pyqtSignal(str)
+
+    def __init__(self, command):
+        super().__init__()
+        self.command = command
+
+    @QtCore.pyqtSlot()
+    def run(self):
+        """Executes the command and streams output line-by-line."""
+        try:
+            # CREATE_NO_WINDOW flag prevents a console window from popping up on Windows
+            creationflags = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
+            process = subprocess.Popen(
+                self.command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,  # Combine stdout and stderr into one stream
+                text=True,
+                creationflags=creationflags
+            )
+            # Read line by line as it comes in and emit a signal for each
+            for line in iter(process.stdout.readline, ''):
+                self.output_ready.emit(line.strip())
+            process.stdout.close()
+            process.wait()
+        except Exception as e:
+            self.output_ready.emit(f"Error running command: {e}")
+        finally:
+            self.finished.emit()
+
 #print(f'Initializing GUI ...', flush=True)
 
 class Ui(QtWidgets.QMainWindow):
@@ -58,6 +93,9 @@ class Ui(QtWidgets.QMainWindow):
         self.previous_frames = 0
         self.widget_dict = {}
         self.command_dict = {}
+
+        self.ping_thread = None
+        self.ping_worker = None
 
         # camera stuff - probably not needed
         self.worker = None
@@ -121,6 +159,7 @@ class Ui(QtWidgets.QMainWindow):
         self.qt_button_swap_sim.clicked.connect(self.nt_manager.increment_server)
         self.qt_button_reconnect.clicked.connect(self.nt_manager.reconnect)
         self.qt_button_camera_enable.clicked.connect(self.camera_manager.toggle_camera_thread)
+        self.qt_button_ping_quest.clicked.connect(self.ping_quest)
 
         self.qt_tree_widget_nt.hide()
 
@@ -249,6 +288,32 @@ class Ui(QtWidgets.QMainWindow):
         else:
             print(f'[{self.ui_updater.get_elapsed_time():.1f}] Warning: {label} clicked but NT Publisher or Subscriber is missing.', flush=True)
 
+    def ping_quest(self):
+        """Pings the Quest ADB server to check for a connection without freezing the GUI."""
+        # Prevent running multiple pings at once
+        if self.ping_thread and self.ping_thread.isRunning():
+            self.qt_text_status.appendPlainText("Ping already in progress...")
+            return
+
+        self.qt_text_status.appendPlainText(f"[{self.ui_updater.get_elapsed_time():.1f}] Pinging QuestNav at {config.QUESTNAV_ADB_ADDRESS}...")
+        
+        adb_path = os.path.join(os.path.dirname(__file__), "adb", "adb.exe")
+        command = [adb_path, "connect", config.QUESTNAV_ADB_ADDRESS]
+
+        # 1. Create a thread and a worker
+        self.ping_thread = QtCore.QThread()
+        self.ping_worker = SubprocessWorker(command)
+
+        # 2. Move worker to the thread
+        self.ping_worker.moveToThread(self.ping_thread)
+
+        # 3. Connect signals and slots
+        self.ping_worker.output_ready.connect(self.qt_text_status.appendPlainText)
+        self.ping_thread.started.connect(self.ping_worker.run)
+        self.ping_worker.finished.connect(self.ping_thread.quit)
+        
+        # 4. Start the thread
+        self.ping_thread.start()
 
     def initialize_widgets(self):
         """Connects widget signals and populates the camera combobox."""
