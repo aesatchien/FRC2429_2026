@@ -153,9 +153,12 @@ class IntakeTPS(TrapezoidProfileSubsystem):
 
     def set_intake_position(self, angle=0):
         # CJH added on 20260303 to use max motion to set the dropper position
-        ks = 0.0  # TODO - see if we need one - we may need to actually model it as an arm for best performance
-        self.deploy_controller.setReference(setpoint=angle, ctrl=SparkLowLevel.ControlType.kPosition,
-                                             slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=ks)
+        # ks = 0.0  # TODO - see if we need one - we may need to actually model it as an arm for best performance
+        # self.deploy_controller.setReference(setpoint=angle, ctrl=SparkLowLevel.ControlType.kPosition,
+        #                                      slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=ks)
+
+        self.set_goal(goal=math.radians(angle))
+
         # print(f'  -- intake position to {angle:.0f}')  # TODO - delete after testing
         self.deployed_angle = angle
         self.setpoint = angle
@@ -232,15 +235,15 @@ class IntakeTPS(TrapezoidProfileSubsystem):
 
         # Add the feedforward to the PID output to get the motor output
         # TODO - check if the feedforward is correct in units for the sparkmax - documentation says 32, not 12
-        self.deploy_controller.setReference(setpoint.position, rev.SparkFlex.ControlType.kPosition, rev.ClosedLoopSlot.kSlot0, arbFeedforward=feedforward)
+        self.deploy_controller.setReference(math.degrees(setpoint.position), rev.SparkFlex.ControlType.kPosition, rev.ClosedLoopSlot.kSlot0, arbFeedforward=feedforward)
 
     def set_goal(self, goal, use_trapezoid=True):
         # make our own sanity-check on the subsystem's setGoal function
-        if goal < constants.IntakeConstants.k_bottom_angle:
-            self.goal = constants.IntakeConstants.k_bottom_angle
+        if goal < math.radians(constants.IntakeConstants.k_bottom_angle):
+            self.goal = math.radians(constants.IntakeConstants.k_bottom_angle)
             print(f'Intake goal too low: {goal:.3f} -> set to {self.goal}')
-        elif goal > constants.IntakeConstants.k_top_angle:
-            self.goal = constants.IntakeConstants.k_max_angle
+        elif goal > math.radians(constants.IntakeConstants.k_top_angle):
+            self.goal = math.radians(constants.IntakeConstants.k_top_angle)
             print(f'Intake goal too high: {goal:.3f} -> set to {self.goal}')
         else:
             self.goal = goal

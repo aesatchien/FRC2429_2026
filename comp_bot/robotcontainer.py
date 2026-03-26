@@ -25,6 +25,7 @@ from subsystems.swerve import Swerve
 from subsystems.vision import Vision
 from subsystems.shooter import Shooter
 from subsystems.intake import Intake
+from subsystems.intake_tps import IntakeTPS
 from subsystems.targeting import Targeting
 
 # from subsystems.questnav_2429 import QuestnavModule
@@ -71,7 +72,7 @@ class RobotContainer:
         self.targeting = Targeting(swerve=self.swerve)
         self.vision = Vision()
         self.shooter = Shooter()
-        self.intake = Intake()
+        self.intake = IntakeTPS()
         # self.climber = Climber()
         self.robot_state = RobotState()  # currently has a callback that LED can register
         self.led = Led(robot_state=self.robot_state)  # may want LED last because it may want to know about other systems
