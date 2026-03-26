@@ -51,7 +51,8 @@ class RobotState(commands2.Subsystem):
     def _init_networktables(self):
         self.inst = ntcore.NetworkTableInstance.getDefault()
         self.state_pub = self.inst.getStringTopic(f"{constants.status_prefix}/_robot_state").publish()
-        self.fms_pub = self.inst.getStringTopic(f"{constants.status_prefix}/_fms_attached").publish()
+        self.fms_pub = self.inst.getBooleanTopic(f"{constants.status_prefix}/_fms_attached").publish()
+        self.fms_pub.set(False)
 
     # put in a callback so the logic to LED is not circular
     def register_callback(self, callback):
@@ -84,7 +85,7 @@ class RobotState(commands2.Subsystem):
         if self.counter % 10 == 0:  # Execute every 5 cycles (10Hz update rate)
             pass
 
-        if self.counter % 200 == 0:  # let's check if we have connected to the FMS
+        if self.counter % 100 == 0:  # let's check if we have connected to the FMS
             fms = DriverStation.isFMSAttached()
             just_connected = fms and not self._last_fms
             if just_connected:
