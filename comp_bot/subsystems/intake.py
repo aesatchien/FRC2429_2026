@@ -54,7 +54,7 @@ class Intake(Subsystem):
         self.current_rpm = 0
         self.last_currents = [0,0,0,0,0]
         self.bumper_switch = wpilib.DigitalInput(9)
-        self.is_calibrated = self.bumper_switch.get()
+        self.is_calibrated = False
         self.deployed_angle = ic.k_bottom_angle if constants.k_at_home else ic.k_top_angle
         self.setpoint = self.deployed_angle
 
@@ -191,7 +191,7 @@ class Intake(Subsystem):
         self.last_currents[self.counter % len(self.last_currents)] = self.deploy_motor.getOutputCurrent()
 
         # get the state of the magnetic switch and calibrate the intake if at bottom position
-        at_bumper = self.bumper_switch.get()
+        at_bumper = not self.bumper_switch.get()
         if at_bumper and not self.is_calibrated:
             self.set_intake_position()
             self.is_calibrated = True
@@ -206,6 +206,7 @@ class Intake(Subsystem):
              self.deployer_angle_pub.set(self.deploy_encoder.getPosition())
              self.deployer_output_pub.set(self.deploy_motor.getAppliedOutput())
              self.deployer_velocity_pub.set(self.deploy_encoder.getVelocity())
+             self.intake_calibration_pub.set(self.is_calibrated)
 
              # this is not right in the simulation
              if wpilib.RobotBase.isSimulation():
