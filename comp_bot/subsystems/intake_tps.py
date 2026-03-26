@@ -71,7 +71,9 @@ class IntakeTPS(TrapezoidProfileSubsystem):
         self.deployed = True
         self.current_rpm = 0
         self.last_currents = [0,0,0,0,0]
-        self.calibrated = False
+        self.bumper_switch = wpilib.DigitalInput(9)
+        self.is_calibrated = False
+        self._allow_calibration = True
         self.deployed_angle = ic.k_bottom_angle if constants.k_at_home else ic.k_top_angle
         self.setpoint = self.deployed_angle
 
@@ -100,12 +102,14 @@ class IntakeTPS(TrapezoidProfileSubsystem):
         self.deployer_output_pub = self.inst.getDoubleTopic(f"{self.intake_prefix}/deployer_output").publish()
         self.deployer_velocity_pub = self.inst.getDoubleTopic(f"{self.intake_prefix}/deployer_velocity").publish()
         self.deployer_setpoint_pub = self.inst.getDoubleTopic(f"{self.intake_prefix}/deployer_setpoint").publish()
+        self.intake_calibration_pub = self.inst.getBooleanTopic(f"{self.intake_prefix}/intake_calibration").publish()
         
         self.intake_on_pub.set(self.intake_on)
         self.intake_rpm_pub.set(self.current_rpm)
         self.deployed_pub.set(self.deployed)
         self.deployer_angle_pub.set(self.deploy_encoder.getPosition())
         self.deployer_average_current_pub.set(0)
+        self.intake_calibration_pub.set(self.is_calibrated)
 
     def update_nt(self):
         self.intake_on_pub.set(self.intake_on)
@@ -113,6 +117,7 @@ class IntakeTPS(TrapezoidProfileSubsystem):
         self.deployed_pub.set(self.deployed)
         self.deployer_average_current_pub.set(sum(self.last_currents) / len(self.last_currents))
         self.deployer_setpoint_pub.set(self.setpoint)
+        self.intake_calibration_pub.set(self.is_calibrated)
 
     def stop_intake(self):
         # three different ways to stop the intake
@@ -211,6 +216,15 @@ class IntakeTPS(TrapezoidProfileSubsystem):
         super().periodic()  # this does the automatic motion profiling in the background
         self.counter += 1
 
+        # get the state of the magnetic switch and calibrate the intake if at bottom position
+        at_bumper = not self.bumper_switch.get()
+        if self._allow_calibration:
+            if at_bumper and not self.is_calibrated:
+                self.set_intake_position(ic.k_bottom_angle)
+                self.is_calibrated = True
+            elif self.is_calibrated and not at_bumper:
+                self.is_calibrated = False
+
         # keep track of the deploy currents in case we want to check for calibrating or a stall condition
         self.last_currents[self.counter % len(self.last_currents)] = self.deploy_motor.getOutputCurrent()
         if self.counter % 5 == 0:
@@ -221,6 +235,7 @@ class IntakeTPS(TrapezoidProfileSubsystem):
              self.deployer_angle_pub.set(self.deploy_encoder.getPosition())
              self.deployer_output_pub.set(self.deploy_motor.getAppliedOutput())
              self.deployer_velocity_pub.set(self.deploy_encoder.getVelocity())
+             self.intake_calibration_pub.set(self.is_calibrated)
 
              # this is not right in the simulation
              if wpilib.RobotBase.isSimulation():

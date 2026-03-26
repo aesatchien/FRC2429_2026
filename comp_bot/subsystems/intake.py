@@ -55,6 +55,7 @@ class Intake(Subsystem):
         self.last_currents = [0,0,0,0,0]
         self.bumper_switch = wpilib.DigitalInput(9)
         self.is_calibrated = False
+        self._allow_calibration = True
         self.deployed_angle = ic.k_bottom_angle if constants.k_at_home else ic.k_top_angle
         self.setpoint = self.deployed_angle
 
@@ -192,11 +193,12 @@ class Intake(Subsystem):
 
         # get the state of the magnetic switch and calibrate the intake if at bottom position
         at_bumper = not self.bumper_switch.get()
-        if at_bumper and not self.is_calibrated:
-            self.set_intake_position()
-            self.is_calibrated = True
-        elif self.is_calibrated and not at_bumper:
-            self.is_calibrated = False
+        if self._allow_calibration:
+            if at_bumper and not self.is_calibrated:
+                self.set_intake_position()
+                self.is_calibrated = True
+            elif self.is_calibrated and not at_bumper:
+                self.is_calibrated = False
 
         if self.counter % 5 == 0:
             self.deployer_average_current_pub.set(self.get_average_current())
