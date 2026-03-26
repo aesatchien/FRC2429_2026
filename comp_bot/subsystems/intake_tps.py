@@ -2,7 +2,19 @@ import math
 
 import ntcore
 import wpilib
-from commands2 import Subsystem
+from commands2 import Subsystem, TrapezoidProfileSubsystem
+import wpimath.trajectory, wpimath.controller
+import rev
+from rev import SparkBase, SparkLowLevel  # trying to save some typing
+
+import constants
+from constants import IntakeConstants as ic
+import math
+
+import ntcore
+import wpilib
+from commands2 import Subsystem, TrapezoidProfileSubsystem
+import wpimath.trajectory, wpimath.controller
 import rev
 from rev import SparkBase, SparkLowLevel  # trying to save some typing
 
@@ -10,9 +22,26 @@ import constants
 from constants import IntakeConstants as ic
 
 
-class Intake(Subsystem):
+class IntakeTPS(TrapezoidProfileSubsystem):
     def __init__(self) -> None:
-        super().__init__()
+        # TPS needs max velocity and acceleration constraints in the constructor
+        super().__init__(
+            constraints=wpimath.trajectory.TrapezoidProfileRadians.Constraints(
+                constants.IntakeConstants.k_max_velocity_rad_per_second,
+                constants.IntakeConstants.k_max_acceleration_rad_per_sec_squared
+            ),
+            initial_position=constants.IntakeConstants.k_starting_angle,  # either straight out or
+            period=0.02,
+        )
+
+        # used to calculate the voltage needed for a given velocity
+        self.feedforward = wpimath.controller.ArmFeedforward(
+            kS=constants.IntakeConstants.k_kS_volts,
+            kG=constants.IntakeConstants.k_kG_volts,
+            kV=constants.IntakeConstants.k_kV_volt_second_per_radian,
+            kA=constants.IntakeConstants.k_kA_volt_second_squared_per_meter,
+            dt=0.02)
+
         self.setName('Intake')
         self.counter = ic.k_counter_offset  # note this should be an offset in constants
         self.default_rpm = ic.k_test_rpm
@@ -65,6 +94,11 @@ class Intake(Subsystem):
         # tell encoder where we are - TODO - try the absolute encoder - may not work because of the gearing
         self.deploy_encoder.setPosition(self.setpoint)   # this sets the current value of the encoder, not the setpoint
         self.set_intake_position(self.setpoint)  # this should maintain the current position
+
+        self.tolerance = 0.052  # rads equal to three degrees - then we will be "at goal"
+        self.goal = self.setpoint
+        self.at_goal = True
+        self.enable()
 
 
     def _init_networktables(self):
@@ -135,9 +169,12 @@ class Intake(Subsystem):
 
     def set_intake_position(self, angle=0):
         # CJH added on 20260303 to use max motion to set the dropper position
-        ks = 0.0  # TODO - see if we need one - we may need to actually model it as an arm for best performance
-        self.deploy_controller.setReference(setpoint=angle, ctrl=SparkLowLevel.ControlType.kPosition,
-                                             slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=ks)
+        # ks = 0.0  # TODO - see if we need one - we may need to actually model it as an arm for best performance
+        # self.deploy_controller.setReference(setpoint=angle, ctrl=SparkLowLevel.ControlType.kPosition,
+        #                                      slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=ks)
+
+        self.set_goal(goal=math.radians(angle))
+
         # print(f'  -- intake position to {angle:.0f}')  # TODO - delete after testing
         self.deployed_angle = angle
         self.setpoint = angle
@@ -186,20 +223,21 @@ class Intake(Subsystem):
 
 
     def periodic(self) -> None:
-        self.counter += 1
 
-        # keep track of the deploy currents in case we want to check for calibrating or a stall condition
-        self.last_currents[self.counter % len(self.last_currents)] = self.deploy_motor.getOutputCurrent()
+        super().periodic()  # this does the automatic motion profiling in the background
+        self.counter += 1
 
         # get the state of the magnetic switch and calibrate the intake if at bottom position
         at_bumper = not self.bumper_switch.get()
         if self._allow_calibration:
             if at_bumper and not self.is_calibrated:
-                self.set_intake_position()
+                self.set_intake_position(ic.k_bottom_angle)
                 self.is_calibrated = True
             elif self.is_calibrated and not at_bumper:
                 self.is_calibrated = False
 
+        # keep track of the deploy currents in case we want to check for calibrating or a stall condition
+        self.last_currents[self.counter % len(self.last_currents)] = self.deploy_motor.getOutputCurrent()
         if self.counter % 5 == 0:
             self.deployer_average_current_pub.set(self.get_average_current())
 
@@ -214,3 +252,33 @@ class Intake(Subsystem):
              if wpilib.RobotBase.isSimulation():
                  self.intake_rpm_pub.set(self.current_rpm)
                  self.deployer_angle_pub.set(self.setpoint)
+
+    # trapezoidal subsystem functions - remember it's doing everything in radians under the hood
+    def useState(self, setpoint: wpimath.trajectory.TrapezoidProfile.State) -> None:
+        # Calculate the feedforward from the setpoint - comes from a trajectory generated by setGoal()
+        # print("SETPOINT POSITION: " + str(math.degrees(setpoint.position)))
+        feedforward = self.feedforward.calculate(setpoint.position, setpoint.velocity)  #
+
+        # Add the feedforward to the PID output to get the motor output
+        # TODO - check if the feedforward is correct in units for the sparkmax - documentation says 32, not 12
+        self.deploy_controller.setReference(math.degrees(setpoint.position), rev.SparkFlex.ControlType.kPosition, rev.ClosedLoopSlot.kSlot0, arbFeedforward=feedforward)
+
+    def set_goal(self, goal, use_trapezoid=True):
+        # make our own sanity-check on the subsystem's setGoal function
+        if goal < math.radians(constants.IntakeConstants.k_bottom_angle):
+            self.goal = math.radians(constants.IntakeConstants.k_bottom_angle)
+            print(f'Intake goal too low: {goal:.3f} -> set to {self.goal}')
+        elif goal > math.radians(constants.IntakeConstants.k_top_angle):
+            self.goal = math.radians(constants.IntakeConstants.k_top_angle)
+            print(f'Intake goal too high: {goal:.3f} -> set to {self.goal}')
+        else:
+            self.goal = goal
+
+        if use_trapezoid:
+            self.enable()
+            self.setGoal(self.goal)  # this is part of the TPS subsystem and feeds useState
+        else:
+            self.disable()
+            self.deploy_controller.setReference(goal, rev.SparkMax.ControlType.kPosition, slot=rev.ClosedLoopSlot(2))
+
+        self.at_goal = False

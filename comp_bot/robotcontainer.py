@@ -25,6 +25,7 @@ from subsystems.swerve import Swerve
 from subsystems.vision import Vision
 from subsystems.shooter import Shooter
 from subsystems.intake import Intake
+from subsystems.intake_tps import IntakeTPS
 from subsystems.targeting import Targeting
 
 # from subsystems.questnav_2429 import QuestnavModule
