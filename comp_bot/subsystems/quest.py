@@ -215,6 +215,9 @@ class Questnav(SubsystemBase):
     def is_pose_accepted(self):
         return self.quest_pose_accepted
 
+    def is_quest_connected(self):
+        return self.questnav.is_connected()
+
     def periodic(self) -> None:
         self.counter += 1
 

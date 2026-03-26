@@ -104,8 +104,14 @@ class MyRobot(commands2.TimedCommandRobot):
 
     def teleopPeriodic(self) -> None:
         """This function is called periodically during operator control"""
+
         # Auto-resync QuestNav if it drops during teleop (e.g., from a passthrough bump)
-        if constants.k_allow_quest_auto_resync and self.container.questnav.use_quest and not self.container.questnav.quest_has_synched:
+        # TODO - this really should only be enabled if the quest went into passthru and recovered - should be a callback?
+        try_resync = (constants.k_allow_quest_auto_resync and  # constants say it's ok to try
+                      self.container.questnav.use_quest and   # quest has not been disabled on the dashboard
+                      not self.container.questnav.quest_has_synched  # we're not already synced
+                      and self.container.questnav.is_quest_connected())  # we're actually connected
+        if try_resync:
             speeds = self.container.swerve.get_relative_speeds()
             is_stationary = abs(speeds.vx) < 0.1 and abs(speeds.vy) < 0.1 and abs(speeds.omega) < 0.1
             

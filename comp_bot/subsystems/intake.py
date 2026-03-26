@@ -2,6 +2,7 @@ import math
 
 import ntcore
 import wpilib
+from wpimath.filter import MedianFilter
 from commands2 import Subsystem
 import rev
 from rev import SparkBase, SparkLowLevel  # trying to save some typing
@@ -52,7 +53,8 @@ class Intake(Subsystem):
         self.intake_on = False
         self.deployed = True
         self.current_rpm = 0
-        self.last_currents = [0,0,0,0,0]
+        #  self.last_currents = [0] * 10  # prefer a current filter below
+        self.current_filter = MedianFilter(10)
         self.bumper_switch = wpilib.DigitalInput(9)
         self.is_calibrated = False
         self._allow_calibration = False
@@ -92,7 +94,7 @@ class Intake(Subsystem):
         self.intake_on_pub.set(self.intake_on)
         self.intake_rpm_pub.set(self.current_rpm)
         self.deployed_pub.set(self.deployed)
-        self.deployer_average_current_pub.set(sum(self.last_currents) / len(self.last_currents))
+        self.deployer_average_current_pub.set(self.current_filter.lastValue())
         self.deployer_setpoint_pub.set(self.setpoint)
         self.intake_calibration_pub.set(self.is_calibrated)
 
@@ -158,7 +160,9 @@ class Intake(Subsystem):
     # TODO - get dropper position to ground and back up
 
     def get_average_current(self):
-        return sum(self.last_currents) / len(self.last_currents)
+
+        return self.current_filter.lastValue()
+        # return sum(self.last_currents) / len(self.last_currents)
 
     def deploy_stop(self):
         self.deploy_motor.set(0)
@@ -189,7 +193,8 @@ class Intake(Subsystem):
         self.counter += 1
 
         # keep track of the deploy currents in case we want to check for calibrating or a stall condition
-        self.last_currents[self.counter % len(self.last_currents)] = self.deploy_motor.getOutputCurrent()
+        # self.last_currents[self.counter % len(self.last_currents)] = self.deploy_motor.getOutputCurrent()
+        self.current_filter.calculate(self.deploy_motor.getOutputCurrent())
 
         # get the state of the magnetic switch and calibrate the intake if at bottom position
         at_bumper = not self.bumper_switch.get()
