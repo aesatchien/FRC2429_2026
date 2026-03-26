@@ -172,8 +172,8 @@ class IntakeConstants:
     k_CANID_intake_right_follower = 5  # robot left, needs follower inverted
 
 
-    # Deploy gear box is 7 -> 38 and 18 -> 50,  sprockets are 16 -> 48
-    gear_ratio = 7/38 * 18/50 * 16/48 # one motor turn goes .022 on the outer axle for a stepdown of ~45
+    # Deploy gear box is [was 7->38] now 12->34, and 18 -> 50,  sprockets are 16 -> 48
+    gear_ratio = 12/34 * 18/50 * 16/48 # one motor turn goes .042 on the outer axle for a stepdown of ~23
     deploy_degrees_per_motor_rotation = 360 * gear_ratio
     k_deploy_config = SparkFlexConfig()
     k_deploy_config.encoder.positionConversionFactor(deploy_degrees_per_motor_rotation)  # about 8 degrees per turn
