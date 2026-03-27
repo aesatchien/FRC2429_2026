@@ -299,8 +299,12 @@ class ShooterConstants:
                                 k_flywheel_roller_config]
 
     set_config_defaults(k_shooter_configs)
+    # problem - having the indexers at 40 made us brown out at WK1
     k_indexer_left_leader_config.smartCurrentLimit(30)
     k_indexer_right_follower_config.smartCurrentLimit(30)
+    k_flywheel_left_leader_config.smartCurrentLimit(45)
+    k_flywheel_right_follower_config.smartCurrentLimit(45)
+    k_flywheel_roller_config.smartCurrentLimit(45)
 
 
     # Lookup Tables: Distance (meters) -> Value
