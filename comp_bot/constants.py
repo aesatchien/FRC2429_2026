@@ -13,7 +13,8 @@ from helpers.utilities import set_config_defaults
 
 k_swerve_config = "comp"  # choose between practice bot and comp bot for now - they differ by swerve ofsets
 
-k_at_home = False  # used for intake calibration - True means we start with the intake out
+
+k_at_home = True  # used for intake calibration - True means we start with the intake out
 
 # Generator for unique counter offsets
 _counter = count(1)
@@ -187,9 +188,9 @@ class IntakeConstants:
     k_deploy_config.softLimit.reverseSoftLimitEnabled(False)
     # Configure MAXMotion (The "Modern" Smart Motion) - Note: "maxMotion" object instead of "smartMotion"
     # this is the setting for kPosition control - slot0 - WE USE THIS NOW
-    k_deploy_config.closedLoop.pidf(p=1e-2, i=1e-6, d=1e0, ff=0, slot=rev.ClosedLoopSlot.kSlot0)
+    k_deploy_config.closedLoop.pidf(p=1e-2, i=1e-7, d=1e0, ff=0, slot=rev.ClosedLoopSlot.kSlot0)
     k_deploy_config.closedLoop.IMaxAccum(0.03, slot=rev.ClosedLoopSlot.kSlot0)
-    k_deploy_config.closedLoop.IZone(3, slot=rev.ClosedLoopSlot.kSlot0) # degrees less than which no I is applied
+    k_deploy_config.closedLoop.IZone(5, slot=rev.ClosedLoopSlot.kSlot0) # degrees less than which no I is applied
     # this is the setting for kMaxMotionPosition control - slot1, TODO - make this work
     # the problem here is now we are in degrees per second from above, not RPM  - never get rev to work unless no conversion factors
     k_deploy_config.closedLoop.pidf(p=1e-5, i=0, d=0, ff=1/crank_max_dps, slot=rev.ClosedLoopSlot.kSlot1)
@@ -218,7 +219,7 @@ class IntakeConstants:
     k_intake_right_follower_config.follow(k_CANID_intake_left_leader, invert=False)  # depends on motor placement
 
     set_config_defaults(k_intake_configs)
-    k_deploy_config.smartCurrentLimit(50)  # can't lift the new one with 40A
+    k_deploy_config.smartCurrentLimit(55)  # can't lift the new one with 40A
 
     # in case we do a profiled subsystem - just using a cheap PID on the sparkmax bangs a bit too much
     k_max_velocity_rad_per_second = math.pi
