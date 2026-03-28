@@ -14,7 +14,7 @@ from helpers.utilities import set_config_defaults
 k_swerve_config = "comp"  # choose between practice bot and comp bot for now - they differ by swerve ofsets
 
 
-k_at_home = True  # used for intake calibration - True means we start with the intake out
+k_at_home = False  # used for intake calibration - True means we start with the intake out
 
 # Generator for unique counter offsets
 _counter = count(1)
@@ -304,7 +304,7 @@ class ShooterConstants:
     k_indexer_right_follower_config.smartCurrentLimit(30)
     k_flywheel_left_leader_config.smartCurrentLimit(45)
     k_flywheel_right_follower_config.smartCurrentLimit(45)
-    k_flywheel_roller_config.smartCurrentLimit(45)
+    k_flywheel_roller_config.smartCurrentLimit(50)
 
 
     # Lookup Tables: Distance (meters) -> Value
