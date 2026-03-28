@@ -122,6 +122,16 @@ class Intake(Subsystem):
         self.deploy_controller.setReference(setpoint=ic.k_bottom_angle, ctrl=SparkLowLevel.ControlType.kPosition,
                                              slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=ks)
         self.update_nt()
+    
+    def set_angle_max(self):
+        self.deploy_stop()
+        self.deployed_angle = ic.k_top_angle
+        self.deployed = False
+        self.deploy_encoder.setPosition(self.deployed_angle)
+        ks = 0.0  # TODO see if we need one
+        self.deploy_controller.setReference(setpoint=ic.k_top_angle, ctrl=SparkLowLevel.ControlType.kPosition,
+                                             slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=ks)
+        self.update_nt()
 
 
     def set_intake_rpm(self, rpm=3500):

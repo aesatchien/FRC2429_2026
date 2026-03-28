@@ -214,7 +214,7 @@ class RobotContainer:
 
         js.bbox_1_1.onTrue(commands2.InstantCommand(lambda: self.intake.zero_intake()).ignoringDisable(True))
 
-        # js.bbox_1_2.onTrue(CalibrateIntake(intake=self.intake))
+        js.bbox_1_2.onTrue(commands2.InstantCommand(lambda: self.intake.set_angle_max()).ignoringDisable(True))
 
         # js.bbox_1_3.whileTrue(Kill?)
 
