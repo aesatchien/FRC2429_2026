@@ -1,6 +1,7 @@
 # 2429 FRC code for 2025 season - Reefscape
 
 import wpilib
+import ntcore
 from commands2 import InstantCommand
 from wpimath.geometry import Pose2d
 import commands2
@@ -338,6 +339,11 @@ class RobotContainer:
 
         # ----------  AUTONOMOUS CHOOSER SECTION  ---------------
         # self.auto_chooser = AutoBuilder.buildAutoChooser('')  # this loops through the path planner deploy directory - must exist 
+        self.inst = ntcore.NetworkTableInstance.getDefault()
+        self.auto_delay_entry = self.inst.getDoubleTopic(f"{constants.auto_prefix}/auto_delay").getEntry(0.0)
+        # Publish a default so it shows up on the dashboard immediately
+        self.auto_pub = self.inst.getDoubleTopic(f"{constants.auto_prefix}/auto_delay").publish()
+        self.auto_pub.set(0)  # set an initial value so it shows up on the dashboard
         self.auto_chooser = wpilib.SendableChooser()  #  use this if you don't have any pathplanner autos defined
         self.auto_chooser.addOption('1:  Wait *CODE*', PrintCommand("** Running wait auto **").andThen(commands2.WaitCommand(15)))
         self.auto_chooser.addOption('2a: Drive 2s Straight *CODE*',
@@ -350,7 +356,7 @@ class RobotContainer:
         self.auto_chooser.addOption('3b: Auto Shoot and Move *CODE*', AutoShootAndPickup(self, indent=0))
         self.auto_chooser.addOption('3c: Two Cycles *CODE*', TwoCycle(self, indent=0))
         self.auto_chooser.addOption('3d: Fill Shoot Fill *CODE*', FillShootFill(self, indent=0))
-        self.auto_chooser.setDefaultOption('3e: Fill Shoot Fill Shoot *CODE*', FillShootFillShoot(self, indent=0))
+        self.auto_chooser.addOption('3e: Fill Shoot Fill Shoot *CODE*', FillShootFillShoot(self, indent=0))
         self.auto_chooser.setDefaultOption('3f Fill Shoot Fill Shoot Trench *CODE*', FillShootFillShootTrench(self, indent=0))
         wpilib.SmartDashboard.putData('autonomous routines', self.auto_chooser)  #
 
@@ -369,5 +375,14 @@ class RobotContainer:
 
 
     def get_autonomous_command(self):
-        # return DriveByVelocitySwerve(self, self.swerve, Pose2d(0.1, 0, 0), 2)
-        return self.auto_chooser.getSelected()
+        cmd = self.auto_chooser.getSelected()
+        delay = self.auto_delay_entry.get()
+        if delay > 0.0:
+            # Schedule the command independently to avoid composition ownership crashes
+            # when running Auto multiple times!
+            print(f"** Started {cmd.getName()} with delay of {delay} **")
+            return commands2.WaitCommand(delay).andThen(
+                commands2.InstantCommand(lambda: cmd.schedule())
+            )
+        print(f"** Started {cmd.getName()} with no delay**")
+        return cmd

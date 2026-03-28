@@ -100,6 +100,11 @@ class MyRobot(commands2.TimedCommandRobot):
         if self.autonomousCommand:
             self.autonomousCommand.cancel()
             
+        # Ensure the actual selected auto command is also canceled, 
+        # in case it was scheduled independently by our auto delay wrapper!
+        if self.container.auto_chooser.getSelected():
+            self.container.auto_chooser.getSelected().cancel()
+            
         self.stationary_counter = 0
 
     def teleopPeriodic(self) -> None:

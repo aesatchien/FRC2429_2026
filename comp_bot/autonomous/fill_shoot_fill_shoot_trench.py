@@ -27,7 +27,6 @@ class FillShootFillShootTrench(commands2.SequentialCommandGroup):
         super().__init__()
         self.setName(f'FillShootFillShootTrench')
         self.container = container
-        self.addCommands(commands2.PrintCommand(f"{'    ' * indent}** Started {self.getName()} **"))
 
 
         # -----  PHASE I:  DRIVE TO FILL HOPPER  -----

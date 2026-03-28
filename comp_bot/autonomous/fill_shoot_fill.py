@@ -19,7 +19,6 @@ class FillShootFill(commands2.SequentialCommandGroup):
         super().__init__()
         self.setName(f'FillShootFill')
         self.container = container
-        self.addCommands(commands2.PrintCommand(f"{'    ' * indent}** Started {self.getName()} **"))
 
 
         # -----  PHASE I:  DRIVE TO FILL HOPPER  -----

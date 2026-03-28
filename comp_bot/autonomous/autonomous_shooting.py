@@ -14,7 +14,6 @@ class AutoShootingGroup(commands2.SequentialCommandGroup):
         super().__init__()
         self.setName(f'AutoShootingGroup')
         self.container = container
-        self.addCommands(commands2.PrintCommand(f"{'    ' * indent}** Started {self.getName()} **"))
 
         self.addCommands(commands2.InstantCommand(lambda: self.container.targeting.start_tracking()))
 
