@@ -129,6 +129,7 @@ WIDGET_CONFIG = {
     'target_pose': {'widget_name': 'qlabel_target', 'nt_topic': f'{auto_prefix}/_vision_target_poses', 'update_style': 'pose_array', 'visible_topic': f'{auto_prefix}/_show_vision_targets'},
 
     'qcombobox_autonomous_routines': {'widget_name': 'qcombobox_autonomous_routines', 'nt_topic': rf'{base_prefix}/autonomous routines/options',
+                                      'active_topic': rf'{base_prefix}/autonomous routines/active',
                                       'selected_topic': rf'{base_prefix}/autonomous routines/selected', 'update_style': 'combo'},
     'qcombobox_auto_delay': {'widget_name': 'qcombobox_auto_delay', 'nt_topic': f'{auto_prefix}/auto_delay', 'update_style': 'numeric_combo'},
     'qlabel_nt_connected': {'widget_name': 'qlabel_nt_connected', 'update_style': 'connection'},

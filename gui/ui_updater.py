@@ -399,20 +399,26 @@ class UIUpdater:
         if new_list != props.get('last_value'):
             props['last_value'] = new_list
             list_changed = True
+            
+            current_text = widget.currentText()
             widget.blockSignals(True)
             widget.clear()
             widget.addItems(new_list)
+            if current_text in new_list:
+                widget.setCurrentText(current_text)
             widget.blockSignals(False)
             self.ui.autonomous_list = new_list
 
+        # SendableChooser publishes actual state to 'active', and reads requests from 'selected'
+        active_sub = props.get('active_subscriber')
         selected_sub = props.get('selected_subscriber')
-        if selected_sub:
-            selected_routine = selected_sub.get()
-            # If the list changed, we MUST re-set the text because clear() wiped it
-            if list_changed or selected_routine != props.get('last_selected_value'):
-                props['last_selected_value'] = selected_routine
+        
+        robot_routine = active_sub.get() if active_sub else (selected_sub.get() if selected_sub else "")
+
+        if robot_routine:
+            if list_changed or robot_routine != widget.currentText():
                 widget.blockSignals(True)
-                widget.setCurrentText(selected_routine)
+                widget.setCurrentText(robot_routine)
                 widget.blockSignals(False)
 
     def _update_numeric_combo(self, props):
