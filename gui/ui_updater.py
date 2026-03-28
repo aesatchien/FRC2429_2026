@@ -26,6 +26,7 @@ class UIUpdater:
         self.flash_on = False
         self.dtap_start_time = 0.0
         self.dtap_last_fix_time = 0.0
+        self.dtap_retries = 0
         self.start_time = time.time()
 
         # Map update styles from config to specific update functions
@@ -101,20 +102,28 @@ class UIUpdater:
             if (current_time - self.dtap_start_time) > 1.0:
                 # Check cooldown of 2 second since last fix
                 if (current_time - self.dtap_last_fix_time) > 2.0:
-                    print(f"[{current_time:.1f}] QuestNav has been in passthrough for > 1s. We have seen the problem.", flush=True)
-                    
-                    try:
-                        adb_path = os.path.join(os.path.dirname(__file__), "adb", "adb.exe")
-                        cmd = [adb_path, "-s", config.QUESTNAV_ADB_ADDRESS, "shell", "am", "start", "-n", "gg.QuestNav.QuestNav/com.unity3d.player.UnityPlayerGameActivity"]
-                        subprocess.Popen(cmd)
-                        print(f"[{current_time:.1f}] ADB command sent. We have dealt with it. Waiting for cooldown...", flush=True)
-                    except Exception as e:
-                        print(f"[{current_time:.1f}] Failed to execute QuestNav ADB fix: {e}", flush=True)
+                    if self.dtap_retries < config.QUESTNAV_ADB_MAX_RETRIES:
+                        self.dtap_retries += 1
+                        print(f"[{current_time:.1f}] QuestNav has been in passthrough for > 1s. Attempting ADB fix ({self.dtap_retries}/{config.QUESTNAV_ADB_MAX_RETRIES}).", flush=True)
                         
+                        try:
+                            adb_path = os.path.join(os.path.dirname(__file__), "adb", "adb.exe")
+                            cmd = [adb_path, "-s", config.QUESTNAV_ADB_ADDRESS, "shell", "am", "start", "-n", "gg.QuestNav.QuestNav/com.unity3d.player.UnityPlayerGameActivity"]
+                            subprocess.Popen(cmd)
+                            print(f"[{current_time:.1f}] ADB command sent. Waiting for cooldown...", flush=True)
+                        except Exception as e:
+                            print(f"[{current_time:.1f}] Failed to execute QuestNav ADB fix: {e}", flush=True)
+                    elif self.dtap_retries == config.QUESTNAV_ADB_MAX_RETRIES:
+                        print(f"[{current_time:.1f}] QuestNav ADB fix max retries ({config.QUESTNAV_ADB_MAX_RETRIES}) reached. Giving up.", flush=True)
+                        self.dtap_retries += 1  # Increment once more so we don't spam the 'Giving up' message
+
                     self.dtap_last_fix_time = current_time
                     self.dtap_start_time = current_time  # Reset the start time so it requires another full second to trigger again if it remains True
         else:
             self.dtap_start_time = 0.0
+            if self.dtap_retries > 0:
+                print(f"[{current_time:.1f}] QuestNav passthru resolved.", flush=True)
+                self.dtap_retries = 0
 
     def _update_pose_and_field(self):
         """Updates the robot and quest pose on the field graphic."""

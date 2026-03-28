@@ -3,6 +3,7 @@
 
 # print(f'Loading Modules ...', flush=True)
 import os
+import socket
 import cv2
 import numpy as np
 import time, subprocess
@@ -66,6 +67,89 @@ class SubprocessWorker(QtCore.QObject):
             process.wait()
         except Exception as e:
             self.output_ready.emit(f"Error running command: {e}")
+        finally:
+            self.finished.emit()
+
+class QuestPingWorker(QtCore.QObject):
+    """
+    A worker that scans a range of IPs to find the Quest headset,
+    skips the local machine's IP, and connects via ADB.
+    """
+    finished = QtCore.pyqtSignal()
+    output_ready = QtCore.pyqtSignal(str)
+
+    def __init__(self):
+        super().__init__()
+
+    @QtCore.pyqtSlot()
+    def run(self):
+        try:
+            # Extract the base IP (e.g., '10.24.29') from the config
+            base_ip = ".".join(config.QUESTNAV_ADB_ADDRESS.split('.')[:3])
+            
+            # Attempt to find our own IP on this subnet to avoid pinging ourselves
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            try:
+                s.connect((f'{base_ip}.2', 1))  # connect to the radio to find local IP
+                local_ip = s.getsockname()[0]
+            except Exception:
+                local_ip = '127.0.0.1'
+            finally:
+                s.close()
+
+            self.output_ready.emit(f"Local IP detected as {local_ip}")
+
+            found_ip = None
+            creationflags = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
+
+            # Scan range .200 through .209
+            for i in range(200, 210):
+                target_ip = f"{base_ip}.{i}"
+                if target_ip == local_ip:
+                    self.output_ready.emit(f"Skipping {target_ip} (this computer)")
+                    continue
+
+                self.output_ready.emit(f"Pinging {target_ip}...")
+                # Windows: -n 1 (count), -w 500 (timeout in ms)
+                # Linux/Mac: -c 1 (count), -W 1 (timeout in sec)
+                ping_cmd = ['ping', '-n', '1', '-w', '500', target_ip] if os.name == 'nt' else ['ping', '-c', '1', '-W', '1', target_ip]
+                
+                try:
+                    res = subprocess.run(ping_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=creationflags)
+                    output = res.stdout.lower()
+                    # Windows ping sometimes returns 0 even if "Destination host unreachable", so we must check the text output
+                    if res.returncode == 0 and b"unreachable" not in output and b"100% loss" not in output:
+                        self.output_ready.emit(f"Reply received from {target_ip}!")
+                        found_ip = target_ip
+                        break
+                except Exception as e:
+                    self.output_ready.emit(f"Ping command failed: {e}")
+
+            if found_ip:
+                adb_path = os.path.join(os.path.dirname(__file__), "adb", "adb.exe")
+                adb_address = f"{found_ip}:5802"
+                
+                # Dynamically update the config so ui_updater passthrough fix uses the found IP!
+                config.QUESTNAV_ADB_ADDRESS = adb_address
+                self.output_ready.emit(f"Updated config ADB target to {adb_address}")
+                self.output_ready.emit(f"Attempting ADB connect...")
+
+                process = subprocess.Popen(
+                    [adb_path, "connect", adb_address],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    creationflags=creationflags
+                )
+                for line in iter(process.stdout.readline, ''):
+                    self.output_ready.emit(line.strip())
+                process.stdout.close()
+                process.wait()
+            else:
+                self.output_ready.emit("No Quest candidate found in range 200-209.")
+
+        except Exception as e:
+            self.output_ready.emit(f"Error during quest ping process: {e}")
         finally:
             self.finished.emit()
 
@@ -303,20 +387,19 @@ class Ui(QtWidgets.QMainWindow):
             print(f'[{self.ui_updater.get_elapsed_time():.1f}] Warning: {label} clicked but NT Publisher or Subscriber is missing.', flush=True)
 
     def ping_quest(self):
-        """Pings the Quest ADB server to check for a connection without freezing the GUI."""
+        """Pings a range of IPs to find the Quest ADB server and connect without freezing."""
         # Prevent running multiple pings at once
         if self.ping_thread and self.ping_thread.isRunning():
-            self.qt_text_status.appendPlainText("Ping already in progress...")
+            self.qt_text_status.appendPlainText("Search already in progress...")
             return
 
-        self.qt_text_status.appendPlainText(f"[{self.ui_updater.get_elapsed_time():.1f}] Pinging QuestNav at {config.QUESTNAV_ADB_ADDRESS}...")
-        
-        adb_path = os.path.join(os.path.dirname(__file__), "adb", "adb.exe")
-        command = [adb_path, "connect", config.QUESTNAV_ADB_ADDRESS]
+        # Dynamically determine the base IP from config
+        base_ip = ".".join(config.QUESTNAV_ADB_ADDRESS.split('.')[:3])
+        self.qt_text_status.appendPlainText(f"[{self.ui_updater.get_elapsed_time():.1f}] Searching for QuestNav in {base_ip}.200-209 range...")
 
         # 1. Create a thread and a worker
         self.ping_thread = QtCore.QThread()
-        self.ping_worker = SubprocessWorker(command)
+        self.ping_worker = QuestPingWorker()
 
         # 2. Move worker to the thread
         self.ping_worker.moveToThread(self.ping_thread)

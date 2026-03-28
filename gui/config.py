@@ -64,6 +64,7 @@ base_prefix    = r'/SmartDashboard'  #  TODO - eventually nothing should be in h
 
 # Questnav stuff
 QUESTNAV_ADB_ADDRESS = '10.24.29.200:5802'  # ADB target for restarting QuestNav
+QUESTNAV_ADB_MAX_RETRIES = 5  # Maximum number of times to try restarting QuestNav automatically
 # FIELD CONFIGURATION
 SHOW_APRILTAGS = True
 TAG_LAYOUT = robotpy_apriltag.AprilTagFieldLayout('2026-rebuilt-welded_json')  # hack until they fix the navx
