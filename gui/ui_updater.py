@@ -99,8 +99,8 @@ class UIUpdater:
 
             # If True for more than 1 second
             if (current_time - self.dtap_start_time) > 1.0:
-                # Check cooldown of 1 second since last fix
-                if (current_time - self.dtap_last_fix_time) > 1.0:
+                # Check cooldown of 2 second since last fix
+                if (current_time - self.dtap_last_fix_time) > 2.0:
                     print(f"[{current_time:.1f}] QuestNav has been in passthrough for > 1s. We have seen the problem.", flush=True)
                     
                     try:
