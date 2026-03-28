@@ -236,11 +236,18 @@ class Ui(QtWidgets.QMainWindow):
         self.qt_button_set_key.clicked.connect(self.nt_tree_manager.update_key)
 
         # Other UI connections
-        self.qcombobox_autonomous_routines.currentTextChanged.connect(self.update_routines)
+        # CRITICAL: We MUST use textActivated and NOT currentTextChanged for combo boxes that sync with the robot.
+        # textActivated only fires when a HUMAN physically clicks a choice in the GUI.
+        # If we use currentTextChanged, populating the list on startup or receiving a new selection from the 
+        # robot will fire the signal, causing the GUI to instantly write its own value back to the robot, 
+        # overwriting the robot's intended state and creating a race condition/feedback loop.
+        self.qcombobox_autonomous_routines.textActivated.connect(self.update_routines)
         self.qt_text_entry_filter.installEventFilter(self)
         self.qt_text_new_value.installEventFilter(self)
 
-        self.qcombobox_auto_delay.currentTextChanged.connect(self.update_auto_delay)
+        # Same as above: textActivated prevents the GUI from echoing the robot's initial delay broadcast 
+        # back to the robot as a user-requested change.
+        self.qcombobox_auto_delay.textActivated.connect(self.update_auto_delay)
         self.qt_button_swap_sim.clicked.connect(self.nt_manager.increment_server)
         self.qt_button_reconnect.clicked.connect(self.nt_manager.reconnect)
         self.qt_button_camera_enable.clicked.connect(self.camera_manager.toggle_camera_thread)
@@ -306,6 +313,10 @@ class Ui(QtWidgets.QMainWindow):
                 new_entry['last_selected_value'] = None
                 new_entry['selected_publisher'] = self.ntinst.getStringTopic(selected_topic).publish()
                 # print(f'{key} has selected topic: {selected_topic} with value {new_entry[selected_subscriber].get()'}
+
+            active_topic = config.get('active_topic')
+            if active_topic:
+                new_entry['active_subscriber'] = self.ntinst.getStringTopic(active_topic).subscribe("")
 
             visible_topic = config.get('visible_topic')  # sometimes we want to hide things
             if visible_topic:
