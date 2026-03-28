@@ -18,7 +18,7 @@ class ResetFieldCentric(commands2.Command):
         self.container = container
         self.swerve = swerve
         
-        self.angle_dict = {"Red": 0, "Blue": math.pi}
+        self.angle_dict = {"Red": math.pi, "Blue": 0}
         self.angle = self.angle_dict['Blue']  # initialize
 
     def initialize(self) -> None:
@@ -26,12 +26,13 @@ class ResetFieldCentric(commands2.Command):
 
         alliance = wpilib.DriverStation.getAlliance()
         x_offset= 3.2
-        self.angle = self.angle_dict['Red'] if alliance == wpilib.DriverStation.Alliance.kRed else self.angle_dict['Red']
+        self.angle = self.angle_dict['Red'] if alliance == wpilib.DriverStation.Alliance.kRed else self.angle_dict['Blue']
         if alliance == wpilib.DriverStation.Alliance.kRed:
             x, y = constants.FieldConstants.k_field_length - x_offset, constants.FieldConstants.k_field_width / 2
         else:
             x, y = x_offset, constants.FieldConstants.k_field_width /2
-        fixed_pose = Pose2d(x=self.swerve.get_pose().X(), y=self.swerve.get_pose().Y(), angle=self.angle)
+        #fixed_pose = Pose2d(x=self.swerve.get_pose().X(), y=self.swerve.get_pose().Y(), angle=self.angle)
+        fixed_pose = Pose2d(x=x, y=y, angle=self.angle)
         self.swerve.resetOdometry(fixed_pose)
 
     def execute(self) -> None:
