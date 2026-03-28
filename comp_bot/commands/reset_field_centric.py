@@ -1,6 +1,7 @@
 import commands2
 import wpilib
 
+import constants
 from subsystems.swerve import Swerve
 from wpimath.geometry import Pose2d
 import math
@@ -24,7 +25,12 @@ class ResetFieldCentric(commands2.Command):
         """Called just before this Command runs the first time."""
 
         alliance = wpilib.DriverStation.getAlliance()
+        x_offset= 3.2
         self.angle = self.angle_dict['Red'] if alliance == wpilib.DriverStation.Alliance.kRed else self.angle_dict['Red']
+        if alliance == wpilib.DriverStation.Alliance.kRed:
+            x, y = constants.FieldConstants.k_field_length - x_offset, constants.FieldConstants.k_field_width / 2
+        else:
+            x, y = x_offset, constants.FieldConstants.k_field_width /2
         fixed_pose = Pose2d(x=self.swerve.get_pose().X(), y=self.swerve.get_pose().Y(), angle=self.angle)
         self.swerve.resetOdometry(fixed_pose)
 
