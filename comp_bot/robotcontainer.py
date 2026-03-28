@@ -38,7 +38,7 @@ from autonomous.twocycle import TwoCycle
 from autonomous.fill_shoot_fill_bump import FillShootFillBump
 from autonomous.fill_shoot_fill_shoot_bump import FillShootFillShootBump
 from autonomous.fill_shoot_fill_shoot_trench import FillShootFillShootTrench
-from autonomous.Depot_or_Outpost_and_Shoot import DepotOrOutpostAndShoot
+from autonomous.depot_or_output_and_shoot import DepotOrOutpostAndShoot
 from autonomous.teleop_cycle import TeleopCycle
 
 # 2429 commands

@@ -45,18 +45,19 @@ class MyRobot(commands2.TimedCommandRobot):
         if self.disabled_counter % 100 == 0:
             # set the LEDs
             # if wpilib.DriverStation.isFMSAttached():
-            #alliance_color = wpilib.DriverStation.getAlliance()
-            alliance_color = wpilib.DriverStation.Alliance.kBlue
-            if alliance_color is not None:
+            alliance_color = wpilib.DriverStation.getAlliance()
+            is_connected = wpilib.DriverStation.isFMSAttached() or wpilib.DriverStation.isDSAttached()
+            # print(f'color is {alliance_color}, connected is {is_connected}')
+            if alliance_color is not None and is_connected:
                 if alliance_color == wpilib.DriverStation.Alliance.kRed:
                     self.container.led.set_indicator(Led.Indicator.kHOTBOW)
                     self.alliance_zone = "Red"
                 elif alliance_color == wpilib.DriverStation.Alliance.kBlue:
                     self.container.led.set_indicator(Led.Indicator.kCOOLBOW)
                     self.alliance_zone = "Blue"
-                else:
-                    self.container.led.set_indicator(Led.Indicator.kPOLKA)
-                    self.alliance_zone = None
+            else:
+                self.container.led.set_indicator(Led.Indicator.kPOLKA)
+                self.alliance_zone = None
 
         if self.disabled_counter % 500 == 0:
             # check on the questnav - auto synch it if we have been up more than 10s and have not synched yet
