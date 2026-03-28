@@ -22,24 +22,31 @@ from helpers import joysticks as js
 from helpers.apriltag_utils import auto_reflect_pose
 from wpimath.geometry import Pose2d
 
-
-class IntakeDepotAndShoot(commands2.SequentialCommandGroup):
+class DepotOrOutpostAndShoot(commands2.SequentialCommandGroup):
     def __init__(self, container, indent=0) -> None:
         super().__init__()
-        self.setName(f'IntakeDepotAndShoot')
         self.container = container
+        self.setName(f'DepotOrOutpostAndShoot')
+
 
         # -----  PHASE I:  DRIVE TO FILL HOPPER  -----
-        # self.addCommands(Intake_Deploy(intake=container.intake, position='down', indent=1))
+        #self.addCommands(Intake_Deploy(intake=container.intake, position='down', indent=1))
 
         # self.addCommands(commands2.WaitCommand(0.5))
 
         # activates the intake
-        # self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=ac.k_intake_roller_rpm))
+        #self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=ac.k_intake_roller_rpm))
 
         # moves to the neutral zone to intake fuel --> come back to shoot
         self.addCommands(
+            ConditionalCommand(
+                AutoBuilder.followPath(PathPlannerPath.fromPathFile('Intake_From_Outpost'))
+                        .andThen(commands2.WaitCommand(7))
+                        .andThen(AutoBuilder.followPath(PathPlannerPath.fromPathFile('Outpost_Go_Shoot'))),
                 AutoBuilder.followPath(PathPlannerPath.fromPathFile('Intake_From_Depot')),
+                self.get_is_right
+            )
+
         )
 
         # -----  PHASE II:  SHOOT INITIAL HOPPER -----
@@ -48,12 +55,10 @@ class IntakeDepotAndShoot(commands2.SequentialCommandGroup):
 
         # Starts the shooting cycle and then raises the intake after a delay to prevent compression and jams
         # forces it to die when the first command finishes
-
+        
         self.addCommands(commands2.ParallelRaceGroup(
-            ShootingCommand(shooter=container.shooter, targeting=container.targeting, indent=1,
-                            auto_timeout=ac.k_shooting_timeout, delay_cycles=10),
-            DriveByJoystickSubsystemTargeting(self.container, swerve=self.container.swerve,
-                                              controller=js.driver_controller, targeting=container.targeting),
+            ShootingCommand(shooter=container.shooter, targeting=container.targeting, indent=1, auto_timeout=ac.k_shooting_timeout, delay_cycles=10),
+            DriveByJoystickSubsystemTargeting(self.container, swerve=self.container.swerve, controller=js.driver_controller, targeting=container.targeting),
             SequentialCommandGroup(
                 WaitCommand(ac.k_intake_raise_delay),
                 Intake_Deploy(intake=self.container.intake, position='shoot', indent=1),
@@ -89,3 +94,8 @@ class IntakeDepotAndShoot(commands2.SequentialCommandGroup):
         self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=0))
 
         self.addCommands(commands2.PrintCommand(f"{'    ' * indent}** Finished {self.getName()} **"))
+
+    def get_is_right(self):
+        alliance_color = wpilib.DriverStation.getAlliance() == wpilib.DriverStation.Alliance.kBlue
+        is_left = self.container.swerve.get_pose().Y() > fc.k_field_width / 2
+        return alliance_color ^ is_left

@@ -38,7 +38,7 @@ from autonomous.twocycle import TwoCycle
 from autonomous.fill_shoot_fill_bump import FillShootFillBump
 from autonomous.fill_shoot_fill_shoot_bump import FillShootFillShootBump
 from autonomous.fill_shoot_fill_shoot_trench import FillShootFillShootTrench
-from autonomous.intake_from_depot_and_shoot import IntakeDepotAndShoot
+from autonomous.Depot_or_Outpost_and_Shoot import DepotOrOutpostAndShoot
 from autonomous.teleop_cycle import TeleopCycle
 
 # 2429 commands
@@ -359,7 +359,7 @@ class RobotContainer:
         self.auto_chooser.addOption('3a: Fill Shoot Fill Bump *CODE*', FillShootFillBump(self, indent=0))
         self.auto_chooser.setDefaultOption('3b: Fill Shoot Fill Shoot Bump *CODE*', FillShootFillShootBump(self, indent=0))
         self.auto_chooser.addOption('3c Fill Shoot Fill Shoot Trench *CODE*', FillShootFillShootTrench(self, indent=0))
-        self.auto_chooser.addOption('4a: Intake from depot and shoot *CODE*', IntakeDepotAndShoot(self, indent=0))
+        self.auto_chooser.addOption('4a: Intake Depot or Outpost and Shoot *CODE*', DepotOrOutpostAndShoot(self, indent=0))
 
         wpilib.SmartDashboard.putData('autonomous routines', self.auto_chooser)  #
 
@@ -374,8 +374,6 @@ class RobotContainer:
         NamedCommands.registerCommand('start_shooter_nothing_else', commands2.InstantCommand(lambda: self.shooter.set_shooter_rpm(sc.k_fire_up_speed)))
         NamedCommands.registerCommand('shooting_command', ShootingCommand(shooter=self.shooter, targeting=self.targeting))
         NamedCommands.registerCommand('hello', commands2.PrintCommand("hello!"))
-        NamedCommands.registerCommand('wait_for_10_seconds', commands2.WaitCommand(10))
-
 
     def get_autonomous_command(self):
         cmd = self.auto_chooser.getSelected()
