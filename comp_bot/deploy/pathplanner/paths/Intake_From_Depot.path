@@ -115,10 +115,15 @@
       }
     },
     {
-      "name": "",
-      "waypointRelativePos": 0,
+      "name": "start_shooter_nothing_else",
+      "waypointRelativePos": 1.124610591900309,
       "endWaypointRelativePos": null,
-      "command": null
+      "command": {
+        "type": "named",
+        "data": {
+          "name": "start_shooter_nothing_else"
+        }
+      }
     }
   ],
   "globalConstraints": {
