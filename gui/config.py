@@ -129,6 +129,7 @@ WIDGET_CONFIG = {
 
     'qcombobox_autonomous_routines': {'widget_name': 'qcombobox_autonomous_routines', 'nt_topic': rf'{base_prefix}/autonomous routines/options',
                                       'selected_topic': rf'{base_prefix}/autonomous routines/selected', 'update_style': 'combo'},
+    'qcombobox_auto_delay': {'widget_name': 'qcombobox_auto_delay', 'nt_topic': f'{auto_prefix}/auto_delay', 'update_style': 'numeric_combo'},
     'qlabel_nt_connected': {'widget_name': 'qlabel_nt_connected', 'update_style': 'connection'},
     'qlabel_fms_connected': {'widget_name': 'qlabel_fms_connected_indicator', 'nt_topic': f'{status_prefix}/_fms_attached', 'update_style': 'indicator'},
     'qlabel_matchtime': {'widget_name': 'qlabel_matchtime', 'nt_topic': f'{base_prefix}/match_time', 'update_style': 'time'},

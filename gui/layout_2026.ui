@@ -1622,7 +1622,7 @@ background-color:rgb(127, 127, 127);</string>
        <rect>
         <x>320</x>
         <y>350</y>
-        <width>271</width>
+        <width>211</width>
         <height>22</height>
        </rect>
       </property>
@@ -1636,7 +1636,7 @@ background-color:rgb(127, 127, 127);</string>
      <widget class="QLabel" name="label_5">
       <property name="geometry">
        <rect>
-        <x>360</x>
+        <x>320</x>
         <y>320</y>
         <width>181</width>
         <height>20</height>
@@ -2153,6 +2153,41 @@ background-color:rgb(180,180,180);</string>
       </property>
       <property name="alignment">
        <set>Qt::AlignCenter</set>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_18">
+      <property name="geometry">
+       <rect>
+        <x>548</x>
+        <y>320</y>
+        <width>71</width>
+        <height>20</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>12</pointsize>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Delay</string>
+      </property>
+     </widget>
+     <widget class="QComboBox" name="qcombobox_auto_delay">
+      <property name="geometry">
+       <rect>
+        <x>540</x>
+        <y>350</y>
+        <width>61</width>
+        <height>22</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>10</pointsize>
+        <bold>true</bold>
+       </font>
       </property>
      </widget>
     </widget>

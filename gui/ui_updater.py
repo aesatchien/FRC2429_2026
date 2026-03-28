@@ -36,6 +36,7 @@ class UIUpdater:
             'monitor': self._update_monitor,
             'lcd': self._update_lcd,
             'position': self._update_position,  # Legacy from 2024
+            'numeric_combo': self._update_numeric_combo,
             'hub': self._update_hub,  # Legacy from 2023
         }
         
@@ -404,6 +405,29 @@ class UIUpdater:
                 widget.blockSignals(True)
                 widget.setCurrentText(selected_routine)
                 widget.blockSignals(False)
+
+    def _update_numeric_combo(self, props):
+        """
+        Updates a QComboBox from a numeric NetworkTables topic.
+        This is a simplified version of _update_combo that only syncs a value, not a list of options.
+        """
+        sub, widget = props.get('subscriber'), props.get('widget')
+        if not (sub and widget):
+            return
+
+        # NT sends a number, but the combo box holds strings.
+        # We need to format the number to match an item in the combo box.
+        nt_value = sub.get()
+        nt_value_str = str(int(nt_value))  # Assuming integer values like '0', '1', '2'
+
+        # Optimization: If the UI already shows the correct value, do nothing.
+        if nt_value_str == widget.currentText():
+            return
+
+        # Block signals to prevent this programmatic change from firing a 'currentTextChanged' signal.
+        widget.blockSignals(True)
+        widget.setCurrentText(nt_value_str)
+        widget.blockSignals(False)
 
     def _update_time(self, props):
         """ This is for the match time remaining widget - lame in sim but correct for matches """

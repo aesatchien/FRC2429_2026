@@ -156,6 +156,7 @@ class Ui(QtWidgets.QMainWindow):
         self.qt_text_entry_filter.installEventFilter(self)
         self.qt_text_new_value.installEventFilter(self)
 
+        self.qcombobox_auto_delay.currentTextChanged.connect(self.update_auto_delay)
         self.qt_button_swap_sim.clicked.connect(self.nt_manager.increment_server)
         self.qt_button_reconnect.clicked.connect(self.nt_manager.reconnect)
         self.qt_button_camera_enable.clicked.connect(self.camera_manager.toggle_camera_thread)
@@ -204,6 +205,9 @@ class Ui(QtWidgets.QMainWindow):
                     new_entry['subscriber'] = self.ntinst.getStringArrayTopic(nt_topic).subscribe([])
                 elif style == 'position':
                     new_entry['subscriber'] = self.ntinst.getStringTopic(nt_topic).subscribe("")
+                elif style == 'numeric_combo':
+                    new_entry['subscriber'] = self.ntinst.getDoubleTopic(nt_topic).subscribe(0.0)
+                    new_entry['publisher'] = self.ntinst.getDoubleTopic(nt_topic).publish()
                 else:
                     print(f'[{self.ui_updater.get_elapsed_time():.1f}] cannot determine subscriber type for - check style!')
 
@@ -269,6 +273,16 @@ class Ui(QtWidgets.QMainWindow):
             pub.set(text)
         self.ntinst.flush()
 
+    def update_auto_delay(self, text):
+        """Publishes the selected auto delay value to NetworkTables."""
+        pub = self.widget_dict['qcombobox_auto_delay'].get('publisher')
+        if pub:
+            try:
+                value = float(text)
+                pub.set(value)
+            except (ValueError, TypeError):
+                print(f'[{self.ui_updater.get_elapsed_time():.1f}] Invalid value for auto delay: {text}')
+
     def label_click(self, label):
         props = self.widget_dict[label]
         pub = props.get('publisher')
@@ -329,6 +343,13 @@ class Ui(QtWidgets.QMainWindow):
             if url and url not in seen_urls:
                 self.qcombobox_cameras.addItem(key)
                 seen_urls.add(url)
+
+        # Populate auto delay combobox with values 0-10
+        # Block signals to prevent this from firing a currentTextChanged event on startup
+        delay_options = [str(i) for i in range(11)]
+        self.qcombobox_auto_delay.blockSignals(True)
+        self.qcombobox_auto_delay.addItems(delay_options)
+        self.qcombobox_auto_delay.blockSignals(False)
 
     def initialize_apriltags(self):
         """Loads the AprilTag layout and places static tag widgets on the field."""
