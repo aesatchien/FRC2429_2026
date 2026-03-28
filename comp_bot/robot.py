@@ -105,6 +105,8 @@ class MyRobot(commands2.TimedCommandRobot):
         # in case it was scheduled independently by our auto delay wrapper!
         if self.container.auto_chooser.getSelected():
             self.container.auto_chooser.getSelected().cancel()
+
+        self.container.targeting.stop_tracking()  # make absolutely sure that tracking is exited in teleop
             
         self.stationary_counter = 0
 

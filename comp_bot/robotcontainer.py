@@ -216,7 +216,7 @@ class RobotContainer:
 
         js.bbox_1_2.onTrue(commands2.InstantCommand(lambda: self.intake.set_angle_max()).ignoringDisable(True))
 
-        # js.bbox_1_3.whileTrue(Kill?)
+        js.bbox_1_3.onTrue(commands2.InstantCommand(lambda: self.targeting.stop_tracking()))
 
         js.bbox_1_4.whileTrue(SwerveTest(container=self, swerve=self.swerve))
 

@@ -88,9 +88,9 @@ class FillShootFillShootBump(commands2.SequentialCommandGroup):
             DriveToPoseCustomControl(container=self.container, swerve=self.container.swerve,
                                      target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_shooting_pose,
                                                                                     wpilib.DriverStation.getAlliance(), is_shooting=True),
-                                     tolerance_type='fast').withTimeout(5),
+                                     tolerance_type='fast').withTimeout(4),
             SequentialCommandGroup(
-                WaitCommand(1), InstantCommand(lambda: self.container.shooter.set_shooter_rpm(ac.k_shooter_startup_rpm)))
+                WaitCommand(.5), InstantCommand(lambda: self.container.shooter.set_shooter_rpm(ac.k_shooter_startup_rpm)))
         ))
 
 

@@ -114,6 +114,7 @@ class Intake(Subsystem):
         self.default_rpm = ic.allowed_rpms[self.current_index]
     
     def zero_intake(self):
+        print("Setting intake encoder to ", ic.k_bottom_angle)
         self.deploy_stop()
         self.deployed_angle = ic.k_bottom_angle
         self.deployed = True
@@ -124,6 +125,7 @@ class Intake(Subsystem):
         self.update_nt()
     
     def set_angle_max(self):
+        print("Setting intake encoder to ", ic.k_top_angle)
         self.deploy_stop()
         self.deployed_angle = ic.k_top_angle
         self.deployed = False
