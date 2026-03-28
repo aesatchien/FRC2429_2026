@@ -54,7 +54,7 @@ mech_prefix = r'/Mech' # SPECIAL CASE: the SmartDashboard.putData auto prepends 
 k_swerve_debugging_messages = True
 # multiple attempts at tags this year - TODO - use l/r or up/down tilted cameras again, gives better data
 k_use_quest_odometry = True
-k_allow_quest_auto_resync = False
+k_allow_quest_auto_resync = True
 k_use_photontags = False  # take tags from photonvision camera
 k_use_CJH_tags = True  # take tags from the pis
 k_allow_tag_averaging = True
@@ -359,5 +359,5 @@ class AutoConstants:
 
     # these three poses are for reflecting about the center in auto
     k_shooting_pose = Pose2d(3.0, 2.3, 44 * math.pi / 180)  # bottom left position for shooting in auto
-    k_first_ball_pickup_pose = Pose2d(FieldConstants.k_field_length/2 -0.8, 2.1, 0)
+    k_first_ball_pickup_pose = Pose2d(FieldConstants.k_field_length/2 -0.5, 2.1, 0)
     k_second_ball_pickup_pose = Pose2d(FieldConstants.k_field_length/2 -0.3, 2.6, 0)

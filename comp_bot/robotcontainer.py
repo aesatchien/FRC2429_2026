@@ -35,9 +35,10 @@ from subsystems.targeting import Targeting
 from autonomous.autonomous_shooting import AutoShootingGroup
 from autonomous.auto_shoot_and_pickup import AutoShootAndPickup
 from autonomous.twocycle import TwoCycle
-from autonomous.fill_shoot_fill import FillShootFill
-from autonomous.fill_shoot_fill_shoot import FillShootFillShoot
+from autonomous.fill_shoot_fill_bump import FillShootFillBump
+from autonomous.fill_shoot_fill_shoot_bump import FillShootFillShootBump
 from autonomous.fill_shoot_fill_shoot_trench import FillShootFillShootTrench
+from autonomous.intake_from_depot_and_shoot import IntakeDepotAndShoot
 from autonomous.teleop_cycle import TeleopCycle
 
 # 2429 commands
@@ -346,18 +347,20 @@ class RobotContainer:
         self.auto_pub.set(0)  # set an initial value so it shows up on the dashboard
         self.auto_chooser = wpilib.SendableChooser()  #  use this if you don't have any pathplanner autos defined
         self.auto_chooser.addOption('1:  Wait *CODE*', PrintCommand("** Running wait auto **").andThen(commands2.WaitCommand(15)))
-        self.auto_chooser.addOption('2a: Drive 2s Straight *CODE*',
-                                    PrintCommand("** Running drive by velocity swerve leave auto **").
-                                    andThen(DriveByVelocitySwerve(self, self.swerve, Pose2d(0.1, 0, 0), 2)))
-        self.auto_chooser.addOption('2b: Drive 2s To Driver Station *CODE*',
-                                    PrintCommand("** Running drive by velocity swerve leave auto **").
-                                    andThen(DriveByVelocitySwerve(self, self.swerve, Pose2d(0.1, 0, 0), 2.5, field_relative=True)))
-        self.auto_chooser.addOption('3a: Auto Shoot *CODE*', AutoShootingGroup(self, indent=0))
-        self.auto_chooser.addOption('3b: Auto Shoot and Move *CODE*', AutoShootAndPickup(self, indent=0))
-        self.auto_chooser.addOption('3c: Two Cycles *CODE*', TwoCycle(self, indent=0))
-        self.auto_chooser.addOption('3d: Fill Shoot Fill *CODE*', FillShootFill(self, indent=0))
-        self.auto_chooser.addOption('3e: Fill Shoot Fill Shoot *CODE*', FillShootFillShoot(self, indent=0))
-        self.auto_chooser.setDefaultOption('3f Fill Shoot Fill Shoot Trench *CODE*', FillShootFillShootTrench(self, indent=0))
+        # self.auto_chooser.addOption('2a: Drive 2s Straight *CODE*',
+        #                             PrintCommand("** Running drive by velocity swerve leave auto **").
+        #                             andThen(DriveByVelocitySwerve(self, self.swerve, Pose2d(0.1, 0, 0), 2)))
+        # self.auto_chooser.addOption('2b: Drive 2s To Driver Station *CODE*',
+        #                             PrintCommand("** Running drive by velocity swerve leave auto **").
+        #                             andThen(DriveByVelocitySwerve(self, self.swerve, Pose2d(0.1, 0, 0), 2.5, field_relative=True)))
+        self.auto_chooser.addOption('2a: Auto Shoot *CODE*', AutoShootingGroup(self, indent=0))
+        # self.auto_chooser.addOption('3b: Auto Shoot and Move *CODE*', AutoShootAndPickup(self, indent=0))
+        self.auto_chooser.addOption('2b: Two Cycles *CODE*', TwoCycle(self, indent=0))
+        self.auto_chooser.addOption('3a: Fill Shoot Fill Bump *CODE*', FillShootFillBump(self, indent=0))
+        self.auto_chooser.setDefaultOption('3b: Fill Shoot Fill Shoot Bump *CODE*', FillShootFillShootBump(self, indent=0))
+        self.auto_chooser.addOption('3c Fill Shoot Fill Shoot Trench *CODE*', FillShootFillShootTrench(self, indent=0))
+        self.auto_chooser.addOption('4a: Intake from depot and shoot *CODE*', IntakeDepotAndShoot(self, indent=0))
+
         wpilib.SmartDashboard.putData('autonomous routines', self.auto_chooser)  #
 
     def register_commands(self):
@@ -371,7 +374,7 @@ class RobotContainer:
         NamedCommands.registerCommand('start_shooter_nothing_else', commands2.InstantCommand(lambda: self.shooter.set_shooter_rpm(sc.k_fire_up_speed)))
         NamedCommands.registerCommand('shooting_command', ShootingCommand(shooter=self.shooter, targeting=self.targeting))
         NamedCommands.registerCommand('hello', commands2.PrintCommand("hello!"))
-        
+        NamedCommands.registerCommand('wait_for_10_seconds', commands2.WaitCommand(10))
 
 
     def get_autonomous_command(self):

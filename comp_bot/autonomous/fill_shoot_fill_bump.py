@@ -14,10 +14,10 @@ from commands.drive_to_pose_custom_control import DriveToPoseCustomControl
 from helpers import joysticks as js
 from helpers.apriltag_utils import auto_reflect_pose
 
-class FillShootFill(commands2.SequentialCommandGroup):
+class FillShootFillBump(commands2.SequentialCommandGroup):
     def __init__(self, container, indent=0) -> None:
         super().__init__()
-        self.setName(f'FillShootFill')
+        self.setName(f'FillShootFillBump')
         self.container = container
 
 
