@@ -87,7 +87,8 @@ class CameraConstants:
 
     k_comp_cameras = {
         'arducam_right': {'topic_name': 'ArducamRight', 'type': 'tags', 'rotation': 0, 'fov': fov},
-        'arducam_left': {'topic_name': 'ArducamLeft', 'type': 'tags', 'rotation': 0, 'fov': fov},
+        'arducam_back': {'topic_name': 'ArducamBack', 'type': 'tags', 'rotation': 180, 'fov': fov},
+        #'arducam_left': {'topic_name': 'ArducamLeft', 'type': 'tags', 'rotation': 0, 'fov': fov},
     }
 
     # for testing hsv pickup

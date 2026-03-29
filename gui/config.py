@@ -100,9 +100,9 @@ CAMERA_BASE_CONFIG = {
                    'BASE_TOPIC': 'ArducamRight',
                      'NICKNAME': 'ARDU RIGHT',
                       'INDICATOR_INDEX': 0},
-    'logi_front_hsv': {'URL': 'http://10.24.29.12:1187/stream.mjpg',
-                   'BASE_TOPIC': 'LogitechFront',
-                    'NICKNAME': 'TBD 1',
+    'arducam_back': {'URL': 'http://10.24.29.13:1186/stream.mjpg',
+                   'BASE_TOPIC': 'ArducamBack',
+                    'NICKNAME': 'ARDU BACK',
                     'INDICATOR_INDEX': 1},
     'logi_left': {'URL': 'http://10.24.29.12:1187/stream.mjpg',
                   'BASE_TOPIC': 'LogitechLeft',
@@ -117,6 +117,7 @@ CAMERA_BASE_CONFIG = {
                            'NICKNAME': 'TBD HSV',
                            'TARGET_INDICATOR_NAME': 'qlabel_hsv_target_indicator'},  # has custom target indicator
     'Raw ardu right': {'URL': 'http://10.24.29.12:1181/stream.mjpg', 'skip':True},
+    'Raw ardu back': {'URL': 'http://10.24.29.13:1181/stream.mjpg', 'skip':True},
     'Raw logi left': {'URL': 'http://10.24.29.12:1182/stream.mjpg', 'skip':True},
 
     'Debug': {'URL': 'http://127.0.0.1:1186/stream.mjpg', 'skip':True},
