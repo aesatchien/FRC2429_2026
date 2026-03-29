@@ -47,17 +47,6 @@
           "name": "deploy_and_start_intake"
         }
       }
-    },
-    {
-      "name": "wait_10_seconds",
-      "waypointRelativePos": 0.5,
-      "endWaypointRelativePos": null,
-      "command": {
-        "type": "named",
-        "data": {
-          "name": "wait_10_seconds"
-        }
-      }
     }
   ],
   "globalConstraints": {

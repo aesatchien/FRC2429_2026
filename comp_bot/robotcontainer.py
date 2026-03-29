@@ -38,6 +38,7 @@ from autonomous.twocycle import TwoCycle
 from autonomous.fill_shoot_fill_bump import FillShootFillBump
 from autonomous.fill_shoot_fill_shoot_bump import FillShootFillShootBump
 from autonomous.fill_shoot_fill_shoot_trench import FillShootFillShootTrench
+from autonomous.pathing_fill_shoot_fill_shoot_bump import PathingFillShootFillShootBump
 from autonomous.depot_or_output_and_shoot import DepotOrOutpostAndShoot
 from autonomous.teleop_cycle import TeleopCycle
 
@@ -359,6 +360,7 @@ class RobotContainer:
         self.auto_chooser.addOption('3a: Fill Shoot Fill Bump *CODE*', FillShootFillBump(self, indent=0))
         self.auto_chooser.setDefaultOption('3b: Fill Shoot Fill Shoot Bump *CODE*', FillShootFillShootBump(self, indent=0))
         self.auto_chooser.addOption('3c Fill Shoot Fill Shoot Trench *CODE*', FillShootFillShootTrench(self, indent=0))
+        self.auto_chooser.addOption('3d Pathing Fill Shoot Fill Shoot Bump *CODE*', PathingFillShootFillShootBump(self, indent=0))  
         self.auto_chooser.addOption('4a: Intake Depot or Outpost and Shoot *CODE*', DepotOrOutpostAndShoot(self, indent=0))
 
         wpilib.SmartDashboard.putData('autonomous routines', self.auto_chooser)  #
