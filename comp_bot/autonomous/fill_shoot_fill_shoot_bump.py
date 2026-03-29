@@ -24,17 +24,26 @@ class FillShootFillShootBump(commands2.SequentialCommandGroup):
 
         # -----  PHASE I:  DRIVE TO FILL HOPPER  -----
         # moves the intake down
-        self.addCommands(Intake_Deploy(intake=container.intake, position='down', indent=1))
+        # self.addCommands(Intake_Deploy(intake=container.intake, position='down', indent=1))
 
         # self.addCommands(commands2.WaitCommand(0.5))
 
         # activates the intake
-        self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=ac.k_intake_roller_rpm))
+        # self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=ac.k_intake_roller_rpm))
 
         # moves to the neutral zone to intake fuel --> come back to shoot
-        self.addCommands(DriveToPoseCustomControl(container=self.container, swerve=self.container.swerve,
+        self.addCommands(
+            ParallelCommandGroup(
+                DriveToPoseCustomControl(container=self.container, swerve=self.container.swerve,
                             target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_first_ball_pickup_pose, wpilib.DriverStation.getAlliance(), is_shooting=False),
-                                                  tolerance_type='fast').withTimeout(5)
+                                                  tolerance_type='fast').withTimeout(5),
+                SequentialCommandGroup(
+                    WaitCommand(1),
+                        Intake_Deploy(intake=container.intake, position='down', indent=1).andThen(
+                            Intake_Set_RPM(intake=self.container.intake, rpm=ac.k_intake_roller_rpm)
+                    )
+                )
+            )
         )
 
         # start the shooter on the way back so we don't waste a second letting it spin up
