@@ -303,7 +303,7 @@ class Ui(QtWidgets.QMainWindow):
                         new_entry['widgets'] = self.target_widgets
                 elif style == 'combo':
                     new_entry['subscriber'] = self.ntinst.getStringArrayTopic(nt_topic).subscribe([])
-                elif style == 'position':
+                elif style in ['position', 'active_hub']:
                     new_entry['subscriber'] = self.ntinst.getStringTopic(nt_topic).subscribe("")
                 elif style == 'numeric_combo':
                     new_entry['subscriber'] = self.ntinst.getDoubleTopic(nt_topic).subscribe(0.0)

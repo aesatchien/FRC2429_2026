@@ -37,6 +37,7 @@ class UIUpdater:
             'monitor': self._update_monitor,
             'lcd': self._update_lcd,
             'position': self._update_position,  # Legacy from 2024
+            'active_hub': self._update_active_hub,
             'numeric_combo': self._update_numeric_combo,
             'hub': self._update_hub,  # Legacy from 2023
         }
@@ -495,6 +496,82 @@ class UIUpdater:
         position_style = self.STYLE_ON if config.upper() not in ['LOW_SHOOT', 'INTAKE'] else self.STYLE_ON
         widget.setText(f'DIST: {config.upper()}')
         widget.setStyleSheet(position_style)
+
+    def _update_active_hub(self, props):
+        """ Updates the active hub indicator based on GameSpecificMessage and match time """
+        sub, widget = props.get('subscriber'), props.get('widget')
+        if not (sub and widget):
+            return
+            
+        game_data = sub.get()  # 'R', 'B', or empty string
+        
+        # Grab the match time (assumes a continuous 160 -> 0 countdown)
+        match_time_sub = self.ui.widget_dict.get('qlabel_matchtime', {}).get('subscriber')
+        match_time = match_time_sub.get() if match_time_sub else 0
+        
+        active = "BOTH"
+        countdown = 0
+        
+        # 2026 REBUILT FRC Timings: 160s total match time
+        if match_time > 140: # Auto (20s)
+            countdown = match_time - 140
+        elif match_time > 130: # Transition Shift (10s)
+            countdown = match_time - 130
+        elif match_time > 30:
+            # Teleop Shifts (four 25s periods)
+            if match_time > 105:
+                countdown = match_time - 105
+                shift_num = 1
+            elif match_time > 80:
+                countdown = match_time - 80
+                shift_num = 2
+            elif match_time > 55:
+                countdown = match_time - 55
+                shift_num = 3
+            else:
+                countdown = match_time - 30
+                shift_num = 4
+                
+            # 'R' means Red won auto, so Red's Hub is INACTIVE first (Blue is ACTIVE first).
+            if game_data == "R":
+                red_inactive_first = True
+            elif game_data == "B":
+                red_inactive_first = False
+            else:
+                red_inactive_first = None
+                
+            if red_inactive_first is not None:
+                if shift_num % 2 != 0: # Shifts 1 and 3
+                    active = "BLUE" if red_inactive_first else "RED"
+                else: # Shifts 2 and 4
+                    active = "RED" if red_inactive_first else "BLUE"
+        else:
+            # Endgame (30s)
+            countdown = match_time
+            
+        current_state = f"{active}_{int(countdown)}"
+        if current_state == props.get('last_state'):
+            return
+        props['last_state'] = current_state
+        
+        if active == "RED":
+            style = "border: 7px; border-radius: 7px; background-color: rgb(225, 0, 0); color: rgb(255, 255, 255);"
+            text = f"RED ACTIVE\n{int(countdown)}s"
+        elif active == "BLUE":
+            style = "border: 7px; border-radius: 7px; background-color: rgb(0, 0, 225); color: rgb(255, 255, 255);"
+            text = f"BLUE ACTIVE\n{int(countdown)}s"
+        else:
+            # Gradient for Both (Half Red, Half Blue)
+            style = (
+                "border: 7px; border-radius: 7px; color: rgb(255, 255, 255); "
+                "background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
+                "stop:0 rgb(225, 0, 0), stop:0.5 rgb(225, 0, 0), "
+                "stop:0.5 rgb(0, 0, 225), stop:1 rgb(0, 0, 225));"
+            )
+            text = f"BOTH ACTIVE\n{int(countdown)}s"
+
+        widget.setStyleSheet(style)
+        widget.setText(text)
 
     def _update_hub(self, props):
         """Legacy hub update logic from 2023. May need removal."""
