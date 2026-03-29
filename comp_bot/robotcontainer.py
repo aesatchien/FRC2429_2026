@@ -219,10 +219,12 @@ class RobotContainer:
 
         js.bbox_1_3.onTrue(commands2.InstantCommand(lambda: self.targeting.stop_tracking()))
 
-        js.bbox_1_4.whileTrue(SwerveTest(container=self, swerve=self.swerve))
+        #js.bbox_1_4.whileTrue(SwerveTest(container=self, swerve=self.swerve))
+        js.bbox_1_4.onTrue(commands2.InstantCommand(lambda: self.questnav.quest_sync_odometry()).ignoringDisable(True))
 
         js.bbox_1_5.onTrue(commands2.InstantCommand(lambda: self.questnav.quest_enabled_toggle(force='off')).ignoringDisable(True))
-        js.bbox_1_6.onTrue(commands2.InstantCommand(lambda: self.questnav.quest_sync_odometry()).ignoringDisable(True))
+        js.bbox_1_6.onTrue(commands2.InstantCommand(lambda: self.questnav.quest_enabled_toggle(force='on')).ignoringDisable(True))
+        # js.bbox_1_6.onTrue(commands2.InstantCommand(lambda: self.questnav.quest_sync_odometry()).ignoringDisable(True))
         js.bbox_1_7.onTrue(commands2.InstantCommand(lambda: self.questnav.quest_unsync_odometry()).ignoringDisable(True))
 
         js.bbox_1_8.whileTrue(

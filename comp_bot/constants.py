@@ -360,5 +360,5 @@ class AutoConstants:
 
     # these three poses are for reflecting about the center in auto
     k_shooting_pose = Pose2d(3.0, 2.3, 44 * math.pi / 180)  # bottom left position for shooting in auto
-    k_first_ball_pickup_pose = Pose2d(FieldConstants.k_field_length/2 -0.5, 2.1, 0)
+    k_first_ball_pickup_pose = Pose2d(FieldConstants.k_field_length/2 -0.3, 2.2, 0)
     k_second_ball_pickup_pose = Pose2d(FieldConstants.k_field_length/2 -0.3, 2.6, 0)
