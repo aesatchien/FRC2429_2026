@@ -33,6 +33,7 @@ class ResetFieldCentric(commands2.Command):
             x, y = x_offset, constants.FieldConstants.k_field_width /2
         #fixed_pose = Pose2d(x=self.swerve.get_pose().X(), y=self.swerve.get_pose().Y(), angle=self.angle)
         fixed_pose = Pose2d(x=x, y=y, angle=self.angle)
+        self.container.questnav.quest_unsync_odometry()
         self.swerve.resetOdometry(fixed_pose)
 
     def execute(self) -> None:

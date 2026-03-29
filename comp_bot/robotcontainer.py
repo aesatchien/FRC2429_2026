@@ -111,7 +111,7 @@ class RobotContainer:
         self.bind_codriver_buttons()
 
         # --- Drive & Navigation ---
-        js.driver_y.onTrue(ResetFieldCentric(container=self, swerve=self.swerve, angle=0))
+        js.driver_y.onTrue(ResetFieldCentric(container=self, swerve=self.swerve, angle=0).ignoringDisable(True))
 
         # --- The current shooting cycle
         # slow intake rollers, start the shooting cycle, then raise the intake after a short wait
