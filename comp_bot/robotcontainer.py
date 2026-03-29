@@ -155,11 +155,11 @@ class RobotContainer:
         ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
         js.driver_x.onFalse(Intake_Deploy(intake=self.intake, position='down'))
 
-        js.driver_b.whileTrue(commands2.ParallelCommandGroup(
+        js.driver_b.debounce(.2).whileTrue(commands2.ParallelCommandGroup(
             ShootingCommand(shooter=self.shooter, rpm=4500),
             Intake_Deploy(intake=self.intake, position='shoot'),
         ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
-        js.driver_b.onFalse(Intake_Deploy(intake=self.intake, position='down'))
+        js.driver_b.onTrue(commands2.InstantCommand(lambda: self.shooter.set_shooter_rpm(sc.k_fire_up_speed)))
 
         js.driver_start.whileTrue(Intake_Deploy(self.intake, "down").andThen(Intake_Set_RPM(self.intake, -constants.IntakeConstants.k_intake_default_rpm).alongWith(InstantCommand(lambda: self.shooter.set_hopper_rpm(-constants.ShooterConstants.k_hopper_rpm)))))
         #js.bbox_intake_in.whileTrue(Intake_Set_RPM(intake=self.intake, rpm=3000))
