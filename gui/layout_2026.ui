@@ -27,7 +27,7 @@
     <property name="geometry">
      <rect>
       <x>730</x>
-      <y>457</y>
+      <y>470</y>
       <width>721</width>
       <height>91</height>
      </rect>
@@ -45,7 +45,7 @@
       <x>720</x>
       <y>0</y>
       <width>731</width>
-      <height>451</height>
+      <height>471</height>
      </rect>
     </property>
     <property name="currentIndex">
@@ -2190,6 +2190,31 @@ background-color:rgb(180,180,180);</string>
        </font>
       </property>
      </widget>
+     <widget class="QLabel" name="qlabel_active_hub_indicator">
+      <property name="geometry">
+       <rect>
+        <x>320</x>
+        <y>380</y>
+        <width>281</width>
+        <height>51</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>14</pointsize>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">border: 7px; border-radius: 7px; background-color: rgb(180, 180, 180); color: rgb(0, 0, 0);</string>
+      </property>
+      <property name="text">
+       <string>HUB WAITING</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
+     </widget>
     </widget>
     <widget class="QWidget" name="tab_2">
      <attribute name="title">
@@ -2727,9 +2752,9 @@ background-color:rgb(0, 20, 250);</string>
      <property name="geometry">
       <rect>
        <x>0</x>
-       <y>10</y>
+       <y>30</y>
        <width>701</width>
-       <height>111</height>
+       <height>91</height>
       </rect>
      </property>
      <property name="font">
