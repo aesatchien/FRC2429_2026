@@ -24,6 +24,9 @@ class Vision(SubsystemBase):
         for key in self.camera_dict.keys():
             self.camera_values[key] = {}
             self.camera_values[key].update({'id': 0, 'targets': 0, 'distance': 0, 'rotation': 0, 'strafe': 0})
+            
+        self.last_frame_count = {key: 0 for key in self.camera_dict.keys()}
+        self.last_valid_frame_time = {key: 0.0 for key in self.camera_dict.keys()}
 
         self.last_stale_warning_time = {key: 0 for key in constants.CameraConstants.k_cameras.keys()}
 
@@ -65,6 +68,7 @@ class Vision(SubsystemBase):
             self.camera_dict[key]['distance_entry'] = self.inst.getDoubleTopic(f"{base_topic}/distance").subscribe(0)
             self.camera_dict[key]['strafe_entry'] = self.inst.getDoubleTopic(f"{base_topic}/strafe").subscribe(0)
             self.camera_dict[key]['rotation_entry'] = self.inst.getDoubleTopic(f"{base_topic}/rotation").subscribe(0)
+            self.camera_dict[key]['frames_entry'] = self.inst.getDoubleTopic(f"{table_path}/_frames").subscribe(0)
 
         # Subscribe to Swerve drive_y for simulation logic
         self.drive_y_sub = self.inst.getDoubleTopic(f"{constants.swerve_prefix}/drive_y").subscribe(0)
@@ -83,13 +87,17 @@ class Vision(SubsystemBase):
         # Check latency (in microseconds). 1,000,000 us = 1 second.
         latency_us = ntcore._now() - atomic_targets.time
         time_stamp_good = latency_us < 1000000
+        
+        # Check if the camera application has stalled (frames not increasing)
+        time_since_last_frame = wpilib.Timer.getFPGATimestamp() - self.last_valid_frame_time.get(camera_key, 0)
+        frames_good = time_since_last_frame < 2.0  # no frames in the past 2s?
 
-        if target_exists and not time_stamp_good:
+        if target_exists and (not time_stamp_good or not frames_good):
             if self.last_stale_warning_time.get(camera_key, 0) != atomic_targets.time:
-                print(f"Vision Warning: Stale target on '{camera_key}'. Latency: {latency_us / 1000:.1f} ms")
+                print(f"Vision Warning: Stale target on '{camera_key}'. Latency: {latency_us / 1000:.1f} ms, Frames Age: {time_since_last_frame:.1f} s")
                 self.last_stale_warning_time[camera_key] = atomic_targets.time
 
-        return target_exists and time_stamp_good
+        return target_exists and time_stamp_good and frames_good
 
     def get_strafe(self, camera_key: str) -> float:
         if wpilib.RobotBase.isSimulation() and constants.CameraConstants.k_cameras[camera_key]['type'] == 'tags':  # trick the sim into thinking we are on tag 18
@@ -197,6 +205,14 @@ class Vision(SubsystemBase):
 
     def periodic(self) -> None:
         self.counter += 1
+
+        # Update frame counts for stall detection
+        current_time = wpilib.Timer.getFPGATimestamp()
+        for key in self.camera_dict.keys():
+            current_frames = self.camera_dict[key]['frames_entry'].get()
+            if current_frames != self.last_frame_count[key]:
+                self.last_frame_count[key] = current_frames
+                self.last_valid_frame_time[key] = current_time
 
         # update x times a second
         if self.counter % 10 == 0:

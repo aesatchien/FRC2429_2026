@@ -177,6 +177,7 @@ WIDGET_CONFIG = {
 
     # REBUILT 2026 stuff
     'qlabel_shot_distance': {'widget_name': 'qlabel_shot_distance', 'nt_topic': f'{auto_prefix}/shot_distance', 'update_style': 'hub'},
+    'qlabel_active_hub_indicator': {'widget_name': 'qlabel_active_hub_indicator', 'nt_topic': '/FMSInfo/GameSpecificMessage', 'update_style': 'active_hub'},
 
     # LEFTOVER TO SORT FROM previous years - legacy but infrastructure is there
     'qlabel_position_indicator': {'widget_name': 'qlabel_position_indicator', 'nt_topic': '/SmartDashboard/_target', 'update_style': 'position'},
