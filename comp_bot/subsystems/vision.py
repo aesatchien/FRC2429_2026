@@ -90,7 +90,7 @@ class Vision(SubsystemBase):
         
         # Check if the camera application has stalled (frames not increasing)
         time_since_last_frame = wpilib.Timer.getFPGATimestamp() - self.last_valid_frame_time.get(camera_key, 0)
-        frames_good = time_since_last_frame < 2.0
+        frames_good = time_since_last_frame < 2.0  # no frames in the past 2s?
 
         if target_exists and (not time_stamp_good or not frames_good):
             if self.last_stale_warning_time.get(camera_key, 0) != atomic_targets.time:
