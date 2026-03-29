@@ -150,12 +150,29 @@ class UIUpdater:
             self.ui.qlabel_quest_pose_indicator.setText(self._format_pose_string("QUEST POSE", self.quest_pose))
             self._update_pose_widget(self.ui.qlabel_quest, self.ui.quest_pixmap, self.quest_pose, field_dims)
 
+        # Update the Quest border to be visible and positioned around the Quest pixmap
+        border_widget = self.ui.qlabel_quest_border
+        quest_widget = self.ui.qlabel_quest
+        if getattr(config, 'ADD_QUEST_BORDER', False):
+            offset = -2  # 0 exactly matches bounding box. Use -1 or -2 to hug tighter if the PNG has transparent margins.
+            quest_geom = quest_widget.geometry()
+            border_widget.setGeometry(
+                quest_geom.x() - offset,
+                quest_geom.y() - offset,
+                quest_geom.width() + (2 * offset),
+                quest_geom.height() + (2 * offset)
+            )
+            if not border_widget.isVisible():
+                border_widget.show()
+        elif border_widget.isVisible():
+            border_widget.hide()
+
         # Update Ghost Pose
         ghost_props = self.ui.widget_dict['ghost_pose']
         ghost_sub = ghost_props.get('subscriber')
         visible_sub = ghost_props.get('visible_subscriber')
 
-        is_visible = visible_sub.get() if visible_sub else False
+        is_visible = (visible_sub.get() if visible_sub else False) and getattr(config, 'DRAW_GHOST_POSE', True)
 
         if is_visible and ghost_sub:
             ghost_pose = ghost_sub.get()

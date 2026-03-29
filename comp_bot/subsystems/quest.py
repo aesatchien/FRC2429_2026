@@ -33,7 +33,10 @@ class Questnav(SubsystemBase):
 
         self.quest_has_synched = False  # use this to check in disabled whether to update the quest with the robot odometry
         self.use_quest = constants.k_use_quest_odometry
-        self.quest_pose = Pose2d(-10, -10, Rotation2d.fromDegrees(0)) # initial pose if not connected / tracking
+        if wpilib.RobotBase.isReal():
+            self.quest_pose = Pose2d(-10, -10, Rotation2d.fromDegrees(0)) # initial pose if not connected / tracking
+        else:
+            self.quest_pose = Pose2d(2, 6, Rotation2d.fromDegrees(180))
         self.quest_pose_new = self.quest_pose
         self.quest_pose_old = self.quest_pose
         self.quest_pose_timestamp = 0.0

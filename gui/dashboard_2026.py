@@ -208,6 +208,15 @@ class Ui(QtWidgets.QMainWindow):
         ghost_effect = QGraphicsOpacityEffect()
         ghost_effect.setOpacity(0.5)
         self.qlabel_ghost.setGraphicsEffect(ghost_effect)
+
+        # Create a border widget that will sit behind the Quest pixmap
+        self.qlabel_quest_border = QtWidgets.QLabel(self.qgroupbox_field)
+        self.qlabel_quest_border.setObjectName("qlabel_quest_border")
+        if getattr(config, 'ADD_QUEST_BORDER', False):
+            # Use rgba to set the color and alpha (transparency). The 4th number is the alpha (0-255).
+            self.qlabel_quest_border.setStyleSheet("border: 2px solid rgba(76, 255, 0, 160); border-radius: 8px;")
+        self.qlabel_quest_border.hide()
+        self.qlabel_quest.raise_()
         self.qlabel_robot.raise_()
 
         # Build the runtime dictionaries from the static config

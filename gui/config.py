@@ -67,6 +67,8 @@ QUESTNAV_ADB_ADDRESS = '10.24.29.200:5802'  # ADB target for restarting QuestNav
 QUESTNAV_ADB_MAX_RETRIES = 5  # Maximum number of times to try restarting QuestNav automatically
 # FIELD CONFIGURATION
 SHOW_APRILTAGS = True
+DRAW_GHOST_POSE = False
+ADD_QUEST_BORDER = True
 TAG_LAYOUT = robotpy_apriltag.AprilTagFieldLayout('2026-rebuilt-welded_json')  # hack until they fix the navx
 # TAG_LAYOUT = robotpy_apriltag.AprilTagFieldLayout.loadField(robotpy_apriltag.AprilTagField.k2024Crescendo)
 
