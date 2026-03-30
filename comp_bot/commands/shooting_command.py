@@ -59,7 +59,7 @@ class ShootingCommand(commands2.Command):  # change the name for your command
 
         hopper_sign = 1 # WAS agitating with  "if self.counter % 30 < 25 else -1" but we don't need that
 
-        rpm = rpm if self.counter > self.delay_cycles + 25 else rpm + 500  # leo making it faster during spinup
+        rpm = rpm if self.counter > self.delay_cycles + 25 else rpm + 150  # leo making it faster during spinup
         self.shooter.set_shooter_rpm(rpm if rpm <= 5600 else sc.k_shooter_max_speed)
 
         if self.counter > self.delay_cycles: # and (not self.shooter.indexer_on or not self.shooter.hopper_on):
