@@ -159,13 +159,17 @@ class DriveToPoseCustomControl(commands2.Command):
         self.error_distance = error_vector.norm()
         self.error_degrees = abs(math.degrees(diff_radians))
 
-        if abs(diff_x) > abs(self.last_diff_x) and self.counter > 0: self.x_overshot = True
+        # Use zero-crossings (sign flips) instead of magnitude increases to detect overshoot.
+        # This prevents odometry jumps from instantly stalling the robot.
+        if self.counter > 0 and (diff_x * self.last_diff_x < 0): self.x_overshot = True
         self.last_diff_x = diff_x
         
-        if abs(diff_y) > abs(self.last_diff_y) and self.counter > 0: self.y_overshot = True
+        if self.counter > 0 and (diff_y * self.last_diff_y < 0): self.y_overshot = True
         self.last_diff_y = diff_y
         
-        if abs(diff_radians) > abs(self.last_diff_radians) and self.counter > 0: self.rot_overshot = True
+        # For rotation, ensure we are actually crossing 0 and not just wrapping around the -180/180 boundary
+        if self.counter > 0 and (diff_radians * self.last_diff_radians < 0) and abs(diff_radians) < 1.0: 
+            self.rot_overshot = True
         self.last_diff_radians = diff_radians
 
         rot_max, rot_min = 0.5, 0.1
