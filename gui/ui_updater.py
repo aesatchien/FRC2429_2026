@@ -469,6 +469,12 @@ class UIUpdater:
             return
 
         match_time = sub.get()
+
+        # In simulation (server index 1), match time counts up indefinitely. 
+        # Convert it to a repeating 160-second countdown.
+        if self.ui.nt_manager.server_index == 1:
+            match_time = 160.0 - (match_time % 160.0)
+
         # If time is low, we flash, so we must update. If time is high, we only update if the integer second changes.
         val_int = int(match_time)
         if match_time >= 30 and val_int == props.get('last_value'):
@@ -509,6 +515,10 @@ class UIUpdater:
         match_time_sub = self.ui.widget_dict.get('qlabel_matchtime', {}).get('subscriber')
         match_time = match_time_sub.get() if match_time_sub else 0
         
+        # Convert simulation count-up to a 160-second countdown loop
+        if self.ui.nt_manager.server_index == 1:
+            match_time = 160.0 - (match_time % 160.0)
+
         active = "BOTH"
         countdown = 0
         
@@ -556,19 +566,19 @@ class UIUpdater:
         
         if active == "RED":
             style = "border: 7px; border-radius: 7px; background-color: rgb(225, 0, 0); color: rgb(255, 255, 255);"
-            text = f"RED ACTIVE\n{int(countdown)}s"
+            text = f"RED ACTIVE: {int(countdown)}s"
         elif active == "BLUE":
             style = "border: 7px; border-radius: 7px; background-color: rgb(0, 0, 225); color: rgb(255, 255, 255);"
-            text = f"BLUE ACTIVE\n{int(countdown)}s"
+            text = f"BLUE ACTIVE: {int(countdown)}s"
         else:
             # Gradient for Both (Half Red, Half Blue)
             style = (
                 "border: 7px; border-radius: 7px; color: rgb(255, 255, 255); "
                 "background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-                "stop:0 rgb(225, 0, 0), stop:0.5 rgb(225, 0, 0), "
-                "stop:0.5 rgb(0, 0, 225), stop:1 rgb(0, 0, 225));"
+                "stop:0 rgb(225, 0, 0), stop:0.8 rgb(225, 0, 0), "
+                "stop:0.8 rgb(0, 0, 225), stop:1 rgb(0, 0, 225));"
             )
-            text = f"BOTH ACTIVE\n{int(countdown)}s"
+            text = f"BOTH ACTIVE: {int(countdown)}s"
 
         widget.setStyleSheet(style)
         widget.setText(text)
