@@ -379,7 +379,7 @@ class RobotContainer:
         NamedCommands.registerCommand('start_shooter_nothing_else', commands2.InstantCommand(lambda: self.shooter.set_shooter_rpm(sc.k_fire_up_speed)))
         NamedCommands.registerCommand('shooting_command', ShootingCommand(shooter=self.shooter, targeting=self.targeting))
         NamedCommands.registerCommand('hello', commands2.PrintCommand("hello!"))
-        NamedCommands.registerCommand("wait_then_intake", commands2.WaitCommand(ac.k_intake_deploy_delay).andThen(
+        NamedCommands.registerCommand("wait_then_intake", commands2.WaitCommand(ac.k_intake_deploy_delay_bump).andThen(
             Intake_Deploy(intake=self.intake, position='down').andThen(
                 Intake_Set_RPM(intake=self.intake, rpm=2500, led=self.led)
             )
