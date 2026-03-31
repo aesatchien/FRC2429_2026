@@ -354,6 +354,7 @@ class ClimberConstants:
 class AutoConstants:
     k_intake_raise_delay = 1.5  # how long to wait after starting the shooting cycle before raising the intake
     k_shooting_timeout = 4.75  # duration of shooting command in autonomous
+    k_intake_deploy_delay = 1.0  # how long to wait to deploy intake to avoid dtap on bump
 
     k_intake_roller_rpm = 3000  # a little faster than default 2500 so balls don't get pushed as much
     k_shooter_startup_rpm = 3800  # set shooter during transit back - very close to the RPM of the shooting position
