@@ -362,9 +362,9 @@ class RobotContainer:
         self.auto_chooser.addOption('2b: Two Cycles *CODE*', TwoCycle(self, indent=0))
         self.auto_chooser.addOption('3a: Fill Shoot Fill Bump *CODE*', FillShootFillBump(self, indent=0))
         self.auto_chooser.setDefaultOption('3b: Fill Shoot Fill Shoot Bump *CODE*', FillShootFillShootBump(self, indent=0))
-        self.auto_chooser.addOption('3c Fill Shoot Fill Shoot Trench *CODE*', FillShootFillShootTrench(self, indent=0))
-        self.auto_chooser.addOption('3d Pathing Fill Shoot Fill Shoot Bump *CODE*', PathingFillShootFillShootBump(self, indent=0))  
-        self.auto_chooser.addOption('4a: Intake Depot or Outpost and Shoot *CODE*', DepotOrOutpostAndShoot(self, indent=0))
+        self.auto_chooser.addOption('4a: Pathing Fill Shoot Fill Shoot Bump *CODE*', PathingFillShootFillShootBump(self, indent=0))  
+        self.auto_chooser.addOption('4b: Pathing Fill Shoot Fill Shoot Trench *CODE*', FillShootFillShootTrench(self, indent=0))
+        self.auto_chooser.addOption('5a: Intake Depot or Outpost and Shoot *CODE*', DepotOrOutpostAndShoot(self, indent=0))
 
         wpilib.SmartDashboard.putData('autonomous routines', self.auto_chooser)  #
 
@@ -379,11 +379,11 @@ class RobotContainer:
         NamedCommands.registerCommand('start_shooter_nothing_else', commands2.InstantCommand(lambda: self.shooter.set_shooter_rpm(sc.k_fire_up_speed)))
         NamedCommands.registerCommand('shooting_command', ShootingCommand(shooter=self.shooter, targeting=self.targeting))
         NamedCommands.registerCommand('hello', commands2.PrintCommand("hello!"))
-        NamedCommands.registerCommand("wait_then_intake", commands2.WaitCommand(lambda: ac.k_intake_deploy_delay).andThen(
+        NamedCommands.registerCommand("wait_then_intake", commands2.WaitCommand(ac.k_intake_deploy_delay).andThen(
             Intake_Deploy(intake=self.intake, position='down').andThen(
                 Intake_Set_RPM(intake=self.intake, rpm=2500, led=self.led)
-            ))
-        )  # Trentan - Testing a way to get all paths to have a delay before deploying which can be changed with one constant
+            )
+        ))  # Trentan - Testing a way to get all paths to have a delay before deploying which can be changed with one constant
         
     def get_autonomous_command(self):
         cmd = self.auto_chooser.getSelected()

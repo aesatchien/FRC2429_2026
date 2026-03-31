@@ -20,8 +20,8 @@
         "y": 0.47908659549228905
       },
       "prevControl": {
-        "x": -0.13207531197888167,
-        "y": 0.10546087794559272
+        "x": -0.13207531197888156,
+        "y": 0.10546087794559278
       },
       "nextControl": null,
       "isLocked": false,
@@ -38,13 +38,13 @@
   "pointTowardsZones": [],
   "eventMarkers": [
     {
-      "name": "deploy_and_start_intake",
+      "name": "wait_then_intake",
       "waypointRelativePos": 0.05,
       "endWaypointRelativePos": null,
       "command": {
         "type": "named",
         "data": {
-          "name": "deploy_and_start_intake"
+          "name": "wait_then_intake"
         }
       }
     }

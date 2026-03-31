@@ -121,13 +121,13 @@
   "pointTowardsZones": [],
   "eventMarkers": [
     {
-      "name": "deploy_and_start_intake",
-      "waypointRelativePos": 0,
+      "name": "wait_then_intake",
+      "waypointRelativePos": 0.0,
       "endWaypointRelativePos": null,
       "command": {
         "type": "named",
         "data": {
-          "name": "deploy_and_start_intake"
+          "name": "wait_then_intake"
         }
       }
     },
