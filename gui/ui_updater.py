@@ -1,14 +1,13 @@
 # This file contains the UIUpdater class, which is responsible for updating the widgets in the main UI.
 
 import time
-import math
 import numpy as np
 import os
 import subprocess
 import wpimath.geometry as geo
 import ntcore
 import config
-from PyQt6 import QtGui, QtCore, QtWidgets
+from PyQt6 import QtGui, QtCore
 
 class UIUpdater:
     # Define styles as class constants to avoid magic strings
@@ -75,10 +74,45 @@ class UIUpdater:
     # --------------------------------------------------------------------------
 
     def _update_connection_status(self):
-        """Updates the NT connection status indicator."""
+        """Updates the NT connection status indicator and handles disconnect cleanup."""
+        is_connected = self.ui.ntinst.isConnected()
         widget = self.ui.widget_dict['qlabel_nt_connected']['widget']
-        style = self.STYLE_ON if self.ui.ntinst.isConnected() else self.STYLE_DISCONNECTED
+        style = self.STYLE_ON if is_connected else self.STYLE_DISCONNECTED
         widget.setStyleSheet(style)
+
+        # WIPE THE SLATE CLEAN ON DISCONNECT
+        # Detect transition from connected to disconnected
+        was_connected = getattr(self, '_last_connection_state', True)
+        if not is_connected and was_connected:
+            print(f"[{self.get_elapsed_time():.1f}] Network disconnected. Wiping chooser state to prevent stale data on reconnect.")
+            for props in self.ui.widget_dict.values():
+                if props.get('update_style') == 'combo':
+                    # 1. Clear the UI to give visual feedback that the options are no longer valid.
+                    combo_widget = props.get('widget')
+                    if combo_widget:
+                        combo_widget.blockSignals(True)
+                        combo_widget.clear()
+                        combo_widget.blockSignals(False)
+                    # 2. Reset the internal state caches to prevent stale comparisons on reconnect.
+                    props['last_value'] = []
+                    props['last_selected_value'] = ""
+
+                    # 3. CRITICAL: Close the publisher to erase its cached value from the NT4 client's memory.
+                    # This is the key step that prevents the GUI from forcing its old selection on a newly rebooted robot.
+                    pub = props.get('selected_publisher')
+                    if pub:
+                        pub.close()
+                        props['selected_publisher'] = None # Mark as closed
+                    
+        elif is_connected and not was_connected:
+            print(f"[{self.get_elapsed_time():.1f}] Network reconnected. Re-creating chooser publisher to allow user input.")
+            # 4. Re-create the publisher on reconnect so the user can make selections again.
+            # The GUI now has no cached value to send and will wait for the robot's broadcast.
+            props = self.ui.widget_dict.get('qcombobox_autonomous_routines')
+            if props and props.get('selected_topic'):
+                props['selected_publisher'] = self.ui.ntinst.getStringTopic(props['selected_topic']).publish()
+
+        self._last_connection_state = is_connected
 
     def _check_questnav_passthrough_issue(self):
         """Monitors QuestNav passthrough state and restarts app via adb if stuck."""

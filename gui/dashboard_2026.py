@@ -7,15 +7,12 @@ import socket
 import cv2
 import numpy as np
 import time, subprocess
-from datetime import datetime
 from pathlib import Path
 
 from PyQt6 import QtCore, QtGui, QtWidgets, uic
 from PyQt6.QtCore import Qt, QTimer, QEvent
 from PyQt6.QtWidgets import QGraphicsOpacityEffect
-import ntcore
 import wpimath.geometry as geo
-import robotpy_apriltag
 
 # logical chunking of the gui's functional components
 from config import WIDGET_CONFIG, CAMERA_CONFIG, SHOW_APRILTAGS, TAG_LAYOUT
