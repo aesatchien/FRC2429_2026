@@ -43,10 +43,11 @@ class Questnav(SubsystemBase):
 
         # add members to handle lost tracking (the double-tap issue)
         self.missed_frame_count = 0
-        self.k_max_missed_frames = 25  # 0.5 seconds at 50Hz
+        self.k_max_missed_frames = 10  # 0.2 seconds at 50Hz
         self.was_tracking = False
         self.was_connected = False
-        self.disconnected_count = 0
+        self.disconnected_count = 0  # count how many frames we've been disconnected to avoid ping-ponging in and out of sync
+        self.dtap_count = 0  # count how many times we've double-tapped to track the issue in sim and real
         self.k_max_disconnected_frames = 25  # 0.5 seconds at 50Hz
         self.expecting_jump = False
 
@@ -95,6 +96,7 @@ class Questnav(SubsystemBase):
         
         # Entry for external ADB script to monitor and clear
         self.quest_passthrough_entry = self.inst.getBooleanTopic(f"{quest_prefix}/quest_in_passthrough").getEntry(False)
+        self.quest_passthrough_count_entry = self.inst.getDoubleTopic(f"{quest_prefix}/quest_dtap_count").publish()
 
         # ------------- Subscribers -------------
         # Subscribe to the drive_pose published by Swerve (now a Struct)
@@ -106,6 +108,9 @@ class Questnav(SubsystemBase):
         # ------------- Initial Values & Buttons -------------
         self.quest_synched_pub.set(self.quest_has_synched)
         self.quest_in_use_pub.set(self.use_quest)
+        self.quest_passthrough_entry.set(False)
+        self.quest_passthrough_count_entry.set(self.dtap_count)
+
 
         # note - may not want these buried one deeper.  Also, we may want to put them in robotcontainer instead of here
         command_prefix = constants.command_prefix
@@ -274,6 +279,8 @@ class Questnav(SubsystemBase):
                     self.was_tracking = False
                     # Trigger the external ADB script
                     self.quest_passthrough_entry.set(True)
+                    self.dtap_count += 1
+                    self.quest_passthrough_count_entry.set(self.dtap_count)
                     # Optional: Print a warning to the driver station that the data stream is dead
                     print(f"Detecting a lost QuestNav at FPGA timestamp: {wpilib.Timer.getFPGATimestamp():.1f}s")
 

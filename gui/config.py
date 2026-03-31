@@ -64,7 +64,10 @@ base_prefix    = r'/SmartDashboard'  #  TODO - eventually nothing should be in h
 
 # Questnav stuff
 QUESTNAV_ADB_ADDRESS = '10.24.29.200:5802'  # ADB target for restarting QuestNav
+# QUESTNAV_ADB_ADDRESS = '192.168.86.39:5802'  # at home on wifi using sim - MAKE SURE TO CHANGE THIS BEFORE MATCHES
 QUESTNAV_ADB_MAX_RETRIES = 5  # Maximum number of times to try restarting QuestNav automatically
+QUESTNAV_PASSTHRU_ADB_DELAY = 0.25  # Delay before forcing ADB command to bring quest app back to foreground
+QUESTNAV_ADB_COOLDOWN_S = 2.0  # wait before trying another ADB
 # FIELD CONFIGURATION
 SHOW_APRILTAGS = True
 DRAW_GHOST_POSE = False
@@ -153,6 +156,7 @@ WIDGET_CONFIG = {
     'qlabel_questnav_inbounds_indicator': {'widget_name': 'qlabel_questnav_inbounds_indicator', 'nt_topic': f'{quest_prefix}/quest_pose_accepted', 'update_style': 'indicator'},
     'qlabel_questnav_tracking_indicator': {'widget_name': 'qlabel_questnav_tracking_indicator', 'nt_topic': f'{quest_prefix}/quest_tracking', 'update_style': 'indicator'},
     'qlabel_questnav_dtap_indicator': {'widget_name': 'qlabel_questnav_dtap_indicator','nt_topic': f'{quest_prefix}/quest_in_passthrough', 'flash':True, 'update_style': 'indicator'},
+    'qlabel_questnav_dtap_count_monitor': {'widget_name': 'qlabel_questnav_dtap_count_monitor','nt_topic': f'{quest_prefix}/quest_dtap_count', 'update_style': 'monitor'},
     'qlabel_questnav_sync_toggle_indicator': {'widget_name': 'qlabel_questnav_sync_toggle_indicator', 'nt_topic': f'{quest_prefix}/questnav_synched', 'command_topic': f'{command_prefix}/QuestSyncToggle/running', 'update_style': 'indicator'},
     'qlabel_questnav_reset_indicator': {'widget_name': 'qlabel_questnav_reset_indicator', 'nt_topic': f'{quest_prefix}/QuestResetOdometry/running', 'command_topic': f'{command_prefix}/QuestResetOdometry/running', 'update_style': 'indicator'},
     'qlabel_questnav_enabled_toggle_indicator': {'widget_name': 'qlabel_questnav_enabled_toggle_indicator', 'nt_topic': f'{quest_prefix}/questnav_in_use', 'command_topic': f'{command_prefix}/QuestEnableToggle/running', 'update_style': 'indicator'},
