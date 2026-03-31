@@ -342,7 +342,7 @@ background-color:rgb(180,180,180);</string>
         <rect>
          <x>11</x>
          <y>267</y>
-         <width>61</width>
+         <width>70</width>
          <height>28</height>
         </rect>
        </property>
@@ -2691,7 +2691,7 @@ background-color:rgb(10, 10, 227);</string>
      <rect>
       <x>590</x>
       <y>80</y>
-      <width>110</width>
+      <width>115</width>
       <height>20</height>
      </rect>
     </property>
@@ -2801,7 +2801,7 @@ background-color:rgb(0, 20, 250);</string>
      <rect>
       <x>590</x>
       <y>253</y>
-      <width>110</width>
+      <width>115</width>
       <height>23</height>
      </rect>
     </property>
@@ -2814,7 +2814,7 @@ background-color:rgb(0, 20, 250);</string>
      <rect>
       <x>590</x>
       <y>280</y>
-      <width>110</width>
+      <width>115</width>
       <height>23</height>
      </rect>
     </property>
@@ -2824,7 +2824,7 @@ background-color:rgb(0, 20, 250);</string>
      <rect>
       <x>590</x>
       <y>234</y>
-      <width>110</width>
+      <width>115</width>
       <height>17</height>
      </rect>
     </property>
@@ -2840,7 +2840,7 @@ background-color:rgb(0, 20, 250);</string>
      <rect>
       <x>590</x>
       <y>177</y>
-      <width>110</width>
+      <width>115</width>
       <height>23</height>
      </rect>
     </property>
@@ -2853,7 +2853,7 @@ background-color:rgb(0, 20, 250);</string>
      <rect>
       <x>590</x>
       <y>149</y>
-      <width>110</width>
+      <width>115</width>
       <height>23</height>
      </rect>
     </property>
@@ -2894,7 +2894,7 @@ background-color:rgb(0, 20, 250);</string>
      <rect>
       <x>590</x>
       <y>125</y>
-      <width>110</width>
+      <width>115</width>
       <height>20</height>
      </rect>
     </property>
@@ -2926,7 +2926,7 @@ color:rgb(230,230,230);</string>
      <rect>
       <x>590</x>
       <y>203</y>
-      <width>110</width>
+      <width>115</width>
       <height>23</height>
      </rect>
     </property>
@@ -2952,7 +2952,7 @@ color:rgb(230,230,230);</string>
      <rect>
       <x>590</x>
       <y>103</y>
-      <width>110</width>
+      <width>115</width>
       <height>20</height>
      </rect>
     </property>
