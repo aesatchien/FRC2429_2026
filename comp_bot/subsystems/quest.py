@@ -10,15 +10,16 @@ from helpers.questnav.questnav import QuestNav as Metaquestnav
 from wpilib import DataLogManager
 
 import constants
+from constants import FieldConstants as fc
 
 # TODO - clean and speed this up
 class Questnav(SubsystemBase):
     def __init__(self) -> None:
         super().__init__()
         self.setName('Quest')
-        self.counter = constants.QuestConstants.k_counter_offset
+        self.counter = constants.QuestConstants.k_counter_offset  # increments in periodic
 
-        self.questnav = Metaquestnav()
+        self.questnav = Metaquestnav()  # create the QuestNav instance
 
         self.quest_pose_accepted = False  # validate our location on a field
 
@@ -32,7 +33,8 @@ class Questnav(SubsystemBase):
         self._ping_connection()
 
         self.quest_has_synched = False  # use this to check in disabled whether to update the quest with the robot odometry
-        self.use_quest = constants.k_use_quest_odometry
+        self.use_quest = constants.k_use_quest_odometry  # do we allow the quest to update odometry
+
         if wpilib.RobotBase.isReal():
             self.quest_pose = Pose2d(-10, -10, Rotation2d.fromDegrees(0)) # initial pose if not connected / tracking
         else:
@@ -43,13 +45,14 @@ class Questnav(SubsystemBase):
 
         # add members to handle lost tracking (the double-tap issue)
         self.missed_frame_count = 0
-        self.k_max_missed_frames = 10  # 0.2 seconds at 50Hz
+        self.k_max_missed_frames = 10  # number of iterations with no new frames - protects against double tap 0.2 seconds at 50Hz
         self.was_tracking = False
         self.was_connected = False
         self.disconnected_count = 0  # count how many frames we've been disconnected to avoid ping-ponging in and out of sync
         self.dtap_count = 0  # count how many times we've double-tapped to track the issue in sim and real
-        self.k_max_disconnected_frames = 25  # 0.5 seconds at 50Hz
+        self.k_max_disconnected_count = 20  # lost iterations before we say we are disconnected 0.4 seconds at 50Hz
         self.expecting_jump = False
+        self.error_pose = Pose2d(0,0,0)  # difference between robot and quest
 
         # Simulation override: True = use random walk sim, False = use real headset in sim
         self.mock_questnav = wpilib.RobotBase.isSimulation() and getattr(constants.SimConstants, 'k_mock_questnav', True)
@@ -87,6 +90,7 @@ class Questnav(SubsystemBase):
         
         # Use StructPublisher for Pose2d - matches Swerve implementation and works with AdvantageScope
         self.quest_pose_pub = self.inst.getStructTopic(f"{quest_prefix}/quest_pose", Pose2d).publish()
+        self.quest_error_pose_pub = self.inst.getStructTopic(f"{quest_prefix}/quest_error_pose", Pose2d).publish()
         # self.pose_pub = self.inst.getDoubleArrayTopic(f"{quest_prefix}/QUEST_POSE").publish()  # legacy GUI dashboard
         
         self.quest_battery_pub = self.inst.getDoubleTopic(f"{quest_prefix}/quest_Battery_pct").publish()
@@ -182,6 +186,13 @@ class Questnav(SubsystemBase):
         self.quest_synched_pub.set(self.quest_has_synched)
         print(f'  synched quest to {self.quest_pose}\nusing               {self.drive_pose_sub.get()}')
 
+    def quest_soft_resync(self):
+        # allow quest to resync to itself without changing the pose
+        # handle the case where we disconnect but the pose is still accurate when we come back up
+        self.quest_has_synched = True
+        self.quest_synched_pub.set(self.quest_has_synched)
+        print(f'Resynched synched quest - no change in pose at {Timer.getFPGATimestamp():.1f}s')
+
     def quest_unsync_odometry(self) -> None:
         self.quest_has_synched = False  # let the robot know we have been synched so we don't automatically do it again
         print(f'Unsynched quest at {Timer.getFPGATimestamp():.1f}s')
@@ -237,7 +248,7 @@ class Questnav(SubsystemBase):
 
         if not is_connected:
             self.disconnected_count += 1
-            if self.disconnected_count > self.k_max_disconnected_frames and self.was_connected:
+            if self.disconnected_count > self.k_max_disconnected_count and self.was_connected:
                 print(f"*** QuestNav connection dropped for >0.5s at {wpilib.Timer.getFPGATimestamp():.1f}s. Forcing unsync. ***")
                 self.quest_unsync_odometry()
                 self.was_connected = False
@@ -307,9 +318,11 @@ class Questnav(SubsystemBase):
             self.quest_pose_timestamp = ground_truth_atomic.time / 1_000_000.0
             self.was_tracking = True  # Sim never loses tracking
 
+        # calculate pose error
+        self.error_pose = self.quest_pose.relativeTo(self.drive_pose_sub.get())
 
-        if self.counter % 10 == 0:
-            in_bounds = 0 < self.quest_pose.x < 17.658 and 0 < self.quest_pose.y < 8.131
+        if self.counter % 5 == 0:
+            in_bounds = 0 < self.quest_pose.x < fc.k_field_length and 0 < self.quest_pose.y < fc.k_field_width
 
             # FIX: The Stale Data Trap.
             # STRICT ACCEPTANCE: Only accept if in bounds AND currently tracking AND didn't just error out.
@@ -320,8 +333,7 @@ class Questnav(SubsystemBase):
 
             # poses used in gui and advantagescope
             self.quest_pose_pub.set(self.quest_pose)
-            # self.pose_pub.set([self.quest_pose.X(), self.quest_pose.Y(), self.quest_pose.rotation().degrees()])  # legacy GUI version
-
+            self.quest_error_pose_pub.set(self.error_pose)  # the deltas between robot and quest
             self.quest_accepted_pub.set(self.quest_pose_accepted)  # GUI uses as VALID
             self.quest_connected_pub.set(is_connected)  # GUI uses as heartbeat
             self.quest_tracking_pub.set(is_tracking)  # GUI follows to see if tracking

@@ -166,17 +166,22 @@ class UIUpdater:
         drive_pose_sub = drive_props.get('subscriber')
         if not drive_pose_sub:
             return # Can't do anything without the robot pose
-
         self.drive_pose = drive_pose_sub.get()
+
         quest_props = self.ui.widget_dict['quest_pose']
         quest_pose_sub = quest_props.get('subscriber')
         self.quest_pose = quest_pose_sub.get()
+
+        quest_error_props = self.ui.widget_dict['quest_error_pose']
+        quest_error_pose_sub = quest_error_props.get('subscriber')
+        self.quest_error_pose = quest_error_pose_sub.get()
+
         field_dims = (self.ui.qgroupbox_field.width(), self.ui.qgroupbox_field.height())
 
         # Update Robot Pose if changed
         if self.drive_pose != drive_props.get('last_value'):
             drive_props['last_value'] = self.drive_pose
-            self.ui.qlabel_pose_indicator.setText(self._format_pose_string("POSE", self.drive_pose))
+            self.ui.qlabel_pose_indicator.setText(self._format_pose_string("ROBOT POSE", self.drive_pose))
             self._update_pose_widget(self.ui.qlabel_robot, self.ui.robot_pixmap, self.drive_pose, field_dims)
 
         # Update Quest Pose if changed
@@ -184,6 +189,12 @@ class UIUpdater:
             quest_props['last_value'] = self.quest_pose
             self.ui.qlabel_quest_pose_indicator.setText(self._format_pose_string("QUEST POSE", self.quest_pose))
             self._update_pose_widget(self.ui.qlabel_quest, self.ui.quest_pixmap, self.quest_pose, field_dims)
+
+        # Update Delta Pose if changed
+        if self.quest_error_pose != quest_error_props.get('last_value'):
+            quest_error_props['last_value'] = self.quest_error_pose
+            self.ui.qlabel_quest_error_pose_indicator.setText(self._format_pose_string("DELTA POSE", self.quest_error_pose))
+            # no pose widget for this one
 
         # Update the Quest border to be visible and positioned around the Quest pixmap
         border_widget = self.ui.qlabel_quest_border

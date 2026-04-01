@@ -152,6 +152,7 @@ WIDGET_CONFIG = {
 
     # QUESTNAV STUFF  TODO - decide if quest commands should live in robot tree or questnav tree
     'quest_pose': {'widget_name': 'qlabel_quest_pose_indicator', 'nt_topic': f'{quest_prefix}/quest_pose', 'update_style': 'pose'},
+    'quest_error_pose': {'widget_name': 'qlabel_quest_error_pose_indicator', 'nt_topic': f'{quest_prefix}/quest_error_pose', 'update_style': 'pose'},
     'qlabel_questnav_heartbeat_indicator': {'widget_name': 'qlabel_questnav_heartbeat_indicator', 'nt_topic': f'{quest_prefix}/quest_connected', 'update_style': 'indicator'},
     'qlabel_questnav_inbounds_indicator': {'widget_name': 'qlabel_questnav_inbounds_indicator', 'nt_topic': f'{quest_prefix}/quest_pose_accepted', 'update_style': 'indicator'},
     'qlabel_questnav_tracking_indicator': {'widget_name': 'qlabel_questnav_tracking_indicator', 'nt_topic': f'{quest_prefix}/quest_tracking', 'update_style': 'indicator'},

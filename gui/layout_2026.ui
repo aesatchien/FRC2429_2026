@@ -265,49 +265,14 @@ background-color:rgb(0, 20, 250);</string>
         <set>Qt::AlignCenter</set>
        </property>
       </widget>
-      <widget class="QLabel" name="qlabel_shot_distance">
-       <property name="enabled">
-        <bool>false</bool>
-       </property>
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>150</y>
-         <width>154</width>
-         <height>41</height>
-        </rect>
-       </property>
-       <property name="font">
-        <font>
-         <family>MS Shell Dlg 2</family>
-         <pointsize>14</pointsize>
-         <bold>true</bold>
-        </font>
-       </property>
-       <property name="styleSheet">
-        <string notr="true">border: 7px;
-border-radius: 7px;
-background-color:rgb(0, 0, 0);
-color:rgb(230,230,230);</string>
-       </property>
-       <property name="text">
-        <string>SHOT DIST</string>
-       </property>
-       <property name="textFormat">
-        <enum>Qt::AutoText</enum>
-       </property>
-       <property name="alignment">
-        <set>Qt::AlignCenter</set>
-       </property>
-      </widget>
-      <widget class="ClickableQLabel" name="qlabel_pose_indicator_2">
+      <widget class="ClickableQLabel" name="qlabel_quest_error_pose_indicator">
        <property name="enabled">
         <bool>true</bool>
        </property>
        <property name="geometry">
         <rect>
          <x>10</x>
-         <y>200</y>
+         <y>250</y>
          <width>154</width>
          <height>41</height>
         </rect>
@@ -325,7 +290,7 @@ border-radius: 7px;
 background-color:rgb(180,180,180);</string>
        </property>
        <property name="text">
-        <string>Robot-Quest</string>
+        <string>ROBOT-QUEST</string>
        </property>
        <property name="textFormat">
         <enum>Qt::AutoText</enum>
@@ -334,16 +299,16 @@ background-color:rgb(180,180,180);</string>
         <set>Qt::AlignCenter</set>
        </property>
       </widget>
-      <widget class="WarningLabel" name="qlabel_questnav_dtap_count_monitor">
+      <widget class="ClickableQLabel" name="qlabel_pose_indicator">
        <property name="enabled">
         <bool>true</bool>
        </property>
        <property name="geometry">
         <rect>
-         <x>11</x>
-         <y>267</y>
-         <width>70</width>
-         <height>28</height>
+         <x>10</x>
+         <y>160</y>
+         <width>154</width>
+         <height>41</height>
         </rect>
        </property>
        <property name="font">
@@ -356,11 +321,10 @@ background-color:rgb(180,180,180);</string>
        <property name="styleSheet">
         <string notr="true">border: 7px;
 border-radius: 7px;
-background-color:rgb(180,180,180);
-</string>
+background-color:rgb(180,180,180);</string>
        </property>
        <property name="text">
-        <string>DT:0</string>
+        <string>ROBOT POSE</string>
        </property>
        <property name="textFormat">
         <enum>Qt::AutoText</enum>
@@ -369,17 +333,38 @@ background-color:rgb(180,180,180);
         <set>Qt::AlignCenter</set>
        </property>
       </widget>
-      <widget class="QLabel" name="label_19">
+      <widget class="ClickableQLabel" name="qlabel_quest_pose_indicator">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
        <property name="geometry">
         <rect>
          <x>10</x>
-         <y>250</y>
-         <width>71</width>
-         <height>16</height>
+         <y>205</y>
+         <width>154</width>
+         <height>41</height>
         </rect>
        </property>
+       <property name="font">
+        <font>
+         <family>Segoe UI</family>
+         <pointsize>12</pointsize>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">border: 7px;
+border-radius: 7px;
+background-color:rgb(180,180,180);</string>
+       </property>
        <property name="text">
-        <string>Double Taps</string>
+        <string>QUEST POSE</string>
+       </property>
+       <property name="textFormat">
+        <enum>Qt::AutoText</enum>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
        </property>
       </widget>
      </widget>
@@ -1008,40 +993,6 @@ background-color:rgb(180,180,180);</string>
         <set>Qt::AlignCenter</set>
        </property>
       </widget>
-      <widget class="ClickableQLabel" name="qlabel_pose_indicator">
-       <property name="enabled">
-        <bool>true</bool>
-       </property>
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>207</y>
-         <width>154</width>
-         <height>41</height>
-        </rect>
-       </property>
-       <property name="font">
-        <font>
-         <family>Segoe UI</family>
-         <pointsize>12</pointsize>
-         <bold>true</bold>
-        </font>
-       </property>
-       <property name="styleSheet">
-        <string notr="true">border: 7px;
-border-radius: 7px;
-background-color:rgb(180,180,180);</string>
-       </property>
-       <property name="text">
-        <string>ROBOT POSE</string>
-       </property>
-       <property name="textFormat">
-        <enum>Qt::AutoText</enum>
-       </property>
-       <property name="alignment">
-        <set>Qt::AlignCenter</set>
-       </property>
-      </widget>
       <widget class="ClickableQLabel" name="qlabel_cam2_target_indicator">
        <property name="enabled">
         <bool>false</bool>
@@ -1178,40 +1129,6 @@ background-color:rgb(180,180,180);</string>
         <set>Qt::AlignCenter</set>
        </property>
       </widget>
-      <widget class="ClickableQLabel" name="qlabel_quest_pose_indicator">
-       <property name="enabled">
-        <bool>true</bool>
-       </property>
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>252</y>
-         <width>154</width>
-         <height>41</height>
-        </rect>
-       </property>
-       <property name="font">
-        <font>
-         <family>Segoe UI</family>
-         <pointsize>12</pointsize>
-         <bold>true</bold>
-        </font>
-       </property>
-       <property name="styleSheet">
-        <string notr="true">border: 7px;
-border-radius: 7px;
-background-color:rgb(180,180,180);</string>
-       </property>
-       <property name="text">
-        <string>QUEST POSE</string>
-       </property>
-       <property name="textFormat">
-        <enum>Qt::AutoText</enum>
-       </property>
-       <property name="alignment">
-        <set>Qt::AlignCenter</set>
-       </property>
-      </widget>
       <widget class="ClickableQLabel" name="qlabel_hsv_target_indicator">
        <property name="enabled">
         <bool>false</bool>
@@ -1244,6 +1161,89 @@ background-color:rgb(180,180,180);</string>
        </property>
        <property name="alignment">
         <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+      <widget class="QLabel" name="qlabel_shot_distance">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>206</y>
+         <width>154</width>
+         <height>43</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <family>MS Shell Dlg 2</family>
+         <pointsize>14</pointsize>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">border: 7px;
+border-radius: 7px;
+background-color:rgb(0, 0, 0);
+color:rgb(230,230,230);</string>
+       </property>
+       <property name="text">
+        <string>SHOT DIST</string>
+       </property>
+       <property name="textFormat">
+        <enum>Qt::AutoText</enum>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+      <widget class="WarningLabel" name="qlabel_questnav_dtap_count_monitor">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>267</y>
+         <width>70</width>
+         <height>28</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <family>Segoe UI</family>
+         <pointsize>12</pointsize>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">border: 7px;
+border-radius: 7px;
+background-color:rgb(180,180,180);
+</string>
+       </property>
+       <property name="text">
+        <string>DT:0</string>
+       </property>
+       <property name="textFormat">
+        <enum>Qt::AutoText</enum>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_19">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>252</y>
+         <width>81</width>
+         <height>16</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Double Taps</string>
        </property>
       </widget>
      </widget>
