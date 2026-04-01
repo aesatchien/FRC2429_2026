@@ -198,18 +198,11 @@ class UIUpdater:
 
         # Update the Quest border to be visible and positioned around the Quest pixmap
         border_widget = self.ui.qlabel_quest_border
-        quest_widget = self.ui.qlabel_quest
         if getattr(config, 'ADD_QUEST_BORDER', False):
-            offset = -2  # 0 exactly matches bounding box. Use -1 or -2 to hug tighter if the PNG has transparent margins.
-            quest_geom = quest_widget.geometry()
-            border_widget.setGeometry(
-                quest_geom.x() - offset,
-                quest_geom.y() - offset,
-                quest_geom.width() + (2 * offset),
-                quest_geom.height() + (2 * offset)
-            )
             if not border_widget.isVisible():
                 border_widget.show()
+            # Pass a slightly larger base_size (e.g. 49 vs 41) so the border draws just outside the quest pixmap
+            self._update_pose_widget(border_widget, self.ui.quest_border_pixmap, self.quest_pose, field_dims, base_size=49)
         elif border_widget.isVisible():
             border_widget.hide()
 
@@ -338,14 +331,14 @@ class UIUpdater:
         theta_pad = sum([1 for t in [0, 100, 10] if abs(rot) < t])
         return f'{label}\n{" " * x_pad}{x:>5.2f}m {y:>4.2f}m {" " * theta_pad}{rot:>4.0f}°'
 
-    def _update_pose_widget(self, widget, pixmap, pose, field_dims):
+    def _update_pose_widget(self, widget, pixmap, pose, field_dims, base_size=41):
         """Updates a QLabel on the field graphic with a rotated pixmap and new position."""
         x, y, rot = pose.X(), pose.Y(), pose.rotation().degrees()
         width, height = field_dims
 
         pixmap_rotated = pixmap.transformed(QtGui.QTransform().rotate(90 - rot), QtCore.Qt.TransformationMode.SmoothTransformation)
         # This formula creates a pulsating effect as the robot rotates
-        new_size = int(41 * (1 + 0.41 * np.abs(np.sin(2 * rot * np.pi / 180.0))))
+        new_size = int(base_size * (1 + 0.41 * np.abs(np.sin(2 * rot * np.pi / 180.0))))
 
         widget.resize(new_size, new_size)
         widget.setPixmap(pixmap_rotated)

@@ -209,9 +209,23 @@ class Ui(QtWidgets.QMainWindow):
         # Create a border widget that will sit behind the Quest pixmap
         self.qlabel_quest_border = QtWidgets.QLabel(self.qgroupbox_field)
         self.qlabel_quest_border.setObjectName("qlabel_quest_border")
-        if getattr(config, 'ADD_QUEST_BORDER', False):
-            # Use rgba to set the color and alpha (transparency). The 4th number is the alpha (0-255).
-            self.qlabel_quest_border.setStyleSheet("border: 2px solid rgba(76, 255, 0, 160); border-radius: 8px;")
+        self.qlabel_quest_border.setScaledContents(True)
+        
+        # Draw a custom rounded border pixmap so it can be mathematically rotated
+        px_size = self.quest_pixmap.size()
+        self.quest_border_pixmap = QtGui.QPixmap(px_size)
+        self.quest_border_pixmap.fill(QtCore.Qt.GlobalColor.transparent)
+        painter = QtGui.QPainter(self.quest_border_pixmap)
+        painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
+        pen = QtGui.QPen(QtGui.QColor(76, 255, 0, 160))
+        pen_width = max(4, px_size.width() // 15)  # Dynamic thickness based on source image
+        pen.setWidth(pen_width)
+        painter.setPen(pen)
+        margin = pen_width // 2
+        radius = px_size.width() // 6  # Rounded corners to match the Quest logo
+        painter.drawRoundedRect(margin, margin, px_size.width() - 2*margin, px_size.height() - 2*margin, radius, radius)
+        painter.end()
+
         self.qlabel_quest_border.hide()
         self.qlabel_quest.raise_()
         self.qlabel_robot.raise_()
