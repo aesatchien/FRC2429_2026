@@ -60,18 +60,18 @@ class Shooter(Subsystem):
                       for motor, config in zip(self.motors, self.configs)]
 
         # initialize states
-        self.shooter_on = False
-        self.indexer_on = False
-        self.hopper_on = False
-        self.roller_on = False
+        self.shooter_on = False  # state of shooter
+        self.indexer_on = False  # state of indexer
+        self.hopper_on = False  # state of hopper
+        self.roller_on = False  # state of roller
         self.current_rpm = 0
         self.current_indexer_rpm = 0
         self.current_hopper_rpm = 0
         self.current_roller_rpm = 0
         self.current_index = 0
-        self.voltage = 0
-        self._init_networktables()
         self.shooting_offset = 0
+
+        self._init_networktables()
 
     def set_shooting_offset(self, value):
         self.shooting_offset = value
@@ -194,6 +194,10 @@ class Shooter(Subsystem):
 
     def get_velocity(self):
         return self.flywheel_encoder.getVelocity()
+
+    def is_at_speed(self) -> bool:
+        """Returns True if the shooter is within tolerance RPM of the target speed."""
+        return abs(self.get_velocity() - self.current_rpm) <= sc.k_shooter_rpm_tolerance
 
     def toggle_shooter(self, rpm):
         if self.shooter_on:

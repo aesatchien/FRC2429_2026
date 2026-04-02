@@ -260,9 +260,11 @@ class ShooterConstants:
     # ROLLER
     k_flywheel_roller_config = SparkFlexConfig()
 
+    # TODO - document all these numbers - are they used?
     k_fire_up_speed = 3800
     k_shooter_test_speed = 4000
     k_shooter_max_speed = 6500
+    k_shooter_rpm_tolerance = 300  # rpm tolerance for when we can allow the shooter to fire
 
     k_test_rpm = 2000
     allowed_shooter_rpms = [0, 60] + [i for i in range(2000, 5601, 50)]+ [5600]

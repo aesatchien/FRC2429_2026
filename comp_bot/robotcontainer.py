@@ -127,7 +127,8 @@ class RobotContainer:
         js.driver_a.onFalse(Intake_Deploy(intake=self.intake, position='down').andThen(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
 
         # start / stop tracking
-        js.driver_rb.onTrue(commands2.InstantCommand(lambda: self.targeting.start_tracking()))
+        js.driver_rb.onTrue(commands2.InstantCommand(lambda: self.targeting.start_tracking())
+                            .andThen(InstantCommand(lambda: self.shooter.set_shooter_rpm(rpm=sc.k_shooter_test_speed))))
         js.driver_rb.onFalse(commands2.InstantCommand(lambda: self.targeting.stop_tracking()))
 
         # D-Pad: Slow, smooth robot-centric alignment (Nudge)

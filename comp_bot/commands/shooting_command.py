@@ -27,12 +27,14 @@ class ShootingCommand(commands2.Command):  # change the name for your command
         self.auto_timeout = auto_timeout
         self.timer = wpilib.Timer()
         self.rpm = rpm
+        self.indexer_started_cycle = -1
 
     def initialize(self) -> None:
         # Called just before each time this Command runs
         # if you wish to add more information to the console logger, change self.extra_log_info
         # self.extra_log_info = "Target=7"  # (for example)
         self.counter = 0
+        self.indexer_started_cycle = -1
         # self.shooter.set_shooter_rpm(sc.k_shooter_test_speed)
         # self.shooter.set_
         # indexer_rpm(sc.k_indexer_rpm)
@@ -59,19 +61,28 @@ class ShootingCommand(commands2.Command):  # change the name for your command
 
         hopper_sign = 1 # WAS agitating with  "if self.counter % 30 < 25 else -1" but we don't need that
 
-        rpm = rpm if self.counter > self.delay_cycles + 25 else rpm + 150  # leo making it faster during spinup
-        self.shooter.set_shooter_rpm(rpm if rpm <= 5600 else sc.k_shooter_max_speed)
+        # Only query the shooter speed once per execute cycle
+        at_speed = self.shooter.is_at_speed()
 
-        if self.counter > self.delay_cycles: # and (not self.shooter.indexer_on or not self.shooter.hopper_on):
+        # This is the jankiest part of the code.  TODO - make this robust
+        # Leo's spinup boost: turn off the 150 RPM boost if we are at speed or past the initial delay window
+        rpm_target = rpm if (at_speed or self.counter > self.delay_cycles + 10) else rpm + 150
+        self.shooter.set_shooter_rpm(rpm_target if rpm_target <= 5600 else sc.k_shooter_max_speed)
+
+        # Latch the start of the feeding sequence
+        if self.indexer_started_cycle < 0 and (at_speed or self.counter > self.delay_cycles):
+            self.indexer_started_cycle = self.counter
+
+        # Sequence the feed mechanisms based on when the indexer started
+        if self.indexer_started_cycle > 0:
             self.shooter.set_indexer_rpm(sc.k_indexer_rpm)
-        if self.counter > self.delay_cycles + 10:  # let the indexer spin up before we start forcing balls in
-            self.shooter.set_hopper_rpm(sc.k_hopper_rpm * hopper_sign)
-
+            # Let the indexer spin up for 10 cycles before starting the hopper
+            # TODO - see if this is part of the short initial short ball problem!
+            if self.counter > self.indexer_started_cycle + 10:
+                self.shooter.set_hopper_rpm(sc.k_hopper_rpm * hopper_sign)
         else:
             pass
-            #self.shooter.stop_indexer()
-            #self.shooter.stop_hopper()
-        # runs 50x per second, so be careful about messages and timing
+
 
     def isFinished(self) -> bool:
         # True: fire once and end; False: run forever until interrupted; logic has it end when code returns True
@@ -83,3 +94,6 @@ class ShootingCommand(commands2.Command):  # change the name for your command
     def end(self, interrupted: bool) -> None:
         # put your safe cleanup code here - turn off motors, set LEDs, etc
         self.shooter.stop_shooter()
+        # there is a problem with stopping here - we may want to keep shooting right away, so kill that delay
+        if self.targeting.get_tracking_state() and wpilib.RobotState.isTeleop():
+            self.shooter.set_shooter_rpm(rpm=sc.k_shooter_test_speed)
