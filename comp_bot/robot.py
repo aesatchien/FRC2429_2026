@@ -115,7 +115,7 @@ class MyRobot(commands2.TimedCommandRobot):
 
         # Auto-resync QuestNav if it drops during teleop (e.g., from a passthrough bump)
         # TODO - this really should only be enabled if the quest went into passthru and recovered - should be a callback?
-        try_resync = (constants.k_allow_quest_auto_resync and  # constants say it's ok to try
+        try_resync = (constants.QuestConstants.k_allow_quest_auto_resync and  # constants say it's ok to try
                       self.container.questnav.use_quest and   # quest has not been disabled on the dashboard
                       not self.container.questnav.quest_has_synched  # we're not already synced
                       and self.container.questnav.is_quest_connected())  # we're actually connected

@@ -1247,6 +1247,32 @@ background-color:rgb(180,180,180);
         <string>Double Taps</string>
        </property>
       </widget>
+      <widget class="QPushButton" name="qt_button_quest_test_dt">
+       <property name="geometry">
+        <rect>
+         <x>87</x>
+         <y>267</y>
+         <width>71</width>
+         <height>28</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <family>Segoe UI</family>
+         <pointsize>12</pointsize>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">border: 7px;
+border-radius: 7px;
+background-color:rgb(180,180,180);
+</string>
+       </property>
+       <property name="text">
+        <string>TEST DT</string>
+       </property>
+      </widget>
      </widget>
      <widget class="QGroupBox" name="groupBox_3">
       <property name="geometry">

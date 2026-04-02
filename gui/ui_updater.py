@@ -160,6 +160,18 @@ class UIUpdater:
                 print(f"[{current_time:.1f}] QuestNav passthru resolved.", flush=True)
                 self.dtap_retries = 0
 
+    def _test_questnav_dtap(self):
+        """Fires an ADB command to simulate/test Quest passthrough by returning to the Home screen."""
+        current_time = self.get_elapsed_time()
+        print(f"[{current_time:.1f}] Testing QuestNav DTAP (Home Intent)...", flush=True)
+        
+        try:
+            adb_path = os.path.join(os.path.dirname(__file__), "adb", "adb.exe")
+            cmd = [adb_path, "-s", config.QUESTNAV_ADB_ADDRESS, "shell", "am", "start", "-a", "android.intent.action.MAIN", "-c", "android.intent.category.HOME"]
+            subprocess.Popen(cmd)
+        except Exception as e:
+            print(f"[{current_time:.1f}] Failed to execute QuestNav DTAP test: {e}", flush=True)
+
     def _update_pose_and_field(self):
         """Updates the robot and quest pose on the field graphic."""
         drive_props = self.ui.widget_dict['drive_pose']

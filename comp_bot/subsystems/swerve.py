@@ -357,7 +357,8 @@ class Swerve (Subsystem):
                 quest_fpga_timestamp = ts - max(0.0, latency_sec)
 
                 if self.counter % 500 == 0:
-                    print(f"Attempting to update odometry with quest: {quest_pose}, {quest_fpga_timestamp:.3f}, latency {latency_sec*1000:.1f}ms")
+                    pass
+                    # print(f"Attempting to update odometry with quest: {quest_pose}, {quest_fpga_timestamp:.3f}, latency {latency_sec*1000:.1f}ms")
                 self.pose_estimator.addVisionMeasurement(quest_pose, quest_fpga_timestamp, constants.DrivetrainConstants.k_pose_stdevs_large)
 
         
@@ -398,7 +399,8 @@ class Swerve (Subsystem):
                         # TODO - adjust stdevs based on distance to tag.  Likely just multiply by distance, which will always be 1-5 meters
                         sdevs = constants.DrivetrainConstants.k_pose_stdevs_large if DriverStation.isEnabled() else constants.DrivetrainConstants.k_pose_stdevs_disabled
                         if self.counter % 500 == 0:
-                            print(f"Attempting to update odometry with tags: {tag_pose}, {tag_fpga_timestamp:.3f}, latency {tag_latency_sec*1000}ms ")
+                            pass
+                            # print(f"Attempting to update odometry with tags: {tag_pose}, {tag_fpga_timestamp:.3f}, latency {tag_latency_sec*1000}ms ")
                         self.pose_estimator.addVisionMeasurement(tag_pose, tag_fpga_timestamp, sdevs)
 
     def _update_odometry(self, ts):

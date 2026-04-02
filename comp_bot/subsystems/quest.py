@@ -10,7 +10,7 @@ from helpers.questnav.questnav import QuestNav as Metaquestnav
 from wpilib import DataLogManager
 
 import constants
-from constants import FieldConstants as fc
+from constants import FieldConstants as fc, QuestConstants as qc
 
 # TODO - clean and speed this up
 class Questnav(SubsystemBase):
@@ -50,9 +50,11 @@ class Questnav(SubsystemBase):
         self.was_connected = False
         self.disconnected_count = 0  # count how many frames we've been disconnected to avoid ping-ponging in and out of sync
         self.dtap_count = 0  # count how many times we've double-tapped to track the issue in sim and real
-        self.k_max_disconnected_count = 20  # lost iterations before we say we are disconnected 0.4 seconds at 50Hz
+        self.k_max_disconnected_count = qc.k_max_disconnected_count  # lost iterations before we say we are disconnected
         self.expecting_jump = False
         self.error_pose = Pose2d(0,0,0)  # difference between robot and quest
+        self.passthru_start_time = 0.0
+        self.synced_before_passthru = False
 
         # Simulation override: True = use random walk sim, False = use real headset in sim
         self.mock_questnav = wpilib.RobotBase.isSimulation() and getattr(constants.SimConstants, 'k_mock_questnav', True)
@@ -191,7 +193,7 @@ class Questnav(SubsystemBase):
         # handle the case where we disconnect but the pose is still accurate when we come back up
         self.quest_has_synched = True
         self.quest_synched_pub.set(self.quest_has_synched)
-        print(f'Resynched synched quest - no change in pose at {Timer.getFPGATimestamp():.1f}s')
+        print(f'Soft-resynced quest at {Timer.getFPGATimestamp():.1f}s')
 
     def quest_unsync_odometry(self) -> None:
         self.quest_has_synched = False  # let the robot know we have been synched so we don't automatically do it again
@@ -249,7 +251,7 @@ class Questnav(SubsystemBase):
         if not is_connected:
             self.disconnected_count += 1
             if self.disconnected_count > self.k_max_disconnected_count and self.was_connected:
-                print(f"*** QuestNav connection dropped for >0.5s at {wpilib.Timer.getFPGATimestamp():.1f}s. Forcing unsync. ***")
+                print(f"*** QuestNav connection dropped for  {self.disconnected_count / 50:.2f}s at {wpilib.Timer.getFPGATimestamp():.1f}s. Forcing unsync. ***")
                 self.quest_unsync_odometry()
                 self.was_connected = False
         else:
@@ -271,9 +273,14 @@ class Questnav(SubsystemBase):
                     self.quest_pose_timestamp = frame_last.data_timestamp
                     
                     if not self.was_tracking:
-                        print(f"Quest tracking restored.")
+                        print(f"Quest tracking restored... ", end="")
                         # Defensively clear the flag when tracking successfully resumes
                         self.quest_passthrough_entry.set(False)
+                        
+                        time_in_passthru = wpilib.Timer.getFPGATimestamp() - self.passthru_start_time
+                        if time_in_passthru < constants.QuestConstants.k_max_resync_time and self.synced_before_passthru:
+                            print(f"Quest recovered in {time_in_passthru:.2f}s. Soft resyncing. Robot pose delta of {self.error_pose.x:.2f}, {self.error_pose.y:.2f}, {self.error_pose.rotation().degrees():.1f}°.")
+                            self.quest_soft_resync()
                         
                     self.expecting_jump = False
 
@@ -288,6 +295,8 @@ class Questnav(SubsystemBase):
                 self.missed_frame_count += 1
                 if self.missed_frame_count > self.k_max_missed_frames and self.was_tracking:
                     self.was_tracking = False
+                    self.passthru_start_time = wpilib.Timer.getFPGATimestamp()
+                    self.synced_before_passthru = self.quest_has_synched
                     # Trigger the external ADB script
                     self.quest_passthrough_entry.set(True)
                     self.dtap_count += 1

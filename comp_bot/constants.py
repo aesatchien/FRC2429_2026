@@ -54,7 +54,6 @@ mech_prefix = r'/Mech' # SPECIAL CASE: the SmartDashboard.putData auto prepends 
 k_swerve_debugging_messages = True
 # multiple attempts at tags this year - TODO - use l/r or up/down tilted cameras again, gives better data
 k_use_quest_odometry = True
-k_allow_quest_auto_resync = True
 k_use_photontags = False  # take tags from photonvision camera
 k_use_CJH_tags = True  # take tags from the pis
 k_allow_tag_averaging = True
@@ -137,6 +136,11 @@ class VisionConstants:
 class QuestConstants:
     k_counter_offset = next(_counter)
     quest_to_robot = Transform2d(inchesToMeters(-14), inchesToMeters(-8), Rotation2d().fromDegrees(270))
+
+    k_max_disconnected_count = 10  # number of cycles of lost quest before we call passthru
+    k_allow_quest_auto_resync = True  # teleop tries to resync if certain conditions are met
+    k_max_resync_time = 1.5  # if we have not fixed the dtap in this time, don't soft resync
+    # k_max_passthru_distance = 2.0  # meters we can go in passthru before we
 
 
 class LedConstants:

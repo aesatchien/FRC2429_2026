@@ -273,6 +273,7 @@ class Ui(QtWidgets.QMainWindow):
         self.qt_button_reconnect.clicked.connect(self.nt_manager.reconnect)
         self.qt_button_camera_enable.clicked.connect(self.camera_manager.toggle_camera_thread)
         self.qt_button_ping_quest.clicked.connect(self.ping_quest)
+        self.qt_button_quest_test_dt.clicked.connect(self.ui_updater._test_questnav_dtap)
 
         self.qt_tree_widget_nt.hide()
 
