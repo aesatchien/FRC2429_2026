@@ -80,6 +80,7 @@ class Shooter(Subsystem):
         self.inst = ntcore.NetworkTableInstance.getDefault()
         self.nt_prefix = "/SmartDashboard/Shooter"  # TODO = move to constants
         self.shooter_on_pub = self.inst.getBooleanTopic(f"{self.nt_prefix}/shooter_on").publish()
+        self.shooter_at_speed_pub = self.inst.getBooleanTopic(f"{self.nt_prefix}/shooter_at_speed").publish()
         self.shooter_rpm_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/shooter_rpm").publish()
         self.measured_shooter_rpm_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/measured_shooter_rpm").publish()
         self.indexer_on_pub = self.inst.getBooleanTopic(f"{self.nt_prefix}/indexer_on").publish()
@@ -100,6 +101,7 @@ class Shooter(Subsystem):
         self.roller_on_pub.set(self.roller_on)
         self.roller_rpm_pub.set(self.current_roller_rpm)
         self.measured_shooter_rpm_pub.set(self.flywheel_encoder.getVelocity())
+        self.shooter_at_speed_pub.set(self.is_at_speed())  # don't like how there are two calls to getVelocity here
 
 
     def stop_shooter(self):
@@ -197,7 +199,7 @@ class Shooter(Subsystem):
 
     def is_at_speed(self) -> bool:
         """Returns True if the shooter is within tolerance RPM of the target speed."""
-        return abs(self.get_velocity() - self.current_rpm) <= sc.k_shooter_rpm_tolerance
+        return self.current_rpm > 0 and abs(self.get_velocity() - self.current_rpm) <= sc.k_shooter_rpm_tolerance
 
     def toggle_shooter(self, rpm):
         if self.shooter_on:
