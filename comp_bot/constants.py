@@ -66,6 +66,7 @@ class FieldConstants:
     # this changes year by year.  TODO: need to find it by software
     k_field_length = 16.54  # 2026 Rebuilt
     k_field_width = 8.07  # 2026 Rebuilt
+    k_robot_width = 0.84  # meters, with bumpers
 
 
 class CameraConstants:

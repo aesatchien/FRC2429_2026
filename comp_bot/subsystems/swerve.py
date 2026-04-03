@@ -165,6 +165,13 @@ class Swerve (Subsystem):
     def resetOdometry(self, pose: Pose2d) -> None:
         self.pose_estimator.resetPosition(Rotation2d.fromDegrees(self.get_gyro_angle()), self.get_module_positions(), pose)
 
+    def validate_odometry(self, pose: Pose2d) -> bool:
+        # check if the pose is physically possible for the robot center to be at
+        hw = constants.FieldConstants.k_robot_width / 2.0
+        if not (hw <= pose.X() <= constants.FieldConstants.k_field_length - hw): return False
+        if not (hw <= pose.Y() <= constants.FieldConstants.k_field_width - hw): return False
+        return True
+
     def drive(self, xSpeed: float, ySpeed: float, rot: float, fieldRelative: bool, rate_limited: bool, keep_angle:bool=True) -> None:
         """Method to drive the robot using joystick info.
         :param xSpeed:        Speed of the robot in the x direction (forward).
@@ -347,19 +354,21 @@ class Swerve (Subsystem):
             quest_pose = self.questnav.quest_pose # Quest subsystem now exposes the robot-relative pose directly
             delta_pos = current_pose.translation().distance(quest_pose.translation())
             if delta_pos < 4 and quest_accepted:  # if the quest is way off, we don't want to update from it
-                # Calculate the packet latency in its native time domain
-                if self.questnav.mock_questnav:
-                    latency_sec = (ntcore._now() / 1e6) - self.questnav.quest_pose_timestamp
-                else:
-                    latency_sec = time.time() - self.questnav.quest_pose_timestamp
-                
-                # Apply that latency to the FPGA Match Time (protect against negative clock jitter)
-                quest_fpga_timestamp = ts - max(0.0, latency_sec)
+                if self.validate_odometry(quest_pose):
+                    # Calculate the packet latency in its native time domain
+                    if self.questnav.mock_questnav:
+                        latency_sec = (ntcore._now() / 1e6) - self.questnav.quest_pose_timestamp
+                    else:
+                        latency_sec = time.time() - self.questnav.quest_pose_timestamp
+                    
+                    # Apply that latency to the FPGA Match Time (protect against negative clock jitter)
+                    quest_fpga_timestamp = ts - max(0.0, latency_sec)
 
-                if self.counter % 500 == 0:
-                    pass
-                    # print(f"Attempting to update odometry with quest: {quest_pose}, {quest_fpga_timestamp:.3f}, latency {latency_sec*1000:.1f}ms")
-                self.pose_estimator.addVisionMeasurement(quest_pose, quest_fpga_timestamp, constants.DrivetrainConstants.k_pose_stdevs_large)
+                    if self.counter % 500 == 0:
+                        pass
+                    self.pose_estimator.addVisionMeasurement(quest_pose, quest_fpga_timestamp, constants.DrivetrainConstants.k_pose_stdevs_large)
+                elif self.counter % 100 == 0:
+                    print(f"*** QuestNav update REJECTED: {quest_pose.X():.2f}, {quest_pose.Y():.2f} is outside field limits! ***")
 
         
         # AprilTag Logic
@@ -389,23 +398,33 @@ class Swerve (Subsystem):
                     use_tag = False if self.gyro.getRate() > 90 else use_tag  # no more than n degrees per second turning if using a tag
 
                     if use_tag:
-                        tag_latency_sec = max(0.0, latency_us / 1_000_000.0)
-                        tag_fpga_timestamp = ts - tag_latency_sec
+                        if self.validate_odometry(tag_pose):
+                            tag_latency_sec = max(0.0, latency_us / 1_000_000.0)
+                            tag_fpga_timestamp = ts - tag_latency_sec
 
-                        # Standard deviations tell the pose estimator how much to "trust" this measurement.
-                        # Smaller numbers = more trust. We trust vision more when disabled and stationary.
-                        # Units are (x_meters, y_meters, rotation_radians).
-                        tag_distance = atu.get_tag_distance(tag_id, current_pose)  # also available from NT
-                        # TODO - adjust stdevs based on distance to tag.  Likely just multiply by distance, which will always be 1-5 meters
-                        sdevs = constants.DrivetrainConstants.k_pose_stdevs_large if DriverStation.isEnabled() else constants.DrivetrainConstants.k_pose_stdevs_disabled
-                        if self.counter % 500 == 0:
-                            pass
-                            # print(f"Attempting to update odometry with tags: {tag_pose}, {tag_fpga_timestamp:.3f}, latency {tag_latency_sec*1000}ms ")
-                        self.pose_estimator.addVisionMeasurement(tag_pose, tag_fpga_timestamp, sdevs)
+                            # Standard deviations tell the pose estimator how much to "trust" this measurement.
+                            # Smaller numbers = more trust. We trust vision more when disabled and stationary.
+                            # Units are (x_meters, y_meters, rotation_radians).
+                            tag_distance = atu.get_tag_distance(tag_id, current_pose)  # also available from NT
+                            sdevs = constants.DrivetrainConstants.k_pose_stdevs_large if DriverStation.isEnabled() else constants.DrivetrainConstants.k_pose_stdevs_disabled
+                            
+                            self.pose_estimator.addVisionMeasurement(tag_pose, tag_fpga_timestamp, sdevs)
+                        elif self.counter % 100 == 0:
+                            print(f"*** AprilTag {tag_id} update REJECTED: {tag_pose.X():.2f}, {tag_pose.Y():.2f} is outside field limits! ***")
 
     def _update_odometry(self, ts):
         if RobotBase.isReal():
             self.pose_estimator.updateWithTime(ts, Rotation2d.fromDegrees(self.get_gyro_angle()), self.get_module_positions(),)
+            
+        # Clamp the pose estimator to the physical field boundaries to prevent wheel-slip creep
+        pose = self.get_pose()
+        hw = constants.FieldConstants.k_robot_width / 2.0
+        clamped_x = max(hw, min(constants.FieldConstants.k_field_length - hw, pose.X()))
+        clamped_y = max(hw, min(constants.FieldConstants.k_field_width - hw, pose.Y()))
+        
+        if clamped_x != pose.X() or clamped_y != pose.Y():
+            clamped_pose = Pose2d(clamped_x, clamped_y, pose.rotation())
+            self.pose_estimator.resetPosition(Rotation2d.fromDegrees(self.get_gyro_angle()), self.get_module_positions(), clamped_pose)
 
     def _update_dashboard(self, pose, ts):
 
