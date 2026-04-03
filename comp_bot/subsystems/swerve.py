@@ -425,6 +425,8 @@ class Swerve (Subsystem):
         if clamped_x != pose.X() or clamped_y != pose.Y():
             clamped_pose = Pose2d(clamped_x, clamped_y, pose.rotation())
             self.pose_estimator.resetPosition(Rotation2d.fromDegrees(self.get_gyro_angle()), self.get_module_positions(), clamped_pose)
+            if self.counter % 25 == 0:
+                print(f"*** Odometry clamped to field bounds at {ts:.2f}s. Attempted pose: X={pose.X():.2f}, Y={pose.Y():.2f} ***")
 
     def _update_dashboard(self, pose, ts):
 
