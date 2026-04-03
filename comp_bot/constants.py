@@ -1,4 +1,4 @@
-# constants for the 2024 robot
+# constants for the 2026 robot
 from itertools import count
 import math
 import wpilib
@@ -338,7 +338,6 @@ class ShooterConstants:
 
 class ClimberConstants:
     k_counter_offset = next(_counter)
-    k_CANID_elevator = 1  # reserve 2
 
     k_distances = { #IN INCHES
         "minimum_height": 10,  # lowest hook can get
@@ -347,16 +346,14 @@ class ClimberConstants:
         "upper_bar": 18  # relative
     }
 
-    k_control_type = "max_motion"
-
     k_climber_config = SparkMaxConfig()
     k_climber_configs = [k_climber_config]
     k_test_rpm = 20  # pi * diameter roller / 60  to get inches per second
     k_fastest_rpm = 60
     k_CANID_motor = 1
     k_number_of_encoder_ticks_per_motor_rotation = 42  # number of encoder ticks per wheel rotation, either 42 or 7000
-    k_position_conversion_factor = .2  # TODO number of inches per encoder tick, this is wrong right now IDK what it is if their is a gear box etc
-    # k_position_conversion_factor = (k_wheel_diameter_in * math.pi * k_meter_per_inch / k_gear_ratio) ?
+    k_position_conversion_factor = 1
+
 
 class AutoConstants:
     k_intake_raise_delay = 1.5  # how long to wait after starting the shooting cycle before raising the intake
