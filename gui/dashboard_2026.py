@@ -150,6 +150,31 @@ class QuestPingWorker(QtCore.QObject):
         finally:
             self.finished.emit()
 
+class PiPingWorker(QtCore.QObject):
+    """
+    A worker that pings a list of Pi IPs to check hardware status.
+    """
+    finished = QtCore.pyqtSignal()
+    result_ready = QtCore.pyqtSignal(str, bool)  # IP, is_alive
+
+    def __init__(self, ips):
+        super().__init__()
+        self.ips = ips
+
+    @QtCore.pyqtSlot()
+    def run(self):
+        creationflags = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
+        for ip in self.ips:
+            ping_cmd = ['ping', '-n', '1', '-w', '500', ip] if os.name == 'nt' else ['ping', '-c', '1', '-W', '1', ip]
+            try:
+                res = subprocess.run(ping_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=creationflags)
+                output = res.stdout.lower()
+                is_alive = res.returncode == 0 and b"unreachable" not in output and b"100% loss" not in output
+                self.result_ready.emit(ip, is_alive)
+            except Exception:
+                self.result_ready.emit(ip, False)
+        self.finished.emit()
+
 #print(f'Initializing GUI ...', flush=True)
 
 class Ui(QtWidgets.QMainWindow):
@@ -177,6 +202,10 @@ class Ui(QtWidgets.QMainWindow):
 
         self.ping_thread = None
         self.ping_worker = None
+        self.pi_ping_thread = None
+        self.pi_ping_worker = None
+
+        self.pi_states = {}  # Tracks IP -> bool for connection edge detection
 
         # camera stuff - probably not needed
         self.worker = None
@@ -288,6 +317,11 @@ class Ui(QtWidgets.QMainWindow):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.ui_updater.update_widgets)
         self.timer.start(self.refresh_time)
+
+        self.pi_ping_timer = QTimer(self)
+        self.pi_ping_timer.timeout.connect(self.start_pi_ping)
+        self.pi_ping_timer.start(10000)  # Fire every 10 seconds
+        self.start_pi_ping()  # Trigger initial check immediately
 
     def build_widget_dict(self):
         """Builds the runtime widget dictionary from the static configuration."""
@@ -444,6 +478,56 @@ class Ui(QtWidgets.QMainWindow):
         
         # 4. Start the thread
         self.ping_thread.start()
+
+    def start_pi_ping(self):
+        """Fires off a background worker to ping all unique IPs in the camera config."""
+        if self.pi_ping_thread and self.pi_ping_thread.isRunning():
+            return  # Skip if the last scan is still somehow running
+            
+        # Extract unique IPs
+        ips = set(props['IP'] for props in self.camera_dict.values() if 'IP' in props)
+        if not ips:
+            return
+
+        self.pi_ping_thread = QtCore.QThread()
+        self.pi_ping_worker = PiPingWorker(list(ips))
+        self.pi_ping_worker.moveToThread(self.pi_ping_thread)
+        
+        self.pi_ping_worker.result_ready.connect(self.handle_pi_ping_result)
+        self.pi_ping_thread.started.connect(self.pi_ping_worker.run)
+        self.pi_ping_worker.finished.connect(self.pi_ping_thread.quit)
+        
+        self.pi_ping_thread.start()
+
+    def handle_pi_ping_result(self, ip, is_alive):
+        """Processes the ping results and cross-references with camera script status."""
+        prev_state = self.pi_states.get(ip)
+        self.pi_states[ip] = is_alive
+        elapsed = self.ui_updater.get_elapsed_time()
+        
+        if prev_state is None:
+            status = "ONLINE" if is_alive else "OFFLINE"
+            self.qt_text_status.appendPlainText(f"[{elapsed:.1f}] Pi at {ip} is {status} (Initial Check).")
+        elif is_alive and not prev_state:
+            self.qt_text_status.appendPlainText(f"[{elapsed:.1f}] Pi at {ip} RECONNECTED.")
+        elif not is_alive and prev_state:
+            self.qt_text_status.appendPlainText(f"[{elapsed:.1f}] WARNING: Pi at {ip} DROPPED CONNECTION!")
+            
+        # If Pi is responding, cross-check to see if the vision script crashed
+        if is_alive and elapsed > 5.0:  # Wait 5 seconds after GUI boot before issuing crash warnings
+            dead_cams = [props.get('NICKNAME', name) for name, props in self.camera_dict.items() 
+                         if props.get('IP') == ip and 'IS_ALIVE' in props and not props['IS_ALIVE']]
+            
+            warn_key = f"pi_{ip}_cam_warn"
+            if dead_cams:
+                if not getattr(self, warn_key, False):
+                    cams_str = ", ".join(dead_cams)
+                    self.qt_text_status.appendPlainText(f"[{elapsed:.1f}] CRITICAL: Pi {ip} responding, but cameras DEAD ({cams_str})!")
+                    setattr(self, warn_key, True)
+            else:
+                if getattr(self, warn_key, False):
+                    self.qt_text_status.appendPlainText(f"[{elapsed:.1f}] Cameras on Pi {ip} have recovered.")
+                    setattr(self, warn_key, False)
 
     def initialize_widgets(self):
         """Connects widget signals and populates the camera combobox."""

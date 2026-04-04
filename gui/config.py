@@ -101,11 +101,11 @@ COMMAND_LIST = ['IntakeStow', 'IntakeDeploy', 'IntakeShoot',
 # todo - somehow make the camera names all update from a config file, but that means ui and robot code need to know
 DEFAULT_CAMERA = 'ardu_right'  # used in camera worker as the one to go to first - can do switching logic there
 CAMERA_BASE_CONFIG = {
-    'arducam_right': {'URL': 'http://10.24.29.12:1186/stream.mjpg',
+    'arducam_right': {'URL': 'http://10.24.29.12:1186/stream.mjpg', 'IP': '10.24.29.12',  # use ip to ping hardware heartbeat
                    'BASE_TOPIC': 'ArducamRight',
                      'NICKNAME': 'ARDU RIGHT',
                       'INDICATOR_INDEX': 0},
-    'arducam_back': {'URL': 'http://10.24.29.13:1186/stream.mjpg',
+    'arducam_back': {'URL': 'http://10.24.29.13:1186/stream.mjpg', 'IP': '10.24.29.13',
                    'BASE_TOPIC': 'ArducamBack',
                     'NICKNAME': 'ARDU BACK',
                     'INDICATOR_INDEX': 1},
@@ -185,7 +185,7 @@ WIDGET_CONFIG = {
     'qlabel_active_hub_indicator': {'widget_name': 'qlabel_active_hub_indicator', 'nt_topic': '/FMSInfo/GameSpecificMessage', 'update_style': 'active_hub'},
 
     # LEFTOVER TO SORT FROM previous years - legacy but infrastructure is there
-    'qlabel_position_indicator': {'widget_name': 'qlabel_position_indicator', 'nt_topic': '/SmartDashboard/_target', 'update_style': 'position'},
+    # 'qlabel_position_indicator': {'widget_name': 'qlabel_position_indicator', 'nt_topic': '/SmartDashboard/_target', 'update_style': 'position'},
     'hub_targets': {'widget_name': None, 'nt_topic': '/arducam_high//orange/targets', 'update_style': 'hub'},
     'hub_rotation': {'widget_name': None, 'nt_topic': '/arducam_high//orange/rotation', 'update_style': 'hub'},
     'hub_distance': {'widget_name': None, 'nt_topic': '/arducam_high//orange/distance', 'update_style': 'hub'},
