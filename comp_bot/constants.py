@@ -95,7 +95,7 @@ class CameraConstants:
     k_sim_cameras = {
         'logi_front_hsv': {'topic_name': 'LogitechFront', 'type': 'hsv', 'label': 'yellow', 'rotation': 0, 'fov': fov},
         'arducam_right': {'topic_name': 'ArducamRight', 'type': 'tags', 'rotation': 0, 'fov': fov},
-        'logi_left': {'topic_name': 'LogitechLeft', 'type': 'tags', 'rotation': 90, 'fov': fov},
+        'arducam_back': {'topic_name': 'ArducamBack', 'type': 'tags', 'rotation': 180, 'fov': fov},
         'logi_left_hsv': {'topic_name': 'LogitechLeft', 'type': 'hsv', 'label': 'yellow', 'rotation': 90, 'fov': fov},
     }
 

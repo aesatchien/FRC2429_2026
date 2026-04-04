@@ -270,7 +270,8 @@ class UIUpdater:
         allowed_delay_us = 2500000
         now = ntcore._now()
 
-        for cam_props in self.ui.camera_dict.values():
+        # Use .items() so we get the cam_key to look up the target indicator
+        for cam_key, cam_props in self.ui.camera_dict.items():
             if 'FRAMECOUNT_SUB' in cam_props:
                 # Check how long ago the camera updated its _frames topic
                 is_alive = (now - cam_props['FRAMECOUNT_SUB'].getAtomic().time) < allowed_delay_us
@@ -287,6 +288,20 @@ class UIUpdater:
                     atomic_conn = cam_props['CONNECTIONS_SUB'].getAtomic()
                     if atomic_conn.time != 0:
                         connections = int(atomic_conn.value)
+
+                # --- DYNAMIC TARGET BORDER ---
+                # Inject custom style_on and style_off into the target indicator's dictionary
+                target_widget_key = f"{cam_key}_target_indicator"
+                target_props = self.ui.widget_dict.get(target_widget_key)
+                
+                if target_props:
+                    border_color = "rgb(80, 235, 0)" if is_alive else "rgb(180, 180, 180)"
+                    target_props['style_on'] = f"border: 3px solid {border_color}; border-radius: 7px; background-color:rgb(80, 235, 0); color:rgb(0, 0, 0);"
+                    target_props['style_off'] = f"border: 3px solid {border_color}; border-radius: 7px; background-color:rgb(220, 0, 0); color:rgb(200, 200, 200);"
+                    
+                    if is_alive != cam_props.get('last_target_border_alive'):
+                        cam_props['last_target_border_alive'] = is_alive
+                        target_props['last_value'] = None  # Force _update_indicator to redraw immediately
 
                 # Only update widget if visual state changed
                 if is_alive == cam_props.get('last_is_alive') and connections == cam_props.get('last_connections'):
