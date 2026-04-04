@@ -9,6 +9,7 @@ from rev import SparkBase, SparkLowLevel  # trying to save some typing
 
 import constants
 from constants import IntakeConstants as ic
+from helpers.utilities import _get_motor_state, compare_motors
 
 
 class Intake(Subsystem):
@@ -199,6 +200,27 @@ class Intake(Subsystem):
 
         self.update_nt()
         return position_to_go_to == "down"
+
+    def set_brake_mode(self, brake_on=True):
+        
+        idle_mode = rev.SparkBaseConfig.IdleMode.kBrake if brake_on else rev.SparkBaseConfig.IdleMode.kCoast
+
+        # Non-persistent - just change  things temporarily - these settings leave the current config untouched
+        no_resets = rev.ResetMode.kNoResetSafeParameters
+        no_persists = rev.PersistMode.kNoPersistParameters
+
+        # make a temporary config just to set break or coast
+        tmp_config = rev.SparkBaseConfig().setIdleMode(idle_mode)
+        print(f'Temp config on intake: {tmp_config.Presets}')  # just wondering what is in there; delete after testing
+
+        state_before = _get_motor_state(self.deploy_motor)
+        rev_errors = self.deploy_motor.configure(tmp_config, no_resets, no_persists)
+        state_after = _get_motor_state(self.deploy_motor)
+        # If you are paranoid you can see each state - only the idle mode changes
+        # compare_motors(state_before, state_after, name_a='INTAKE BEFORE', name_b='INTAKE AFTER')
+
+        # report our results - but not the best way since there is no timestamp here
+        print(f'Setting intake to idle mode {idle_mode}: {rev_errors} at {wpilib.Timer.getFPGATimestamp():.1f}s')
 
 
     def periodic(self) -> None:

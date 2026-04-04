@@ -62,16 +62,16 @@ def _format_value(value):
         return f"{value:.5f}".rstrip('0').rstrip('.')
     return str(value)
 
-def compare_motors(motor_a, motor_b, name_a="Motor A", name_b="Motor B"):
+def compare_motors(obj_a, obj_b, name_a="Motor A", name_b="Motor B"):
     """
-    Compares two REV Spark motors using the 2025 configAccessor API.
-    All numeric values are limited to 6 significant digits.
+    Compares two REV Spark motors or motor states using the 2025 configAccessor API.
+    You can pass either the motor objects themselves, or pre-computed state dictionaries.
     """
 
     # 1. Collect Data
     try:
-        data_a = _get_motor_state(motor_a)
-        data_b = _get_motor_state(motor_b)
+        data_a = obj_a if isinstance(obj_a, dict) else _get_motor_state(obj_a)
+        data_b = obj_b if isinstance(obj_b, dict) else _get_motor_state(obj_b)
     except Exception as e:
         print(f"Error: 2025 API Access Failed. {e}")
         return

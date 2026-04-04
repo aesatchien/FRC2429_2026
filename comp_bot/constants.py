@@ -127,7 +127,6 @@ class VisionConstants:
 
     k_counter_offset = next(_counter)
     k_nt_debugging = False  # print extra values to NT for debugging
-    k_pi_names = ["top_pi"]
 
     k_valid_tags = list(range(1, 23))
 
@@ -178,9 +177,11 @@ class IntakeConstants:
     k_CANID_intake_left_leader = 4  # robot right, does not need inverted
     k_CANID_intake_right_follower = 5  # robot left, needs follower inverted
 
-
+    # Deploy has always had the later stages 18 -> 50,  sprockets are 16 -> 48.  Initial stage changed three times
+    # First was 7->38 but it was not constrained well, then was 12->34 bit was too weak (needed 60A)
+    # Current incarnation has a 1/5x maxplanetary followed by a 20->26
     # Deploy gear box is [was 7->38] now 12->34, and 18 -> 50,  sprockets are 16 -> 48
-    gear_ratio = 12/34 * 18/50 * 16/48 # one motor turn goes .042 on the outer axle for a stepdown of ~23
+    gear_ratio = 1/5 * 20/26 * 18/50 * 16/48  # one motor turn goes .018 turns on the outer axle for a stepdown of ~54
     deploy_degrees_per_motor_rotation = 360 * gear_ratio
     k_deploy_config = SparkFlexConfig()
     k_deploy_config.encoder.positionConversionFactor(deploy_degrees_per_motor_rotation)  # about 8 degrees per turn

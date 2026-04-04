@@ -112,6 +112,7 @@ class RobotContainer:
         self.bind_codriver_buttons()
 
         # --- Drive & Navigation ---
+
         js.driver_y.onTrue(ResetFieldCentric(container=self, swerve=self.swerve, angle=0).ignoringDisable(True))
 
         # --- The current shooting cycle
@@ -165,17 +166,7 @@ class RobotContainer:
         js.driver_b.onTrue(commands2.InstantCommand(lambda: self.shooter.set_shooter_rpm(sc.k_fire_up_speed)))
 
         js.driver_start.whileTrue(Intake_Deploy(self.intake, "down").andThen(Intake_Set_RPM(self.intake, -constants.IntakeConstants.k_intake_default_rpm).alongWith(InstantCommand(lambda: self.shooter.set_hopper_rpm(-constants.ShooterConstants.k_hopper_rpm)))))
-        #js.bbox_intake_in.whileTrue(Intake_Set_RPM(intake=self.intake, rpm=3000))
-        #js.bbox_intake_out.whileTrue(Intake_Set_RPM(intake=self.intake, rpm=0))
-        #js.bbox_intake_up.onTrue(Intake_Deploy(intake=self.intake, direction='up'))
-        #js.bbox_intake_down.onTrue(Intake_Deploy(intake=self.intake, direction='down'))
 
-        #js.bbox_shoot.onTrue(CalibrateIntake(intake=self.intake))
-        #js.bbox_shoot.whileTrue(ShootingCommand(shooter=self.shooter, targeting=self.targeting))
-        # js.driver_right.whileTrue(Increm
-        # entShooter(shooter=self.shooter, speed_change=1))
-        # js.driver_left.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=-1))
-        #js.bbox_shoot_override.whileTrue(StopShooter(shooter=self.shooter))
 
         # js.driver_l_trigger.whileTrue(Intake_Set(intake=self.intake, rpm=2500))
         # js.driver_r_trigger.whileTrue(ShootingCommand(shooter=self.shooter, rpm=5000))
@@ -194,9 +185,6 @@ class RobotContainer:
 
         # This kills targeting mode!  DO NOT USE RB
         # js.driver_back.whileTrue(SwerveTest(self, self.swerve))
-
-        # js.driver_l_trigger.debounce(0.1).whileTrue(RobotClimb(climber=self.climber, move_up=False, indent=0))
-        # js.driver_r_trigger.debounce(0.1).whileTrue(RobotClimb(climber=self.climber, move_up=True, indent=0))
 
         # --- Debug & Simulation ---
         # test a setting of the swerve modules straight before running the auto to tag
@@ -297,6 +285,8 @@ class RobotContainer:
         wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeOn', Intake_Set_RPM(intake=self.intake, rpm=3000, led=self.led))
         wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeOff', Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
         wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeReverse', Intake_Set_RPM(intake=self.intake, rpm=-500, led=self.led))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeBrake', commands2.InstantCommand(lambda: self.intake.set_brake_mode(brake_on=True)).ignoringDisable(True))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeIdle', commands2.InstantCommand(lambda: self.intake.set_brake_mode(brake_on=False)).ignoringDisable(True))
         # ---
         wpilib.SmartDashboard.putData(f'{command_prefix}/HopperOn', commands2.InstantCommand(lambda: self.shooter.set_hopper_rpm(constants.ShooterConstants.k_hopper_rpm)))
         wpilib.SmartDashboard.putData(f'{command_prefix}/HopperOff',commands2.InstantCommand(lambda: self.shooter.stop_hopper()))

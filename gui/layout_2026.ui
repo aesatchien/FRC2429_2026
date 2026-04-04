@@ -1326,7 +1326,7 @@ background-color:rgb(180,180,180);</string>
        <property name="geometry">
         <rect>
          <x>10</x>
-         <y>51</y>
+         <y>110</y>
          <width>161</width>
          <height>28</height>
         </rect>
@@ -1359,7 +1359,7 @@ background-color:rgb(180,180,180);</string>
        <property name="geometry">
         <rect>
          <x>10</x>
-         <y>21</y>
+         <y>79</y>
          <width>161</width>
          <height>28</height>
         </rect>
@@ -1377,41 +1377,6 @@ background-color:rgb(180,180,180);</string>
        </property>
        <property name="text">
         <string>TBD0</string>
-       </property>
-       <property name="textFormat">
-        <enum>Qt::AutoText</enum>
-       </property>
-       <property name="alignment">
-        <set>Qt::AlignCenter</set>
-       </property>
-      </widget>
-      <widget class="ClickableQLabel" name="qlabel_cal_elevator_up_indicator">
-       <property name="enabled">
-        <bool>true</bool>
-       </property>
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>111</y>
-         <width>78</width>
-         <height>28</height>
-        </rect>
-       </property>
-       <property name="font">
-        <font>
-         <family>MS Shell Dlg 2</family>
-         <pointsize>11</pointsize>
-         <italic>false</italic>
-         <bold>true</bold>
-        </font>
-       </property>
-       <property name="styleSheet">
-        <string notr="true">border: 7px;
-border-radius: 7px;
-background-color:rgb(180,180,180);</string>
-       </property>
-       <property name="text">
-        <string>C ELE+</string>
        </property>
        <property name="textFormat">
         <enum>Qt::AutoText</enum>
@@ -1486,48 +1451,13 @@ background-color:rgb(180,180,180);</string>
         <set>Qt::AlignCenter</set>
        </property>
       </widget>
-      <widget class="ClickableQLabel" name="qlabel_cal_elevator_down_indicator">
-       <property name="enabled">
-        <bool>true</bool>
-       </property>
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>142</y>
-         <width>78</width>
-         <height>28</height>
-        </rect>
-       </property>
-       <property name="font">
-        <font>
-         <family>MS Shell Dlg 2</family>
-         <pointsize>11</pointsize>
-         <italic>false</italic>
-         <bold>true</bold>
-        </font>
-       </property>
-       <property name="styleSheet">
-        <string notr="true">border: 7px;
-border-radius: 7px;
-background-color:rgb(180,180,180);</string>
-       </property>
-       <property name="text">
-        <string>C ELE -</string>
-       </property>
-       <property name="textFormat">
-        <enum>Qt::AutoText</enum>
-       </property>
-       <property name="alignment">
-        <set>Qt::AlignCenter</set>
-       </property>
-      </widget>
       <widget class="ClickableQLabel" name="qlabel_cal_wrist_down_indicator">
        <property name="enabled">
         <bool>true</bool>
        </property>
        <property name="geometry">
         <rect>
-         <x>90</x>
+         <x>92</x>
          <y>142</y>
          <width>78</width>
          <height>28</height>
@@ -1547,7 +1477,7 @@ border-radius: 7px;
 background-color:rgb(180,180,180);</string>
        </property>
        <property name="text">
-        <string>CWRIST-</string>
+        <string>CWRST-</string>
        </property>
        <property name="textFormat">
         <enum>Qt::AutoText</enum>
@@ -1562,8 +1492,8 @@ background-color:rgb(180,180,180);</string>
        </property>
        <property name="geometry">
         <rect>
-         <x>90</x>
-         <y>111</y>
+         <x>10</x>
+         <y>142</y>
          <width>78</width>
          <height>28</height>
         </rect>
@@ -1582,40 +1512,7 @@ border-radius: 7px;
 background-color:rgb(180,180,180);</string>
        </property>
        <property name="text">
-        <string>CWRIST+</string>
-       </property>
-       <property name="textFormat">
-        <enum>Qt::AutoText</enum>
-       </property>
-       <property name="alignment">
-        <set>Qt::AlignCenter</set>
-       </property>
-      </widget>
-      <widget class="ClickableQLabel" name="qlabel_recal_wrist_indicator">
-       <property name="enabled">
-        <bool>true</bool>
-       </property>
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>81</y>
-         <width>161</width>
-         <height>28</height>
-        </rect>
-       </property>
-       <property name="font">
-        <font>
-         <pointsize>12</pointsize>
-         <bold>true</bold>
-        </font>
-       </property>
-       <property name="styleSheet">
-        <string notr="true">border: 7px;
-border-radius: 7px;
-background-color:rgb(180,180,180);</string>
-       </property>
-       <property name="text">
-        <string>TBD2</string>
+        <string>CWRST+</string>
        </property>
        <property name="textFormat">
         <enum>Qt::AutoText</enum>
@@ -1655,6 +1552,89 @@ background-color:rgb(127, 127, 127);</string>
        </property>
        <property name="alignment">
         <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+      <widget class="ClickableQLabel" name="qlabel_intake_idle_indicator">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>45</y>
+         <width>78</width>
+         <height>28</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <family>MS Shell Dlg 2</family>
+         <pointsize>11</pointsize>
+         <italic>false</italic>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">border: 7px;
+border-radius: 7px;
+background-color:rgb(180,180,180);</string>
+       </property>
+       <property name="text">
+        <string>IDLE</string>
+       </property>
+       <property name="textFormat">
+        <enum>Qt::AutoText</enum>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+      <widget class="ClickableQLabel" name="qlabel_intake_brake_indicator">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
+       <property name="geometry">
+        <rect>
+         <x>92</x>
+         <y>45</y>
+         <width>78</width>
+         <height>28</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <family>MS Shell Dlg 2</family>
+         <pointsize>11</pointsize>
+         <italic>false</italic>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">border: 7px;
+border-radius: 7px;
+background-color:rgb(180,180,180);</string>
+       </property>
+       <property name="text">
+        <string>BRAKE</string>
+       </property>
+       <property name="textFormat">
+        <enum>Qt::AutoText</enum>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_20">
+       <property name="geometry">
+        <rect>
+         <x>12</x>
+         <y>21</y>
+         <width>81</width>
+         <height>16</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Intake</string>
        </property>
       </widget>
      </widget>
