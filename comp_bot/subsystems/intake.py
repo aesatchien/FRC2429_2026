@@ -3,6 +3,8 @@ import math
 import ntcore
 import wpilib
 from wpimath.filter import MedianFilter
+from wpimath.controller import ProfiledPIDController, ArmFeedforward
+from wpimath.trajectory import TrapezoidProfile
 from commands2 import Subsystem
 import rev
 from rev import SparkBase, SparkLowLevel  # trying to save some typing
@@ -62,6 +64,22 @@ class Intake(Subsystem):
         self.deployed_angle = ic.k_bottom_angle if constants.k_at_home else ic.k_top_angle
         self.setpoint = self.deployed_angle
 
+        # --- WPILib Profiled PID & Arm Feedforward ---
+        # Using P = 0.05 Volts per degree of error as a starting point
+        self.arm_profile = ProfiledPIDController(
+            0.05, 0.0, 0.0, 
+            TrapezoidProfile.Constraints(
+                math.degrees(ic.k_max_velocity_rad_per_second),
+                math.degrees(ic.k_max_acceleration_rad_per_sec_squared)
+            )
+        )
+        self.arm_feedforward = ArmFeedforward(
+            ic.k_kS_volts, ic.k_kG_volts, 
+            ic.k_kV_volt_second_per_radian, ic.k_kA_volt_second_squared_per_meter
+        )
+        self.arm_profile.reset(self.setpoint)
+        self.arm_profile.setGoal(self.setpoint)
+
         # the functions below this may need to use networktables
         self._init_networktables()
 
@@ -120,10 +138,10 @@ class Intake(Subsystem):
         self.deploy_stop()
         self.deployed_angle = ic.k_bottom_angle
         self.deployed = True
+        self.setpoint = ic.k_bottom_angle
         self.deploy_encoder.setPosition(ic.k_bottom_angle)
-        ks = 0.0  # TODO see if we need one
-        self.deploy_controller.setReference(setpoint=ic.k_bottom_angle, ctrl=SparkLowLevel.ControlType.kPosition,
-                                             slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=ks)
+        self.arm_profile.reset(ic.k_bottom_angle)
+        self.arm_profile.setGoal(ic.k_bottom_angle)
         self.update_nt()
     
     def set_angle_max(self):
@@ -131,42 +149,44 @@ class Intake(Subsystem):
         self.deploy_stop()
         self.deployed_angle = ic.k_top_angle
         self.deployed = False
+        self.setpoint = ic.k_top_angle
         self.deploy_encoder.setPosition(self.deployed_angle)
-        ks = 0.0  # TODO see if we need one
-        self.deploy_controller.setReference(setpoint=ic.k_top_angle, ctrl=SparkLowLevel.ControlType.kPosition,
-                                             slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=ks)
+        self.arm_profile.reset(ic.k_top_angle)
+        self.arm_profile.setGoal(ic.k_top_angle)
         self.update_nt()
 
 
     def set_intake_rpm(self, rpm=3500):
         # TODO - incorporate a PID to handle voltage sag from multiple balls
         feed_forward = min(12, 12 * rpm / 5600)  # if there is no gearing, then this gets you close
-        # self.set_dropper_down(down=True) if self.dropper_down == False else None
         self.intake_controller.setReference(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
-        # print(f'set intake rpm to {rpm:.0f}')  # can now get time from the log command's timer
         self.intake_on = True
         self.current_rpm = rpm
 
         self.update_nt()  # update all relevant state variables on networktables
 
     def set_intake_position(self, angle=0):
-        # CJH added on 20260303 to use max motion to set the dropper position
-        ks = 0.0  # TODO - see if we need one - we may need to actually model it as an arm for best performance
-        self.deploy_controller.setReference(setpoint=angle, ctrl=SparkLowLevel.ControlType.kPosition, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=ks)
+        # Clamp the angle to our physical limits so we don't drive it into the frame
+        angle = max(ic.k_bottom_angle, min(ic.k_top_angle, angle))
+
+        # self.deploy_controller.setReference(setpoint=angle, ctrl=SparkLowLevel.ControlType.kPosition, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=ks)
         # self.deploy_controller.setReference(setpoint=angle, ctrl=SparkLowLevel.ControlType.kMAXMotionPositionControl, slot=rev.ClosedLoopSlot.kSlot1, arbFeedforward=ks)
-        # print(f'  -- intake position to {angle:.0f}')  # TODO - delete after testing
         self.deployed_angle = angle
         self.setpoint = angle
+        self.arm_profile.setGoal(angle)
         self.deployed = True if angle < 45 else False  # not sure about this - we will have a shooting position too
         self.update_nt()
 
     def reset_encoder(self, angle):
-        self.deploy_controller.set(0)  # make it not react to the new position change while we reset the encoder
         self.deploy_encoder.setPosition(angle)
+        self.arm_profile.reset(angle)
         self.set_intake_position(angle)  # now tell it to maintain the current position
 
     def get_setpoint(self):
         return self.setpoint
+
+    def get_profile_setpoint(self):
+        return self.arm_profile.getSetpoint().position
 
     def get_rpm(self):
         return self.current_rpm
@@ -179,7 +199,10 @@ class Intake(Subsystem):
         # return sum(self.last_currents) / len(self.last_currents)
 
     def deploy_stop(self):
-        self.deploy_motor.set(0)
+        current_pos = self.deploy_encoder.getPosition()
+        self.arm_profile.reset(current_pos)
+        self.arm_profile.setGoal(current_pos)
+        self.deploy_motor.setVoltage(0)
 
     def set_down(self, position_to_go_to="down"):
         # when position_to_go_to is "down", intake is lowered
@@ -194,7 +217,7 @@ class Intake(Subsystem):
 
         if self.deploy_controller.get_average_current() > ic.k_deploy_current_peak:
             print("Something got cooked.")
-            self.deploy_motor.set(0)
+            self.deploy_stop()
             self.done = True
             self.deployed = False
             self.deployed_angle = 0
@@ -240,9 +263,24 @@ class Intake(Subsystem):
             elif self.is_calibrated and not at_bumper:
                 self.is_calibrated = False
 
+        # --- Run WPILib Profiled PID and Gravity Feedforward ---
+        current_pos = self.deploy_encoder.getPosition()
+        pid_voltage = self.arm_profile.calculate(current_pos)
+        
+        # Get the internal setpoint of the trajectory for feedforward
+        setpoint = self.arm_profile.getSetpoint()
+        
+        # ArmFeedforward takes radians. 
+        # NOTE: If 0 degrees is NOT horizontal, add an offset here. e.g., math.radians(setpoint.position) + offset
+        ff_voltage = self.arm_feedforward.calculate(math.radians(setpoint.position), math.radians(setpoint.velocity))
+        
+        total_voltage = pid_voltage + ff_voltage
+        self.deploy_motor.setVoltage(total_voltage)
+        # -------------------------------------------------------
+
         if self.counter % 5 == 0:
             self.deployer_average_current_pub.set(self.get_average_current())
-            self.deployer_internal_setpoint_pub.set(self.deploy_encoder.getPosition())
+            self.deployer_internal_setpoint_pub.set(setpoint.position)
 
         if self.counter % 20 == 0:
              self.intake_rpm_pub.set(self.intake_encoder.getVelocity())

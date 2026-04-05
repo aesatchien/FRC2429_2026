@@ -142,13 +142,13 @@ class MyRobot(commands2.TimedCommandRobot):
 
     def robotPeriodic(self) -> None:
         # commented out 2025 0305 CJH - this should never have been in here
-        # wpilib.SmartDashboard.putNumber("ajs turn commanded", self.container.driver_command_controller.getRightX())
+
         super().robotPeriodic()
 
         # Update Mechanism2d visualization (works on Real Robot and Sim)
         if self.mech:
             # Intake
-            self.mech.update_intake(angle=self.container.intake.get_setpoint(),
+            self.mech.update_intake(angle=self.container.intake.get_profile_setpoint(),
                                     speed=1.0 if self.container.intake.intake_on else 0.0)
 
             # Shooter

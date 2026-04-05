@@ -193,19 +193,23 @@ class IntakeConstants:
     k_deploy_config.closedLoop.outputRange(-.6, .6, slot=rev.ClosedLoopSlot.kSlot0)
     k_deploy_config.softLimit.forwardSoftLimitEnabled(False)
     k_deploy_config.softLimit.reverseSoftLimitEnabled(False)
-    # Configure MAXMotion (The "Modern" Smart Motion) - Note: "maxMotion" object instead of "smartMotion"
+
+
+    #  --- GETTING RID OF THIS AS WELL - TRYING A WPILIB PROFILED PID SO IT'S SMOOTH ---
     # this is the setting for kPosition control - slot0 - WE USE THIS NOW
     # 143 degrees * kp of 1e-2 is .14 % output
     k_deploy_config.closedLoop.pidf(p=1e-2, i=1e-5, d=1e0, ff=0, slot=rev.ClosedLoopSlot.kSlot0)
     k_deploy_config.closedLoop.IMaxAccum(0.04, slot=rev.ClosedLoopSlot.kSlot0)
     k_deploy_config.closedLoop.IZone(5, slot=rev.ClosedLoopSlot.kSlot0) # degrees less than which no I is applied
+
+    # --- MAX MOTION IS A WASTE OF TIME ---
     # this is the setting for kMaxMotionPosition control - slot1, TODO - make this work
     # the problem here is now we are in degrees per second from above, not RPM  - never get rev to work unless no conversion factors
     # 143 degrees * kp of 1e-2 is .14 % output
     #k_deploy_config.closedLoop.pidf(p=1e-5, i=0, d=0, ff=1/crank_max_dps, slot=rev.ClosedLoopSlot.kSlot1)
     k_deploy_config.closedLoop.pidf(p=1e-4, i=0, d=0, ff= 1 / vortex_max_rpm, slot=rev.ClosedLoopSlot.kSlot1)
     k_deploy_config.closedLoop.IMaxAccum(0.01, slot=rev.ClosedLoopSlot.kSlot1)
-    # somehow i think these are in base units of rpm
+    # somehow i think these are in base units of rpm, but apparently not!
     k_deploy_config.closedLoop.maxMotion.cruiseVelocity(8 * vortex_max_rpm, slot=rev.ClosedLoopSlot.kSlot1)
     k_deploy_config.closedLoop.maxMotion.maxAcceleration(15 * vortex_max_rpm, slot=rev.ClosedLoopSlot.kSlot1)
     k_deploy_config.closedLoop.maxMotion.allowedClosedLoopError(0, slot=rev.ClosedLoopSlot.kSlot1)
@@ -216,7 +220,7 @@ class IntakeConstants:
     k_top_angle = 150  # degrees when at top position - i think the maxplanetary added about 4 degrees of backlash total
     k_bottom_angle = 0  # degrees when at bottom position
     k_shooting_angle = 75  # degrees when in shooting position - this is a guess, will need to be tuned
-    k_second_shooting_angle = 90
+    k_second_shooting_angle = 95
 
     k_intake_left_leader_config, k_intake_right_follower_config = SparkMaxConfig(), SparkMaxConfig()
     k_intake_configs = [k_intake_left_leader_config, k_intake_right_follower_config, k_deploy_config]
@@ -234,8 +238,8 @@ class IntakeConstants:
     k_deploy_config.smartCurrentLimit(40)  # can't lift the new one with 40A
 
     # in case we do a profiled subsystem - just using a cheap PID on the sparkmax bangs a bit too much
-    k_max_velocity_rad_per_second = math.pi
-    k_max_acceleration_rad_per_sec_squared = math.pi
+    k_max_velocity_rad_per_second = math.pi * 2.0  # 360 degrees/second
+    k_max_acceleration_rad_per_sec_squared = math.pi * 3.0  # Snappier acceleration
     k_kS_volts = 0.01  # constant to always add, uses the sign of velocity
     k_kG_volts = 1.03 / 1.0  # 10lbs at 11in COM, cuts in half with two motors, goes up with mass and distance, down with efficiency
     k_kV_volt_second_per_radian = 2.43  # stays the same with one or two motors, based on the NEO vortex itself and gear ratio
