@@ -213,7 +213,7 @@ class IntakeConstants:
 
     k_intake_crank_voltage = .5  # volts for now
     k_deploy_current_peak = 35  # amps for now
-    k_top_angle = 148  # degrees when at top position
+    k_top_angle = 150  # degrees when at top position - i think the maxplanetary added about 4 degrees of backlash total
     k_bottom_angle = 0  # degrees when at bottom position
     k_shooting_angle = 75  # degrees when in shooting position - this is a guess, will need to be tuned
     k_second_shooting_angle = 90
