@@ -241,9 +241,9 @@ class IntakeConstants:
     k_max_velocity_rad_per_second = math.pi * 2.0  # 360 degrees/second
     k_max_acceleration_rad_per_sec_squared = math.pi * 3.0  # Snappier acceleration
     k_kS_volts = 0.01  # constant to always add, uses the sign of velocity
-    k_kG_volts = 1.03 / 1.0  # 10lbs at 11in COM, cuts in half with two motors, goes up with mass and distance, down with efficiency
-    k_kV_volt_second_per_radian = 2.43  # stays the same with one or two motors, based on the NEO vortex itself and gear ratio
-    k_kA_volt_second_squared_per_meter = 0.21 / 1.0  # cuts in half with 2 motors, but we only use one
+    k_kG_volts = 0.34 / 1.0  # 10lbs at 11in COM, cuts in half with two motors, goes up with mass and distance, down with efficiency
+    k_kV_volt_second_per_radian = 0.91  # stays the same with one or two motors, based on the NEO vortex itself and gear ratio
+    k_kA_volt_second_squared_per_meter = 0.07 / 1.0  # cuts in half with 2 motors, but we only use one
     k_starting_angle = math.radians(k_bottom_angle) if k_at_home else math.radians(k_top_angle)
 
 class ShooterConstants:

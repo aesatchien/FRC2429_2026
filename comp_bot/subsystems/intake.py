@@ -67,7 +67,7 @@ class Intake(Subsystem):
         # --- WPILib Profiled PID & Arm Feedforward ---
         # Using P = 0.05 Volts per degree of error as a starting point
         self.arm_profile = ProfiledPIDController(
-            0.05, 0.0, 0.0, 
+            0.08, 0.0, 0.0,
             TrapezoidProfile.Constraints(
                 math.degrees(ic.k_max_velocity_rad_per_second),
                 math.degrees(ic.k_max_acceleration_rad_per_sec_squared)
@@ -278,7 +278,7 @@ class Intake(Subsystem):
         self.deploy_motor.setVoltage(total_voltage)
         # -------------------------------------------------------
 
-        if self.counter % 5 == 0:
+        if self.counter % 2 == 0:
             self.deployer_average_current_pub.set(self.get_average_current())
             self.deployer_internal_setpoint_pub.set(setpoint.position)
 
