@@ -82,6 +82,7 @@ class Intake(Subsystem):
         self.deployer_output_pub = self.inst.getDoubleTopic(f"{self.intake_prefix}/deployer_output").publish()
         self.deployer_velocity_pub = self.inst.getDoubleTopic(f"{self.intake_prefix}/deployer_velocity").publish()
         self.deployer_setpoint_pub = self.inst.getDoubleTopic(f"{self.intake_prefix}/deployer_setpoint").publish()
+        self.deployer_internal_setpoint_pub = self.inst.getDoubleTopic(f"{self.intake_prefix}/deployer_internal_setpoint").publish()
         self.intake_calibration_pub = self.inst.getBooleanTopic(f"{self.intake_prefix}/intake_calibration").publish()
         
         self.intake_on_pub.set(self.intake_on)
@@ -151,8 +152,8 @@ class Intake(Subsystem):
     def set_intake_position(self, angle=0):
         # CJH added on 20260303 to use max motion to set the dropper position
         ks = 0.0  # TODO - see if we need one - we may need to actually model it as an arm for best performance
-        self.deploy_controller.setReference(setpoint=angle, ctrl=SparkLowLevel.ControlType.kPosition,
-                                             slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=ks)
+        self.deploy_controller.setReference(setpoint=angle, ctrl=SparkLowLevel.ControlType.kPosition, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=ks)
+        # self.deploy_controller.setReference(setpoint=angle, ctrl=SparkLowLevel.ControlType.kMAXMotionPositionControl, slot=rev.ClosedLoopSlot.kSlot1, arbFeedforward=ks)
         # print(f'  -- intake position to {angle:.0f}')  # TODO - delete after testing
         self.deployed_angle = angle
         self.setpoint = angle
@@ -241,6 +242,7 @@ class Intake(Subsystem):
 
         if self.counter % 5 == 0:
             self.deployer_average_current_pub.set(self.get_average_current())
+            self.deployer_internal_setpoint_pub.set(self.deploy_encoder.getPosition())
 
         if self.counter % 20 == 0:
              self.intake_rpm_pub.set(self.intake_encoder.getVelocity())

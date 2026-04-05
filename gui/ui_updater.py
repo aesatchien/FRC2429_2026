@@ -296,8 +296,8 @@ class UIUpdater:
                 
                 if target_props:
                     border_color = "rgb(80, 235, 0)" if is_alive else "rgb(180, 180, 180)"
-                    target_props['style_on'] = f"border: 3px solid {border_color}; border-radius: 7px; background-color:rgb(80, 235, 0); color:rgb(0, 0, 0);"
-                    target_props['style_off'] = f"border: 3px solid {border_color}; border-radius: 7px; background-color:rgb(220, 0, 0); color:rgb(200, 200, 200);"
+                    target_props['style_on'] = f"border: 4px solid {border_color}; border-radius: 7px; background-color:rgb(80, 235, 0); color:rgb(0, 0, 0);"
+                    target_props['style_off'] = f"border: 4px solid {border_color}; border-radius: 7px; background-color:rgb(220, 0, 0); color:rgb(200, 200, 200);"
                     
                     if is_alive != cam_props.get('last_target_border_alive'):
                         cam_props['last_target_border_alive'] = is_alive

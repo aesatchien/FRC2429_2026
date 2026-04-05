@@ -190,19 +190,24 @@ class IntakeConstants:
     crank_max_dps = vortex_max_rpm * deploy_degrees_per_motor_rotation / 60  # max degrees per second of the deploy motor at 12V ~
 
     k_deploy_config.inverted(True)
-    k_deploy_config.closedLoop.outputRange(-.2, .2, slot=rev.ClosedLoopSlot.kSlot0)
+    k_deploy_config.closedLoop.outputRange(-.6, .6, slot=rev.ClosedLoopSlot.kSlot0)
     k_deploy_config.softLimit.forwardSoftLimitEnabled(False)
     k_deploy_config.softLimit.reverseSoftLimitEnabled(False)
     # Configure MAXMotion (The "Modern" Smart Motion) - Note: "maxMotion" object instead of "smartMotion"
     # this is the setting for kPosition control - slot0 - WE USE THIS NOW
-    k_deploy_config.closedLoop.pidf(p=1e-2, i=1e-7, d=1e0, ff=0, slot=rev.ClosedLoopSlot.kSlot0)
-    k_deploy_config.closedLoop.IMaxAccum(0.03, slot=rev.ClosedLoopSlot.kSlot0)
+    # 143 degrees * kp of 1e-2 is .14 % output
+    k_deploy_config.closedLoop.pidf(p=1e-2, i=1e-5, d=1e0, ff=0, slot=rev.ClosedLoopSlot.kSlot0)
+    k_deploy_config.closedLoop.IMaxAccum(0.04, slot=rev.ClosedLoopSlot.kSlot0)
     k_deploy_config.closedLoop.IZone(5, slot=rev.ClosedLoopSlot.kSlot0) # degrees less than which no I is applied
     # this is the setting for kMaxMotionPosition control - slot1, TODO - make this work
     # the problem here is now we are in degrees per second from above, not RPM  - never get rev to work unless no conversion factors
-    k_deploy_config.closedLoop.pidf(p=1e-5, i=0, d=0, ff=1/crank_max_dps, slot=rev.ClosedLoopSlot.kSlot1)
-    k_deploy_config.closedLoop.maxMotion.cruiseVelocity(250, slot=rev.ClosedLoopSlot.kSlot1)
-    k_deploy_config.closedLoop.maxMotion.maxAcceleration(500, slot=rev.ClosedLoopSlot.kSlot1)
+    # 143 degrees * kp of 1e-2 is .14 % output
+    #k_deploy_config.closedLoop.pidf(p=1e-5, i=0, d=0, ff=1/crank_max_dps, slot=rev.ClosedLoopSlot.kSlot1)
+    k_deploy_config.closedLoop.pidf(p=1e-4, i=0, d=0, ff= 1 / vortex_max_rpm, slot=rev.ClosedLoopSlot.kSlot1)
+    k_deploy_config.closedLoop.IMaxAccum(0.01, slot=rev.ClosedLoopSlot.kSlot1)
+    # somehow i think these are in base units of rpm
+    k_deploy_config.closedLoop.maxMotion.cruiseVelocity(8 * vortex_max_rpm, slot=rev.ClosedLoopSlot.kSlot1)
+    k_deploy_config.closedLoop.maxMotion.maxAcceleration(15 * vortex_max_rpm, slot=rev.ClosedLoopSlot.kSlot1)
     k_deploy_config.closedLoop.maxMotion.allowedClosedLoopError(0, slot=rev.ClosedLoopSlot.kSlot1)
     ks_volts = 0.5
 
@@ -226,7 +231,7 @@ class IntakeConstants:
     k_intake_right_follower_config.follow(k_CANID_intake_left_leader, invert=False)  # depends on motor placement
 
     set_config_defaults(k_intake_configs)
-    k_deploy_config.smartCurrentLimit(55)  # can't lift the new one with 40A
+    k_deploy_config.smartCurrentLimit(40)  # can't lift the new one with 40A
 
     # in case we do a profiled subsystem - just using a cheap PID on the sparkmax bangs a bit too much
     k_max_velocity_rad_per_second = math.pi
