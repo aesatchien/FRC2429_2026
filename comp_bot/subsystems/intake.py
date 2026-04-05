@@ -67,7 +67,7 @@ class Intake(Subsystem):
         # --- WPILib Profiled PID & Arm Feedforward ---
         # Using P = 0.05 Volts per degree of error as a starting point
         self.arm_profile = ProfiledPIDController(
-            0.08, 0.0, 0.0,
+            0.05, 0.0, 0.0,
             TrapezoidProfile.Constraints(
                 math.degrees(ic.k_max_velocity_rad_per_second),
                 math.degrees(ic.k_max_acceleration_rad_per_sec_squared)
