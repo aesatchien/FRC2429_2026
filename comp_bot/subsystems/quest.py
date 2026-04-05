@@ -43,9 +43,14 @@ class Questnav(SubsystemBase):
         self.quest_pose_old = self.quest_pose
         self.quest_pose_timestamp = 0.0
 
-        # add members to handle lost tracking (the double-tap issue)
+        # --- TIMEOUTS & RECOVERY (CRITICAL ORDERING) ---
+        # 1. missed_frame_count (10 loops = 200ms): Fires the ADB recovery script. 
+        #    Must be >= 10 to absorb normal 100ms NT4 network batching and wake-up stutters.
+        # 2. disconnected_count (qc.k_max_disconnected_count): Fires the hard Odometry Unsync.
+        #    Because disconnected_count only starts ticking AFTER the 200ms network timeout, 
+        #    the ADB script gets a crucial head-start to save the day before we wipe the field sync.
         self.missed_frame_count = 0
-        self.k_max_missed_frames = 10  # number of iterations with no new frames - protects against double tap 0.2 seconds at 50Hz
+        self.k_max_missed_frames = 14  # number of iterations with no new frames - protects against double tap 0.2 seconds at 50Hz
         self.was_tracking = False
         self.was_connected = False
         self.disconnected_count = 0  # count how many frames we've been disconnected to avoid ping-ponging in and out of sync
@@ -165,12 +170,12 @@ class Questnav(SubsystemBase):
             new_pose = blue_pose
 
         self.set_quest_pose(new_pose)
-        print(f"Reset questnav at {Timer.getFPGATimestamp():.1f}s")
+        print(f"Reset questnav at {Timer.getFPGATimestamp():.2f}s")
         self.quest_unsync_odometry()
 
     def quest_sync_odometry(self) -> None:
         if not self.mock_questnav and not self.questnav.is_connected():
-            print(f"*** Cannot sync QuestNav: Headset not connected at {Timer.getFPGATimestamp():.1f}s ***")
+            print(f"*** Cannot sync QuestNav: Headset not connected at {Timer.getFPGATimestamp():.2f}s ***")
             return
 
         self.quest_has_synched = True  # let the robot know we have been synched so we don't automatically do it again
@@ -193,11 +198,11 @@ class Questnav(SubsystemBase):
         # handle the case where we disconnect but the pose is still accurate when we come back up
         self.quest_has_synched = True
         self.quest_synched_pub.set(self.quest_has_synched)
-        print(f'Soft-resynced quest at {Timer.getFPGATimestamp():.1f}s')
+        print(f'  Soft-resynced quest at {Timer.getFPGATimestamp():.2f}s')
 
     def quest_unsync_odometry(self) -> None:
         self.quest_has_synched = False  # let the robot know we have been synched so we don't automatically do it again
-        print(f'Unsynched quest at {Timer.getFPGATimestamp():.1f}s')
+        print(f'  Unsynched quest at {Timer.getFPGATimestamp():.2f}s')
         self.quest_synched_pub.set(self.quest_has_synched)
 
     def quest_enabled_toggle(self, force=None):  # allow us to stop using quest if it is a problem - 20251014 CJH
@@ -251,7 +256,7 @@ class Questnav(SubsystemBase):
         if not is_connected:
             self.disconnected_count += 1
             if self.disconnected_count > self.k_max_disconnected_count and self.was_connected:
-                print(f"*** QuestNav connection dropped for  {self.disconnected_count / 50:.2f}s at {wpilib.Timer.getFPGATimestamp():.1f}s. Forcing unsync. ***")
+                print(f"*** QuestNav connection dropped for  {self.disconnected_count / 50:.2f}s at {wpilib.Timer.getFPGATimestamp():.2f}s. ***")
                 self.quest_unsync_odometry()
                 self.was_connected = False
         else:
@@ -273,13 +278,13 @@ class Questnav(SubsystemBase):
                     self.quest_pose_timestamp = frame_last.data_timestamp
                     
                     if not self.was_tracking:
-                        print(f"Quest tracking restored... ", end="")
+                        print(f"  Quest tracking restored at {wpilib.Timer.getFPGATimestamp():.2f}s ... ")
                         # Defensively clear the flag when tracking successfully resumes
                         self.quest_passthrough_entry.set(False)
                         
                         time_in_passthru = wpilib.Timer.getFPGATimestamp() - self.passthru_start_time
-                        if time_in_passthru < constants.QuestConstants.k_max_resync_time and self.synced_before_passthru:
-                            print(f"Quest recovered in {time_in_passthru:.2f}s. Soft resyncing. Robot pose delta of {self.error_pose.x:.2f}, {self.error_pose.y:.2f}, {self.error_pose.rotation().degrees():.1f}°.")
+                        if time_in_passthru < constants.QuestConstants.k_max_resync_time and self.synced_before_passthru and not self.quest_has_synched:
+                            print(f"  Quest recovered in {time_in_passthru:.2f}s. Soft resyncing. Robot pose delta of {self.error_pose.x:.2f}, {self.error_pose.y:.2f}, {self.error_pose.rotation().degrees():.1f}°.")
                             self.quest_soft_resync()
                         
                     self.expecting_jump = False
@@ -302,7 +307,7 @@ class Questnav(SubsystemBase):
                     self.dtap_count += 1
                     self.quest_passthrough_count_entry.set(self.dtap_count)
                     # Optional: Print a warning to the driver station that the data stream is dead
-                    print(f"Detecting a lost QuestNav at FPGA timestamp: {wpilib.Timer.getFPGATimestamp():.1f}s")
+                    print(f"Detecting a lost QuestNav at FPGA timestamp: {wpilib.Timer.getFPGATimestamp():.2f}s")
 
 
         else:  # simulate a pose read ground truth from sim and apply the current "drift/error" of the Quest
@@ -330,16 +335,27 @@ class Questnav(SubsystemBase):
         # calculate pose error
         self.error_pose = self.quest_pose.relativeTo(self.drive_pose_sub.get())
 
+        # FIX: Move acceptance logic OUT of the % 5 loop so Swerve gets instant cutoffs.
+        # If we missed >5 frames (100ms), we missed an NT heartbeat. Suspend immediately.
+        data_is_fresh = self.missed_frame_count <= 5
+        in_bounds = 0 < self.quest_pose.X() < fc.k_field_length and 0 < self.quest_pose.Y() < fc.k_field_width
+
+        # --- STRICT POSE ACCEPTANCE CRITERIA ---
+        # To feed odometry to the Swerve drive, all of the following must be true:
+        # 1. in_bounds: The Quest pose is physically inside the field boundaries.
+        # 2. is_connected: NetworkTables heartbeat < 200ms. Survives normal Wi-Fi jitter.
+        # 3. is_tracking: The headset's internal SLAM algorithms are confident.
+        # 4. self.was_tracking: We didn't just throw an exception on the last frame.
+        # 5. data_is_fresh: We unpacked a new frame in the last 5 loops (100ms).
+        #    *Why both 2 & 5?* If the Quest double-taps to passthrough, the app suspends.
+        #    `is_connected` stays True for 200ms, but `data_is_fresh` fails instantly at 100ms,
+        #    killing odometry updates twice as fast during a blackout to prevent pose drift.
+        if in_bounds and is_connected and is_tracking and self.was_tracking and data_is_fresh:
+            self.quest_pose_accepted = True
+        else:
+            self.quest_pose_accepted = False
+
         if self.counter % 5 == 0:
-            in_bounds = 0 < self.quest_pose.x < fc.k_field_length and 0 < self.quest_pose.y < fc.k_field_width
-
-            # FIX: The Stale Data Trap.
-            # STRICT ACCEPTANCE: Only accept if in bounds AND currently tracking AND didn't just error out.
-            if in_bounds and is_connected and is_tracking and self.was_tracking:
-                self.quest_pose_accepted = True
-            else:
-                self.quest_pose_accepted = False
-
             # poses used in gui and advantagescope
             self.quest_pose_pub.set(self.quest_pose)
             self.quest_error_pose_pub.set(self.error_pose)  # the deltas between robot and quest

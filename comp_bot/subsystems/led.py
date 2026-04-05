@@ -46,9 +46,8 @@ class Led(commands2.Subsystem):
 
     class Mode(Enum):
         """ Mode class is for showing robot's current scoring mode and is the default during teleop """
-        kCORAL = {'name': "CORAL", "on_color": [200, 200, 200], "off_color": [0, 0, 0], "animated": False, "frequency": None, "duty_cycle": None}
-        kALGAE = {'name': "ALGAE", "on_color": [0, 120, 120], "off_color": [0, 0, 0], "animated": False, "frequency": None, "duty_cycle": None}  # [0, 180, 180] still looks too blue
-        kNONE = {'name': "NONE", "on_color": [160, 0, 160], "off_color": [0, 0, 0], "animated": False, "frequency": None, "duty_cycle": None}
+        kDTAP = {'name': "DTAP", "on_color": [255, 60, 0], "off_color": [0, 0, 0], "animated": False, "frequency": None, "duty_cycle": None}
+        kNONE = {'name': "NONE", "on_color": [0, 0, 0], "off_color": [0, 0, 0], "animated": False, "frequency": None, "duty_cycle": None}
 
     def __init__(self, robot_state: RobotState):
         super().__init__()
@@ -92,18 +91,20 @@ class Led(commands2.Subsystem):
         self.inst = ntcore.NetworkTableInstance.getDefault()
         self.led_mode_pub = self.inst.getStringTopic(f"{constants.status_prefix}/_led_mode").publish()
         self.led_indicator_pub = self.inst.getStringTopic(f"{constants.status_prefix}/_led_indicator").publish()
+        self.dtap_sub = self.inst.getBooleanTopic(f"{constants.quest_prefix}/quest_in_passthrough").subscribe(False)
 
     def update_from_robot_state(self, state):
         """ Update LED mode based on RobotState changes. """
-        if state.value['mode'] == 'coral':
-            self.set_mode(self.Mode.kCORAL)
-        elif state.value['mode'] == 'algae':
-            self.set_mode(self.Mode.kALGAE)
-        elif state.value['mode'] == 'keep':
-            pass  # don't change the mode
-        else:
-            self.set_mode(self.Mode.kNONE)
-        self.set_indicator(self.Indicator.kNONE)
+        pass
+        # if state.value['mode'] == 'coral':
+        #     self.set_mode(self.Mode.kCORAL)
+        # elif state.value['mode'] == 'algae':
+        #     self.set_mode(self.Mode.kALGAE)
+        # elif state.value['mode'] == 'keep':
+        #     pass  # don't change the mode
+        # else:
+        #     self.set_mode(self.Mode.kNONE)
+        # self.set_indicator(self.Indicator.kNONE)
 
     def set_mode(self, mode) -> None:
         self.prev_mode = self.mode
@@ -175,6 +176,14 @@ class Led(commands2.Subsystem):
     def periodic(self):
         self.counter += 1  # Increment the main counter
         if self.counter % 5 == 0:  # Execute every 5 cycles (10Hz update rate)
+            
+            # --- Check QuestNav DTAP State ---
+            is_dtap = self.dtap_sub.get()
+            if is_dtap and self.mode != self.Mode.kDTAP:
+                self.set_mode(self.Mode.kDTAP)
+            elif not is_dtap and self.mode == self.Mode.kDTAP:
+                self.set_mode(self.Mode.kNONE)
+                
             current_time = Timer.getFPGATimestamp()
             time_since_toggle = current_time - self.last_toggle_time
 

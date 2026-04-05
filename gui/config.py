@@ -63,10 +63,10 @@ auto_prefix    = r'/SmartDashboard/Auto'
 base_prefix    = r'/SmartDashboard'  #  TODO - eventually nothing should be in here
 
 # Questnav stuff
-QUESTNAV_ADB_ADDRESS = '10.24.29.200:5802'  # ADB target for restarting QuestNav
-# QUESTNAV_ADB_ADDRESS = '192.168.86.33:5802'  # at home on wifi using sim - MAKE SURE TO CHANGE THIS BEFORE MATCHES
+# QUESTNAV_ADB_ADDRESS = '10.24.29.200:5802'  # ADB target for restarting QuestNav
+QUESTNAV_ADB_ADDRESS = '192.168.86.43:5802'  # at home on wifi using sim - MAKE SURE TO CHANGE THIS BEFORE MATCHES
 QUESTNAV_ADB_MAX_RETRIES = 5  # Maximum number of times to try restarting QuestNav automatically
-QUESTNAV_PASSTHRU_ADB_DELAY = 0.1  # Delay before forcing ADB command to bring quest app back to foreground
+QUESTNAV_PASSTHRU_ADB_DELAY = 0.05  # Delay before forcing ADB command to bring quest app back to foreground
 QUESTNAV_ADB_COOLDOWN_S = 2.0  # wait before trying another ADB
 # FIELD CONFIGURATION
 SHOW_APRILTAGS = True

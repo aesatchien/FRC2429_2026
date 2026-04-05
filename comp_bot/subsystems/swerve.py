@@ -349,7 +349,7 @@ class Swerve (Subsystem):
     def _update_vision_measurements(self, current_pose, ts):
 
         # QuestNav Logic - since swerve was instantiated with the questnav, it should use it just fine
-        if self.questnav.use_quest and self.questnav.quest_has_synched and self.counter % 4 == 0:
+        if self.questnav.use_quest and self.questnav.quest_has_synched and self.questnav.is_quest_connected() and self.counter % 4 == 0:
             quest_accepted = self.questnav.is_pose_accepted()
             quest_pose = self.questnav.quest_pose # Quest subsystem now exposes the robot-relative pose directly
             delta_pos = current_pose.translation().distance(quest_pose.translation())

@@ -186,7 +186,18 @@ class UIUpdater:
 
         quest_error_props = self.ui.widget_dict['quest_error_pose']
         quest_error_pose_sub = quest_error_props.get('subscriber')
-        self.quest_error_pose = quest_error_pose_sub.get()
+        raw_error_pose = quest_error_pose_sub.get()
+
+        # Clamp the delta pose to reduce visual noise (< 1cm or < 0.5 degrees)
+        err_x = raw_error_pose.X()
+        err_y = raw_error_pose.Y()
+        err_rot = raw_error_pose.rotation().degrees()
+        
+        err_x = 0.0 if abs(err_x) < 0.005 else err_x
+        err_y = 0.0 if abs(err_y) < 0.005 else err_y
+        err_rot = 0.0 if abs(err_rot) < 0.25 else err_rot
+        
+        self.quest_error_pose = geo.Pose2d(err_x, err_y, geo.Rotation2d.fromDegrees(err_rot))
 
         field_dims = (self.ui.qgroupbox_field.width(), self.ui.qgroupbox_field.height())
 
@@ -205,7 +216,7 @@ class UIUpdater:
         # Update Delta Pose if changed
         if self.quest_error_pose != quest_error_props.get('last_value'):
             quest_error_props['last_value'] = self.quest_error_pose
-            self.ui.qlabel_quest_error_pose_indicator.setText(self._format_pose_string("DELTA POSE", self.quest_error_pose))
+            self.ui.qlabel_quest_error_pose_indicator.setText(self._format_pose_string("DELTA POSE", self.quest_error_pose, force_sign=True))
             # no pose widget for this one
 
         # Update the Quest border to be visible and positioned around the Quest pixmap
@@ -350,13 +361,15 @@ class UIUpdater:
         self.ui.qlabel_shot_distance.setText(f'SHOT DIST\n{shot_distance:.2f}m')
         self.ui.qlabel_shot_distance.setStyleSheet(shot_style)
 
-    def _format_pose_string(self, label, pose):
+    def _format_pose_string(self, label, pose, force_sign=False):
         """Formats a pose array into a display string with appropriate padding."""
         x, y, rot = pose.X(), pose.Y(), pose.rotation().degrees()
+        
+        sign = '+' if force_sign else ''
         x_pad = 1 if x < 10 else 0
         # This logic determines padding based on the number of digits in the angle
         theta_pad = sum([1 for t in [0, 100, 10] if abs(rot) < t])
-        return f'{label}\n{" " * x_pad}{x:>5.2f}m {y:>4.2f}m {" " * theta_pad}{rot:>4.0f}°'
+        return f'{label}\n{" " * x_pad}{x:>{sign}5.2f}m {y:>{sign}4.2f}m {" " * theta_pad}{rot:>{sign}4.0f}°'
 
     def _update_pose_widget(self, widget, pixmap, pose, field_dims, base_size=41):
         """Updates a QLabel on the field graphic with a rotated pixmap and new position."""
