@@ -113,7 +113,9 @@ class RobotContainer:
 
         # --- Drive & Navigation ---
 
+        # Allow the driver to reset the field in case of emergency
         js.driver_y.onTrue(ResetFieldCentric(container=self, swerve=self.swerve, angle=0).ignoringDisable(True))
+        js.driver_y.debounce(0.5).onTrue(InstantCommand(lambda: self.questnav.quest_sync_odometry()).ignoringDisable(True))
 
         # --- The current shooting cycle
         # slow intake rollers, start the shooting cycle, then raise the intake after a short wait
@@ -127,9 +129,30 @@ class RobotContainer:
         # does not work as an "andThen" for some reason
         js.driver_a.onFalse(Intake_Deploy(intake=self.intake, position='down').andThen(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
 
+        # manual shooting - identical to the above but with fixed RPM
+        js.driver_x.whileTrue(commands2.ParallelCommandGroup(
+            ShootingCommand(shooter=self.shooter, rpm=3300),
+            commands2.SequentialCommandGroup(commands2.WaitCommand(constants.AutoConstants.k_intake_raise_delay),
+                                             Intake_Deploy(intake=self.intake, position='shoot'),
+                                             commands2.WaitCommand(constants.AutoConstants.k_intake_raise_delay),
+                                             Intake_Deploy(intake=self.intake, position='shoot2')),
+        ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=500, led=self.led)))
+        js.driver_x.onFalse(Intake_Deploy(intake=self.intake, position='down').andThen(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
+
+        js.driver_b.onTrue(commands2.InstantCommand(lambda: self.shooter.set_shooter_rpm(sc.k_fire_up_speed)))
+        js.driver_b.whileTrue(commands2.ParallelCommandGroup(
+            ShootingCommand(shooter=self.shooter, rpm=4500),
+            commands2.SequentialCommandGroup(commands2.WaitCommand(constants.AutoConstants.k_intake_raise_delay),
+                                             Intake_Deploy(intake=self.intake, position='shoot'),
+                                             commands2.WaitCommand(constants.AutoConstants.k_intake_raise_delay),
+                                             Intake_Deploy(intake=self.intake, position='shoot2')),
+        ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=500, led=self.led)))
+        js.driver_b.onFalse(Intake_Deploy(intake=self.intake, position='down').andThen(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
+
+
         # start / stop tracking
         js.driver_rb.onTrue(commands2.InstantCommand(lambda: self.targeting.start_tracking())
-                            .andThen(InstantCommand(lambda: self.shooter.set_shooter_rpm(rpm=sc.k_shooter_test_speed))))
+                            .andThen(InstantCommand(lambda: self.shooter.set_shooter_rpm(rpm=sc.k_fire_up_speed))))
         js.driver_rb.onFalse(commands2.InstantCommand(lambda: self.targeting.stop_tracking()))
 
         # D-Pad: Slow, smooth robot-centric alignment (Nudge)
@@ -152,19 +175,6 @@ class RobotContainer:
         js.driver_lb.onTrue(Intake_Set_RPM(intake=self.intake, rpm=1500, led=self.led))
         js.driver_l_trigger.whileTrue(SwerveSetX(container=self, swerve=self.swerve))
         js.driver_back.onTrue(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
-
-        js.driver_x.whileTrue(commands2.ParallelCommandGroup(
-            ShootingCommand(shooter=self.shooter, rpm=3300),
-            Intake_Deploy(intake=self.intake, position='shoot'),
-        ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
-        js.driver_x.onFalse(Intake_Deploy(intake=self.intake, position='down'))
-
-        js.driver_b.debounce(.2).whileTrue(commands2.ParallelCommandGroup(
-            ShootingCommand(shooter=self.shooter, rpm=4500),
-            Intake_Deploy(intake=self.intake, position='shoot'),
-        ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
-        js.driver_b.onTrue(commands2.InstantCommand(lambda: self.shooter.set_shooter_rpm(sc.k_fire_up_speed)))
-
         js.driver_start.whileTrue(Intake_Deploy(self.intake, "down").andThen(Intake_Set_RPM(self.intake, -constants.IntakeConstants.k_intake_default_rpm).alongWith(InstantCommand(lambda: self.shooter.set_hopper_rpm(-constants.ShooterConstants.k_hopper_rpm)))))
 
 
