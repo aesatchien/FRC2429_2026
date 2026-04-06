@@ -82,7 +82,7 @@ class CameraWorker(QObject):
                         else:
                             print("[ERROR] OpenCV stopped receiving frames. Retrying...")
                             cap.release()
-                            cap = cv2.VideoCapture(url, self.cv_backend) # Attempt to re-open
+                            old_url = ''  # force retry loop to re-run on next iteration
                     else:
                         time.sleep(0.5) # Wait if cap is not ready
                 else:
@@ -131,7 +131,7 @@ class CameraManager:
                 self.thread.start()
                 self.ui.qt_text_status.appendPlainText(f'{datetime.today().strftime("%H:%M:%S")}: Starting camera thread')
             elif not self.thread.isRunning():
-                # If the thread has finished, we may need to create a new worker
+                self.thread = QThread()
                 self.worker = CameraWorker(qtgui=self.ui)
                 self.worker.moveToThread(self.thread)
                 self.thread.started.connect(self.worker.run)
