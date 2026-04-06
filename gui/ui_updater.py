@@ -306,11 +306,11 @@ class UIUpdater:
                 target_props = self.ui.widget_dict.get(target_widget_key)
                 
                 if target_props:
-                    border_color = "rgb(80, 235, 0)" if is_alive else "rgb(180, 180, 180)"
-                    target_props['style_on'] = f"border: 4px solid {border_color}; border-radius: 7px; background-color:rgb(80, 235, 0); color:rgb(0, 0, 0);"
-                    target_props['style_off'] = f"border: 4px solid {border_color}; border-radius: 7px; background-color:rgb(220, 0, 0); color:rgb(200, 200, 200);"
-                    
                     if is_alive != cam_props.get('last_target_border_alive'):
+                        # Rebuild style strings only when alive-state changes, not every tick
+                        border_color = "rgb(80, 235, 0)" if is_alive else "rgb(180, 180, 180)"
+                        target_props['style_on'] = f"border: 4px solid {border_color}; border-radius: 7px; background-color:rgb(80, 235, 0); color:rgb(0, 0, 0);"
+                        target_props['style_off'] = f"border: 4px solid {border_color}; border-radius: 7px; background-color:rgb(220, 0, 0); color:rgb(200, 200, 200);"
                         cam_props['last_target_border_alive'] = is_alive
                         target_props['last_value'] = None  # Force _update_indicator to redraw immediately
 
@@ -358,8 +358,11 @@ class UIUpdater:
         shot_style = self.STYLE_DISCONNECTED
         shot_distance_sub = self.ui.widget_dict['qlabel_shot_distance'].get('subscriber')
         shot_distance = shot_distance_sub.get() if shot_distance_sub else 0
-        self.ui.qlabel_shot_distance.setText(f'SHOT DIST\n{shot_distance:.2f}m')
-        self.ui.qlabel_shot_distance.setStyleSheet(shot_style)
+        props = self.ui.widget_dict['qlabel_shot_distance']
+        if shot_distance != props.get('last_value'):  # Only redraw when value changes
+            props['last_value'] = shot_distance
+            self.ui.qlabel_shot_distance.setText(f'SHOT DIST\n{shot_distance:.2f}m')
+            self.ui.qlabel_shot_distance.setStyleSheet(shot_style)
 
     def _format_pose_string(self, label, pose, force_sign=False):
         """Formats a pose array into a display string with appropriate padding."""

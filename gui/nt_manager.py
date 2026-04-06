@@ -3,6 +3,7 @@ import time
 from datetime import datetime
 from ntcore import NetworkTableInstance
 
+
 class NTManager:
     def __init__(self, ui):
         self.ui = ui

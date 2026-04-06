@@ -29,7 +29,7 @@ from nt_tree import NTTreeManager  # eventually i will make this work again (my 
 
 os.environ["OPENCV_LOG_LEVEL"] = "DEBUG"  # Options: INFO, WARNING, ERROR, DEBUG
 print("[DEBUG] OpenCV version:", cv2.__version__)
-cv2.setNumThreads(4)  # Disable multithreading
+cv2.setNumThreads(4)  # Limit OpenCV to 4 threads (use 0 to fully disable multithreading)
 cv2.ocl.setUseOpenCL(True)
 
 class SubprocessWorker(QtCore.QObject):

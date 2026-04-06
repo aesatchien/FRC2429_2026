@@ -87,7 +87,8 @@ class CameraWorker(QObject):
                         time.sleep(0.5) # Wait if cap is not ready
                 else:
                     if cap.isOpened():
-                        cap.grab() # Flush buffer
+                        cap.grab()  # Flush buffer to prevent lag buildup
+                    time.sleep(0.001)  # Yield CPU between frame-rate checks; avoids busy-spin
 
         except Exception as e:
             print(f'{datetime.today().strftime("%H%M%S")} Camera worker crashed: {e}')
