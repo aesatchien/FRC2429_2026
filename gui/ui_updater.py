@@ -19,6 +19,23 @@ class UIUpdater:
     STYLE_FLASH_OFF = "border: 7px; border-radius: 7px; background-color:rgb(0, 20, 255); color:rgb(255, 255, 255);"
     STYLE_DISCONNECTED = "border: 7px; border-radius: 7px; background-color:rgb(180, 180, 180); color:rgb(0, 0, 0);"
 
+    # Active Hub Styles
+    STYLE_HUB_RED = "border: 7px; border-radius: 7px; background-color: rgb(225, 0, 0); color: rgb(255, 255, 255);"
+    STYLE_HUB_BLUE = "border: 7px; border-radius: 7px; background-color: rgb(0, 0, 225); color: rgb(255, 255, 255);"
+    STYLE_HUB_BOTH = (
+        "border: 7px; border-radius: 7px; color: rgb(255, 255, 255); "
+        "background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
+        "stop:0 rgb(225, 0, 0), stop:0.8 rgb(225, 0, 0), "
+        "stop:0.8 rgb(0, 0, 225), stop:1 rgb(0, 0, 225));"
+    )
+    
+    # Dynamic Camera Indicator Colors
+    CAM_COLOR_GOOD = "rgb(80, 235, 0)"
+    CAM_COLOR_BAD = "rgb(220, 0, 0)"
+    CAM_COLOR_OFFLINE = "rgb(180, 180, 180)"
+    CAM_TEXT_ON = "rgb(0, 0, 0)"
+    CAM_TEXT_OFF = "rgb(200, 200, 200)"
+
     def __init__(self, ui):
         self.ui = ui
         self.drive_pose = geo.Pose2d()  # Store pose for other calculations
@@ -308,21 +325,28 @@ class UIUpdater:
                 if target_props:
                     if is_alive != cam_props.get('last_target_border_alive'):
                         # Rebuild style strings only when alive-state changes, not every tick
-                        border_color = "rgb(80, 235, 0)" if is_alive else "rgb(180, 180, 180)"
-                        target_props['style_on'] = f"border: 4px solid {border_color}; border-radius: 7px; background-color:rgb(80, 235, 0); color:rgb(0, 0, 0);"
-                        target_props['style_off'] = f"border: 4px solid {border_color}; border-radius: 7px; background-color:rgb(220, 0, 0); color:rgb(200, 200, 200);"
+                        border_color = self.CAM_COLOR_GOOD if is_alive else self.CAM_COLOR_OFFLINE
+                        target_props['style_on'] = f"border: 4px solid {border_color}; border-radius: 7px; background-color:{self.CAM_COLOR_GOOD}; color:{self.CAM_TEXT_ON};"
+                        target_props['style_off'] = f"border: 4px solid {border_color}; border-radius: 7px; background-color:{self.CAM_COLOR_BAD}; color:{self.CAM_TEXT_OFF};"
                         cam_props['last_target_border_alive'] = is_alive
                         target_props['last_value'] = None  # Force _update_indicator to redraw immediately
 
+                pi_alive = cam_props.get('PI_ALIVE', False)
+
                 # Only update widget if visual state changed
-                if is_alive == cam_props.get('last_is_alive') and connections == cam_props.get('last_connections'):
+                if is_alive == cam_props.get('last_is_alive') and connections == cam_props.get('last_connections') and pi_alive == cam_props.get('last_pi_alive'):
                     continue
                 cam_props['last_is_alive'] = is_alive
                 cam_props['last_connections'] = connections
+                cam_props['last_pi_alive'] = pi_alive
 
-                style = self.STYLE_ON if is_alive else self.STYLE_OFF
                 indicator = cam_props.get('INDICATOR')  # switch to safe access since we can have cameras w/o heartbeat indicators
                 if indicator:
+                    bg_color = self.CAM_COLOR_GOOD if is_alive else self.CAM_COLOR_BAD
+                    text_color = self.CAM_TEXT_ON if is_alive else self.CAM_TEXT_OFF
+                    border_color = self.CAM_COLOR_GOOD if pi_alive else self.CAM_COLOR_OFFLINE
+                    
+                    style = f"border: 2px solid {border_color}; border-radius: 7px; background-color:{bg_color}; color:{text_color};"
                     indicator.setStyleSheet(style)
                     indicator.setText(f'{cam_props["NICKNAME"]}: {connections:2d}')
 
@@ -646,19 +670,14 @@ class UIUpdater:
         props['last_state'] = current_state
         
         if active == "RED":
-            style = "border: 7px; border-radius: 7px; background-color: rgb(225, 0, 0); color: rgb(255, 255, 255);"
+            style = self.STYLE_HUB_RED
             text = f"RED ACTIVE: {int(countdown)}s"
         elif active == "BLUE":
-            style = "border: 7px; border-radius: 7px; background-color: rgb(0, 0, 225); color: rgb(255, 255, 255);"
+            style = self.STYLE_HUB_BLUE
             text = f"BLUE ACTIVE: {int(countdown)}s"
         else:
             # Gradient for Both (Half Red, Half Blue)
-            style = (
-                "border: 7px; border-radius: 7px; color: rgb(255, 255, 255); "
-                "background: qlineargradient(x1:0, y1:0, x2:1, y2:0, "
-                "stop:0 rgb(225, 0, 0), stop:0.8 rgb(225, 0, 0), "
-                "stop:0.8 rgb(0, 0, 225), stop:1 rgb(0, 0, 225));"
-            )
+            style = self.STYLE_HUB_BOTH
             text = f"BOTH ACTIVE: {int(countdown)}s"
 
         widget.setStyleSheet(style)

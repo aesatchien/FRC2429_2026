@@ -320,7 +320,7 @@ class Ui(QtWidgets.QMainWindow):
 
         self.pi_ping_timer = QTimer(self)
         self.pi_ping_timer.timeout.connect(self.start_pi_ping)
-        self.pi_ping_timer.start(10000)  # Fire every 10 seconds
+        self.pi_ping_timer.start(int(getattr(config, 'PI_PING_INTERVAL_S', 5.0) * 1000))
         self.start_pi_ping()  # Trigger initial check immediately
 
     def build_widget_dict(self):
@@ -504,6 +504,11 @@ class Ui(QtWidgets.QMainWindow):
         prev_state = self.pi_states.get(ip)
         self.pi_states[ip] = is_alive
         elapsed = self.ui_updater.get_elapsed_time()
+        
+        # Pass the hardware alive state to the camera dict for the UI Updater
+        for props in self.camera_dict.values():
+            if props.get('IP') == ip:
+                props['PI_ALIVE'] = is_alive
         
         if prev_state is None:
             status = "ONLINE" if is_alive else "OFFLINE"

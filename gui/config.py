@@ -68,6 +68,7 @@ QUESTNAV_ADB_ADDRESS = '10.24.29.200:5802'  # ADB target for restarting QuestNav
 QUESTNAV_ADB_MAX_RETRIES = 5  # Maximum number of times to try restarting QuestNav automatically
 QUESTNAV_PASSTHRU_ADB_DELAY = 0.05  # Delay before forcing ADB command to bring quest app back to foreground
 QUESTNAV_ADB_COOLDOWN_S = 2.0  # wait before trying another ADB
+PI_PING_INTERVAL_S = 5.0  # Seconds between hardware pings to the camera Pis
 # FIELD CONFIGURATION
 SHOW_APRILTAGS = True
 DRAW_GHOST_POSE = False
