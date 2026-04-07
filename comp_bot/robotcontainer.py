@@ -131,7 +131,7 @@ class RobotContainer:
 
         # manual shooting - identical to the above but with fixed RPM
         js.driver_x.whileTrue(commands2.ParallelCommandGroup(
-            ShootingCommand(shooter=self.shooter, rpm=3300),
+            ShootingCommand(shooter=self.shooter, targeting=self.targeting, rpm=3300),
             commands2.SequentialCommandGroup(commands2.WaitCommand(constants.AutoConstants.k_intake_raise_delay),
                                              Intake_Deploy(intake=self.intake, position='shoot'),
                                              commands2.WaitCommand(constants.AutoConstants.k_intake_raise_delay),
@@ -141,7 +141,7 @@ class RobotContainer:
 
         js.driver_b.onTrue(commands2.InstantCommand(lambda: self.shooter.set_shooter_rpm(sc.k_fire_up_speed)))
         js.driver_b.whileTrue(commands2.ParallelCommandGroup(
-            ShootingCommand(shooter=self.shooter, rpm=4500),
+            ShootingCommand(shooter=self.shooter, targeting=self.targeting, rpm=4500),
             commands2.SequentialCommandGroup(commands2.WaitCommand(constants.AutoConstants.k_intake_raise_delay),
                                              Intake_Deploy(intake=self.intake, position='shoot'),
                                              commands2.WaitCommand(constants.AutoConstants.k_intake_raise_delay),
@@ -361,11 +361,11 @@ class RobotContainer:
         self.auto_chooser.addOption('2a: Auto Shoot *CODE*', AutoShootingGroup(self, indent=0))
         # self.auto_chooser.addOption('3b: Auto Shoot and Move *CODE*', AutoShootAndPickup(self, indent=0))
         self.auto_chooser.addOption('2b: Two Cycles *CODE*', TwoCycle(self, indent=0))
-        self.auto_chooser.addOption('3a: Fill Shoot Fill Bump *CODE*', FillShootFillBump(self, indent=0))
-        self.auto_chooser.setDefaultOption('3b: Fill Shoot Fill Shoot Bump *CODE*', FillShootFillShootBump(self, indent=0))
-        self.auto_chooser.addOption('4a: Pathing Fill Shoot Fill Shoot Bump *CODE*', PathingFillShootFillShootBump(self, indent=0))  
-        self.auto_chooser.addOption('4b: Pathing Fill Shoot Fill Shoot Trench *CODE*', FillShootFillShootTrench(self, indent=0))
-        self.auto_chooser.addOption('5a: Intake Depot or Outpost and Shoot *CODE*', DepotOrOutpostAndShoot(self, indent=0))
+        self.auto_chooser.addOption('3a: FSF Bump *CODE*', FillShootFillBump(self, indent=0))
+        self.auto_chooser.setDefaultOption('3b: FSFS Bump *CODE*', FillShootFillShootBump(self, indent=0))
+        self.auto_chooser.addOption('4a: Pathing FSFS Bump *CODE*', PathingFillShootFillShootBump(self, indent=0))
+        self.auto_chooser.addOption('4b: Pathing FSFS Trench *CODE*', FillShootFillShootTrench(self, indent=0))
+        self.auto_chooser.addOption('5a: Intake Depot or Outpost Shoot *CODE*', DepotOrOutpostAndShoot(self, indent=0))
 
         wpilib.SmartDashboard.putData('autonomous routines', self.auto_chooser)  #
 
