@@ -139,7 +139,7 @@ class RobotContainer:
         ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=500, led=self.led)))
         js.driver_x.onFalse(Intake_Deploy(intake=self.intake, position='down').andThen(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
 
-        js.driver_b.onTrue(commands2.InstantCommand(lambda: self.shooter.set_shooter_rpm(sc.k_fire_up_speed)))
+        js.driver_b.onTrue(InstantCommand(lambda: self.shooter.set_shooter_rpm(sc.k_fire_up_speed)))
         js.driver_b.whileTrue(commands2.ParallelCommandGroup(
             ShootingCommand(shooter=self.shooter, targeting=self.targeting, rpm=4500),
             commands2.SequentialCommandGroup(commands2.WaitCommand(constants.AutoConstants.k_intake_raise_delay),
@@ -151,9 +151,9 @@ class RobotContainer:
 
 
         # start / stop tracking
-        js.driver_rb.onTrue(commands2.InstantCommand(lambda: self.targeting.start_tracking())
+        js.driver_rb.onTrue(InstantCommand(lambda: self.targeting.start_tracking())
                             .andThen(InstantCommand(lambda: self.shooter.set_shooter_rpm(rpm=sc.k_fire_up_speed))))
-        js.driver_rb.onFalse(commands2.InstantCommand(lambda: self.targeting.stop_tracking()))
+        js.driver_rb.onFalse(InstantCommand(lambda: self.targeting.stop_tracking()))
 
         # D-Pad: Slow, smooth robot-centric alignment (Nudge)
         dpad_driving = False
@@ -210,22 +210,22 @@ class RobotContainer:
     def bind_bbox_buttons(self) -> None:
         print("Binding bbox buttons")
 
-        # js.bbox_1_1.onTrue(commands2.InstantCommand(lambda: self.shooter.set_shooting_offset(125)))
-        # js.bbox_1_1.onFalse(commands2.InstantCommand(lambda: self.shooter.set_shooting_offset(0)))
+        # js.bbox_1_1.onTrue(InstantCommand(lambda: self.shooter.set_shooting_offset(125)))
+        # js.bbox_1_1.onFalse(InstantCommand(lambda: self.shooter.set_shooting_offset(0)))
 
-        js.bbox_1_1.onTrue(commands2.InstantCommand(lambda: self.intake.zero_intake()).ignoringDisable(True))
+        js.bbox_1_1.onTrue(InstantCommand(lambda: self.intake.zero_intake()).ignoringDisable(True))
 
-        js.bbox_1_2.onTrue(commands2.InstantCommand(lambda: self.intake.set_angle_max()).ignoringDisable(True))
+        js.bbox_1_2.onTrue(InstantCommand(lambda: self.intake.set_angle_max()).ignoringDisable(True))
 
-        js.bbox_1_3.onTrue(commands2.InstantCommand(lambda: self.targeting.stop_tracking()))
+        js.bbox_1_3.onTrue(InstantCommand(lambda: self.targeting.stop_tracking()))
 
         #js.bbox_1_4.whileTrue(SwerveTest(container=self, swerve=self.swerve))
-        js.bbox_1_4.onTrue(commands2.InstantCommand(lambda: self.questnav.quest_sync_odometry()).ignoringDisable(True))
+        js.bbox_1_4.onTrue(InstantCommand(lambda: self.questnav.quest_sync_odometry()).ignoringDisable(True))
 
-        js.bbox_1_5.onTrue(commands2.InstantCommand(lambda: self.questnav.quest_enabled_toggle(force='off')).ignoringDisable(True))
-        js.bbox_1_6.onTrue(commands2.InstantCommand(lambda: self.questnav.quest_enabled_toggle(force='on')).ignoringDisable(True))
-        # js.bbox_1_6.onTrue(commands2.InstantCommand(lambda: self.questnav.quest_sync_odometry()).ignoringDisable(True))
-        js.bbox_1_7.onTrue(commands2.InstantCommand(lambda: self.questnav.quest_unsync_odometry()).ignoringDisable(True))
+        js.bbox_1_5.onTrue(InstantCommand(lambda: self.questnav.quest_enabled_toggle(force='off')).ignoringDisable(True))
+        js.bbox_1_6.onTrue(InstantCommand(lambda: self.questnav.quest_enabled_toggle(force='on')).ignoringDisable(True))
+        # js.bbox_1_6.onTrue(InstantCommand(lambda: self.questnav.quest_sync_odometry()).ignoringDisable(True))
+        js.bbox_1_7.onTrue(InstantCommand(lambda: self.questnav.quest_unsync_odometry()).ignoringDisable(True))
 
         js.bbox_1_8.whileTrue(
             Intake_Deploy(intake=self.intake, position='up').andThen(
@@ -233,8 +233,8 @@ class RobotContainer:
         )
 
         js.bbox_1_9.onTrue(
-            (commands2.InstantCommand(lambda: self.intake.set_intake_position(ic.k_shooting_angle)).andThen(
-            commands2.InstantCommand(lambda: self.intake.set_intake_rpm(500)))
+            (InstantCommand(lambda: self.intake.set_intake_position(ic.k_shooting_angle)).andThen(
+            InstantCommand(lambda: self.intake.set_intake_rpm(500)))
             )
         )
 
@@ -243,8 +243,8 @@ class RobotContainer:
             Intake_Set_RPM(intake=self.intake, rpm=3000, led=self.led))
         )
 
-        js.bbox_1_11.onTrue(commands2.InstantCommand(lambda: self.shooter.set_shooting_offset(-250)))
-        js.bbox_1_12.onTrue(commands2.InstantCommand(lambda: self.shooter.set_shooting_offset(250)))
+        js.bbox_1_11.onTrue(InstantCommand(lambda: self.shooter.set_shooting_offset(-250)))
+        js.bbox_1_12.onTrue(InstantCommand(lambda: self.shooter.set_shooting_offset(250)))
 
         # test the intake deploy positions on the L1-L4 buttons
         # js.bbox_2_1.whileTrue(CalibrateIntake(intake=self.intake))
@@ -295,19 +295,19 @@ class RobotContainer:
         wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeOn', Intake_Set_RPM(intake=self.intake, rpm=3000, led=self.led))
         wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeOff', Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
         wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeReverse', Intake_Set_RPM(intake=self.intake, rpm=-500, led=self.led))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeBrake', commands2.InstantCommand(lambda: self.intake.set_brake_mode(brake_on=True)).ignoringDisable(True))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeIdle', commands2.InstantCommand(lambda: self.intake.set_brake_mode(brake_on=False)).ignoringDisable(True))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeBrake', InstantCommand(lambda: self.intake.set_brake_mode(brake_on=True)).ignoringDisable(True))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeIdle', InstantCommand(lambda: self.intake.set_brake_mode(brake_on=False)).ignoringDisable(True))
         # ---
-        wpilib.SmartDashboard.putData(f'{command_prefix}/HopperOn', commands2.InstantCommand(lambda: self.shooter.set_hopper_rpm(constants.ShooterConstants.k_hopper_rpm)))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/HopperOff',commands2.InstantCommand(lambda: self.shooter.stop_hopper()))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/HopperReverse', commands2.InstantCommand(lambda: self.shooter.set_hopper_rpm(-500)))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/IndexerOn', commands2.InstantCommand(lambda: self.shooter.set_indexer_rpm(constants.ShooterConstants.k_indexer_rpm)))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/IndexerOff', commands2.InstantCommand(lambda: self.shooter.stop_indexer()))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/IndexerReverse', commands2.InstantCommand(lambda: self.shooter.set_indexer_rpm(-500)))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/HopperOn', InstantCommand(lambda: self.shooter.set_hopper_rpm(constants.ShooterConstants.k_hopper_rpm)))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/HopperOff',InstantCommand(lambda: self.shooter.stop_hopper()))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/HopperReverse', InstantCommand(lambda: self.shooter.set_hopper_rpm(-500)))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/IndexerOn', InstantCommand(lambda: self.shooter.set_indexer_rpm(constants.ShooterConstants.k_indexer_rpm)))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/IndexerOff', InstantCommand(lambda: self.shooter.stop_indexer()))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/IndexerReverse', InstantCommand(lambda: self.shooter.set_indexer_rpm(-500)))
         # ---
-        wpilib.SmartDashboard.putData(f'{command_prefix}/ShooterOn', commands2.InstantCommand(lambda: self.shooter.set_shooter_rpm(constants.ShooterConstants.k_shooter_test_speed)))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/ShooterOn', InstantCommand(lambda: self.shooter.set_shooter_rpm(constants.ShooterConstants.k_shooter_test_speed)))
         wpilib.SmartDashboard.putData(f'{command_prefix}/ShooterOff', StopShooter(shooter=self.shooter))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/ShooterReverse', commands2.InstantCommand(lambda: self.shooter.set_shooter_rpm(-500)))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/ShooterReverse', InstantCommand(lambda: self.shooter.set_shooter_rpm(-500)))
 
         # commands for pyqt dashboard - please do not remove
         COMMAND_LIST = [CANStatus(container=self),
@@ -328,7 +328,7 @@ class RobotContainer:
             # because that's what `cmd` is when the loop finishes.
             # By setting `cmd=cmd` as a default argument, we force the lambda to capture
             # the *current* value of `cmd` during each iteration of the loop.
-            wpilib.SmartDashboard.putData(f'{command_prefix}/{cmd}', commands2.InstantCommand(lambda cmd=cmd: print(f'Called {cmd} at {wpilib.Timer.getFPGATimestamp():.1f}s'))
+            wpilib.SmartDashboard.putData(f'{command_prefix}/{cmd}', InstantCommand(lambda cmd=cmd: print(f'Called {cmd} at {wpilib.Timer.getFPGATimestamp():.1f}s'))
                                           .alongWith(commands2.WaitCommand(2)).ignoringDisable(True))
 
         # end pyqt dashboard section
@@ -377,7 +377,7 @@ class RobotContainer:
                 Intake_Set_RPM(intake=self.intake, rpm=2500, led=self.led)
             )
         )
-        NamedCommands.registerCommand('start_shooter_nothing_else', commands2.InstantCommand(lambda: self.shooter.set_shooter_rpm(sc.k_fire_up_speed)))
+        NamedCommands.registerCommand('start_shooter_nothing_else', InstantCommand(lambda: self.shooter.set_shooter_rpm(sc.k_fire_up_speed)))
         NamedCommands.registerCommand('shooting_command', ShootingCommand(shooter=self.shooter, targeting=self.targeting))
         NamedCommands.registerCommand('hello', commands2.PrintCommand("hello!"))
         NamedCommands.registerCommand("wait_then_intake", commands2.WaitCommand(ac.k_intake_deploy_delay_bump).andThen(
@@ -394,7 +394,7 @@ class RobotContainer:
             # when running Auto multiple times!
             print(f"** Started {cmd.getName()} with delay of {delay} **")
             return commands2.WaitCommand(delay).andThen(
-                commands2.InstantCommand(lambda: cmd.schedule())
+                InstantCommand(lambda: cmd.schedule())
             )
         print(f"** Started {cmd.getName()} with no delay**")
         return cmd

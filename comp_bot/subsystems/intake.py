@@ -278,7 +278,7 @@ class Intake(Subsystem):
         self.deploy_motor.setVoltage(total_voltage)
         # -------------------------------------------------------
 
-        if self.counter % 2 == 0:
+        if self.counter % 1 == 0:
             self.deployer_average_current_pub.set(self.get_average_current())
             self.deployer_internal_setpoint_pub.set(setpoint.position)
 

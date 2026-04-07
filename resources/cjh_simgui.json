@@ -17,11 +17,6 @@
       "window": {
         "visible": false
       }
-    },
-    "PowerDistributions": {
-      "window": {
-        "visible": true
-      }
     }
   },
   "NTProvider": {
@@ -52,17 +47,27 @@
       "/SmartDashboard/Command/GoToL4": "Command",
       "/SmartDashboard/Command/GoToStow": "Command",
       "/SmartDashboard/Command/GyroReset": "Command",
+      "/SmartDashboard/Command/HopperOff": "Command",
+      "/SmartDashboard/Command/HopperOn": "Command",
+      "/SmartDashboard/Command/HopperReverse": "Command",
       "/SmartDashboard/Command/HopperStart": "Command",
       "/SmartDashboard/Command/HopperStop": "Command",
+      "/SmartDashboard/Command/IndexerOff": "Command",
+      "/SmartDashboard/Command/IndexerOn": "Command",
+      "/SmartDashboard/Command/IndexerReverse": "Command",
       "/SmartDashboard/Command/IndexerStart": "Command",
       "/SmartDashboard/Command/IndexerStop": "Command",
+      "/SmartDashboard/Command/IntakeBrake": "Command",
       "/SmartDashboard/Command/IntakeDeploy": "Command",
+      "/SmartDashboard/Command/IntakeIdle": "Command",
       "/SmartDashboard/Command/IntakeOff": "Command",
       "/SmartDashboard/Command/IntakeOn": "Command",
       "/SmartDashboard/Command/IntakeRetract": "Command",
       "/SmartDashboard/Command/IntakeReverse": "Command",
+      "/SmartDashboard/Command/IntakeShoot": "Command",
       "/SmartDashboard/Command/IntakeStart": "Command",
       "/SmartDashboard/Command/IntakeStop": "Command",
+      "/SmartDashboard/Command/IntakeStow": "Command",
       "/SmartDashboard/Command/LED Indicator": "String Chooser",
       "/SmartDashboard/Command/LED Mode": "String Chooser",
       "/SmartDashboard/Command/MoveClimberDown": "Command",
@@ -83,6 +88,9 @@
       "/SmartDashboard/Command/ResetFlex": "Command",
       "/SmartDashboard/Command/RobotScoringMode": "String Chooser",
       "/SmartDashboard/Command/SetSuccess": "Command",
+      "/SmartDashboard/Command/ShooterOff": "Command",
+      "/SmartDashboard/Command/ShooterOn": "Command",
+      "/SmartDashboard/Command/ShooterReverse": "Command",
       "/SmartDashboard/Command/ShooterStart": "Command",
       "/SmartDashboard/Command/ShooterStop": "Command",
       "/SmartDashboard/Field": "Field2d",
@@ -211,6 +219,16 @@
           "weight": 2.0,
           "width": 0.4000000059604645
         },
+        "ShotLine": {
+          "arrows": false,
+          "color": [
+            0.0,
+            0.855555534362793,
+            0.019012190401554108,
+            255.0
+          ],
+          "style": "Line (Closed)"
+        },
         "Target": {
           "arrowColor": [
             1.0,
@@ -238,8 +256,8 @@
         },
         "bottom": 743,
         "builtin": "",
-        "height": 8.0,
-        "image": "C:\\Users\\tenta\\OneDrive\\Desktop\\FRC2429_2026\\resources\\sim\\2026-field_crop.png",
+        "height": 8.069999694824219,
+        "image": "C:\\CJH\\python\\FRC\\2026\\resources\\sim\\2026-field_crop.png",
         "left": 95,
         "logitech_reef_FOV": {
           "color": [
@@ -255,7 +273,7 @@
         "top": 48,
         "width": 16.5,
         "window": {
-          "name": "Practicebot 2026",
+          "name": "Compbot 2026",
           "visible": true
         }
       },
@@ -263,13 +281,18 @@
         "bottom": 743,
         "builtin": "",
         "height": 8.051901817321777,
-        "image": "C:\\Users\\tenta\\OneDrive\\Desktop\\FRC2429_2026\\resources\\sim\\2026-field_crop.png",
         "left": 95,
         "right": 1521,
         "top": 48,
         "width": 17.54825210571289,
         "window": {
-          "name": "2026"
+          "name": "2026",
+          "visible": true
+        }
+      },
+      "/SmartDashboard/autonomous routines": {
+        "window": {
+          "visible": true
         }
       }
     }
