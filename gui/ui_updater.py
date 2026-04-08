@@ -346,7 +346,7 @@ class UIUpdater:
                     text_color = self.CAM_TEXT_ON if is_alive else self.CAM_TEXT_OFF
                     border_color = self.CAM_COLOR_GOOD if pi_alive else self.CAM_COLOR_OFFLINE
                     
-                    style = f"border: 2px solid {border_color}; border-radius: 7px; background-color:{bg_color}; color:{text_color};"
+                    style = f"border: 3px solid {border_color}; border-radius: 7px; background-color:{bg_color}; color:{text_color};"
                     indicator.setStyleSheet(style)
                     indicator.setText(f'{cam_props["NICKNAME"]}: {connections:2d}')
 

@@ -237,7 +237,7 @@ class IntakeConstants:
 
     # in case we do a profiled subsystem - just using a cheap PID on the sparkmax bangs a bit too much
     k_max_velocity_rad_per_second = math.pi * 5.0  # 360 degrees/second
-    k_max_acceleration_rad_per_sec_squared = math.pi * 10.0  # Snappier acceleration
+    k_max_acceleration_rad_per_sec_squared = math.pi * 5.0  # Snappier acceleration
     k_kS_volts = 0.01  # constant to always add, uses the sign of velocity
     k_kG_volts = 0.34 / 1.0  # 10lbs at 11in COM, cuts in half with two motors, goes up with mass and distance, down with efficiency
     k_kV_volt_second_per_radian = 0.91  # stays the same with one or two motors, based on the NEO vortex itself and gear ratio
