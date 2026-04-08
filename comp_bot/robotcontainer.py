@@ -38,7 +38,7 @@ from autonomous.auto_shoot_and_pickup import AutoShootAndPickup
 from autonomous.twocycle import TwoCycle
 from autonomous.fill_shoot_fill_bump import FillShootFillBump
 from autonomous.fill_shoot_fill_shoot_bump import FillShootFillShootBump
-from autonomous.fill_shoot_fill_shoot_trench import FillShootFillShootTrench
+from autonomous.pathing_fill_shoot_fill_shoot_trench import FillShootFillShootTrench
 from autonomous.pathing_fill_shoot_fill_shoot_bump import PathingFillShootFillShootBump
 from autonomous.depot_or_output_and_shoot import DepotOrOutpostAndShoot
 from autonomous.teleop_cycle import TeleopCycle
