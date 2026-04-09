@@ -51,7 +51,7 @@ public class QuestNavSubsystem extends SubsystemBase {
     /** Loops without a new frame before we declare passthrough (14 x 20ms = 280ms). */
     private static final int    K_MAX_MISSED_FRAMES      = 14;
     /** Loops without NT heartbeat before hard-unsyncing (50 x 20ms = 1 second). */
-    private static final int    K_MAX_DISCONNECTED_COUNT = 14;
+    private static final int    K_MAX_DISCONNECTED_COUNT = 50;
     /** Missed frames before the pose acceptance gate closes (5 x 20ms = 100ms). */
     private static final int    K_DATA_FRESH_THRESHOLD   = 5;
     /** If the headset recovers within this many seconds, soft-resync automatically. */
