@@ -457,6 +457,229 @@ if __name__ == "__main__":
 
 ---
 
+## Part 3B — Java Implementations of the Fix
+
+There are two clean all-Java options depending on where you want the ADB call to live.
+
+---
+
+### Option A — Robot Code Calls ADB Directly (roboRIO fires the fix)
+
+The roboRIO runs Linux on an ARMv7 core and is on the same Wi-Fi network as the Quest.
+Java's `ProcessBuilder` can shell out to `adb` from inside robot code — no driver-station
+script required.
+
+**Setup:** deploy a statically-linked ARMv7 `adb` binary alongside your robot code.
+Place it at `src/main/deploy/adb` in your robot project; WPILib copies `deploy/` to
+`/home/lvuser/deploy/` on the roboRIO at deploy time.  Set it executable once:
+
+```bash
+chmod +x /home/lvuser/deploy/adb
+```
+
+**In the QuestNav subsystem** (add alongside the detection logic from Part 1):
+
+```java
+// ---- Constants ----
+private static final String ADB_PATH       = "/home/lvuser/deploy/adb";
+private static final String QUEST_ADB_ADDR = "10.24.29.200:5802";
+private static final double ADB_DELAY_S    = 0.05;
+private static final double ADB_COOLDOWN_S = 2.0;
+private static final int    ADB_MAX_RETRIES = 5;
+
+// ---- State (declare alongside the other passthrough fields) ----
+private double adbStartTime   = 0.0;
+private double adbLastFix     = 0.0;
+private int    adbRetries     = 0;
+
+// ---- Call this at the end of periodic(), after setting questPassthroughEntry ----
+private void checkAndFireAdb() {
+    boolean isInPassthru = questPassthroughEntry.get();
+    double now = Timer.getFPGATimestamp();
+
+    if (isInPassthru) {
+        if (adbStartTime == 0.0) {
+            adbStartTime = now;
+            System.out.println("Passthrough detected — ADB recovery armed.");
+        }
+
+        double elapsed    = now - adbStartTime;
+        double sinceLast  = now - adbLastFix;
+
+        if (elapsed > ADB_DELAY_S && sinceLast > ADB_COOLDOWN_S) {
+            if (adbRetries < ADB_MAX_RETRIES) {
+                adbRetries++;
+                System.out.printf("ADB fix attempt %d/%d%n", adbRetries, ADB_MAX_RETRIES);
+                try {
+                    new ProcessBuilder(
+                        ADB_PATH, "-s", QUEST_ADB_ADDR,
+                        "shell", "am", "start",
+                        "-n", "gg.QuestNav.QuestNav/com.unity3d.player.UnityPlayerGameActivity"
+                    ).start();   // fire-and-forget
+                } catch (Exception e) {
+                    System.out.println("ADB launch failed: " + e.getMessage());
+                }
+                adbLastFix   = now;
+                adbStartTime = now;   // require another full ADB_DELAY_S before next attempt
+            } else if (adbRetries == ADB_MAX_RETRIES) {
+                System.out.println("ADB max retries reached — giving up on this event.");
+                adbRetries++;
+            }
+        }
+
+    } else {
+        if (adbRetries > 0) {
+            System.out.printf("Passthrough resolved after %d attempt(s).%n", adbRetries);
+        }
+        adbStartTime = 0.0;
+        adbRetries   = 0;
+    }
+}
+```
+
+Call it at the bottom of `periodic()`:
+
+```java
+@Override
+public void periodic() {
+    // ... all the detection logic from Part 1 ...
+    checkAndFireAdb();
+}
+```
+
+**Pros:** entirely self-contained in robot code, no driver-station script, no external
+dependencies.  
+**Cons:** requires a compatible static ARM ADB binary deployed to the roboRIO; the
+roboRIO needs network-level access to the Quest's ADB port (same subnet — it does).
+
+---
+
+### Option B — Standalone Java App on the Driver Station PC
+
+This is the Java equivalent of `quest_watcher.py`.  It's a plain `main()` class —
+not robot code — that runs on the DS PC, connects to NT as a client, watches the
+boolean, and calls `adb.exe` via `ProcessBuilder`.
+
+WPILib ships `ntcore` as a standalone Java library (included in the WPILib installer
+at `~/wpilib/2026/maven/`).  Add it to a minimal Gradle project or run directly with
+the WPILib JARs on the classpath.
+
+```java
+// QuestWatcher.java  — run on the Driver Station PC
+// Compile: javac -cp ntcore.jar QuestWatcher.java
+// Run:     java  -cp ntcore.jar:. QuestWatcher  (Linux/Mac)
+//          java  -cp ntcore.jar;. QuestWatcher  (Windows)
+
+import edu.wpi.first.networktables.*;
+import java.io.IOException;
+
+public class QuestWatcher {
+
+    // ---- Config ----
+    static final String ROBOT_IP       = "10.24.29.2";
+    static final String QUEST_ADB      = "10.24.29.200:5802";
+    static final String ADB_EXE        = "adb";      // or absolute path to adb.exe
+    static final double ADB_DELAY_S    = 0.05;
+    static final double ADB_COOLDOWN_S = 2.0;
+    static final int    ADB_MAX_RETRIES = 5;
+    static final String NT_TOPIC       = "/QuestNav/quest_in_passthrough";
+
+    public static void main(String[] args) throws InterruptedException {
+        NetworkTableInstance inst = NetworkTableInstance.getDefault();
+        inst.startClient4("quest_watcher_java");
+        inst.setServer(ROBOT_IP);
+        Thread.sleep(500);   // allow NT to connect
+
+        BooleanSubscriber sub = inst.getBooleanTopic(NT_TOPIC).subscribe(false);
+
+        double adbStartTime   = 0.0;
+        double adbLastFix     = 0.0;
+        int    retries        = 0;
+        boolean wasPassthru   = false;
+
+        System.out.printf("Quest Watcher (Java) started. Robot=%s  Quest=%s%n",
+                           ROBOT_IP, QUEST_ADB);
+
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> inst.close()));
+
+        while (true) {
+            boolean isPassthru = sub.get();
+            double  now        = System.currentTimeMillis() / 1000.0;
+
+            if (isPassthru) {
+                if (!wasPassthru) {
+                    System.out.printf("[%.1f] PASSTHROUGH DETECTED%n", now);
+                    adbStartTime = now;
+                    retries = 0;
+                }
+
+                double elapsed   = now - adbStartTime;
+                double sinceLast = now - adbLastFix;
+
+                if (elapsed > ADB_DELAY_S && sinceLast > ADB_COOLDOWN_S) {
+                    if (retries < ADB_MAX_RETRIES) {
+                        retries++;
+                        System.out.printf("[%.1f] ADB fix attempt %d/%d%n",
+                                           now, retries, ADB_MAX_RETRIES);
+                        fireAdb();
+                        adbLastFix   = now;
+                        adbStartTime = now;
+                    } else if (retries == ADB_MAX_RETRIES) {
+                        System.out.printf("[%.1f] Max retries reached — giving up.%n", now);
+                        retries++;
+                    }
+                }
+                wasPassthru = true;
+
+            } else {
+                if (wasPassthru) {
+                    System.out.printf("[%.1f] Passthrough resolved after %d attempt(s).%n",
+                                       now, retries);
+                    retries = 0;
+                }
+                adbStartTime = 0.0;
+                wasPassthru  = false;
+            }
+
+            Thread.sleep(50);   // 20 Hz poll
+        }
+    }
+
+    static void fireAdb() {
+        try {
+            new ProcessBuilder(
+                ADB_EXE, "-s", QUEST_ADB,
+                "shell", "am", "start",
+                "-n", "gg.QuestNav.QuestNav/com.unity3d.player.UnityPlayerGameActivity"
+            ).start();
+        } catch (IOException e) {
+            System.out.println("ADB launch failed: " + e.getMessage());
+        }
+    }
+}
+```
+
+**Pros:** pure Java, no Python needed, compiles to a runnable JAR, familiar toolchain
+for a Java-only team.  
+**Cons:** still an external process on the DS PC (same tradeoff as the Python script).
+
+---
+
+### Comparison of All Options
+
+| Option | Where it runs | ADB dependency | External script? | Complexity |
+|---|---|---|---|---|
+| Python `quest_watcher.py` | DS PC | `adb.exe` in `gui/adb/` | Yes (Python) | Low |
+| PowerShell `quest_watcher.ps1` | DS PC | `adb.exe` on PATH | Yes (PS1) | Medium |
+| Java `QuestWatcher.java` | DS PC | `adb.exe` on PATH | Yes (JAR) | Low |
+| Robot Java + `ProcessBuilder` | roboRIO | ARM static `adb` binary | **No** | Medium |
+
+**Recommendation for a Java-only team:** Option A (robot code + deployed ADB binary)
+gives the cleanest architecture.  Option B (standalone Java watcher JAR) is the easiest
+drop-in if you already have `adb.exe` available on the DS PC.
+
+---
+
 ## Part 4 — Integration Notes for Java
 
 ### 4.1  Shuffleboard / SmartDashboard Visibility
