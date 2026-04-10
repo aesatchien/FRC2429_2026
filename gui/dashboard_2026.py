@@ -268,6 +268,7 @@ class Ui(QtWidgets.QMainWindow):
         self.qlabel_pdh_voltage_monitor.update_settings(min_val=8, max_val=12, red_high=False, display_float=True)
         self.qlabel_pdh_current_monitor.update_settings(min_val=60, max_val=160, red_high=True, display_float=False)
         self.qlabel_questnav_dtap_count_monitor.update_settings(min_val=0, max_val=10, red_high=True, display_float=False)
+        self.qlabel_quest_battery_monitor.update_settings(min_val=0, max_val=100, red_high=False, display_float=False)
 
         # Publishers for key presses
         self.keys_pressed_pub = self.ntinst.getIntegerArrayTopic("/SmartDashboard/keys_pressed").publish()

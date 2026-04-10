@@ -27,7 +27,7 @@
     <property name="geometry">
      <rect>
       <x>730</x>
-      <y>460</y>
+      <y>480</y>
       <width>721</width>
       <height>111</height>
      </rect>
@@ -1703,7 +1703,7 @@ background-color:rgb(180,180,180);</string>
       <property name="geometry">
        <rect>
         <x>640</x>
-        <y>362</y>
+        <y>356</y>
         <width>70</width>
         <height>16</height>
        </rect>
@@ -1719,7 +1719,7 @@ background-color:rgb(180,180,180);</string>
       <property name="geometry">
        <rect>
         <x>635</x>
-        <y>326</y>
+        <y>323</y>
         <width>80</width>
         <height>31</height>
        </rect>
@@ -1760,7 +1760,7 @@ background-color:rgb(127, 127, 127);
       <property name="geometry">
        <rect>
         <x>635</x>
-        <y>381</y>
+        <y>373</y>
         <width>80</width>
         <height>31</height>
        </rect>
@@ -2234,6 +2234,54 @@ background-color:rgb(180,180,180);</string>
       </property>
       <property name="alignment">
        <set>Qt::AlignCenter</set>
+      </property>
+     </widget>
+     <widget class="WarningLabel" name="qlabel_quest_battery_monitor">
+      <property name="enabled">
+       <bool>true</bool>
+      </property>
+      <property name="geometry">
+       <rect>
+        <x>635</x>
+        <y>419</y>
+        <width>80</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <family>Arial</family>
+        <pointsize>16</pointsize>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">border: 7px;
+border-radius: 7px;
+background-color:rgb(127, 127, 127);
+</string>
+      </property>
+      <property name="text">
+       <string>QBAT</string>
+      </property>
+      <property name="textFormat">
+       <enum>Qt::AutoText</enum>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_21">
+      <property name="geometry">
+       <rect>
+        <x>640</x>
+        <y>402</y>
+        <width>70</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Quest Bat</string>
       </property>
      </widget>
     </widget>
@@ -2773,7 +2821,7 @@ background-color:rgb(0, 20, 250);</string>
      <property name="geometry">
       <rect>
        <x>0</x>
-       <y>0</y>
+       <y>30</y>
        <width>701</width>
        <height>91</height>
       </rect>

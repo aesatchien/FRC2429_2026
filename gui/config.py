@@ -152,6 +152,7 @@ WIDGET_CONFIG = {
     'qlabel_pdh_current_monitor': {'widget_name': 'qlabel_pdh_current_monitor', 'nt_topic': f'{status_prefix}/_pdh_current', 'update_style': 'monitor'},
 
     # QUESTNAV STUFF  TODO - decide if quest commands should live in robot tree or questnav tree
+    'qlabel_quest_battery_monitor': {'widget_name': 'qlabel_quest_battery_monitor', 'nt_topic': f'{quest_prefix}/quest_Battery_pct', 'update_style': 'monitor'},
     'quest_pose': {'widget_name': 'qlabel_quest_pose_indicator', 'nt_topic': f'{quest_prefix}/quest_pose', 'update_style': 'pose'},
     'quest_error_pose': {'widget_name': 'qlabel_quest_error_pose_indicator', 'nt_topic': f'{quest_prefix}/quest_error_pose', 'update_style': 'pose'},
     'qlabel_questnav_heartbeat_indicator': {'widget_name': 'qlabel_questnav_heartbeat_indicator', 'nt_topic': f'{quest_prefix}/quest_connected', 'update_style': 'indicator'},
