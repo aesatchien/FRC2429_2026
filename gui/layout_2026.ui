@@ -26,9 +26,9 @@
    <widget class="QPlainTextEdit" name="qt_text_status">
     <property name="geometry">
      <rect>
-      <x>730</x>
+      <x>720</x>
       <y>480</y>
-      <width>721</width>
+      <width>731</width>
       <height>111</height>
      </rect>
     </property>
@@ -2809,9 +2809,9 @@ background-color:rgb(0, 20, 250);</string>
     <property name="geometry">
      <rect>
       <x>740</x>
-      <y>580</y>
+      <y>600</y>
       <width>711</width>
-      <height>111</height>
+      <height>91</height>
      </rect>
     </property>
     <property name="title">
@@ -2821,7 +2821,7 @@ background-color:rgb(0, 20, 250);</string>
      <property name="geometry">
       <rect>
        <x>0</x>
-       <y>30</y>
+       <y>0</y>
        <width>701</width>
        <height>91</height>
       </rect>

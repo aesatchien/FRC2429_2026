@@ -433,7 +433,7 @@ class Ui(QtWidgets.QMainWindow):
                 value = float(text)
                 pub.set(value)
             except (ValueError, TypeError):
-                print(f'[{self.ui_updater.get_elapsed_time():.1f}] Invalid value for auto delay: {text}')
+                print(f"[{time.strftime('%H:%M:%S')}] Invalid value for auto delay: {text}")
 
     def label_click(self, label):
         props = self.widget_dict[label]
@@ -444,15 +444,15 @@ class Ui(QtWidgets.QMainWindow):
             # Check if the topic has data. If time is 0, it means no value has been set (by robot or us).
             atomic_val = sub.getAtomic()
             if atomic_val.time == 0:
-                print(f'[{self.ui_updater.get_elapsed_time():.1f}] Warning: {label} clicked but NT topic {sub.getTopic().getName()} has no value (Robot not connected?).', flush=True)
+                print(f"[{time.strftime('%H:%M:%S')}] Warning: {label} clicked but NT topic {sub.getTopic().getName()} has no value (Robot not connected?).", flush=True)
                 return
 
             # Toggle based on current state of the command topic
             toggled_state = not atomic_val.value
-            print(f'[{self.ui_updater.get_elapsed_time():.1f}] You clicked {label}. Firing command ...', flush=True)
+            print(f"[{time.strftime('%H:%M:%S')}] You clicked {label}. Firing command ...", flush=True)
             pub.set(toggled_state)
         else:
-            print(f'[{self.ui_updater.get_elapsed_time():.1f}] Warning: {label} clicked but NT Publisher or Subscriber is missing.', flush=True)
+            print(f"[{time.strftime('%H:%M:%S')}] Warning: {label} clicked but NT Publisher or Subscriber is missing.", flush=True)
 
     def ping_quest(self):
         """Pings a range of IPs to find the Quest ADB server and connect without freezing."""
@@ -463,7 +463,7 @@ class Ui(QtWidgets.QMainWindow):
 
         # Dynamically determine the base IP from config
         base_ip = ".".join(config.QUESTNAV_ADB_ADDRESS.split('.')[:3])
-        self.qt_text_status.appendPlainText(f"[{self.ui_updater.get_elapsed_time():.1f}] Searching for QuestNav in {base_ip}.200-209 range...")
+        self.qt_text_status.appendPlainText(f"[{time.strftime('%H:%M:%S')}] Searching for QuestNav in {base_ip}.200-209 range...")
 
         # 1. Create a thread and a worker
         self.ping_thread = QtCore.QThread()
@@ -513,11 +513,11 @@ class Ui(QtWidgets.QMainWindow):
         
         if prev_state is None:
             status = "ONLINE" if is_alive else "OFFLINE"
-            self.qt_text_status.appendPlainText(f"[{elapsed:.1f}] Pi at {ip} is {status} (Initial Check).")
+            self.qt_text_status.appendPlainText(f"[{time.strftime('%H:%M:%S')}] Pi at {ip} is {status} (Initial Check).")
         elif is_alive and not prev_state:
-            self.qt_text_status.appendPlainText(f"[{elapsed:.1f}] Pi at {ip} RECONNECTED.")
+            self.qt_text_status.appendPlainText(f"[{time.strftime('%H:%M:%S')}] Pi at {ip} RECONNECTED.")
         elif not is_alive and prev_state:
-            self.qt_text_status.appendPlainText(f"[{elapsed:.1f}] WARNING: Pi at {ip} DROPPED CONNECTION!")
+            self.qt_text_status.appendPlainText(f"[{time.strftime('%H:%M:%S')}] WARNING: Pi at {ip} DROPPED CONNECTION!")
             
         # If Pi is responding, cross-check to see if the vision script crashed
         if is_alive and elapsed > 5.0:  # Wait 5 seconds after GUI boot before issuing crash warnings
@@ -528,11 +528,11 @@ class Ui(QtWidgets.QMainWindow):
             if dead_cams:
                 if not getattr(self, warn_key, False):
                     cams_str = ", ".join(dead_cams)
-                    self.qt_text_status.appendPlainText(f"[{elapsed:.1f}] CRITICAL: Pi {ip} responding, but cameras DEAD ({cams_str})!")
+                    self.qt_text_status.appendPlainText(f"[{time.strftime('%H:%M:%S')}] CRITICAL: Pi {ip} responding, but cameras DEAD ({cams_str})!")
                     setattr(self, warn_key, True)
             else:
                 if getattr(self, warn_key, False):
-                    self.qt_text_status.appendPlainText(f"[{elapsed:.1f}] Cameras on Pi {ip} have recovered.")
+                    self.qt_text_status.appendPlainText(f"[{time.strftime('%H:%M:%S')}] Cameras on Pi {ip} have recovered.")
                     setattr(self, warn_key, False)
 
     def initialize_widgets(self):
@@ -565,7 +565,7 @@ class Ui(QtWidgets.QMainWindow):
         try:
             layout = TAG_LAYOUT
         except Exception as e:
-            print(f"[{self.ui_updater.get_elapsed_time():.1f}] Error loading AprilTag layout: {e}")
+            print(f"[{time.strftime('%H:%M:%S')}] Error loading AprilTag layout: {e}")
             return
 
         field_width = self.qgroupbox_field.width()
