@@ -101,7 +101,7 @@ class UIUpdater:
         # Detect transition from connected to disconnected
         was_connected = getattr(self, '_last_connection_state', True)
         if not is_connected and was_connected:
-            print(f"[{self.get_elapsed_time():.1f}] Network disconnected. Wiping chooser state to prevent stale data on reconnect.")
+            print(f"[{time.strftime('%H:%M:%S')}] Network disconnected. Wiping chooser state to prevent stale data on reconnect.")
             for props in self.ui.widget_dict.values():
                 if props.get('update_style') == 'combo':
                     # 1. Clear the UI to give visual feedback that the options are no longer valid.
@@ -122,7 +122,7 @@ class UIUpdater:
                         props['selected_publisher'] = None # Mark as closed
                     
         elif is_connected and not was_connected:
-            print(f"[{self.get_elapsed_time():.1f}] Network reconnected. Re-creating chooser publisher to allow user input.")
+            print(f"[{time.strftime('%H:%M:%S')}] Network reconnected. Re-creating chooser publisher to allow user input.")
             # 4. Re-create the publisher on reconnect so the user can make selections again.
             # The GUI now has no cached value to send and will wait for the robot's broadcast.
             props = self.ui.widget_dict.get('qcombobox_autonomous_routines')
@@ -148,7 +148,7 @@ class UIUpdater:
             # Start the timer if it just became True
             if self.dtap_start_time == 0.0:
                 self.dtap_start_time = current_time
-                print(f"[{current_time:.1f}] We have detected a QuestNav passthru condition.", flush=True)
+                print(f"[{time.strftime('%H:%M:%S')}] We have detected a QuestNav passthru condition.", flush=True)
 
             # If True for more than threshoold
             if (current_time - self.dtap_start_time) > config.QUESTNAV_PASSTHRU_ADB_DELAY:
@@ -156,17 +156,17 @@ class UIUpdater:
                 if (current_time - self.dtap_last_fix_time) > config.QUESTNAV_ADB_COOLDOWN_S:
                     if self.dtap_retries < config.QUESTNAV_ADB_MAX_RETRIES:
                         self.dtap_retries += 1
-                        print(f"[{current_time:.1f}] QuestNav has been in passthrough for > {config.QUESTNAV_PASSTHRU_ADB_DELAY:.2f}s. Attempting ADB fix ({self.dtap_retries}/{config.QUESTNAV_ADB_MAX_RETRIES}).", flush=True)
+                        print(f"[{time.strftime('%H:%M:%S')}] QuestNav has been in passthrough for > {config.QUESTNAV_PASSTHRU_ADB_DELAY:.2f}s. Attempting ADB fix ({self.dtap_retries}/{config.QUESTNAV_ADB_MAX_RETRIES}).", flush=True)
                         
                         try:
                             adb_path = os.path.join(os.path.dirname(__file__), "adb", "adb.exe")
                             cmd = [adb_path, "-s", config.QUESTNAV_ADB_ADDRESS, "shell", "am", "start", "-n", "gg.QuestNav.QuestNav/com.unity3d.player.UnityPlayerGameActivity"]
                             subprocess.Popen(cmd)
-                            print(f"[{current_time:.1f}] ADB command sent. Waiting for cooldown...", flush=True)
+                            print(f"[{time.strftime('%H:%M:%S')}] ADB command sent. Waiting for cooldown...", flush=True)
                         except Exception as e:
-                            print(f"[{current_time:.1f}] Failed to execute QuestNav ADB fix: {e}", flush=True)
+                            print(f"[{time.strftime('%H:%M:%S')}] Failed to execute QuestNav ADB fix: {e}", flush=True)
                     elif self.dtap_retries == config.QUESTNAV_ADB_MAX_RETRIES:
-                        print(f"[{current_time:.1f}] QuestNav ADB fix max retries ({config.QUESTNAV_ADB_MAX_RETRIES}) reached. Giving up.", flush=True)
+                        print(f"[{time.strftime('%H:%M:%S')}] QuestNav ADB fix max retries ({config.QUESTNAV_ADB_MAX_RETRIES}) reached. Giving up.", flush=True)
                         self.dtap_retries += 1  # Increment once more so we don't spam the 'Giving up' message
 
                     self.dtap_last_fix_time = current_time
@@ -174,20 +174,20 @@ class UIUpdater:
         else:
             self.dtap_start_time = 0.0
             if self.dtap_retries > 0:
-                print(f"[{current_time:.1f}] QuestNav passthru resolved.", flush=True)
+                print(f"[{time.strftime('%H:%M:%S')}] QuestNav passthru resolved.", flush=True)
                 self.dtap_retries = 0
 
     def _test_questnav_dtap(self):
         """Fires an ADB command to simulate/test Quest passthrough by returning to the Home screen."""
         current_time = self.get_elapsed_time()
-        print(f"[{current_time:.1f}] Testing QuestNav DTAP (Home Intent)...", flush=True)
+        print(f"[{time.strftime('%H:%M:%S')}] Testing QuestNav DTAP (Home Intent)...", flush=True)
         
         try:
             adb_path = os.path.join(os.path.dirname(__file__), "adb", "adb.exe")
             cmd = [adb_path, "-s", config.QUESTNAV_ADB_ADDRESS, "shell", "am", "start", "-a", "android.intent.action.MAIN", "-c", "android.intent.category.HOME"]
             subprocess.Popen(cmd)
         except Exception as e:
-            print(f"[{current_time:.1f}] Failed to execute QuestNav DTAP test: {e}", flush=True)
+            print(f"[{time.strftime('%H:%M:%S')}] Failed to execute QuestNav DTAP test: {e}", flush=True)
 
     def _update_pose_and_field(self):
         """Updates the robot and quest pose on the field graphic."""
