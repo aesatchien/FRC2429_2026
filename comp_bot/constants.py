@@ -274,6 +274,7 @@ class ShooterConstants:
     k_shooter_test_speed = 4000  # used as a defualt, as well as a spin up speed for tracking
     k_shooter_max_speed = 6500  # max rpm of the neos, if the rpm exceeds this, we run at max speed
     k_shooter_rpm_tolerance = 300  # rpm tolerance for when we can allow the shooter to fire
+    k_operator_rpm_adjustment = 180  # rpm increase or decrease from operator joystick
 
     k_test_rpm = 2000
     allowed_shooter_rpms = [0, 60] + [i for i in range(2000, 5601, 50)]+ [5600]

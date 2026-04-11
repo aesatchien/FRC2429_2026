@@ -244,8 +244,8 @@ class RobotContainer:
             Intake_Set_RPM(intake=self.intake, rpm=3000, led=self.led))
         )
 
-        js.bbox_1_11.onTrue(InstantCommand(lambda: self.shooter.set_shooting_offset(-250)))
-        js.bbox_1_12.onTrue(InstantCommand(lambda: self.shooter.set_shooting_offset(250)))
+        js.bbox_1_11.onTrue(InstantCommand(lambda: self.shooter.set_shooting_offset(-sc.k_operator_rpm_adjustment)))
+        js.bbox_1_12.onTrue(InstantCommand(lambda: self.shooter.set_shooting_offset(sc.k_operator_rpm_adjustment)))
 
         # test the intake deploy positions on the L1-L4 buttons
         # js.bbox_2_1.whileTrue(CalibrateIntake(intake=self.intake))
