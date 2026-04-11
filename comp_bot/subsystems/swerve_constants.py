@@ -225,7 +225,7 @@ class ModuleConstants:
     # Electrical & Current Limits
     # ==========================================
     # 2024 0414 CJH - 80A allows the drive motors to pull WAY too much and we brown out (AVR)
-    kDrivingMotorCurrentLimit = 60  # amp - set to 50 for worlds to make sure no brownouts - maybe 60 will still be safe
+    kDrivingMotorCurrentLimit = 50  # amp - set to 50 for worlds to make sure no brownouts - maybe 60 will still be safe
     kTurningMotorCurrentLimit = 40  # amp
 
     # ==========================================

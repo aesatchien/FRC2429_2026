@@ -226,6 +226,7 @@ class IntakeConstants:
     k_intake_configs = [k_intake_left_leader_config, k_intake_right_follower_config, k_deploy_config]
     k_test_rpm = 1000  # pi * diameter roller / 60  to get inches per second
     k_intake_default_rpm = 2500
+    k_intake_teleop_rpm = 2000
 
     allowed_rpms = [0, 60] + [i for i in range(2000, 5601, 250)]
 
