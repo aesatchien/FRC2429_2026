@@ -143,7 +143,7 @@ class RobotContainer:
 
         js.driver_b.onTrue(InstantCommand(lambda: self.shooter.set_shooter_rpm(sc.k_fire_up_speed)))
         js.driver_b.whileTrue(commands2.ParallelCommandGroup(
-            ShootingCommand(shooter=self.shooter, targeting=self.targeting, rpm=4500),
+            ShootingCommand(shooter=self.shooter, targeting=self.targeting, rpm=sc.k_shooter_max_speed),
             commands2.SequentialCommandGroup(commands2.WaitCommand(constants.AutoConstants.k_intake_raise_delay),
                                              Intake_Deploy(intake=self.intake, position='shoot'),
                                              commands2.WaitCommand(constants.AutoConstants.k_intake_raise_delay),
