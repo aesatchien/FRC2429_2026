@@ -22,7 +22,7 @@ from helpers import joysticks as js
 from helpers.apriltag_utils import auto_reflect_pose
 from wpimath.geometry import Pose2d
 
-class FillShootFillShootTrench(commands2.SequentialCommandGroup):
+class PathingFillShootFillShootTrench(commands2.SequentialCommandGroup):
     def __init__(self, container, indent=0) -> None:
         super().__init__()
         self.setName(f'FillShootFillShootTrench')
