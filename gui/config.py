@@ -91,7 +91,7 @@ REF_TR_PX = (532, 16)      # Top-Right pixel (Field X=17.6, Y=8.2)
 # Commands with special properties (e.g., custom topics, flash behavior) are defined separately.
 # You can and should use the exact same list of commands in the robotcontainer.py to putdata to NT
 # There needs to be correctly text-wrapped labels in the UI (e.g. qlabel_gyro_reset_indicator)
-COMMAND_LIST = ['IntakeStow', 'IntakeDeploy', 'IntakeShoot',
+COMMAND_LIST = ['IntakeStow', 'IntakeDeploy', 'IntakeShoot', 'IntakeCalStow', 'IntakeCalZero',
                 'IntakeOn', 'IntakeOff', 'IntakeReverse', 'IntakeBrake', 'IntakeIdle',
                 'HopperOn', 'HopperOff', 'HopperReverse',
                 'IndexerOn', 'IndexerOff', 'IndexerReverse',

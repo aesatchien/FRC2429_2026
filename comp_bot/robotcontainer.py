@@ -216,7 +216,6 @@ class RobotContainer:
         # js.bbox_1_1.onFalse(InstantCommand(lambda: self.shooter.set_shooting_offset(0)))
 
         js.bbox_1_1.onTrue(InstantCommand(lambda: self.intake.zero_intake()).ignoringDisable(True))
-
         js.bbox_1_2.onTrue(InstantCommand(lambda: self.intake.set_angle_max()).ignoringDisable(True))
 
         js.bbox_1_3.onTrue(InstantCommand(lambda: self.targeting.stop_tracking()))
@@ -299,6 +298,8 @@ class RobotContainer:
         wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeReverse', Intake_Set_RPM(intake=self.intake, rpm=-500, led=self.led))
         wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeBrake', InstantCommand(lambda: self.intake.set_brake_mode(brake_on=True)).ignoringDisable(True))
         wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeIdle', InstantCommand(lambda: self.intake.set_brake_mode(brake_on=False)).ignoringDisable(True))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeCalStow',InstantCommand(lambda: self.intake.set_angle_max()).ignoringDisable(True))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeCalZero',InstantCommand(lambda: self.intake.zero_intake()).ignoringDisable(True))
         # ---
         wpilib.SmartDashboard.putData(f'{command_prefix}/HopperOn', InstantCommand(lambda: self.shooter.set_hopper_rpm(constants.ShooterConstants.k_hopper_rpm)))
         wpilib.SmartDashboard.putData(f'{command_prefix}/HopperOff',InstantCommand(lambda: self.shooter.stop_hopper()))

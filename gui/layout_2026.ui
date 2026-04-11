@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1482</width>
+    <width>1480</width>
     <height>722</height>
    </rect>
   </property>
@@ -1275,6 +1275,9 @@ background-color:rgb(180,180,180);
       </widget>
      </widget>
      <widget class="QGroupBox" name="groupBox_3">
+      <property name="enabled">
+       <bool>true</bool>
+      </property>
       <property name="geometry">
        <rect>
         <x>540</x>
@@ -1319,7 +1322,7 @@ background-color:rgb(180,180,180);</string>
         <set>Qt::AlignCenter</set>
        </property>
       </widget>
-      <widget class="ClickableQLabel" name="qlabel_score_indicator">
+      <widget class="ClickableQLabel" name="qlabel_intake_cal_stow_indicator">
        <property name="enabled">
         <bool>true</bool>
        </property>
@@ -1343,7 +1346,7 @@ border-radius: 7px;
 background-color:rgb(180,180,180);</string>
        </property>
        <property name="text">
-        <string>TBD1</string>
+        <string>CAL INTAKE STOW</string>
        </property>
        <property name="textFormat">
         <enum>Qt::AutoText</enum>
@@ -1352,7 +1355,7 @@ background-color:rgb(180,180,180);</string>
         <set>Qt::AlignCenter</set>
        </property>
       </widget>
-      <widget class="ClickableQLabel" name="qlabel_go_to_stow_indicator">
+      <widget class="ClickableQLabel" name="qlabel_intake_cal_zero_indicator">
        <property name="enabled">
         <bool>true</bool>
        </property>
@@ -1376,7 +1379,7 @@ border-radius: 7px;
 background-color:rgb(180,180,180);</string>
        </property>
        <property name="text">
-        <string>TBD0</string>
+        <string>CAL INTAKE ZERO</string>
        </property>
        <property name="textFormat">
         <enum>Qt::AutoText</enum>
@@ -1420,7 +1423,7 @@ background-color:rgb(127, 127, 127);</string>
       </widget>
       <widget class="ClickableQLabel" name="qlabel_reset_flex_indicator">
        <property name="enabled">
-        <bool>true</bool>
+        <bool>false</bool>
        </property>
        <property name="geometry">
         <rect>
@@ -1453,7 +1456,7 @@ background-color:rgb(180,180,180);</string>
       </widget>
       <widget class="ClickableQLabel" name="qlabel_cal_wrist_down_indicator">
        <property name="enabled">
-        <bool>true</bool>
+        <bool>false</bool>
        </property>
        <property name="geometry">
         <rect>
@@ -1488,7 +1491,7 @@ background-color:rgb(180,180,180);</string>
       </widget>
       <widget class="ClickableQLabel" name="qlabel_cal_wrist_up_indicator">
        <property name="enabled">
-        <bool>true</bool>
+        <bool>false</bool>
        </property>
        <property name="geometry">
         <rect>
@@ -3055,7 +3058,7 @@ background-color:rgb(180, 180,180);</string>
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1482</width>
+     <width>1480</width>
      <height>22</height>
     </rect>
    </property>
