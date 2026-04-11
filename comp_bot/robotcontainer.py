@@ -219,8 +219,8 @@ class RobotContainer:
         js.bbox_1_2.onTrue(InstantCommand(lambda: self.intake.set_angle_max()).ignoringDisable(True))
 
         js.bbox_1_3.onTrue(InstantCommand(lambda: self.targeting.stop_tracking()))
+        js.bbox_1_3.debounce(.2).whileTrue(SwerveTest(container=self, swerve=self.swerve))
 
-        #js.bbox_1_4.whileTrue(SwerveTest(container=self, swerve=self.swerve))
         js.bbox_1_4.onTrue(InstantCommand(lambda: self.questnav.quest_sync_odometry()).ignoringDisable(True))
 
         js.bbox_1_5.onTrue(InstantCommand(lambda: self.questnav.quest_enabled_toggle(force='off')).ignoringDisable(True))
