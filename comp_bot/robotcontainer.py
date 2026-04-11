@@ -174,7 +174,7 @@ class RobotContainer:
 
         # --- Subsystems ---
         # Giving Jeremy faster and slower fixed speeds
-        js.driver_lb.onTrue(Intake_Set_RPM(intake=self.intake, rpm=ic.k_intake_default_rpm, led=self.led))
+        js.driver_lb.onTrue(Intake_Set_RPM(intake=self.intake, rpm=ic.k_intake_teleop_rpm, led=self.led))
         js.driver_l_trigger.whileTrue(SwerveSetX(container=self, swerve=self.swerve))
         js.driver_back.onTrue(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
         js.driver_start.whileTrue(Intake_Deploy(self.intake, "down").andThen(Intake_Set_RPM(self.intake, -constants.IntakeConstants.k_intake_default_rpm).alongWith(InstantCommand(lambda: self.shooter.set_hopper_rpm(-constants.ShooterConstants.k_hopper_rpm)))))
@@ -219,8 +219,8 @@ class RobotContainer:
         js.bbox_1_2.onTrue(InstantCommand(lambda: self.intake.set_angle_max()).ignoringDisable(True))
 
         js.bbox_1_3.onTrue(InstantCommand(lambda: self.targeting.stop_tracking()))
+        js.bbox_1_3.debounce(.2).whileTrue(SwerveTest(container=self, swerve=self.swerve))
 
-        #js.bbox_1_4.whileTrue(SwerveTest(container=self, swerve=self.swerve))
         js.bbox_1_4.onTrue(InstantCommand(lambda: self.questnav.quest_sync_odometry()).ignoringDisable(True))
 
         js.bbox_1_5.onTrue(InstantCommand(lambda: self.questnav.quest_enabled_toggle(force='off')).ignoringDisable(True))
@@ -244,8 +244,8 @@ class RobotContainer:
             Intake_Set_RPM(intake=self.intake, rpm=3000, led=self.led))
         )
 
-        js.bbox_1_11.onTrue(InstantCommand(lambda: self.shooter.set_shooting_offset(-250)))
-        js.bbox_1_12.onTrue(InstantCommand(lambda: self.shooter.set_shooting_offset(250)))
+        js.bbox_1_11.onTrue(InstantCommand(lambda: self.shooter.set_shooting_offset(-sc.k_operator_rpm_adjustment)))
+        js.bbox_1_12.onTrue(InstantCommand(lambda: self.shooter.set_shooting_offset(sc.k_operator_rpm_adjustment)))
 
         # test the intake deploy positions on the L1-L4 buttons
         # js.bbox_2_1.whileTrue(CalibrateIntake(intake=self.intake))
