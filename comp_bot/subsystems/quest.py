@@ -54,6 +54,7 @@ class Questnav(SubsystemBase):
         self.was_tracking = False
         self.was_connected = False
         self.disconnected_count = 0  # count how many frames we've been disconnected to avoid ping-ponging in and out of sync
+        self.out_of_bounds_count = 0
         self.dtap_count = 0  # count how many times we've double-tapped to track the issue in sim and real
         self.k_max_disconnected_count = qc.k_max_disconnected_count  # lost iterations before we say we are disconnected
         self.expecting_jump = False
@@ -339,6 +340,15 @@ class Questnav(SubsystemBase):
         # If we missed >5 frames (100ms), we missed an NT heartbeat. Suspend immediately.
         data_is_fresh = self.missed_frame_count <= 5
         in_bounds = 0 < self.quest_pose.X() < fc.k_field_length and 0 < self.quest_pose.Y() < fc.k_field_width
+
+        # Out of bounds safety check: If the Quest thinks it's outside the field for 0.5s while synced, unsync it.
+        if self.quest_has_synched and not in_bounds:
+            self.out_of_bounds_count += 1
+            if self.out_of_bounds_count >= 25:
+                print(f"*** QuestNav pose out of bounds for >0.5s at {wpilib.Timer.getFPGATimestamp():.2f}s. Forcing unsync. ***")
+                self.quest_unsync_odometry()
+        else:
+            self.out_of_bounds_count = 0
 
         # --- STRICT POSE ACCEPTANCE CRITERIA ---
         # To feed odometry to the Swerve drive, all of the following must be true:
