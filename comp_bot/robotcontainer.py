@@ -38,12 +38,13 @@ from autonomous.auto_shoot_and_pickup import AutoShootAndPickup
 from autonomous.twocycle import TwoCycle
 from autonomous.fill_shoot_fill_bump import FillShootFillBump
 from autonomous.fill_shoot_fill_shoot_bump import FillShootFillShootBump
-from autonomous.pathing_fill_shoot_fill_shoot_trench import PathingFillShootFillShootTrench
-from autonomous.pathing_fill_shoot_fill_shoot_bump import PathingFillShootFillShootBump
+from autonomous.pathing_fsfs_bump_to_bump import PathingFSFSBumptoBump
+from autonomous.pathing_fsfs_trench_to_bump import PathingFSFSTrenchtoBump
+from autonomous.pathing_fsfs_trench_to_trench import PathingFSFSTrenchtoTrench
 from autonomous.depot_or_output_and_shoot import DepotOrOutpostAndShoot
 from autonomous.teleop_cycle import TeleopCycle
-from autonomous.pathing_center_shoot import PathingCenterShoot
-from autonomous.pathing_center_to_outpost_shoot import PathingCenterOutpostShoot
+from autonomous.pathing_center_back import PathingCenterBack
+from autonomous.pathing_center_to_outpost import PathingCenterOutpost
 
 # 2429 commands
 #from commands.auto_to_pose import AutoToPose
@@ -362,15 +363,16 @@ class RobotContainer:
         #                             PrintCommand("** Running drive by velocity swerve leave auto **").
         #                             andThen(DriveByVelocitySwerve(self, self.swerve, Pose2d(0.1, 0, 0), 2.5, field_relative=True)))
         self.auto_chooser.addOption('2a: Auto Shoot *CODE*', AutoShootingGroup(self, indent=0))
-        self.auto_chooser.addOption('2b: Pathing Center Shoot *CODE*', PathingCenterShoot(self, indent=0))
-        self.auto_chooser.addOption('2c: Pathing Center to Outpost Shoot *CODE*', PathingCenterOutpostShoot(self, indent=0))
+        self.auto_chooser.addOption('2b: Pathing Center Back *CODE*', PathingCenterBack(self, indent=0))
+        self.auto_chooser.addOption('2c: Pathing Center to Outpost*CODE*', PathingCenterOutpost(self, indent=0))
         # self.auto_chooser.addOption('3b: Auto Shoot and Move *CODE*', AutoShootAndPickup(self, indent=0))
-        self.auto_chooser.addOption('2d: Two Cycles *CODE*', TwoCycle(self, indent=0))
-        self.auto_chooser.addOption('3a: FSF Bump *CODE*', FillShootFillBump(self, indent=0))
-        self.auto_chooser.setDefaultOption('3b: FSFS Bump *CODE*', FillShootFillShootBump(self, indent=0))
-        self.auto_chooser.addOption('4a: Pathing FSFS Bump *CODE*', PathingFillShootFillShootBump(self, indent=0))
-        self.auto_chooser.addOption('4b: Pathing FSFS Trench *CODE*', PathingFillShootFillShootTrench(self, indent=0))
-        self.auto_chooser.addOption('5a: Intake Depot or Outpost Shoot *CODE*', DepotOrOutpostAndShoot(self, indent=0))
+        # self.auto_chooser.addOption('2d: Two Cycles *CODE*', TwoCycle(self, indent=0))
+        # self.auto_chooser.addOption('3a: FSF Bump *CODE*', FillShootFillBump(self, indent=0))
+        # self.auto_chooser.setDefaultOption('3b: FSFS Bump *CODE*', FillShootFillShootBump(self, indent=0))
+        self.auto_chooser.addOption('3a: Pathing FSFS Bump to Bump *CODE*', PathingFSFSBumptoBump(self, indent=0))
+        self.auto_chooser.addOption('3b: Pathing FSFS Trench to Bump *CODE*', PathingFSFSTrenchtoBump(self, indent=0))
+        self.auto_chooser.addOption('3c: Pathing FSFS Trench to Trench *CODE*', PathingFSFSTrenchtoTrench(self, indent=0))
+        # self.auto_chooser.addOption('4a: Intake Depot or Outpost Shoot *CODE*', DepotOrOutpostAndShoot(self, indent=0))
 
         wpilib.SmartDashboard.putData('autonomous routines', self.auto_chooser)  #
 

@@ -22,10 +22,10 @@ from helpers import joysticks as js
 from helpers.apriltag_utils import auto_reflect_pose
 from wpimath.geometry import Pose2d
 
-class PathingFillShootFillShootBump(commands2.SequentialCommandGroup):
+class PathingFSFSTrenchtoBump(commands2.SequentialCommandGroup):
     def __init__(self, container, indent=0) -> None:
         super().__init__()
-        self.setName(f'PathingFillShootFillShootBump')
+        self.setName(f'PathingFSFSTrench-to-Bump')
         self.container = container
 
 
@@ -40,14 +40,12 @@ class PathingFillShootFillShootBump(commands2.SequentialCommandGroup):
         # moves to the neutral zone to intake fuel --> come back to shoot
         self.addCommands(
             ConditionalCommand(
-                AutoBuilder.followPath(PathPlannerPath.fromPathFile('Right_Bump_Line_and_Shoot')),
-                AutoBuilder.followPath(PathPlannerPath.fromPathFile('Left_Bump_Line_and_Shoot')),
+                AutoBuilder.followPath(PathPlannerPath.fromPathFile('Right_Trench_to_Bump')),
+                AutoBuilder.followPath(PathPlannerPath.fromPathFile('Left_Trench_to_Bump')),
                 self.get_is_right
             )
 
         )
-
-        # self.addCommands(commands2.WaitCommand(0.5))
 
         # -----  PHASE II:  SHOOT INITIAL HOPPER -----
         # Tracks the hub
@@ -91,14 +89,10 @@ class PathingFillShootFillShootBump(commands2.SequentialCommandGroup):
         #         WaitCommand(1), InstantCommand(lambda: self.container.shooter.set_shooter_rpm(ac.k_shooter_startup_rpm)))
         # ))
 
-        # -----  PHASE III: FILL HOPPER THIS TIME WITH A PATH -----
-
-        # Wider arc in the bump intake to fill more, the balls likely scatter from the other bots, so increase range
-
         self.addCommands(
             ConditionalCommand(
-                AutoBuilder.followPath(PathPlannerPath.fromPathFile('Right_Bump_Load_and_Shoot')),
-                AutoBuilder.followPath(PathPlannerPath.fromPathFile('Left_Bump_Load_and_Shoot')),
+                AutoBuilder.followPath(PathPlannerPath.fromPathFile('Right_Bump_to_Bump_Refill')),
+                AutoBuilder.followPath(PathPlannerPath.fromPathFile('Left_Bump_to_Bump_Refill')),
                 self.get_is_right
             )
 

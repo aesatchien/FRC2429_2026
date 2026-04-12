@@ -22,10 +22,10 @@ from helpers import joysticks as js
 from helpers.apriltag_utils import auto_reflect_pose
 from wpimath.geometry import Pose2d
 
-class PathingCenterShoot(commands2.SequentialCommandGroup):
+class PathingCenterBack(commands2.SequentialCommandGroup):
     def __init__(self, container, indent=0) -> None:
         super().__init__()
-        self.setName(f'PathingCenterShoot')
+        self.setName(f'PathingCenterBack')
         self.container = container
 
 
@@ -39,7 +39,7 @@ class PathingCenterShoot(commands2.SequentialCommandGroup):
 
         # moves to the neutral zone to intake fuel --> come back to shoot
         self.addCommands(
-            AutoBuilder.followPath(PathPlannerPath.fromPathFile("Center_Back_and_Shoot"))
+            AutoBuilder.followPath(PathPlannerPath.fromPathFile("Center_Back"))
 
         )
 
