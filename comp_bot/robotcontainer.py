@@ -355,7 +355,7 @@ class RobotContainer:
         self.auto_pub = self.inst.getDoubleTopic(f"{constants.auto_prefix}/auto_delay").publish()
         self.auto_pub.set(0)  # set an initial value so it shows up on the dashboard
         self.auto_chooser = wpilib.SendableChooser()  #  use this if you don't have any pathplanner autos defined
-        self.auto_chooser.addOption('1:  Wait *CODE*', PrintCommand("** Running wait auto **").andThen(commands2.WaitCommand(15)))
+        self.auto_chooser.addOption('1:  Wait *CODE*', PrintCommand("** Running wait auto **").andThen(commands2.WaitCommand(ac.k_auto_duration)))
         # self.auto_chooser.addOption('2a: Drive 2s Straight *CODE*',
         #                             PrintCommand("** Running drive by velocity swerve leave auto **").
         #                             andThen(DriveByVelocitySwerve(self, self.swerve, Pose2d(0.1, 0, 0), 2)))
@@ -363,15 +363,15 @@ class RobotContainer:
         #                             PrintCommand("** Running drive by velocity swerve leave auto **").
         #                             andThen(DriveByVelocitySwerve(self, self.swerve, Pose2d(0.1, 0, 0), 2.5, field_relative=True)))
         self.auto_chooser.addOption('2a: Auto Shoot *CODE*', AutoShootingGroup(self, indent=0))
-        self.auto_chooser.addOption('2b: Pathing Center Back *CODE*', PathingCenterBack(self, indent=0))
-        self.auto_chooser.addOption('2c: Pathing Center to Outpost*CODE*', PathingCenterOutpost(self, indent=0))
+        self.auto_chooser.addOption('2b: Center Back *CODE*', PathingCenterBack(self, indent=0))
+        self.auto_chooser.addOption('2c: Center to Outpost*CODE*', PathingCenterOutpost(self, indent=0))
         # self.auto_chooser.addOption('3b: Auto Shoot and Move *CODE*', AutoShootAndPickup(self, indent=0))
         # self.auto_chooser.addOption('2d: Two Cycles *CODE*', TwoCycle(self, indent=0))
         # self.auto_chooser.addOption('3a: FSF Bump *CODE*', FillShootFillBump(self, indent=0))
         # self.auto_chooser.setDefaultOption('3b: FSFS Bump *CODE*', FillShootFillShootBump(self, indent=0))
-        self.auto_chooser.addOption('3a: Pathing FSFS Bump to Bump *CODE*', PathingFSFSBumptoBump(self, indent=0))
-        self.auto_chooser.addOption('3b: Pathing FSFS Trench to Bump *CODE*', PathingFSFSTrenchtoBump(self, indent=0))
-        self.auto_chooser.addOption('3c: Pathing FSFS Trench to Trench *CODE*', PathingFSFSTrenchtoTrench(self, indent=0))
+        self.auto_chooser.addOption('3a: FSFS Bump to Bump *CODE*', PathingFSFSBumptoBump(self, indent=0))
+        self.auto_chooser.addOption('3b: FSFS Trench to Bump *CODE*', PathingFSFSTrenchtoBump(self, indent=0))
+        self.auto_chooser.addOption('3c: FSFS Trench to Trench *CODE*', PathingFSFSTrenchtoTrench(self, indent=0))
         # self.auto_chooser.addOption('4a: Intake Depot or Outpost Shoot *CODE*', DepotOrOutpostAndShoot(self, indent=0))
 
         wpilib.SmartDashboard.putData('autonomous routines', self.auto_chooser)  #

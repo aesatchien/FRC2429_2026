@@ -370,6 +370,7 @@ class AutoConstants:
     k_shooting_timeout = 4.0  # duration of shooting command in autonomous
     k_intake_deploy_delay_bump = 1  # how long to wait to deploy intake to avoid dtap on bump
     k_outpost_drop_delay = 2  # how long it takes human player to drop the fuel
+    k_auto_duration = 20  # seconds for total auto period
 
     k_intake_roller_rpm = 3000  # a little faster than default 2500 so balls don't get pushed as much
     k_shooter_startup_rpm = 3800  # set shooter during transit back - very close to the RPM of the shooting position
