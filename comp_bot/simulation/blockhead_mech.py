@@ -199,7 +199,7 @@ class BlockheadMech:
             "indexer_2", inchesToMeters(0), 180, 0, self.color_indexer
         )
 
-        self.indexer_3_spacer = self.indexer_2_root.appendLigament(
+        self.indexer_3_spacer = self.indexer_2_spacer.appendLigament(
             "indexer_3_spacer", inchesToMeters(2), 200, 0, Color8Bit(0,0,0) # marker
         )
         self.indexer_3 = self.indexer_3_spacer.appendLigament(
