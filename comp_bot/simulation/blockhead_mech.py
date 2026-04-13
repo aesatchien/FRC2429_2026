@@ -31,6 +31,8 @@ class BlockheadMech:
         self.color_indexer = Color8Bit(Color.kCyan)
         self.color_shooter = Color8Bit(Color.kRed)
         self.color_ball = Color8Bit(Color.kYellow)
+        self.hopper_line_weight = 6
+        self.hood_line_weight = 7
         self.line_weight = 10 # 1 inch approx 10 pixels?
         # self.color_climber = Color8Bit(Color.kGreen)
         
@@ -96,19 +98,19 @@ class BlockheadMech:
         # Starts with a vertical section, ~10 in height
         self.root_hood = self.mech_side.getRoot("hood_root", self.start_x, inchesToMeters(4.5))
         self.hood_back_ligament = self.root_hood.appendLigament(
-            "hood", inchesToMeters(10), 90, 7, self.color_chassis
+            "hood", inchesToMeters(10), 90, self.hood_line_weight, self.color_chassis
         )
         # then a ~8 inch curve
         self.hood_back_curve = self.hood_back_ligament.appendLigament(
-            "hood_back_curve", inchesToMeters(8), 330, 7, self.color_chassis
+            "hood_back_curve", inchesToMeters(8), 330, self.hood_line_weight, self.color_chassis
         )
         # then a ~8 inch flat section
         self.hood_front_curve = self.hood_back_curve.appendLigament(  
-            "hood_front_curve", inchesToMeters(8), 280, 7, self.color_chassis
+            "hood_front_curve", inchesToMeters(8), 280, self.hood_line_weight, self.color_chassis
         )
         # follwed by a ~14.5 in vertical line
         self.hood_front_ligament = self.hood_front_curve.appendLigament(
-            "hood_front", inchesToMeters(14.5), 285, 7, self.color_chassis
+            "hood_front", inchesToMeters(14.5), 285, self.hood_line_weight, self.color_chassis
         )
 
     def _init_intake(self):
@@ -151,7 +153,7 @@ class BlockheadMech:
         self.abs_hopper = 180
         self.hopper_length = inchesToMeters(16)
         self.hopper_tower = self.root_hopper.appendLigament(
-            "hopper_belt", self.hopper_length, self._get_rel_angle(self.abs_hopper, 0), self.line_weight, self.color_hopper
+            "hopper_belt", self.hopper_length, self._get_rel_angle(self.abs_hopper, 0), self.hopper_line_weight, self.color_hopper
         )
         
         # Animation: A spacer that grows to push the indicator along the belt
@@ -160,7 +162,7 @@ class BlockheadMech:
             "hopper_spacer", inchesToMeters(0.1), self._get_rel_angle(self.abs_hopper, 0), 0, self.color_hopper # weight 0 = invisible
         )
         self.hopper_indicator = self.hopper_spacer.appendLigament(
-            "hopper_indicator", inchesToMeters(2), self._get_rel_angle(90, self.abs_hopper), 6, self.color_hopper # 90 abs (Up)
+            "hopper_indicator", inchesToMeters(2), self._get_rel_angle(90, self.abs_hopper), self.hopper_line_weight, self.color_hopper # 90 abs (Up)
         )
 
     def _init_indexer(self):
@@ -190,17 +192,17 @@ class BlockheadMech:
             self.indexer_spokes.append(spoke)
 
         # Two Indexer wheels above each other
-        self.indexer_2_root = self.hood_front_curve.appendLigament(
-            "indexer_2_root", inchesToMeters(4.5), 270, 0, Color8Bit(0,0,0) # marker
+        self.indexer_2_spacer = self.hood_front_curve.appendLigament(
+            "indexer_2_spacer", inchesToMeters(4.5), 270, 0, Color8Bit(0,0,0) # marker
         )
-        self.indexer_2 = self.indexer_2_root.appendLigament(
+        self.indexer_2 = self.indexer_2_spacer.appendLigament(
             "indexer_2", inchesToMeters(0), 180, 0, self.color_indexer
         )
 
-        self.indexer_3_root = self.indexer_2_root.appendLigament(
-            "indexer_3_root", inchesToMeters(2), 200, 0, Color8Bit(0,0,0) # marker
+        self.indexer_3_spacer = self.indexer_2_root.appendLigament(
+            "indexer_3_spacer", inchesToMeters(2), 200, 0, Color8Bit(0,0,0) # marker
         )
-        self.indexer_3 = self.indexer_3_root.appendLigament(
+        self.indexer_3 = self.indexer_3_spacer.appendLigament(
             "indexer_3", inchesToMeters(0), 180, 0, self.color_indexer  # marker
         )
         # Adding spokes to the roots
