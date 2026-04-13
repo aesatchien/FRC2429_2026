@@ -61,6 +61,7 @@ class Questnav(SubsystemBase):
         self.error_pose = Pose2d(0,0,0)  # difference between robot and quest
         self.passthru_start_time = 0.0
         self.synced_before_passthru = False
+        self.pre_passthru_pose = Pose2d()
 
         # Simulation override: True = use random walk sim, False = use real headset in sim
         self.mock_questnav = wpilib.RobotBase.isSimulation() and getattr(constants.SimConstants, 'k_mock_questnav', True)
@@ -285,8 +286,13 @@ class Questnav(SubsystemBase):
                         
                         time_in_passthru = wpilib.Timer.getFPGATimestamp() - self.passthru_start_time
                         if time_in_passthru < constants.QuestConstants.k_max_resync_time and self.synced_before_passthru and not self.quest_has_synched:
-                            print(f"  Quest recovered in {time_in_passthru:.2f}s. Soft resyncing. Robot pose delta of {self.error_pose.x:.2f}, {self.error_pose.y:.2f}, {self.error_pose.rotation().degrees():.1f}°.")
-                            self.quest_soft_resync()
+                            distance_moved = self.quest_pose.translation().distance(self.pre_passthru_pose.translation())
+                            if distance_moved < constants.QuestConstants.k_max_passthru_distance:
+                                print(f"  Quest recovered in {time_in_passthru:.2f}s. Soft resyncing. Robot pose delta of {self.error_pose.x:.2f}, {self.error_pose.y:.2f}, {self.error_pose.rotation().degrees():.1f}°.")
+                                self.quest_soft_resync()
+                            else:
+                                print(f"  Quest recovered but moved too far ({distance_moved:.2f}m > {constants.QuestConstants.k_max_passthru_distance}m). Skipping soft resync.")
+                                print(f"    Old Pose: X={self.pre_passthru_pose.X():.2f}, Y={self.pre_passthru_pose.Y():.2f} | New Pose: X={self.quest_pose.X():.2f}, Y={self.quest_pose.Y():.2f}")
                         
                     self.expecting_jump = False
 
@@ -303,6 +309,7 @@ class Questnav(SubsystemBase):
                     self.was_tracking = False
                     self.passthru_start_time = wpilib.Timer.getFPGATimestamp()
                     self.synced_before_passthru = self.quest_has_synched
+                    self.pre_passthru_pose = self.quest_pose
                     # Trigger the external ADB script
                     self.quest_passthrough_entry.set(True)
                     self.dtap_count += 1
