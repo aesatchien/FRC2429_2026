@@ -30,18 +30,18 @@ class BlockheadMech:
         self.color_hopper = Color8Bit(Color.kYellow)
         self.color_indexer = Color8Bit(Color.kCyan)
         self.color_shooter = Color8Bit(Color.kRed)
-        self.color_climber = Color8Bit(Color.kGreen)
         self.color_ball = Color8Bit(Color.kYellow)
         self.line_weight = 10 # 1 inch approx 10 pixels?
+        # self.color_climber = Color8Bit(Color.kGreen)
         
         # ----------------- Initialization -----------------
-        self._init_drivetrain()
+        self._init_structure()
         self._init_intake()
         self._init_hopper()
         self._init_indexer()
         self._init_shooter()
-        self._init_climber()
         self._init_ball()
+        # self._init_climber()
 
         # Put to dashboard
         # mech_prefix = constants.mech_prefix
@@ -54,7 +54,8 @@ class BlockheadMech:
         """
         return target_abs - parent_abs
 
-    def _init_drivetrain(self):
+    def _init_structure(self):
+        # Drivetrain
         """Stub: Base chassis line."""
         # Robot starting X offset
         self.start_x = inchesToMeters(5)
@@ -85,6 +86,29 @@ class BlockheadMech:
         )
         self.front_wheel_ligament_2 = self.root_front_wheel.appendLigament(
             "front_spoke_2", inchesToMeters(2), 180, 6, self.color_wheel
+        )
+
+        # Hood
+        '''Stub: Vertical bar at the rear'''
+        # Starting X offset, against the chassis start
+        self.start_x = inchesToMeters(5.5)
+
+        # Starts with a vertical section, ~10 in height
+        self.root_hood = self.mech_side.getRoot("hood_root", self.start_x, inchesToMeters(4.5))
+        self.hood_back_ligament = self.root_hood.appendLigament(
+            "hood", inchesToMeters(10), 90, 7, self.color_chassis
+        )
+        # then a ~8 inch curve
+        self.hood_back_curve = self.hood_back_ligament.appendLigament(
+            "hood_back_curve", inchesToMeters(8), 330, 7, self.color_chassis
+        )
+        # then a ~8 inch flat section
+        self.hood_front_curve = self.hood_back_curve.appendLigament(  
+            "hood_front_curve", inchesToMeters(8), 280, 7, self.color_chassis
+        )
+        # follwed by a ~14.5 in vertical line
+        self.hood_front_ligament = self.hood_front_curve.appendLigament(
+            "hood_front", inchesToMeters(14.5), 285, 7, self.color_chassis
         )
 
     def _init_intake(self):
@@ -143,44 +167,116 @@ class BlockheadMech:
         """Stub: Feeder mechanism."""
         # Attached to top of hopper
         # Continue left (Relative 0 -> Absolute 180)
-        self.abs_indexer = 135
-        self.indexer_length = inchesToMeters(5)
-        self.indexer_wheel = self.hopper_tower.appendLigament(
-            "indexer_wheel", self.indexer_length, self._get_rel_angle(self.abs_indexer, self.abs_hopper), self.line_weight, self.color_indexer
+        self.indexer_1_root = self.hood_front_ligament.appendLigament(
+            "indexer_root", inchesToMeters(2), 180, 0, self.color_indexer  # marker
         )
-        
-        # Animation: Spacer and Indicator
-        self.indexer_anim_dist = 0
-        self.indexer_spacer = self.hopper_tower.appendLigament(
-            "indexer_spacer", inchesToMeters(0.1), self._get_rel_angle(self.abs_indexer, self.abs_hopper), 0, self.color_indexer
+        self.indexer_1 = self.indexer_1_root.appendLigament(
+            "indexer", inchesToMeters(0), 180, 0, self.color_indexer
         )
-        self.indexer_indicator = self.indexer_spacer.appendLigament(
-            "indexer_indicator", inchesToMeters(2), -90, 8, self.color_indexer # -90 relative to indexer
+        num_spokes = 4
+        radius = inchesToMeters(1.5)  # 1.5'' diameter wheel, but this is exagerated to double
+        self.indexer_spokes = []
+
+        # Attaching spokes to the root to make a wheel
+        for i in range(num_spokes):
+            angle = (360 / num_spokes) * i
+            spoke = self.indexer_1.appendLigament(
+                f"spoke_{i}", 
+                radius, 
+                angle, 
+                4,
+                self.color_indexer
+            )
+            self.indexer_spokes.append(spoke)
+
+        # Two Indexer wheels above each other
+        self.indexer_2_root = self.hood_front_curve.appendLigament(
+            "indexer_2_root", inchesToMeters(4.5), 270, 0, Color8Bit(0,0,0) # marker
         )
+        self.indexer_2 = self.indexer_2_root.appendLigament(
+            "indexer_2", inchesToMeters(0), 180, 0, self.color_indexer
+        )
+
+        self.indexer_3_root = self.indexer_2_root.appendLigament(
+            "indexer_3_root", inchesToMeters(2), 200, 0, Color8Bit(0,0,0) # marker
+        )
+        self.indexer_3 = self.indexer_3_root.appendLigament(
+            "indexer_3", inchesToMeters(0), 180, 0, self.color_indexer  # marker
+        )
+        # Adding spokes to the roots
+        for i in range(num_spokes):
+            angle = (360 / num_spokes) * i
+            spoke = self.indexer_2.appendLigament(
+                f"spoke_{i}", 
+                radius, 
+                angle, 
+                4,
+                self.color_indexer
+            )
+            self.indexer_spokes.append(spoke)
+            spoke = self.indexer_3.appendLigament(
+                f"spoke_{i}", 
+                radius, 
+                angle, 
+                4,
+                self.color_indexer
+            )
+            self.indexer_spokes.append(spoke)
 
     def _init_shooter(self):
         """Stub: Flywheel mechanism."""
         # Attached to indexer or separate tower
         # Left of indexer, angling up/left
         # Parent is Indexer (135). Target is 70 (pointing up/rightish).
-        self.abs_shooter = 70
-        self.shooter_hood = self.indexer_wheel.appendLigament(
-            "shooter_hood", inchesToMeters(8), self._get_rel_angle(self.abs_shooter, self.abs_indexer), self.line_weight, self.color_shooter
-        )
         
         # Flywheel (White) - attached to center of shooter
         # Use a spacer to get to the middle (length 4)
-        self.shooter_center_spacer = self.indexer_wheel.appendLigament(
-            "shooter_center_spacer", inchesToMeters(4), self._get_rel_angle(self.abs_shooter, self.abs_indexer), 0, self.color_shooter
+        # Root of the flywheel is after the second curve of the shooter
+        self.flywheel_center = self.hood_front_curve.appendLigament(
+            "flywheel_center", inchesToMeters(0), 0, 0, self.color_shooter  # empty point
         )
-        self.flywheel_ligament = self.shooter_center_spacer.appendLigament(
-            "flywheel", inchesToMeters(2), 0, 6, self.color_wheel
-        )
-        self.flywheel_ligament_2 = self.shooter_center_spacer.appendLigament(
-            "flywheel_2", inchesToMeters(2), 180, 6, self.color_wheel
-        )
+        num_spokes = 6  # Six spokes on actual flywheel
+        radius = inchesToMeters(3)  # 3'' diameter wheel on the real one, but this is exagerated to double
 
-    def _init_climber(self):
+        for i in range(num_spokes):
+            angle = (360 / num_spokes) * i
+            self.flywheel_center.appendLigament(
+                f"spoke_{i}", 
+                radius, 
+                angle, 
+                4,
+                self.color_wheel
+            )
+
+        '''Stub: Rollers'''
+        # Rollers located after vertical section of the hood and after first curve
+        self.roller_1_center = self.hood_back_curve.appendLigament(
+            "roller_1_center", inchesToMeters(0), 0, 0, self.color_shooter  # empty point
+        )
+        self.roller_2_center = self.hood_back_ligament.appendLigament(
+            "roller_2_center", inchesToMeters(0), 330, 0, self.color_chassis  # marker, slightly lower
+        )
+        num_spokes = 4
+        radius = inchesToMeters(1)  # 1'' diameter wheel in real life, but this is exagerated to double
+
+        for i in range(num_spokes):
+            angle = (360 / num_spokes) * i
+            self.roller_1_center.appendLigament(
+                f"spoke_{i}", 
+                radius, 
+                angle, 
+                4,
+                self.color_wheel
+            )
+            self.roller_2_center.appendLigament(
+                f"spoke_{i}", 
+                radius, 
+                angle, 
+                4,
+                self.color_wheel
+            )
+
+    '''def _init_climber(self):
         """Stub: Extension arms."""
         # Attached to chassis center/back
         self.climber_root_y = inchesToMeters(2)
@@ -195,6 +291,7 @@ class BlockheadMech:
         self.climber_hook = self.climber_stage_1.appendLigament(
             "climber_hook", inchesToMeters(4), self._get_rel_angle(self.abs_hook, self.abs_climber), self.line_weight, self.color_wheel
         )
+    '''
 
     def _init_ball(self):
         """Stub: A game piece ball."""
@@ -253,28 +350,49 @@ class BlockheadMech:
             
             self.hopper_spacer.setLength(self.hopper_anim_dist)
 
-    def update_indexer(self, speed: float):
+    def update_indexer(self, rpm: float):
         # Animate bar moving up the indexer
-        if abs(speed) > 0:
-            self.indexer_anim_dist += speed * inchesToMeters(0.1)
-            if self.indexer_anim_dist > self.indexer_length:
-                self.indexer_anim_dist = 0
-            if self.indexer_anim_dist < 0:
-                self.indexer_anim_dist = self.indexer_length
-            self.indexer_spacer.setLength(self.indexer_anim_dist)
+        if abs(rpm) > 10:
+
+            visual_speed = math.sqrt(abs(rpm))
+            
+            # Updating positon based on the three roots for the indexer
+            rotation_step = math.copysign(visual_speed * 0.2, rpm)  # Uses the magnitude of visual_spped * .2 with the sign of rpm
+            current_angle = self.indexer_1.getAngle()  # Change angle of root, spokes will follow
+            self.indexer_1.setAngle(current_angle - rotation_step)  # Subtracting to spin clockwise
+            current_angle = self.indexer_2.getAngle()  # Change angle of root, spokes will follow
+            self.indexer_2.setAngle(current_angle - rotation_step)  # Subtracting to spin clockwise
+            current_angle = self.indexer_3.getAngle()  # Change angle of root, spokes will follow
+            self.indexer_3.setAngle(current_angle - rotation_step)  # Subtracting to spin clockwise
 
     def update_shooter(self, rpm: float):
-        # Visualize speed by color or spinning ligament
+        # Using a sqrt scale to not have aliasing
+        # Wagon wheel effect when using a linear scale with 50fps
         if abs(rpm) > 10:
-            rotation_step = rpm / 100  # Scale RPM to rotation per frame
-            new_angle = self.flywheel_ligament.getAngle() + rotation_step
-            self.flywheel_ligament.setAngle(new_angle)
-            self.flywheel_ligament_2.setAngle(new_angle + 180)
 
-    def update_climber(self, height_from_ground: float):
+            visual_speed = math.sqrt(abs(rpm))
+            
+            rotation_step = math.copysign(visual_speed * 0.2, rpm)  # Uses the magnitude of visual_spped * .2 with the sign of rpm
+            current_angle = self.flywheel_center.getAngle()  # Change angle of root, spokes will follow
+            self.flywheel_center.setAngle(current_angle - rotation_step)  # Subtracting to spin clockwise
+
+    def update_rollers(self, rpm: float):
+        # Using a sqrt scale to not have aliasing
+        if abs(rpm) > 10:
+
+            visual_speed = math.sqrt(abs(rpm)) 
+            
+            rotation_step = math.copysign(visual_speed * 0.2, rpm)  # Uses the magnitude of visual_spped * .2 with the sign of rpm
+            current_angle = self.roller_1_center.getAngle()  # Change angle of root, spokes will follow
+            self.roller_1_center.setAngle(current_angle + rotation_step)  # Adding to spin counterclockwise
+            current_angle = self.roller_2_center.getAngle()  # Change angle of root, spokes will follow
+            self.roller_2_center.setAngle(current_angle + rotation_step)  # Adding to spin counterclockwise
+
+    '''def update_climber(self, height_from_ground: float):
         # Calculate length: Target Height - Root Height
         length = max(0.0, height_from_ground - self.climber_root_y)
         self.climber_stage_1.setLength(length)
+    '''
 
     def update_ball(self, x, y):
         self.ball_root.setPosition(x, y)

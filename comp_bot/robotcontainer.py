@@ -369,7 +369,7 @@ class RobotContainer:
         # self.auto_chooser.addOption('2d: Two Cycles *CODE*', TwoCycle(self, indent=0))
         # self.auto_chooser.addOption('3a: FSF Bump *CODE*', FillShootFillBump(self, indent=0))
         # self.auto_chooser.setDefaultOption('3b: FSFS Bump *CODE*', FillShootFillShootBump(self, indent=0))
-        self.auto_chooser.addOption('3a: FSFS Bump to Bump *CODE*', PathingFSFSBumptoBump(self, indent=0))
+        self.auto_chooser.setDefaultOption('3a: FSFS Bump to Bump *CODE*', PathingFSFSBumptoBump(self, indent=0))
         self.auto_chooser.addOption('3b: FSFS Trench to Bump *CODE*', PathingFSFSTrenchtoBump(self, indent=0))
         self.auto_chooser.addOption('3c: FSFS Trench to Trench *CODE*', PathingFSFSTrenchtoTrench(self, indent=0))
         # self.auto_chooser.addOption('4a: Intake Depot or Outpost Shoot *CODE*', DepotOrOutpostAndShoot(self, indent=0))

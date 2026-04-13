@@ -153,12 +153,10 @@ class MyRobot(commands2.TimedCommandRobot):
 
             # Shooter
             self.mech.update_hopper(self.container.shooter.current_hopper_rpm / 6000)
-            if self.container.shooter.indexer_on:
-                indexer_speed = 1 if self.container.shooter.get_indexer_rpm() > 0 else -1
-            else:
-                indexer_speed = 0
-            self.mech.update_indexer(indexer_speed)
+
+            self.mech.update_indexer(self.container.shooter.current_indexer_rpm if self.container.shooter.indexer_on else 0)
             self.mech.update_shooter(self.container.shooter.current_rpm if self.container.shooter.shooter_on else 0)
+            self.mech.update_rollers(self.container.shooter.current_roller_rpm if self.container.shooter.roller_on else 0)
 
             # Climber & Ball
             if hasattr(self.container, 'climber'):
