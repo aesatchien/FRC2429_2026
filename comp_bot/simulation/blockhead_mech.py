@@ -93,10 +93,9 @@ class BlockheadMech:
         # Hood
         '''Stub: Vertical bar at the rear'''
         # Starting X offset, against the chassis start
-        self.start_x = inchesToMeters(5.5)
-
+        self.hood_offset = inchesToMeters(.5)
         # Starts with a vertical section, ~10 in height
-        self.root_hood = self.mech_side.getRoot("hood_root", self.start_x, inchesToMeters(4.5))
+        self.root_hood = self.mech_side.getRoot("hood_root", self.start_x + self.hood_offset, inchesToMeters(4.5))
         self.hood_back_ligament = self.root_hood.appendLigament(
             "hood", inchesToMeters(10), 90, self.hood_line_weight, self.color_chassis
         )
@@ -117,31 +116,65 @@ class BlockheadMech:
         """Stub: Intake pivot and rollers."""
         # Mounting bar: Sticks up 6" from top of drivetrain (Y=4.5).
         # We place it at the front of the chassis (X = start + 27).
-        self.root_intake_mount = self.mech_side.getRoot("intake_mount", self.start_x + inchesToMeters(27), inchesToMeters(4.5))
-        self.abs_intake_mount = 0 # Roots are 0
+        self.intake_offset = inchesToMeters(9)
+        self.root_intake_mount = self.mech_side.getRoot("intake_mount", self.start_x + inchesToMeters(27) - self.intake_offset, inchesToMeters(4.5))
         
-        # The vertical post
-        self.abs_intake_post = 90
-        self.intake_post = self.root_intake_mount.appendLigament(
-            "intake_post", inchesToMeters(6), self._get_rel_angle(self.abs_intake_post, self.abs_intake_mount), 6, self.color_intake
+        self.intake_mount_angle = 30  # Onshape: ~ Angle between the chassis and Inner Plate
+        self.intake_angle_post = self.root_intake_mount.appendLigament(
+            "intake_angle_post", inchesToMeters(10.5), self.intake_mount_angle, 6, self.color_intake
         )
-        
-        # The pivoting arm. Pivot is at top of post (Y=10.5).
-        # Needs to reach ground (Y=0). Length approx 11-12".
-        self.abs_intake_arm_start = -60 # Initial angle
-        self.intake_arm_length = inchesToMeters(10)
-        self.intake_arm = self.intake_post.appendLigament(
-            "intake_arm", self.intake_arm_length, self._get_rel_angle(self.abs_intake_arm_start, self.abs_intake_post), 6, self.color_intake
+        self.intake_post = self.intake_angle_post.appendLigament(
+            "intake_post", inchesToMeters(9), 360 - self.intake_mount_angle, 6, self.color_intake
         )
-        
-        # Animation: Spacer and Indicator
-        self.intake_anim_dist = 0
-        self.intake_spacer = self.intake_arm.appendLigament(
-            "intake_spacer", inchesToMeters(0.1), 180, 0, self.color_intake # relative angle 180 to go back up arm
+        self.front_angle_post = self.intake_post.appendLigament(
+            "front_angle_post", inchesToMeters(5), 286, 6, self.color_intake
         )
-        self.intake_indicator = self.intake_spacer.appendLigament(
-            "intake_indicator", inchesToMeters(2), 90, 8, self.color_intake # 90 relative to spacer
+        self.bottom_angle_post = self.front_angle_post.appendLigament(
+            "bottom_angle_post", inchesToMeters(7), 285, 6, self.color_intake
         )
+        self.back_angle_pose = self.bottom_angle_post.appendLigament(
+            "back_angle_post", inchesToMeters(4), 280, 6, self.color_intake
+        )
+        self.intake_return_pose = self.back_angle_pose.appendLigament(
+            "intake_return_post", inchesToMeters(6), 335, 6, self.color_intake
+        )
+
+        self.intake_roller_1 = self.intake_post.appendLigament(
+            "intake_roller_1", inchesToMeters(0), 286, 0, self.color_intake
+        )   
+        self.intake_roller_2 = self.front_angle_post.appendLigament(
+            "intake_roller_2", inchesToMeters(0), 106, 0, self.color_intake
+        )
+        self.intake_roller_3 = self.bottom_angle_post.appendLigament(
+            "intake_roller_3", inchesToMeters(0), 286, 0, self.color_intake
+        )
+        self.intake_roller_4 = self.back_angle_pose.appendLigament(
+            "intake_roller_4", inchesToMeters(0), 106, 0, self.color_intake
+        )
+
+        num_spokes = 4
+        radius = inchesToMeters(1.5)  # 1.5'' diameter wheel, but this is exagerated to double
+        self.intake_spokes = []
+
+        # Attaching spokes to the root to make a wheel
+        for i in range(num_spokes):
+            angle = (360 / num_spokes) * i
+            spoke = self.intake_roller_1.appendLigament(
+                f"spoke_{i}", radius, angle, 4,self.color_intake
+            )
+            self.intake_spokes.append(spoke)
+            spoke = self.intake_roller_2.appendLigament(
+                f"spoke_{i}", radius, angle, 4,self.color_intake
+            )
+            self.intake_spokes.append(spoke)
+            spoke = self.intake_roller_3.appendLigament(
+                f"spoke_{i}", radius, angle, 4,self.color_intake
+            )
+            self.intake_spokes.append(spoke)
+            spoke = self.intake_roller_4.appendLigament(
+                f"spoke_{i}", radius, angle, 4,self.color_intake
+            )
+            self.intake_spokes.append(spoke)
 
     def _init_hopper(self):
         """Stub: Storage area."""
@@ -183,11 +216,7 @@ class BlockheadMech:
         for i in range(num_spokes):
             angle = (360 / num_spokes) * i
             spoke = self.indexer_1.appendLigament(
-                f"spoke_{i}", 
-                radius, 
-                angle, 
-                4,
-                self.color_indexer
+                f"spoke_{i}", radius, angle, 4,self.color_indexer
             )
             self.indexer_spokes.append(spoke)
 
@@ -209,19 +238,11 @@ class BlockheadMech:
         for i in range(num_spokes):
             angle = (360 / num_spokes) * i
             spoke = self.indexer_2.appendLigament(
-                f"spoke_{i}", 
-                radius, 
-                angle, 
-                4,
-                self.color_indexer
+                f"spoke_{i}", radius, angle, 4,self.color_indexer
             )
             self.indexer_spokes.append(spoke)
             spoke = self.indexer_3.appendLigament(
-                f"spoke_{i}", 
-                radius, 
-                angle, 
-                4,
-                self.color_indexer
+                f"spoke_{i}", radius, angle, 4,self.color_indexer
             )
             self.indexer_spokes.append(spoke)
 
@@ -243,11 +264,7 @@ class BlockheadMech:
         for i in range(num_spokes):
             angle = (360 / num_spokes) * i
             self.flywheel_center.appendLigament(
-                f"spoke_{i}", 
-                radius, 
-                angle, 
-                4,
-                self.color_wheel
+                f"spoke_{i}", radius, angle, 4,self.color_wheel
             )
 
         '''Stub: Rollers'''
@@ -264,18 +281,10 @@ class BlockheadMech:
         for i in range(num_spokes):
             angle = (360 / num_spokes) * i
             self.roller_1_center.appendLigament(
-                f"spoke_{i}", 
-                radius, 
-                angle, 
-                4,
-                self.color_wheel
+                f"spoke_{i}", radius, angle, 4,self.color_wheel
             )
             self.roller_2_center.appendLigament(
-                f"spoke_{i}", 
-                radius, 
-                angle, 
-                4,
-                self.color_wheel
+                f"spoke_{i}", radius, angle, 4,self.color_wheel
             )
 
     '''def _init_climber(self):
@@ -328,20 +337,28 @@ class BlockheadMech:
         self.front_wheel_ligament.setAngle(new_front_angle)
         self.front_wheel_ligament_2.setAngle(new_front_angle + 180)
 
-    def update_intake(self, angle: float, speed: float):
+    def update_intake(self, angle: float, rpm: float):
         # Pivot relative to the vertical post (which is at 90 absolute).
         # Stowed: Folded back/up. Relative angle +60 -> Absolute 150.
         # Deployed: Down to ground. Relative angle -200 -> Absolute -110.
         
         # Note: appendLigament angle is relative to parent. Parent is 90 deg (vertical).
-        self.intake_arm.setAngle(self._get_rel_angle(angle, self.abs_intake_post))
+        self.intake_post.setAngle(self._get_rel_angle(angle, self.intake_mount_angle))
         
-        # Animate bar moving along the intake arm
-        if abs(speed) > 0:
-            self.intake_anim_dist += abs(speed) * inchesToMeters(0.2)
-            if self.intake_anim_dist > self.intake_arm_length:
-                self.intake_anim_dist = 0
-            self.intake_spacer.setLength(self.intake_anim_dist)
+        if abs(rpm) > 10:
+
+            visual_speed = math.sqrt(abs(rpm))
+            
+            # Updating positon based on the three roots for the indexer
+            rotation_step = math.copysign(visual_speed * 0.2, rpm)  # Uses the magnitude of visual_spped * .2 with the sign of rpm
+            current_angle = self.intake_roller_1.getAngle()  # Change angle of root, spokes will follow
+            self.intake_roller_1.setAngle(current_angle - rotation_step)  # Subtracting to spin clockwise
+            current_angle = self.intake_roller_2.getAngle()  # Change angle of root, spokes will follow
+            self.intake_roller_2.setAngle(current_angle - rotation_step)  # Subtracting to spin clockwise
+            current_angle = self.intake_roller_3.getAngle()  # Change angle of root, spokes will follow
+            self.intake_roller_3.setAngle(current_angle + rotation_step)  # Adding to spin counterclockwise
+            current_angle = self.intake_roller_4.getAngle()  # Change angle of root, spokes will follow
+            self.intake_roller_4.setAngle(current_angle + rotation_step)  # Adding to spin counterclockwise
 
     def update_hopper(self, speed: float):
         # Animate the ball moving left

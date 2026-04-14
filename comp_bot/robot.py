@@ -149,7 +149,7 @@ class MyRobot(commands2.TimedCommandRobot):
         if self.mech:
             # Intake
             self.mech.update_intake(angle=self.container.intake.get_profile_setpoint(),
-                                    speed=1.0 if self.container.intake.intake_on else 0.0)
+                                    rpm=self.container.intake.current_rpm if self.container.intake.intake_on else 0)
 
             # Shooter
             self.mech.update_hopper(self.container.shooter.current_hopper_rpm / 6000)
