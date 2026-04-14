@@ -61,6 +61,8 @@ class PathingFSFSTrenchtoBump(commands2.SequentialCommandGroup):
                 WaitCommand(ac.k_intake_raise_delay),
                 Intake_Deploy(intake=self.container.intake, position='shoot', indent=1),
                 Intake_Set_RPM(intake=self.container.intake, rpm=500),
+                WaitCommand(ac.k_intake_raise_delay),
+                Intake_Deploy(intake=self.container.intake, position='shoot2', indent=1),
                 WaitCommand(5)
             ).withTimeout(ac.k_shooting_timeout)
         ))
@@ -110,6 +112,8 @@ class PathingFSFSTrenchtoBump(commands2.SequentialCommandGroup):
                 WaitCommand(ac.k_intake_raise_delay),
                 Intake_Deploy(intake=self.container.intake, position='shoot', indent=1),
                 Intake_Set_RPM(intake=self.container.intake, rpm=500),
+                WaitCommand(ac.k_intake_raise_delay),
+                Intake_Deploy(intake=self.container.intake, position='shoot2', indent=1),
                 WaitCommand(5)
             ).withTimeout(ac.k_shooting_timeout)
         ))
