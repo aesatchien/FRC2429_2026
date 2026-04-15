@@ -178,13 +178,24 @@ class UIUpdater:
                 self.dtap_retries = 0
 
     def _test_questnav_dtap(self):
-        """Fires an ADB command to simulate/test Quest passthrough by returning to the Home screen."""
+        """Simulates a physical double-tap by launching FocusPlaceholderActivity over QuestNav.
+
+        A physical dtap triggers the OS-level FullPassthroughFlow, which puts FocusPlaceholderActivity
+        over the QuestNav app without ever pausing it (no onPause/onResume, no app restart, no NT re-read).
+        This command replicates that behavior as closely as ADB allows.
+
+        DO NOT USE the HOME intent for this:
+            am start -a android.intent.action.MAIN -c android.intent.category.HOME
+        That sends QuestNav to the Android background (onPause fires). When the app is relaunched it
+        restarts Unity XR, re-reads /QuestNav/request from NT, and re-applies the last POSE_RESET —
+        teleporting the headset back to the original sync location. That is not what a physical dtap does.
+        """
         current_time = self.get_elapsed_time()
-        print(f"[{time.strftime('%H:%M:%S')}] Testing QuestNav DTAP (Home Intent)...", flush=True)
-        
+        print(f"[{time.strftime('%H:%M:%S')}] Testing QuestNav DTAP (FocusPlaceholder)...", flush=True)
+
         try:
             adb_path = os.path.join(os.path.dirname(__file__), "adb", "adb.exe")
-            cmd = [adb_path, "-s", config.QUESTNAV_ADB_ADDRESS, "shell", "am", "start", "-a", "android.intent.action.MAIN", "-c", "android.intent.category.HOME"]
+            cmd = [adb_path, "-s", config.QUESTNAV_ADB_ADDRESS, "shell", "am", "start", "-n", "com.oculus.vrshell/.FocusPlaceholderActivity"]
             subprocess.Popen(cmd)
         except Exception as e:
             print(f"[{time.strftime('%H:%M:%S')}] Failed to execute QuestNav DTAP test: {e}", flush=True)
