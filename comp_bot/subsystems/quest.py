@@ -7,6 +7,7 @@ from wpimath.geometry import Pose2d, Rotation2d, Translation2d, Pose3d, Rotation
 from ntcore import NetworkTableInstance
 
 from helpers.questnav.questnav import QuestNav as Metaquestnav
+from helpers.questnav.protos.generated import commands_pb2 as _qn_commands
 from wpilib import DataLogManager
 
 import constants
@@ -58,6 +59,12 @@ class Questnav(SubsystemBase):
         self.dtap_count = 0  # count how many times we've double-tapped to track the issue in sim and real
         self.k_max_disconnected_count = qc.k_max_disconnected_count  # lost iterations before we say we are disconnected
         self.expecting_jump = False
+        # When the Quest resumes from passthrough it re-applies whatever POSE_RESET command is
+        # sitting in /QuestNav/request (NT last-value semantics).  This causes the headset to
+        # teleport back to the original sync location even though its SLAM was tracking fine.
+        # Fix: after every set_pose, wait for the Quest to confirm it (expecting_jump clears),
+        # then overwrite /QuestNav/request with a no-op so there is nothing stale to re-apply.
+        self._need_clear_pose_command = False
         self.error_pose = Pose2d(0,0,0)  # difference between robot and quest
         self.passthru_start_time = 0.0
         self.synced_before_passthru = False
@@ -140,6 +147,7 @@ class Questnav(SubsystemBase):
         # set the pose of the Questnav, transforming from robot center top questnav coordinate
         self.questnav.set_pose(Pose3d(pose.transformBy(self.quest_to_robot.inverse())))
         self.expecting_jump = True
+        self._need_clear_pose_command = True  # arm the NT clear; fires when Quest acks (see periodic)
         
         if self.mock_questnav:
             # In Sim, calculate the error needed so that (Truth + Error) = TargetPose
@@ -237,6 +245,28 @@ class Questnav(SubsystemBase):
             self.quest_unsync_odometry()
         # reporting done by the sync/unsync functions
 
+    def _clear_pose_command_nt(self) -> None:
+        """Overwrite /QuestNav/request with a COMMAND_TYPE_UNSPECIFIED (no-op).
+
+        Root cause this defends against: the Quest app re-applies whatever command is sitting
+        in /QuestNav/request when it resumes from passthrough mode (NT last-value semantics).
+        A stale POSE_RESET causes the headset to teleport back to the original sync location
+        even though its internal SLAM was still valid.  Replacing it with a no-op here — right
+        after the Quest confirms it processed the real command — leaves nothing harmful to replay.
+
+        command_id 0xFFFF: the vendor library starts at 1 and increments by 1 each call, so
+        it will not reach 0xFFFF in normal operation.  Using a fixed out-of-range value avoids
+        colliding with the vendor's own counter while keeping this code self-contained.
+        """
+        try:
+            cmd = _qn_commands.ProtobufQuestNavCommand()
+            cmd.type = _qn_commands.COMMAND_TYPE_UNSPECIFIED
+            cmd.command_id = 0xFFFF
+            self.questnav.command_pub.set(cmd.SerializeToString())
+            print(f"  Cleared Quest pose command at {wpilib.Timer.getFPGATimestamp():.2f}s")
+        except Exception as e:
+            print(f"  Error clearing Quest pose command: {e}")
+
     def is_quest_enabled(self):
         return self.use_quest
 
@@ -294,6 +324,13 @@ class Questnav(SubsystemBase):
                                 print(f"  Quest recovered but moved too far ({distance_moved:.2f}m > {constants.QuestConstants.k_max_passthru_distance}m). Skipping soft resync.")
                                 print(f"    Old Pose: X={self.pre_passthru_pose.X():.2f}, Y={self.pre_passthru_pose.Y():.2f} | New Pose: X={self.quest_pose.X():.2f}, Y={self.quest_pose.Y():.2f}")
                         
+                    # expecting_jump being True here means this frame is the Quest's first report
+                    # AFTER a set_pose call — i.e., the Quest just confirmed it applied the command.
+                    # That is the safe window to overwrite /QuestNav/request with a no-op so the
+                    # stale POSE_RESET cannot teleport the headset if it later goes into passthrough.
+                    if self.expecting_jump and self._need_clear_pose_command:
+                        self._clear_pose_command_nt()
+                        self._need_clear_pose_command = False
                     self.expecting_jump = False
 
                     self.was_tracking = True  # Successfully processed a valid tracking frame

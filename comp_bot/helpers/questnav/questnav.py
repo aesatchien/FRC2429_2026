@@ -111,7 +111,7 @@ class QuestNav:
         self._tracking_lost_counter = 0
         self._frame_count = 0
         self._last_command_id = 0
-        
+
         # Queues for unread frames
         self._unread_frames: List[PoseFrame] = []
     
@@ -279,7 +279,7 @@ class QuestNav:
             # Publish command
             serialized = command.SerializeToString()
             self.command_pub.set(serialized)
-            
+
         except Exception as e:
             print(f"QuestNav error sending pose reset: {e}")
     
