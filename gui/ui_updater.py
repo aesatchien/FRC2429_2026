@@ -178,13 +178,16 @@ class UIUpdater:
                 self.dtap_retries = 0
 
     def _test_questnav_dtap(self):
-        """Fires an ADB command to simulate/test Quest passthrough by returning to the Home screen."""
+        """Fires an ADB command to simulate/test Quest passthrough by returning to the Home screen.
+        None of these do what they are supposed to - the HOME actually kills and restarts (seriously messes up the quest), and the FocusPlaceholderActivity doesn't work
+        """
         current_time = self.get_elapsed_time()
         print(f"[{time.strftime('%H:%M:%S')}] Testing QuestNav DTAP (Home Intent)...", flush=True)
         
         try:
             adb_path = os.path.join(os.path.dirname(__file__), "adb", "adb.exe")
-            cmd = [adb_path, "-s", config.QUESTNAV_ADB_ADDRESS, "shell", "am", "start", "-a", "android.intent.action.MAIN", "-c", "android.intent.category.HOME"]
+            # cmd = [adb_path, "-s", config.QUESTNAV_ADB_ADDRESS, "shell", "am", "start", "-a", "android.intent.action.MAIN", "-c", "android.intent.category.HOME"]
+            cmd = [adb_path, "-s", config.QUESTNAV_ADB_ADDRESS, "shell", "am", "start", "-n", "com.oculus.vrshell/.FocusPlaceholderActivity"]
             subprocess.Popen(cmd)
         except Exception as e:
             print(f"[{time.strftime('%H:%M:%S')}] Failed to execute QuestNav DTAP test: {e}", flush=True)
