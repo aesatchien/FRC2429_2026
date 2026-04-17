@@ -40,7 +40,7 @@ def flip_path_data(input_path, output_path=None):
 
 # Usage
 if __name__ == "__main__":
-    path = "comp_bot\deploy\pathplanner\paths\Left_Trench_to_Trench_Refill.path"  # Replace with your actual file path
+    path = "Left_Trench_to_Trench_Refill.path"  # Replace with your actual file path
     if os.path.exists(path):
         flip_path_data(path)
     else:
