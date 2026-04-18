@@ -7,7 +7,7 @@ import ntcore
 import constants
 from subsystems.swerve import Swerve  # allows us to access the definitions
 from subsystems.targeting import Targeting
-from commands2.button import CommandXboxController
+from commands2.button import CommandXboxController, CommandJoystick
 from wpimath.geometry import Translation2d
 from wpimath.filter import Debouncer, SlewRateLimiter
 from subsystems.swerve_constants import DriveConstants as dc
@@ -16,7 +16,7 @@ from helpers.log_command import log_command
 
 @log_command(console=True, nt=False, print_init=True, print_end=False)
 class DriveByJoystickSubsystemTargeting(commands2.Command):
-    def __init__(self, container, swerve: Swerve, targeting: Targeting, controller: CommandXboxController) -> None:
+    def __init__(self, container, swerve: Swerve, targeting: Targeting, controller: CommandXboxController, button_box: CommandJoystick=None) -> None:
         super().__init__()
         self.setName('drive_by_joystick_subsystem_targeting')
         
@@ -28,6 +28,7 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
         self.targeting = targeting
         self.addRequirements(self.swerve)
         self.controller: CommandXboxController = controller
+        self.button_box: CommandJoystick = button_box
 
         # -----------------------------------------------------------
         # 2. Configuration & State
@@ -44,6 +45,7 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
         self.drive_limiter = SlewRateLimiter(dc.kDriverSlewRate)
         self.strafe_limiter = SlewRateLimiter(dc.kDriverSlewRate)
         self.turbo_limiter = SlewRateLimiter(dc.kTurboSlewRate)
+        self.afterburner_limiter = SlewRateLimiter(dc.kAfterBurnerSlewRate)
         
         # Rotation limiters
         self.manual_rot_limiter = SlewRateLimiter(dc.kDriverSlewRate)
@@ -72,12 +74,14 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
         # 1. READ INPUTS
         # -----------------------------------------------------------
         hid = self.controller.getHID()
+        hid_bbox = self.button_box.getHID()
         inputs = {
             'robot_pose': self.swerve.get_pose(),
             'left_y': hid.getLeftY(),
             'left_x': hid.getLeftX(),
             'right_x': hid.getRightX(),
             'trigger': hid.getRightTriggerAxis(),
+            'after_burner' : hid_bbox.getRawButton(3),
             'robot_oriented': hid.getLeftBumperButton(),
             # 'tracking_on': hid.getRightBumperButton(),  # use a button to turn on tracking
             'tracking_on': self.container.targeting.get_tracking_state(),  # now instead of a button
@@ -90,8 +94,14 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
         
         # --- Drive Mode & Multipliers ---
         turbo = self.turbo_limiter.calculate(inputs['trigger']**2)
-        slowmode_multiplier = dc.kSlowModeCap + ((1 - dc.kSlowModeCap) * turbo)
-        angular_slowmode_multiplier = 0.5 + 0.5 * turbo
+        afterburner = self.afterburner_limiter.calculate(inputs['after_burner'])
+
+        if (inputs['after_burner'] == False):
+            slowmode_multiplier = dc.kSlowModeCap + ((1 - dc.kSlowModeCap) * turbo)
+            angular_slowmode_multiplier = 0.5 + 0.5 * turbo
+        else:
+            slowmode_multiplier = dc.kSlowModeCap + ((1 - dc.kSlowModeCap) * afterburner)
+            angular_slowmode_multiplier = 0.5 + 0.5 * afterburner
 
         # --- Field Oriented Logic ---
         if self.robot_oriented_debouncer.calculate(inputs['robot_oriented']):

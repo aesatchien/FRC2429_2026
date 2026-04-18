@@ -24,7 +24,7 @@ class Set_Afterburner(commands2.Command):  # change the name for your command
         pass
 
     def isFinished(self) -> bool:
-        return True
+        return False
 
     def end(self, interrupted: bool) -> None:
         # put your safe cleanup code here - turn off motors, set LEDs, etc

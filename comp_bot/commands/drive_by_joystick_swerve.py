@@ -44,10 +44,6 @@ class DriveByJoystickSwerve(commands2.Command):
         self.drive_limiter = SlewRateLimiter(stick_max_units_per_second)
         self.strafe_limiter = SlewRateLimiter(stick_max_units_per_second)
         self.turbo_limiter = SlewRateLimiter(dc.kTurboSlewRate)
-        if (constants.DrivetrainConstants.k_AB_on == False):
-            self.ab_limiter = 0
-        else:
-            self.ab_limiter = SlewRateLimiter(dc.kABSlewRate)
 
         # -----------------------------------------------------------
         # 4. Targeting Setup - if we are tracking (ignore)
@@ -99,9 +95,9 @@ class DriveByJoystickSwerve(commands2.Command):
         # --- 2b. Drive Mode Calculations ---
         # Turbo / Slow Mode
         turbo = self.turbo_limiter.calculate(right_trigger_value ** 2)
-        ab = self.ab_limiter.calculate(right_trigger_value ** 2)
-        slowmode_multiplier = 0.2 + 0.8 * turbo + 0.8 * ab
-        angular_slowmode_multiplier = 0.5 + 0.5 * turbo + 0.5 * ab
+        #ab = self.ab_limiter.calculate(right_trigger_value ** 2)
+        slowmode_multiplier = 0.2 + 0.8 * turbo
+        angular_slowmode_multiplier = 0.5 + 0.5 * turbo
 
         # Field Oriented vs Robot Oriented
         if self.robot_oriented_debouncer.calculate(robot_oriented_value):

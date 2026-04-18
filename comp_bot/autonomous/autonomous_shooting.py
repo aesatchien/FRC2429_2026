@@ -24,7 +24,7 @@ class AutoShootingGroup(commands2.SequentialCommandGroup):
         # because the drive by velocity needs swerve, we have to actively use the swerve to auto target
         self.addCommands(commands2.ParallelRaceGroup(
             ShootingCommand(shooter=container.shooter, targeting=container.targeting, indent=1, auto_timeout=5),
-            DriveByJoystickSubsystemTargeting(self.container, swerve=self.container.swerve, controller=js.driver_controller, targeting=container.targeting)
+            DriveByJoystickSubsystemTargeting(self.container, swerve=self.container.swerve, controller=js.driver_controller, targeting=container.targeting, button_box=js.bbox_1)
         ))
 
         # self.addCommands(ShootingCommand(shooter=container.shooter, targeting=container.targeting, indent=1, auto_timeout=5))

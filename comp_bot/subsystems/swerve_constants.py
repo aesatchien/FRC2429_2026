@@ -72,7 +72,7 @@ class DriveConstants:
     kDriverSlewRate = 3  # Slew rate for manual driver control (units/sec)
     kAutoSlewRate = 2    # Slew rate for autonomous PID correction (units/sec)
     kTurboSlewRate = 10  # Slew rate for turbo mode trigger (units/sec)
-    kABSlewRate = 15  # Slew rate for afterburner mode trigger (units/sec)
+    kAfterBurnerSlewRate = 15  # Slew rate for afterburner mode trigger (units/sec)
     
     # Input Deadbands
     k_inner_deadband = 0.10  # use deadbands for joystick transformations and keepangle calculations

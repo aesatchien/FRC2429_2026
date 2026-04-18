@@ -54,7 +54,7 @@ class PathingCenterBack(commands2.SequentialCommandGroup):
         
         self.addCommands(commands2.ParallelRaceGroup(
             ShootingCommand(shooter=container.shooter, targeting=container.targeting, indent=1, auto_timeout=ac.k_shooting_timeout, delay_cycles=10),
-            DriveByJoystickSubsystemTargeting(self.container, swerve=self.container.swerve, controller=js.driver_controller, targeting=container.targeting),
+            DriveByJoystickSubsystemTargeting(self.container, swerve=self.container.swerve, controller=js.driver_controller, targeting=container.targeting, ),
             SequentialCommandGroup(
                 WaitCommand(ac.k_intake_raise_delay),
                 Intake_Deploy(intake=self.container.intake, position='shoot', indent=1),
