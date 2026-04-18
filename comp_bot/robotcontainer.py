@@ -15,6 +15,7 @@ from pathplannerlib.auto import NamedCommands
 # 2429 helper files
 import constants
 from helpers import joysticks as js
+from constants import DrivetrainConstants as dc
 from constants import ShooterConstants as sc
 from constants import IntakeConstants as ic
 from constants import AutoConstants as ac
@@ -61,6 +62,8 @@ from commands.shooting_command import ShootingCommand
 from commands.intake_set_rpm import Intake_Set_RPM
 from commands.intake_deploy import Intake_Deploy
 from commands.intake_calibrate import CalibrateIntake
+
+from commands.set_afterburner import Set_Afterburner
 
 
 class RobotContainer:
@@ -219,7 +222,19 @@ class RobotContainer:
         js.bbox_1_1.onTrue(InstantCommand(lambda: self.intake.zero_intake()).ignoringDisable(True))
         js.bbox_1_2.onTrue(InstantCommand(lambda: self.intake.set_angle_max()).ignoringDisable(True))
 
-        js.bbox_1_3.onTrue(InstantCommand(lambda: self.targeting.stop_tracking()))
+        #js.bbox_1_3.onTrue(InstantCommand(lambda: self.targeting.stop_tracking()))
+        js.bbox_1_3.whileTrue(commands2.ParallelCommandGroup(
+            Intake_Deploy(intake=self.intake, position='up').andThen(
+                Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)),
+            InstantCommand(lambda: self.shooter.set_hopper_rpm(0)),
+            Set_Afterburner(afterburner_on=True)
+        ))
+        js.bbox_1_3.whileFalse(commands2.ParallelCommandGroup(
+            Intake_Deploy(intake=self.intake, position='down').andThen(
+                Intake_Set_RPM(intake=self.intake, rpm=3000, led=self.led)),
+            InstantCommand(lambda: self.shooter.set_hopper_rpm(constants.ShooterConstants.k_hopper_rpm)),
+            Set_Afterburner(afterburner_on=False)
+        ))
         js.bbox_1_3.debounce(.2).whileTrue(SwerveTest(container=self, swerve=self.swerve))
 
         js.bbox_1_4.onTrue(InstantCommand(lambda: self.questnav.quest_sync_odometry()).ignoringDisable(True))

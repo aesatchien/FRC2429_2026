@@ -166,6 +166,7 @@ class DrivetrainConstants:
     k_pose_stdevs_large = (2, 2, 10)  # use when you don't trust the april tags - stdev x, stdev y, stdev theta
     k_pose_stdevs_disabled = (1, 1, 2)  # use when we are disabled to quickly get updates
     k_pose_stdevs_small = (0.1, 0.1, 0.1)  # use when you do trust the tags
+    k_AB_on = False
 
     # for now, the remaining constants are in swerve_constants.py
 
