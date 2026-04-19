@@ -63,8 +63,6 @@ from commands.intake_set_rpm import Intake_Set_RPM
 from commands.intake_deploy import Intake_Deploy
 from commands.intake_calibrate import CalibrateIntake
 
-from commands.set_afterburner import Set_Afterburner
-
 
 class RobotContainer:
     """
