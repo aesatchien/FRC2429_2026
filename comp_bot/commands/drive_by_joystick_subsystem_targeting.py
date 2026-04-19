@@ -74,14 +74,17 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
         # 1. READ INPUTS
         # -----------------------------------------------------------
         hid = self.controller.getHID()
-        hid_bbox = self.button_box.getHID()
+        if self.button_box is not None:
+            after_burner = self.button_box.getHID().getRawButton(3)
+        else: 
+            after_burner = False
         inputs = {
             'robot_pose': self.swerve.get_pose(),
             'left_y': hid.getLeftY(),
             'left_x': hid.getLeftX(),
             'right_x': hid.getRightX(),
             'trigger': hid.getRightTriggerAxis(),
-            'after_burner' : hid_bbox.getRawButton(3),
+            'after_burner' : after_burner,
             'robot_oriented': hid.getLeftBumperButton(),
             # 'tracking_on': hid.getRightBumperButton(),  # use a button to turn on tracking
             'tracking_on': self.container.targeting.get_tracking_state(),  # now instead of a button
