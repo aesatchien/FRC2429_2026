@@ -14,7 +14,7 @@ from helpers.log_command import log_command
 
 @log_command(console=True, nt=False, print_init=True, print_end=False)
 class DriveByJoystickSwerve(commands2.Command):
-    def __init__(self, container, swerve: Swerve, controller: CommandXboxController, rate_limited=False) -> None:
+    def __init__(self, container, swerve: Swerve, controller: CommandXboxController, rate_limited=False, afterburn=False) -> None:
         super().__init__()
         self.setName('drive_by_joystick_swerve')
 
@@ -95,6 +95,7 @@ class DriveByJoystickSwerve(commands2.Command):
         # --- 2b. Drive Mode Calculations ---
         # Turbo / Slow Mode
         turbo = self.turbo_limiter.calculate(right_trigger_value ** 2)
+        #ab = self.ab_limiter.calculate(right_trigger_value ** 2)
         slowmode_multiplier = 0.2 + 0.8 * turbo
         angular_slowmode_multiplier = 0.5 + 0.5 * turbo
 

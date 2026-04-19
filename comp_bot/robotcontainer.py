@@ -1,4 +1,4 @@
-# 2429 FRC code for 2025 season - Reefscape
+# 2429 FRC code for 2026 season - Rebuilt
 
 import wpilib
 import ntcore
@@ -15,6 +15,7 @@ from pathplannerlib.auto import NamedCommands
 # 2429 helper files
 import constants
 from helpers import joysticks as js
+from constants import DrivetrainConstants as dc
 from constants import ShooterConstants as sc
 from constants import IntakeConstants as ic
 from constants import AutoConstants as ac
@@ -94,6 +95,7 @@ class RobotContainer:
               swerve=self.swerve,
               controller=js.driver_controller,
               targeting=self.targeting,
+              button_box=js.bbox_1
          ))
 
         if not constants.k_swerve_only:
@@ -219,8 +221,20 @@ class RobotContainer:
         js.bbox_1_1.onTrue(InstantCommand(lambda: self.intake.zero_intake()).ignoringDisable(True))
         js.bbox_1_2.onTrue(InstantCommand(lambda: self.intake.set_angle_max()).ignoringDisable(True))
 
-        js.bbox_1_3.onTrue(InstantCommand(lambda: self.targeting.stop_tracking()))
-        js.bbox_1_3.debounce(.2).whileTrue(SwerveTest(container=self, swerve=self.swerve))
+        #js.bbox_1_3.onTrue(InstantCommand(lambda: self.targeting.stop_tracking()))
+        js.bbox_1_3.whileTrue(commands2.ParallelCommandGroup(
+            Intake_Deploy(intake=self.intake, position='up').andThen(
+                Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)),
+            InstantCommand(lambda: self.shooter.set_hopper_rpm(0))
+            #Set_Afterburner(afterburner_on=True)
+        ))
+        js.bbox_1_3.whileFalse(commands2.ParallelCommandGroup(
+            Intake_Deploy(intake=self.intake, position='down').andThen(
+                Intake_Set_RPM(intake=self.intake, rpm=3000, led=self.led)),
+            InstantCommand(lambda: self.shooter.set_hopper_rpm(constants.ShooterConstants.k_hopper_rpm))
+            #Set_Afterburner(afterburner_on=False)
+        ))
+        #js.bbox_1_3.debounce(.2).whileTrue(SwerveTest(container=self, swerve=self.swerve))
 
         js.bbox_1_4.onTrue(InstantCommand(lambda: self.questnav.quest_sync_odometry()).ignoringDisable(True))
 
@@ -392,6 +406,7 @@ class RobotContainer:
                 Intake_Set_RPM(intake=self.intake, rpm=2500, led=self.led)
             )
         ))  # Trentan - Testing a way to get all paths to have a delay before deploying which can be changed with one constant
+        NamedCommands.registerCommand("x_mode", SwerveSetX(container=self, swerve=self.swerve))
         
     def get_autonomous_command(self):
         cmd = self.auto_chooser.getSelected()
