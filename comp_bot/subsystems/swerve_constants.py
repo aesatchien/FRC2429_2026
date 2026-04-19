@@ -59,6 +59,7 @@ class DriveConstants:
     # Speed & Acceleration Limits
     # ==========================================
     # Note that these are not the maximum possible speeds, rather the allowed maximum speeds
+    # real max is  1/60 * 6780 rpm * pi * 0.101m (4in) / 6.75 (MK4i L2)  ~ 5.35 m/s
     kMaxSpeedMetersPerSecond = 4.75  # Sanjith started at 3.7, 4.25 was Haochen competition, 4.8 is full out on NEOs
     kMaxAngularSpeed = 7 # 0.5 * math.tau  # radians per second was 0.5 tau through AVR - too slow
     kSlowModeCap = 0.25
