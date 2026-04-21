@@ -401,6 +401,9 @@ class RobotContainer:
             )
         ))  # Trentan - Testing a way to get all paths to have a delay before deploying which can be changed with one constant
         NamedCommands.registerCommand("x_mode", SwerveSetX(container=self, swerve=self.swerve))
+        NamedCommands.registerCommand("stow_intake", Intake_Deploy(intake=self.intake, position='up').andThen(
+            Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)
+        ))
         
     def get_autonomous_command(self):
         cmd = self.auto_chooser.getSelected()
