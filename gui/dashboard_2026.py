@@ -100,7 +100,7 @@ class QuestPingWorker(QtCore.QObject):
             creationflags = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
 
             # Scan range .200 through .209
-            for i in range(200, 210):
+            for i in range(20, 29):
                 target_ip = f"{base_ip}.{i}"
                 if target_ip == local_ip:
                     self.output_ready.emit(f"Skipping {target_ip} (this computer)")

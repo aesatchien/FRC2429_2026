@@ -228,12 +228,6 @@ class RobotContainer:
             InstantCommand(lambda: self.shooter.set_hopper_rpm(0))
             #Set_Afterburner(afterburner_on=True)
         ))
-        js.bbox_1_3.whileFalse(commands2.ParallelCommandGroup(
-            Intake_Deploy(intake=self.intake, position='down').andThen(
-                Intake_Set_RPM(intake=self.intake, rpm=3000, led=self.led)),
-            InstantCommand(lambda: self.shooter.set_hopper_rpm(constants.ShooterConstants.k_hopper_rpm))
-            #Set_Afterburner(afterburner_on=False)
-        ))
         #js.bbox_1_3.debounce(.2).whileTrue(SwerveTest(container=self, swerve=self.swerve))
 
         js.bbox_1_4.onTrue(InstantCommand(lambda: self.questnav.quest_sync_odometry()).ignoringDisable(True))

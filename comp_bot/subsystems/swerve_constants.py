@@ -61,7 +61,7 @@ class DriveConstants:
     # Note that these are not the maximum possible speeds, rather the allowed maximum speeds
     kMaxSpeedMetersPerSecond = 4.75  # Sanjith started at 3.7, 4.25 was Haochen competition, 4.8 is full out on NEOs
     kMaxAngularSpeed = 7 # 0.5 * math.tau  # radians per second was 0.5 tau through AVR - too slow
-    kSlowModeCap = 0.25
+    kSlowModeCap = 0.35
     # our hardware can do 11.11 hertz =
     # TODO: actually figure out what the total max speed should be - vector sum?
     kMaxTotalSpeed = 1.1 * math.sqrt(2) * kMaxSpeedMetersPerSecond  # sum of angular and rotational, should probably do hypotenuse
@@ -72,7 +72,7 @@ class DriveConstants:
     kDriverSlewRate = 3  # Slew rate for manual driver control (units/sec)
     kAutoSlewRate = 2    # Slew rate for autonomous PID correction (units/sec)
     kTurboSlewRate = 10  # Slew rate for turbo mode trigger (units/sec)
-    kAfterBurnerSlewRate = 15  # Slew rate for afterburner mode trigger (units/sec)
+    kAfterBurnerSlewRate = 20  # Slew rate for afterburner mode trigger (units/sec)
     
     # Input Deadbands
     k_inner_deadband = 0.10  # use deadbands for joystick transformations and keepangle calculations
@@ -226,7 +226,7 @@ class ModuleConstants:
     # Electrical & Current Limits
     # ==========================================
     # 2024 0414 CJH - 80A allows the drive motors to pull WAY too much and we brown out (AVR)
-    kDrivingMotorCurrentLimit = 50  # amp - set to 50 for worlds to make sure no brownouts - maybe 60 will still be safe
+    kDrivingMotorCurrentLimit = 60  # amp - set to 50 for worlds to make sure no brownouts - maybe 60 will still be safe
     kTurningMotorCurrentLimit = 40  # amp
 
     # ==========================================
