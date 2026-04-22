@@ -17,47 +17,49 @@ class Shooter(Subsystem):
         self.default_hopper_rpm = sc.k_hopper_rpm
         # --------------- add motors and shooter rpm ----------------
         
-        motor_type = rev.SparkMax.MotorType.kBrushless
+        # motor_type = rev.SparkMax.MotorType.kBrushless
 
-        self.hopper = rev.SparkMax(sc.k_CANID_hopper, motor_type)
-        self.indexer_left_leader = rev.SparkMax(sc.k_CANID_indexer_left_leader, motor_type)
-        self.indexer_right_follower = rev.SparkMax(sc.k_CANID_indexer_right_follower, motor_type)
+        '''REMOVING ALL REFERENCE OF MOTORS IN SHOOTING SUBSYSTEM. ONLY MESSAGES ARE PRINTED'''
 
-        self.flywheel_left_leader = rev.SparkFlex(sc.k_CANID_flywheel_left_leader, motor_type)
-        self.flywheel_right_follower = rev.SparkFlex(sc.k_CANID_flywheel_right_follower, motor_type)
-        # TODO - add rollers here and in list - decide if they are just followers or independent
-        self.roller_motor = rev.SparkFlex(sc.k_CANID_flywheel_roller, motor_type)
+        # self.hopper = rev.SparkMax(sc.k_CANID_hopper, motor_type)
+        # self.indexer_left_leader = rev.SparkMax(sc.k_CANID_indexer_left_leader, motor_type)
+        # self.indexer_right_follower = rev.SparkMax(sc.k_CANID_indexer_right_follower, motor_type)
 
-        # convenient list of motors if we need to query or set all of them - SAME ORDER AS COBSTANTS!
-        self.motors = [self.hopper,
-                       self.indexer_left_leader, self.indexer_right_follower,
-                        self.flywheel_left_leader, self.flywheel_right_follower,
-                       self.roller_motor,]
+        # self.flywheel_left_leader = rev.SparkFlex(sc.k_CANID_flywheel_left_leader, motor_type)
+        # self.flywheel_right_follower = rev.SparkFlex(sc.k_CANID_flywheel_right_follower, motor_type)
+        # # TODO - add rollers here and in list - decide if they are just followers or independent
+        # self.roller_motor = rev.SparkFlex(sc.k_CANID_flywheel_roller, motor_type)
 
-        # you need a controller to set velocity
-        self.flywheel_controller = self.flywheel_left_leader.getClosedLoopController()
-        self.flywheel_encoder = self.flywheel_left_leader.getEncoder()
+        # # convenient list of motors if we need to query or set all of them - SAME ORDER AS COBSTANTS!
+        # self.motors = [self.hopper,
+        #                self.indexer_left_leader, self.indexer_right_follower,
+        #                 self.flywheel_left_leader, self.flywheel_right_follower,
+        #                self.roller_motor,]
 
-        self.roller_controller = self.roller_motor.getClosedLoopController()
-        self.roller_encoder = self.roller_motor.getEncoder()
+        # # you need a controller to set velocity
+        # self.flywheel_controller = self.flywheel_left_leader.getClosedLoopController()
+        # self.flywheel_encoder = self.flywheel_left_leader.getEncoder()
 
-        self.indexer_controller = self.indexer_left_leader.getClosedLoopController()
-        self.indexer_encoder = self.indexer_left_leader.getEncoder()
+        # self.roller_controller = self.roller_motor.getClosedLoopController()
+        # self.roller_encoder = self.roller_motor.getEncoder()
 
-        self.hopper_controller = self.hopper.getClosedLoopController()
-        self.hopper_encoder = self.hopper.getEncoder()
+        # self.indexer_controller = self.indexer_left_leader.getClosedLoopController()
+        # self.indexer_encoder = self.indexer_left_leader.getEncoder()
+
+        # self.hopper_controller = self.hopper.getClosedLoopController()
+        # self.hopper_encoder = self.hopper.getEncoder()
 
         # default parameters for the sparkmaxes reset and persist modes -
-        self.rev_resets = rev.ResetMode.kResetSafeParameters
-        self.rev_persists = rev.PersistMode.kPersistParameters if constants.k_burn_flash \
-            else rev.PersistMode.kNoPersistParameters
+        # self.rev_resets = rev.ResetMode.kResetSafeParameters
+        # self.rev_persists = rev.PersistMode.kPersistParameters if constants.k_burn_flash \
+        #     else rev.PersistMode.kNoPersistParameters
 
         # put the configs in a list matching the motors
-        self.configs:list = sc.k_shooter_configs
+        # self.configs:list = sc.k_shooter_configs
  
         # this should be its own function later - we will call it whenever we change brake mode
-        rev_errors = [motor.configure(config, self.rev_resets, self.rev_persists)
-                      for motor, config in zip(self.motors, self.configs)]
+        # rev_errors = [motor.configure(config, self.rev_resets, self.rev_persists)
+        #               for motor, config in zip(self.motors, self.configs)]
 
         # initialize states
         self.shooter_on = False  # state of shooter
@@ -100,7 +102,7 @@ class Shooter(Subsystem):
         self.hopper_rpm_pub.set(self.current_hopper_rpm)
         self.roller_on_pub.set(self.roller_on)
         self.roller_rpm_pub.set(self.current_roller_rpm)
-        self.measured_shooter_rpm_pub.set(self.flywheel_encoder.getVelocity())
+        # self.measured_shooter_rpm_pub.set(self.flywheel_encoder.getVelocity())
         self.shooter_at_speed_pub.set(self.is_at_speed())  # don't like how there are two calls to getVelocity here
 
 
@@ -110,8 +112,8 @@ class Shooter(Subsystem):
         # self.roller_motor.set(0)
 
         # Use MaxMotion to ramp down smoothly instead of hard stopping with set(0)
-        self.flywheel_controller.setReference(setpoint=0, ctrl=SparkLowLevel.ControlType.kMAXMotionVelocityControl, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=0)
-        self.roller_controller.setReference(setpoint=0, ctrl=SparkLowLevel.ControlType.kMAXMotionVelocityControl, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=0)
+        # self.flywheel_controller.setReference(setpoint=0, ctrl=SparkLowLevel.ControlType.kMAXMotionVelocityControl, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=0)
+        # self.roller_controller.setReference(setpoint=0, ctrl=SparkLowLevel.ControlType.kMAXMotionVelocityControl, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=0)
 
         print("Setting shooter rpm to 0")
 
@@ -127,7 +129,7 @@ class Shooter(Subsystem):
 
     def stop_indexer(self):
         # setting everything off, then updating
-        self.indexer_controller.setReference(setpoint=0, ctrl=SparkLowLevel.ControlType.kMAXMotionVelocityControl, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=0)
+        # self.indexer_controller.setReference(setpoint=0, ctrl=SparkLowLevel.ControlType.kMAXMotionVelocityControl, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=0)
         print("  setting indexer rpm to 0")
         self.indexer_on = False
         self.current_indexer_rpm = 0
@@ -136,7 +138,7 @@ class Shooter(Subsystem):
     
     def stop_hopper(self):
         # setting everything off, then updating
-        self.hopper_controller.setReference(setpoint=0, ctrl=SparkLowLevel.ControlType.kMAXMotionVelocityControl, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=0)
+        # self.hopper_controller.setReference(setpoint=0, ctrl=SparkLowLevel.ControlType.kMAXMotionVelocityControl, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=0)
         print("  setting hopper rpm to 0")
         self.hopper_on = False
         self.current_hopper_rpm = 0
@@ -153,7 +155,7 @@ class Shooter(Subsystem):
     
     def set_indexer_rpm(self, rpm=1000):
         feed_forward = min(12, 12 * rpm / 5600)
-        self.indexer_controller.setReference(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
+        # self.indexer_controller.setReference(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
         # print(f"  setting indexer rpm to {rpm:.0f}")
         self.current_indexer_rpm = rpm
         self.indexer_on = True
@@ -164,7 +166,7 @@ class Shooter(Subsystem):
 
     def set_hopper_rpm(self, rpm=1000):
         feed_forward = max(-12, min(12, 12 * rpm / 5600))
-        self.hopper_controller.setReference(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
+        # self.hopper_controller.setReference(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
         # print(f"  setting hopper rpm to {rpm:.0f}")
         self.current_hopper_rpm = rpm
         self.hopper_on = True
@@ -181,10 +183,10 @@ class Shooter(Subsystem):
         # self.roller_controller.setReference(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=roller_feed_forward)
 
         ks = 0 if rpm < 1 else sc.ks_volts  # otherwise it still just turns at 0
-        self.roller_controller.setReference(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kMAXMotionVelocityControl,
-                                             slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=ks)
-        self.flywheel_controller.setReference(setpoint=rpm + self.shooting_offset, ctrl=SparkLowLevel.ControlType.kMAXMotionVelocityControl,
-                                             slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=ks)
+        # self.roller_controller.setReference(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kMAXMotionVelocityControl,
+        #                                      slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=ks)
+        # self.flywheel_controller.setReference(setpoint=rpm + self.shooting_offset, ctrl=SparkLowLevel.ControlType.kMAXMotionVelocityControl,
+        #                                      slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=ks)
 
         #print(f'  -- setflywheel rpm to {rpm:.0f}')  # want to say what time it is, but can't import the container's timer easily
         self.current_rpm = rpm + self.shooting_offset
@@ -195,7 +197,7 @@ class Shooter(Subsystem):
         self.update_nt()
 
     def get_velocity(self):
-        return self.flywheel_encoder.getVelocity()
+        return self.current_rpm
 
     def is_at_speed(self) -> bool:
         """Returns True if the shooter is within tolerance RPM of the target speed."""
