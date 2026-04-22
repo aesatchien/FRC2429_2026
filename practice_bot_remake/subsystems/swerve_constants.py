@@ -60,8 +60,7 @@ class DriveConstants:
     # ==========================================
     # Note that these are not the maximum possible speeds, rather the allowed maximum speeds
     kMaxSpeedMetersPerSecond = 4.75  # Sanjith started at 3.7, 4.25 was Haochen competition, 4.8 is full out on NEOs
-    kMaxAngularSpeed = 7 # 0.5 * math.tau  # radians per second was 0.5 tau through AVR - too slow
-    kSlowModeCap = 0.35
+    kMaxAngularSpeed = 11 # 0.5 * math.tau  # radians per second was 0.5 tau through AVR - too slow
     # our hardware can do 11.11 hertz =
     # TODO: actually figure out what the total max speed should be - vector sum?
     kMaxTotalSpeed = 1.1 * math.sqrt(2) * kMaxSpeedMetersPerSecond  # sum of angular and rotational, should probably do hypotenuse
@@ -72,7 +71,6 @@ class DriveConstants:
     kDriverSlewRate = 3  # Slew rate for manual driver control (units/sec)
     kAutoSlewRate = 2    # Slew rate for autonomous PID correction (units/sec)
     kTurboSlewRate = 10  # Slew rate for turbo mode trigger (units/sec)
-    kAfterBurnerSlewRate = 20  # Slew rate for afterburner mode trigger (units/sec)
     
     # Input Deadbands
     k_inner_deadband = 0.10  # use deadbands for joystick transformations and keepangle calculations
@@ -151,8 +149,8 @@ class DriveConstants:
         'config_cls': SparkFlexConfig,
         'free_speed_rpm': 6784,
         'modules': {
-            'LF': {'driving_can': 21, 'turning_can': 20, 'port': 3, 'turning_offset': sf * 0.494},  # .475 worked then got off then changed to .511
-            'LB': {'driving_can': 23, 'turning_can': 22, 'port': 1, 'turning_offset': sf * 0.436},
+            'LF': {'driving_can': 21, 'turning_can': 20, 'port': 3, 'turning_offset': sf * 0.083},
+            'LB': {'driving_can': 23, 'turning_can': 22, 'port': 1, 'turning_offset': sf * 0.432},
             'RF': {'driving_can': 25, 'turning_can': 24, 'port': 2, 'turning_offset': sf * 0.071},
             'RB': {'driving_can': 27, 'turning_can': 26, 'port': 0, 'turning_offset': sf * 0.035}
         },
@@ -179,7 +177,7 @@ class DriveConstants:
         print(f'YOU ARE IN ENCODER ALIGNMENT TEST MODE -- DO NOT DRIVE!!!')
         # read the raw numbers from the encoders so we can write them all down for a given robot
         k_analog_encoder_scale_factor = 1.0  # override so we get the raw reading between 0 and 1
-        for key in ['LF', 'RF', 'LB', 'RB']:
+        for key in ['LF', 'RF', 'LB', 'RB'] :
             swerve_dict[key]['turning_offset'] = 0
     else:
         pass
@@ -259,7 +257,7 @@ class ModuleConstants:
     k_turning_config.encoder.velocityConversionFactor(math.tau/(k_turning_motor_gear_ratio * 60)) # radians per second
 
 
-class AutoConstantsSwerve:
+class AutoConstants:
     """
     Constants for Autonomous operation and PathPlanner.
     """
@@ -298,8 +296,8 @@ class TargetingConstants:
     kAutoTranslationPID = PIDConstants(0.8, 0.1, 0.0)
     
     # Tolerances (mirrored from AutoConstants for now, but can be tuned separately)
-    k_rotation_tolerance = AutoConstantsSwerve.k_rotation_tolerance
-    k_translation_tolerance_meters = AutoConstantsSwerve.k_translation_tolerance_meters
+    k_rotation_tolerance = AutoConstants.k_rotation_tolerance
+    k_translation_tolerance_meters = AutoConstants.k_translation_tolerance_meters
     k_teleop_rotation_kS = 0.05 # Minimum output to overcome friction (static friction feedforward)
     k_teleop_rotation_kf = 1.0 # Physics feedforward gain. 1.0 is exact, >1.0 overdrives for lag.
     kShotAccuracyToleranceMeters = 0.5 # Shot must land within this distance of the target center to be "OK"
