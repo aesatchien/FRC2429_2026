@@ -11,7 +11,7 @@ from typing import Union, List
 
 from helpers.utilities import set_config_defaults
 
-k_swerve_config = "comp"  # choose between practice bot and comp bot for now - they differ by swerve ofsets
+k_swerve_config = "practice"  # choose between practice bot and comp bot for now - they differ by swerve ofsets
 
 
 k_at_home = False  # used for intake calibration - True means we start with the intake out
@@ -231,7 +231,7 @@ class IntakeConstants:
 
     allowed_rpms = [0, 60] + [i for i in range(2000, 5601, 250)]
 
-    k_intake_left_leader_config.inverted(True)
+    k_intake_left_leader_config.inverted(False)
     k_intake_right_follower_config.follow(k_CANID_intake_left_leader, invert=False)  # depends on motor placement
 
     set_config_defaults(k_intake_configs)
