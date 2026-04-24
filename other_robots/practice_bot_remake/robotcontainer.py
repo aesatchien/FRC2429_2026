@@ -1,4 +1,4 @@
-# 2429 FRC code for 2026 season - Rebuilt
+# 2429 FRC practice_bot code for 2026 season - Rebuilt
 
 import wpilib
 import ntcore
@@ -302,7 +302,7 @@ class RobotContainer:
         wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeStow', Intake_Deploy(intake=self.intake, position='up'))
         wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeDeploy', Intake_Deploy(intake=self.intake, position='down'))
         wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeShoot', Intake_Deploy(intake=self.intake, position='shoot'))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeOn', Intake_Set_RPM(intake=self.intake, rpm=3000, led=self.led))
+        wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeOn', Intake_Set_RPM(intake=self.intake, rpm=4000, led=self.led))
         wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeOff', Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
         wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeReverse', Intake_Set_RPM(intake=self.intake, rpm=-500, led=self.led))
         wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeBrake', InstantCommand(lambda: self.intake.set_brake_mode(brake_on=True)).ignoringDisable(True))

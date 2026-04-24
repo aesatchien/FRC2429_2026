@@ -11,7 +11,7 @@ from typing import Union, List
 
 from helpers.utilities import set_config_defaults
 
-k_swerve_config = "comp"  # choose between practice bot and comp bot for now - they differ by swerve ofsets
+k_swerve_config = "practice"  # choose between practice bot and comp bot for now - they differ by swerve ofsets
 
 
 k_at_home = False  # used for intake calibration - True means we start with the intake out
@@ -231,14 +231,14 @@ class IntakeConstants:
 
     allowed_rpms = [0, 60] + [i for i in range(2000, 5601, 250)]
 
-    k_intake_left_leader_config.inverted(True)
+    k_intake_left_leader_config.inverted(False)
     k_intake_right_follower_config.follow(k_CANID_intake_left_leader, invert=False)  # depends on motor placement
 
     set_config_defaults(k_intake_configs)
     k_deploy_config.smartCurrentLimit(40)  # can't lift the new one with 40A
 
     # in case we do a profiled subsystem - just using a cheap PID on the sparkmax bangs a bit too much
-    k_max_velocity_rad_per_second = math.pi * 5.0  # 36 degrees/second
+    k_max_velocity_rad_per_second = math.pi * 5.0  # 360 degrees/second
     k_max_acceleration_rad_per_sec_squared = math.pi * 5.0  # Snappier acceleration
     k_kS_volts = 0.01  # constant to always add, uses the sign of velocity
     k_kG_volts = 0.34 / 1.0  # 10lbs at 11in COM, cuts in half with two motors, goes up with mass and distance, down with efficiency
