@@ -15,7 +15,6 @@ from pathplannerlib.auto import NamedCommands
 # 2429 helper files
 import constants
 from helpers import joysticks as js
-from constants import DrivetrainConstants as dc
 from constants import ShooterConstants as sc
 from constants import IntakeConstants as ic
 from constants import AutoConstants as ac
@@ -28,17 +27,10 @@ from subsystems.swerve import Swerve
 from subsystems.vision import Vision
 from subsystems.shooter import Shooter
 from subsystems.intake import Intake
-from subsystems.intake_tps import IntakeTPS
 from subsystems.targeting import Targeting
-
-# from subsystems.questnav_2429 import QuestnavModule
 
 # 2429 "auto" commands - just an organizational division of commands
 from autonomous.autonomous_shooting import AutoShootingGroup
-from autonomous.auto_shoot_and_pickup import AutoShootAndPickup
-from autonomous.twocycle import TwoCycle
-from autonomous.fill_shoot_fill_bump import FillShootFillBump
-from autonomous.fill_shoot_fill_shoot_bump import FillShootFillShootBump
 from autonomous.pathing_fsfs_bump_to_bump import PathingFSFSBumptoBump
 from autonomous.pathing_fsfs_trench_to_bump import PathingFSFSTrenchtoBump
 from autonomous.pathing_fsfs_trench_to_trench import PathingFSFSTrenchtoTrench
@@ -48,7 +40,6 @@ from autonomous.pathing_center_back import PathingCenterBack
 from autonomous.pathing_center_to_outpost import PathingCenterOutpost
 
 # 2429 commands
-#from commands.auto_to_pose import AutoToPose
 from commands.can_status import CANStatus
 from commands.drive_by_velocity_swerve import DriveByVelocitySwerve
 from commands.drive_by_joystick_subsystem_targeting import DriveByJoystickSubsystemTargeting
@@ -57,7 +48,6 @@ from commands.set_leds import SetLEDs
 from commands.swerve_test import SwerveTest
 from commands.swerve_set_x import SwerveSetX
 from commands.stop_shooter import StopShooter
-
 from commands.shooting_command import ShootingCommand
 from commands.intake_set_rpm import Intake_Set_RPM
 from commands.intake_deploy import Intake_Deploy

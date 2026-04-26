@@ -37,6 +37,10 @@ networktables.json
 # pycharm directory
 **/.idea/
 
+# claude stuff
+**/.claude/
+
+
 # jupyter stuff
 **/.ipynb_checkpoints
 
