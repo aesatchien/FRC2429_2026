@@ -221,12 +221,12 @@ class RobotContainer:
         #js.bbox_1_3.debounce(.2).whileTrue(SwerveTest(container=self, swerve=self.swerve))
 
         js.bbox_1_4.onTrue(InstantCommand(lambda: self.questnav.quest_sync_odometry()).ignoringDisable(True))
-
         js.bbox_1_5.onTrue(InstantCommand(lambda: self.questnav.quest_enabled_toggle(force='off')).ignoringDisable(True))
         js.bbox_1_6.onTrue(InstantCommand(lambda: self.questnav.quest_enabled_toggle(force='on')).ignoringDisable(True))
-        # js.bbox_1_6.onTrue(InstantCommand(lambda: self.questnav.quest_sync_odometry()).ignoringDisable(True))
         js.bbox_1_7.onTrue(InstantCommand(lambda: self.questnav.quest_unsync_odometry()).ignoringDisable(True))
 
+
+        # buttons 8-10 set intake position and speed
         js.bbox_1_8.whileTrue(
             Intake_Deploy(intake=self.intake, position='up').andThen(
             Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
@@ -238,11 +238,26 @@ class RobotContainer:
             )
         )
 
-        js.bbox_1_10.whileTrue(
-            Intake_Deploy(intake=self.intake, position='down').andThen(
-            Intake_Set_RPM(intake=self.intake, rpm=3000, led=self.led))
+        # js.bbox_1_10.onTrue(
+        #     Intake_Deploy(intake=self.intake, position='down').andThen(
+        #     Intake_Set_RPM(intake=self.intake, rpm=3000, led=self.led))
+        # )
+
+
+        # TODO - figure out where to bind the brownout mode toggle switch
+        js.bbox_1_10.onTrue(
+            commands2.ConditionalCommand(
+                # brownout is ON → turn it OFF, flash green
+                InstantCommand(lambda: self.swerve.set_brownout_mode(False))
+                    .andThen(SetLEDs(container=self, led=self.led, indicator=Led.Indicator.kSUCCESS, indicator_timeout=2)),
+                # brownout is OFF → turn it ON, flash red
+                InstantCommand(lambda: self.swerve.set_brownout_mode(True))
+                    .andThen(SetLEDs(container=self, led=self.led, indicator=Led.Indicator.kFAILURE, indicator_timeout=2)),
+                self.swerve.get_brownout_mode
+            )
         )
 
+        # buttons 11 and 12 are tied to the joystick switch
         js.bbox_1_11.onTrue(InstantCommand(lambda: self.shooter.set_shooting_offset(-sc.k_operator_rpm_adjustment)))
         js.bbox_1_12.onTrue(InstantCommand(lambda: self.shooter.set_shooting_offset(sc.k_operator_rpm_adjustment)))
 

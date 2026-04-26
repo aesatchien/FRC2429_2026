@@ -78,6 +78,9 @@ class Swerve (Subsystem):
         self.strafe_magLimiter = SlewRateLimiter(rl.default_strafe_slew_rate)
         self.rotLimiter = SlewRateLimiter(rl.default_rotation_slew_rate)
 
+        # ---------- brownout mode ----------
+        self.brownout_mode = False  # toggled by driver button; reduces drive motor current limits
+
         # ---------- see if the asymmetry in the controllers is an issue for AJ  - 20250311 CJH ----------
         # update this in calibrate_joystick, and use in drive_by_joystick
         self.thrust_calibration_offset = 0
@@ -151,6 +154,9 @@ class Swerve (Subsystem):
         module_names = ['LF', 'RF', 'LB', 'RB']  # TODO - just save this order somewhere and reuse it
         self.abs_enc_pubs = [self.inst.getDoubleTopic(f"{swerve_prefix}/absolute_{name}").publish() for name in module_names]
         self.angles_pub = self.inst.getDoubleArrayTopic(f"{swerve_prefix}/_angles").publish()
+
+        self.brownout_mode_pub = self.inst.getBooleanTopic(f"{status_prefix}/brownout_mode").publish()
+        self.brownout_mode_pub.set(self.brownout_mode)  # publish initial False
 
         # TODO - these don't really belong in Swerve - but where do they belong?
         self.pdh_volt_pub = self.inst.getDoubleTopic(f"{status_prefix}/_pdh_voltage").publish()
@@ -235,6 +241,20 @@ class Swerve (Subsystem):
             output = output if math.fabs(output) < 0.2 else 0.2 * math.copysign(1, output)  # clamp at 0.2
 
         return output
+
+    def get_brownout_mode(self) -> bool:
+        return self.brownout_mode
+
+    def set_brownout_mode(self, enabled: bool) -> None:
+        """Toggle reduced drive motor current limits to protect a weak battery.
+        Normal: mc.kDrivingMotorCurrentLimit (60A).  Brownout: mc.kDrivingMotorBrownoutCurrentLimit (40A).
+        """
+        self.brownout_mode = enabled
+        self.brownout_mode_pub.set(self.brownout_mode)
+        limit = mc.kDrivingMotorBrownoutCurrentLimit if enabled else mc.kDrivingMotorCurrentLimit
+        print(f'Brownout mode {"ON" if enabled else "OFF"}: setting drive current limit to {limit}A')
+        for module in self.swerve_modules:
+            module.set_drive_current_limit(limit)
 
     def setX(self) -> None:
         """Sets the wheels into an X formation to prevent movement."""

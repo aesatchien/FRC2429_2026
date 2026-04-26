@@ -123,6 +123,14 @@ class SwerveModule:
 
         self.desiredState = desiredState
 
+    def set_drive_current_limit(self, amps: int) -> None:
+        """Temporarily changes the drive motor current limit without resetting other configuration."""
+        no_resets = rev.ResetMode.kNoResetSafeParameters
+        no_persists = rev.PersistMode.kNoPersistParameters
+        tmp_config = rev.SparkBaseConfig().smartCurrentLimit(stallLimit=amps, freeLimit=amps)
+        error = self.drivingSpark.configure(tmp_config, no_resets, no_persists)
+        print(f'  [{self.label}] drive current limit → {amps}A  ({error})')
+
     def resetEncoders(self) -> None:
         """ Zeroes all the SwerveModule encoders. """
         self.drivingEncoder.setPosition(0)
