@@ -1,8 +1,9 @@
 import math
 from enum import Enum
 import commands2
-from wpilib import Timer, DriverStation
-from wpimath.geometry import Rotation2d
+import wpilib
+from wpilib import Timer, DriverStation, PowerDistribution
+from wpimath.filter import LinearFilter, MedianFilter
 import ntcore
 import constants
 from constants import LedConstants
@@ -35,6 +36,8 @@ class RobotState(commands2.Subsystem):
         # try to start all the subsystems on a different count so they don't all do the periodic updates at the same time
         self.counter = constants.RobotStateConstants.k_counter_offset
 
+        self.pdh = PowerDistribution(1, PowerDistribution.ModuleType.kRev)
+
         self._init_networktables()
 
         self._callbacks = []  # Store functions to notify
@@ -48,11 +51,34 @@ class RobotState(commands2.Subsystem):
         # keep track of FMS
         self._last_fms = False
 
+        # ---------- power monitoring filters ----------
+        # IIR smooths voltage (slow-changing signal, ~0.5s time constant, 0.04s period = 25Hz read rate)
+        self.voltage_filter = LinearFilter.singlePoleIIR(timeConstant=0.1, period=0.04)
+        # MedianFilter rejects CAN glitch readings on current without adding lag
+        self.current_filter = MedianFilter(3)
+
+        # ---------- power tracking state ----------
+        self.cumulative_energy = 0.0
+        self._prev_power = 0.0
+        self.min_voltage = float('inf')   # reset on enable
+        self.max_current = 0.0            # reset on enable
+        self._voltage = 0.0
+        self._current = 0.0
+        self._power = 0.0
+        self._brownout_detected = False
+
     def _init_networktables(self):
         self.inst = ntcore.NetworkTableInstance.getDefault()
         self.state_pub = self.inst.getStringTopic(f"{constants.status_prefix}/_robot_state").publish()
         self.fms_pub = self.inst.getBooleanTopic(f"{constants.status_prefix}/_fms_attached").publish()
         self.fms_pub.set(False)
+        self.pdh_volt_pub = self.inst.getDoubleTopic(f"{constants.status_prefix}/_pdh_voltage").publish()
+        self.pdh_current_pub = self.inst.getDoubleTopic(f"{constants.status_prefix}/_pdh_current").publish()
+        self.pdh_power_pub = self.inst.getDoubleTopic(f"{constants.status_prefix}/_pdh_inst_power").publish()
+        self.pdh_cumulative_energy_pub = self.inst.getDoubleTopic(f"{constants.status_prefix}/_pdh_tot_energy").publish()
+        self.pdh_min_voltage_pub = self.inst.getDoubleTopic(f"{constants.status_prefix}/_pdh_min_voltage").publish()
+        self.pdh_max_current_pub = self.inst.getDoubleTopic(f"{constants.status_prefix}/_pdh_max_current").publish()
+        self.rio_browned_out_pub = self.inst.getBooleanTopic(f"{constants.status_prefix}/_rio_browned_out").publish()
 
     # put in a callback so the logic to LED is not circular
     def register_callback(self, callback):
@@ -82,8 +108,33 @@ class RobotState(commands2.Subsystem):
 
     def periodic(self):
         self.counter += 1  # Increment the main counter
-        if self.counter % 10 == 0:  # Execute every 5 cycles (10Hz update rate)
-            pass
+
+        # fast path: read + filter + integrate at 25Hz (every 2 cycles)
+        if self.counter % 2 == 0:
+            self._brownout_detected |= wpilib.RobotController.isBrownedOut()
+            voltage = self.voltage_filter.calculate(self.pdh.getVoltage())
+            current = self.current_filter.calculate(self.pdh.getTotalCurrent())
+            power = voltage * current
+            # Trapezoidal is second-order accurate (error scales with dt²), left Riemann is first-order (error scales with dt)
+            self.cumulative_energy += (self._prev_power + power) / 2 * 0.04  # trapezoidal, 0.04s period
+            self._prev_power = power
+            self.min_voltage = min(self.min_voltage, voltage)
+            self.max_current = max(self.max_current, current)
+            # cache for the publish path below
+            self._voltage = voltage
+            self._current = current
+            self._power = power
+
+        # slow path: publish to NT at 5Hz (every 10 cycles)
+        if self.counter % 10 == 0:
+            self.pdh_volt_pub.set(self._voltage)
+            self.pdh_current_pub.set(self._current)
+            self.pdh_power_pub.set(self._power)
+            self.pdh_cumulative_energy_pub.set(self.cumulative_energy)
+            self.pdh_min_voltage_pub.set(self.min_voltage)
+            self.pdh_max_current_pub.set(self.max_current)
+            self.rio_browned_out_pub.set(self._brownout_detected)
+            self._brownout_detected = False  # reset for next window
 
         if self.counter % 100 == 0:  # let's check if we have connected to the FMS
             fms = DriverStation.isFMSAttached()

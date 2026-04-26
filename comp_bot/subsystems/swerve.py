@@ -7,7 +7,7 @@ import ntcore
 import wpilib
 from commands2 import Subsystem
 
-from wpilib import SmartDashboard, DataLogManager, DriverStation, PowerDistribution, Timer, RobotBase
+from wpilib import SmartDashboard, DataLogManager, DriverStation, Timer, RobotBase
 from wpimath.filter import SlewRateLimiter
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d, Pose3d, Rotation3d, Translation3d
 from wpimath.kinematics import (ChassisSpeeds, SwerveModuleState, SwerveDrive4Kinematics)
@@ -30,7 +30,6 @@ class Swerve (Subsystem):
         super().__init__()
         self.counter = constants.DrivetrainConstants.k_counter_offset
         self.questnav = questnav  #  pass in the questnav subsystem so we can query it in periodic
-        self.pdh = PowerDistribution(1, PowerDistribution.ModuleType.kRev)  # check power and other issues
 
         # ----------  initialize swerve modules  ----------
         self.swerve_modules = []
@@ -158,9 +157,6 @@ class Swerve (Subsystem):
         self.brownout_mode_pub = self.inst.getBooleanTopic(f"{status_prefix}/brownout_mode").publish()
         self.brownout_mode_pub.set(self.brownout_mode)  # publish initial False
 
-        # TODO - these don't really belong in Swerve - but where do they belong?
-        self.pdh_volt_pub = self.inst.getDoubleTopic(f"{status_prefix}/_pdh_voltage").publish()
-        self.pdh_current_pub = self.inst.getDoubleTopic(f"{status_prefix}/_pdh_current").publish()
 
 
     # ----------  pose and odometry function definitions ----------
@@ -474,9 +470,6 @@ class Swerve (Subsystem):
         ypr = [self.gyro.getYaw(), self.get_pitch(), self.gyro.getRoll(), self.gyro.getRotation2d().degrees()]
         self.ypr_pub.set(ypr)
 
-        # Monitor Power
-        self.pdh_volt_pub.set(self.pdh.getVoltage())
-        self.pdh_current_pub.set(self.pdh.getTotalCurrent())
 
         if constants.k_swerve_debugging_messages:
             angles = [m.turningEncoder.getPosition() for m in self.swerve_modules]
