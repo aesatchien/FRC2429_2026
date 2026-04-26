@@ -58,8 +58,9 @@ class RobotState(commands2.Subsystem):
         self.current_filter = MedianFilter(3)
 
         # ---------- power tracking state ----------
-        self.cumulative_energy = 0.0
+        self.cumulative_energy = 0.0    # Joules internally, published as Wh
         self._prev_power = 0.0
+        self.cumulative_charge = 0.0    # Amp-seconds internally, published as Ah
         self.min_voltage = float('inf')   # reset on enable
         self.max_current = 0.0            # reset on enable
         self._voltage = 0.0
@@ -75,7 +76,8 @@ class RobotState(commands2.Subsystem):
         self.pdh_volt_pub = self.inst.getDoubleTopic(f"{constants.status_prefix}/_pdh_voltage").publish()
         self.pdh_current_pub = self.inst.getDoubleTopic(f"{constants.status_prefix}/_pdh_current").publish()
         self.pdh_power_pub = self.inst.getDoubleTopic(f"{constants.status_prefix}/_pdh_inst_power").publish()
-        self.pdh_cumulative_energy_pub = self.inst.getDoubleTopic(f"{constants.status_prefix}/_pdh_tot_energy").publish()
+        self.pdh_cumulative_energy_pub = self.inst.getDoubleTopic(f"{constants.status_prefix}/_pdh_tot_energy_wh").publish()
+        self.pdh_cumulative_charge_pub = self.inst.getDoubleTopic(f"{constants.status_prefix}/_pdh_tot_charge_ah").publish()
         self.pdh_min_voltage_pub = self.inst.getDoubleTopic(f"{constants.status_prefix}/_pdh_min_voltage").publish()
         self.pdh_max_current_pub = self.inst.getDoubleTopic(f"{constants.status_prefix}/_pdh_max_current").publish()
         self.rio_browned_out_pub = self.inst.getBooleanTopic(f"{constants.status_prefix}/_rio_browned_out").publish()
@@ -116,8 +118,9 @@ class RobotState(commands2.Subsystem):
             current = self.current_filter.calculate(self.pdh.getTotalCurrent())
             power = voltage * current
             # Trapezoidal is second-order accurate (error scales with dt²), left Riemann is first-order (error scales with dt)
-            self.cumulative_energy += (self._prev_power + power) / 2 * 0.04  # trapezoidal, 0.04s period
+            self.cumulative_energy += (self._prev_power + power) / 2 * 0.04  # trapezoidal, Joules
             self._prev_power = power
+            self.cumulative_charge += current * 0.04  # Amp-seconds
             self.min_voltage = min(self.min_voltage, voltage)
             self.max_current = max(self.max_current, current)
             # cache for the publish path below
@@ -130,7 +133,8 @@ class RobotState(commands2.Subsystem):
             self.pdh_volt_pub.set(self._voltage)
             self.pdh_current_pub.set(self._current)
             self.pdh_power_pub.set(self._power)
-            self.pdh_cumulative_energy_pub.set(self.cumulative_energy)
+            self.pdh_cumulative_energy_pub.set(self.cumulative_energy / 3600)   # J → Wh
+            self.pdh_cumulative_charge_pub.set(self.cumulative_charge / 3600)   # As → Ah
             self.pdh_min_voltage_pub.set(self.min_voltage)
             self.pdh_max_current_pub.set(self.max_current)
             self.rio_browned_out_pub.set(self._brownout_detected)
