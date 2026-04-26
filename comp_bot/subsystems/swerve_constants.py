@@ -62,18 +62,14 @@ class DriveConstants:
     # real max is  1/60 * 6780 rpm * pi * 0.101m (4in) / 6.75 (MK4i L2)  ~ 5.35 m/s
     kMaxSpeedMetersPerSecond = 4.75  # Sanjith started at 3.7, 4.25 was Haochen competition, 4.8 is full out on NEOs
     kMaxAngularSpeed = 7 # 0.5 * math.tau  # radians per second was 0.5 tau through AVR - too slow
-    kSlowModeCap = 0.35
+    kSlowModeCap = 0.35                   # translation slow-mode floor for targeting command
+    kAngularSlowFloor = 0.5               # angular slow-mode floor for both joystick commands
+    kJoystickLegacyTranslationFloor = 0.2 # translation slow-mode floor for drive_by_joystick_swerve only
     # our hardware can do 11.11 hertz =
     # TODO: actually figure out what the total max speed should be - vector sum?
     kMaxTotalSpeed = 1.1 * math.sqrt(2) * kMaxSpeedMetersPerSecond  # sum of angular and rotational, should probably do hypotenuse
     
-    # set the acceleration limits used in driving using the SlewRateLimiter tool
-    kMagnitudeSlewRate = 5  # hundred percent per second (1 = 100%)
-    kRotationalSlewRate = 5  # hundred percent per second (1 = 100%)
-    kDriverSlewRate = 3  # Slew rate for manual driver control (units/sec)
-    kAutoSlewRate = 2    # Slew rate for autonomous PID correction (units/sec)
-    kTurboSlewRate = 10  # Slew rate for turbo mode trigger (units/sec)
-    kAfterBurnerSlewRate = 20  # Slew rate for afterburner mode trigger (units/sec)
+    # Acceleration limits: see RateLimiters class below for all SlewRateLimiter rates.
     
     # Input Deadbands
     k_inner_deadband = 0.10  # use deadbands for joystick transformations and keepangle calculations
@@ -184,6 +180,68 @@ class DriveConstants:
             swerve_dict[key]['turning_offset'] = 0
     else:
         pass
+
+
+class RateLimiters:
+    """
+    Centralized SlewRateLimiter rates for all swerve drive control modes.
+    Units: fraction-of-max-speed per second  (1.0 = 100% of max speed per second).
+
+    Three sections map to the three places where limiting is applied:
+      1. Joystick commands — do their own limiting, then call swerve.drive(rate_limited=False)
+      2. swerve.drive() fallback — active when rate_limited=True; used by commands that
+         do not do their own limiting
+      3. Autonomous pose commands — do their own (stricter) limiting, rate_limited=False
+
+    Import alias convention:  from subsystems.swerve_constants import RateLimiters as rl
+    """
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # Section 1 — Joystick Operations
+    # ═══════════════════════════════════════════════════════════════════════════
+    # Used in: commands/drive_by_joystick_subsystem_targeting.py  (primary teleop)
+    #          commands/drive_by_joystick_swerve.py               (fallback / practice)
+    # These commands call swerve.drive(rate_limited=False), so Section 2 does NOT apply.
+
+    # Translation (fwd / strafe) input slew — limits how fast the driver can command acceleration
+    driver_translation_slew_rate = 3.0    # units/sec
+
+    # Manual rotation slew — limiter is created in targeting command but currently not applied
+    # (see manual_rot_limiter in DriveByJoystickSubsystemTargeting)
+    driver_rotation_slew_rate = 3.0       # units/sec
+
+    # Turbo trigger input smoothing — prevents a lurch when the trigger is squeezed quickly
+    turbo_input_slew_rate = 10.0          # units/sec
+
+    # Afterburner button input smoothing
+    afterburner_input_slew_rate = 20.0    # units/sec
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # Section 2 — Default Rate Limiting (swerve.py fallback)
+    # ═══════════════════════════════════════════════════════════════════════════
+    # Applied inside swerve.drive() only when rate_limited=True.
+    # Callers on this path:
+    #   commands/drive_by_velocity_swerve.py     — always rate_limited=True
+    #   commands/auto_track_vision_target.py     — always rate_limited=True
+    #   commands/drive_by_joystick_swerve.py     — when rate_limited=True; Section 1 still
+    #                                              applies first, and dominates (rate 3 < rate 5)
+    #   end() calls in all drive commands        — sending zeros; limiting is irrelevant
+
+    default_forward_slew_rate = 4.5       # slightly softer than strafe (historically 0.9 × 5.0)
+    default_strafe_slew_rate = 5.0
+    default_rotation_slew_rate = 5.0
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # Section 3 — Autonomous Driving
+    # ═══════════════════════════════════════════════════════════════════════════
+    # Used in: commands/auto_to_pose_clean.py            (x, y, and rot limiters)
+    #          commands/drive_to_pose_custom_control.py  (x, y, and rot limiters)
+    # These commands call swerve.drive(rate_limited=False), so Section 2 does NOT apply.
+    # Stricter than teleop (2.0 vs 3.0): PID outputs can be large step inputs that
+    # would cause brownouts if not limited before reaching the motors.
+
+    auto_translation_slew_rate = 2.0      # units/sec — applied to x and y PID outputs
+    auto_rotation_slew_rate = 2.0         # units/sec — applied to rotation PID output
 
 
 class NeoMotorConstants:

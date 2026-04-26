@@ -10,7 +10,7 @@ from wpimath.trajectory import TrapezoidProfile
 from wpimath.filter import SlewRateLimiter
 
 import constants
-from subsystems.swerve_constants import DriveConstants as dc, AutoConstantsSwerve as ac
+from subsystems.swerve_constants import DriveConstants as dc, AutoConstantsSwerve as ac, RateLimiters as rl
 from subsystems.swerve import Swerve
 from subsystems.led import Led
 from subsystems.vision import Vision
@@ -40,11 +40,9 @@ class AutoToPose(commands2.Command):  #
         self.use_vision = use_vision  # use the cameras to tell us where to go
         self.print_debug = True
 
-        # CJH added a slew rate limiter 20250323 - it jolts and browns out the robot if it servos to full speed
-        max_units_per_second = dc.kAutoSlewRate  # can't be too low or you get lag and we allow a max of < 50% below
-        self.x_limiter = SlewRateLimiter(max_units_per_second)
-        self.y_limiter = SlewRateLimiter(max_units_per_second)
-        self.rot_limiter = SlewRateLimiter(max_units_per_second)
+        self.x_limiter = SlewRateLimiter(rl.auto_translation_slew_rate)
+        self.y_limiter = SlewRateLimiter(rl.auto_translation_slew_rate)
+        self.rot_limiter = SlewRateLimiter(rl.auto_rotation_slew_rate)
 
         self.target_pose = target_pose
         if target_pose is None:

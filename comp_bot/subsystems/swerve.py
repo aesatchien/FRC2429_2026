@@ -19,7 +19,7 @@ from pathplannerlib.config import ModuleConfig, RobotConfig
 
 import constants
 from .swervemodule_2429 import SwerveModule
-from .swerve_constants import DriveConstants as dc, AutoConstantsSwerve as ac, ModuleConstants as mc
+from .swerve_constants import DriveConstants as dc, AutoConstantsSwerve as ac, ModuleConstants as mc, RateLimiters as rl
 from helpers.utilities import compare_motors
 import helpers.apriltag_utils as atu
 from subsystems.quest import Questnav
@@ -74,9 +74,9 @@ class Swerve (Subsystem):
         self.time_since_drive = 0
 
         # ---------- rate limiters  ----------  # TODO - centralize all tis
-        self.fwd_magLimiter = SlewRateLimiter(0.9 * dc.kMagnitudeSlewRate)
-        self.strafe_magLimiter = SlewRateLimiter(dc.kMagnitudeSlewRate)
-        self.rotLimiter = SlewRateLimiter(dc.kRotationalSlewRate)
+        self.fwd_magLimiter = SlewRateLimiter(rl.default_forward_slew_rate)
+        self.strafe_magLimiter = SlewRateLimiter(rl.default_strafe_slew_rate)
+        self.rotLimiter = SlewRateLimiter(rl.default_rotation_slew_rate)
 
         # ---------- see if the asymmetry in the controllers is an issue for AJ  - 20250311 CJH ----------
         # update this in calibrate_joystick, and use in drive_by_joystick

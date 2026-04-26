@@ -11,7 +11,7 @@ from commands2.button import CommandXboxController
 from wpimath.geometry import Translation2d
 from wpimath.filter import Debouncer, SlewRateLimiter
 from wpimath.kinematics import ChassisSpeeds
-from subsystems.swerve_constants import DriveConstants as dc, AutoConstantsSwerve as ac, TargetingConstants as tc
+from subsystems.swerve_constants import DriveConstants as dc, AutoConstantsSwerve as ac, TargetingConstants as tc, RateLimiters as rl
 from helpers.log_command import log_command
 from helpers.utilities import deprecated
 
@@ -42,16 +42,10 @@ class DriveByJoystickSwerveTargeting(commands2.Command):
         # -----------------------------------------------------------
         self.robot_oriented_debouncer = Debouncer(0.1, Debouncer.DebounceType.kBoth)
         
-        # CJH added a slew rate limiter 20250311 - but there already is one in Swerve, so is this redundant?
-        # make sure you put it on the joystick (not calculations), otherwise it doesn't help much on slow-mode
-        stick_max_units_per_second = dc.kDriverSlewRate  # can't be too low or you get lag - probably should be between 3 and 5
-        self.drive_limiter = SlewRateLimiter(stick_max_units_per_second)
-        self.strafe_limiter = SlewRateLimiter(stick_max_units_per_second)
-        self.turbo_limiter = SlewRateLimiter(dc.kTurboSlewRate)
-        
-        # Rotation limiters - we want a separate one for manual
-        # vs tracking to allow more aggressive tracking response
-        self.manual_rot_limiter = SlewRateLimiter(stick_max_units_per_second)
+        self.drive_limiter = SlewRateLimiter(rl.driver_translation_slew_rate)
+        self.strafe_limiter = SlewRateLimiter(rl.driver_translation_slew_rate)
+        self.turbo_limiter = SlewRateLimiter(rl.turbo_input_slew_rate)
+        self.manual_rot_limiter = SlewRateLimiter(rl.driver_rotation_slew_rate)
 
         # -----------------------------------------------------------
         # 4. Targeting Setup

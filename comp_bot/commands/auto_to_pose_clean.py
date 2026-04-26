@@ -11,7 +11,7 @@ from wpimath.filter import SlewRateLimiter
 
 import constants
 from constants import AutoConstants as cac
-from subsystems.swerve_constants import DriveConstants as dc, AutoConstantsSwerve as ac, TargetingConstants as tc
+from subsystems.swerve_constants import DriveConstants as dc, AutoConstantsSwerve as ac, TargetingConstants as tc, RateLimiters as rl
 from subsystems.swerve import Swerve
 from subsystems.led import Led
 from subsystems.vision import Vision
@@ -63,11 +63,10 @@ class AutoToPoseClean(commands2.Command):  #
         self.translation_achieved = False
         self.abort = False
 
-        # CJH added a slew rate limiter 20250323 - it jolts and browns out the robot if it servos to full speed
-        max_units_per_second = dc.kAutoSlewRate  # can't be too low or you get lag and we allow a max of < 50% below
-        self.x_limiter = SlewRateLimiter(max_units_per_second)
-        self.y_limiter = SlewRateLimiter(max_units_per_second)
-        self.rot_limiter = SlewRateLimiter(max_units_per_second)
+        # Slew rate limiters: prevent large PID step inputs from causing brownouts
+        self.x_limiter = SlewRateLimiter(rl.auto_translation_slew_rate)
+        self.y_limiter = SlewRateLimiter(rl.auto_translation_slew_rate)
+        self.rot_limiter = SlewRateLimiter(rl.auto_rotation_slew_rate)
 
         self.target_pose = target_pose
         if target_pose is None:

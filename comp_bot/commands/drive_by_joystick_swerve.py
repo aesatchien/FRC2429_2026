@@ -8,7 +8,7 @@ from subsystems.swerve import Swerve  # allows us to access the definitions
 from commands2.button import CommandXboxController
 from wpimath.geometry import Translation2d
 from wpimath.filter import Debouncer, SlewRateLimiter
-from subsystems.swerve_constants import DriveConstants as dc
+from subsystems.swerve_constants import DriveConstants as dc, RateLimiters as rl
 from helpers.log_command import log_command
 
 
@@ -38,12 +38,9 @@ class DriveByJoystickSwerve(commands2.Command):
         # -----------------------------------------------------------
         self.robot_oriented_debouncer = Debouncer(0.1, Debouncer.DebounceType.kBoth)
 
-        # CJH added a slew rate limiter 20250311 - but there already is one in Swerve, so is this redundant?
-        # make sure you put it on the joystick (not calculations), otherwise it doesn't help much on slow-mode
-        stick_max_units_per_second = dc.kDriverSlewRate  # can't be too low or you get lag - probably should be between 3 and 5
-        self.drive_limiter = SlewRateLimiter(stick_max_units_per_second)
-        self.strafe_limiter = SlewRateLimiter(stick_max_units_per_second)
-        self.turbo_limiter = SlewRateLimiter(dc.kTurboSlewRate)
+        self.drive_limiter = SlewRateLimiter(rl.driver_translation_slew_rate)
+        self.strafe_limiter = SlewRateLimiter(rl.driver_translation_slew_rate)
+        self.turbo_limiter = SlewRateLimiter(rl.turbo_input_slew_rate)
 
         # -----------------------------------------------------------
         # 4. Targeting Setup - if we are tracking (ignore)
@@ -96,8 +93,8 @@ class DriveByJoystickSwerve(commands2.Command):
         # Turbo / Slow Mode
         turbo = self.turbo_limiter.calculate(right_trigger_value ** 2)
         #ab = self.ab_limiter.calculate(right_trigger_value ** 2)
-        slowmode_multiplier = 0.2 + 0.8 * turbo
-        angular_slowmode_multiplier = 0.5 + 0.5 * turbo
+        slowmode_multiplier = dc.kJoystickLegacyTranslationFloor + ((1 - dc.kJoystickLegacyTranslationFloor) * turbo)
+        angular_slowmode_multiplier = dc.kAngularSlowFloor + ((1 - dc.kAngularSlowFloor) * turbo)
 
         # Field Oriented vs Robot Oriented
         if self.robot_oriented_debouncer.calculate(robot_oriented_value):

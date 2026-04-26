@@ -10,7 +10,7 @@ from subsystems.targeting import Targeting
 from commands2.button import CommandXboxController, CommandJoystick
 from wpimath.geometry import Translation2d
 from wpimath.filter import Debouncer, SlewRateLimiter
-from subsystems.swerve_constants import DriveConstants as dc
+from subsystems.swerve_constants import DriveConstants as dc, RateLimiters as rl
 from helpers.log_command import log_command
 
 
@@ -42,13 +42,13 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
         self.robot_oriented_debouncer = Debouncer(0.1, Debouncer.DebounceType.kBoth)
         
         # Use constants for slew rates to ensure tuning consistency
-        self.drive_limiter = SlewRateLimiter(dc.kDriverSlewRate)
-        self.strafe_limiter = SlewRateLimiter(dc.kDriverSlewRate)
-        self.turbo_limiter = SlewRateLimiter(dc.kTurboSlewRate)
-        self.afterburner_limiter = SlewRateLimiter(dc.kAfterBurnerSlewRate)
-        
+        self.drive_limiter = SlewRateLimiter(rl.driver_translation_slew_rate)
+        self.strafe_limiter = SlewRateLimiter(rl.driver_translation_slew_rate)
+        self.turbo_limiter = SlewRateLimiter(rl.turbo_input_slew_rate)
+        self.afterburner_limiter = SlewRateLimiter(rl.afterburner_input_slew_rate)
+
         # Rotation limiters
-        self.manual_rot_limiter = SlewRateLimiter(dc.kDriverSlewRate)
+        self.manual_rot_limiter = SlewRateLimiter(rl.driver_rotation_slew_rate)
 
         # -----------------------------------------------------------
         # 4. NetworkTables
@@ -101,10 +101,10 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
 
         if (inputs['after_burner'] == False):
             slowmode_multiplier = dc.kSlowModeCap + ((1 - dc.kSlowModeCap) * turbo)
-            angular_slowmode_multiplier = 0.5 + 0.5 * turbo
+            angular_slowmode_multiplier = dc.kAngularSlowFloor + ((1 - dc.kAngularSlowFloor) * turbo)
         else:
             slowmode_multiplier = dc.kSlowModeCap + ((1 - dc.kSlowModeCap) * afterburner)
-            angular_slowmode_multiplier = 0.5 + 0.5 * afterburner
+            angular_slowmode_multiplier = dc.kAngularSlowFloor + ((1 - dc.kAngularSlowFloor) * afterburner)
 
         # --- Field Oriented Logic ---
         if self.robot_oriented_debouncer.calculate(inputs['robot_oriented']):

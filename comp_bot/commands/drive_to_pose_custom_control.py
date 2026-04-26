@@ -10,7 +10,7 @@ from wpimath.filter import SlewRateLimiter
 
 import constants
 from constants import AutoConstants as cac
-from subsystems.swerve_constants import DriveConstants as dc, AutoConstantsSwerve as ac, TargetingConstants as tc
+from subsystems.swerve_constants import DriveConstants as dc, AutoConstantsSwerve as ac, TargetingConstants as tc, RateLimiters as rl
 from subsystems.swerve import Swerve
 from subsystems.led import Led
 from helpers.log_command import log_command
@@ -45,10 +45,10 @@ class DriveToPoseCustomControl(commands2.Command):
         self.translation_achieved = False
         self.abort = False
 
-        max_units_per_second = dc.kAutoSlewRate  
-        self.x_limiter = SlewRateLimiter(max_units_per_second)
-        self.y_limiter = SlewRateLimiter(max_units_per_second)
-        self.rot_limiter = SlewRateLimiter(max_units_per_second)
+        # Slew rate limiters: prevent large PID step inputs from causing brownouts
+        self.x_limiter = SlewRateLimiter(rl.auto_translation_slew_rate)
+        self.y_limiter = SlewRateLimiter(rl.auto_translation_slew_rate)
+        self.rot_limiter = SlewRateLimiter(rl.auto_rotation_slew_rate)
 
         self.target_pose = Pose2d(0, 0, 0)
 
