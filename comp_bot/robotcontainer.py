@@ -238,10 +238,10 @@ class RobotContainer:
             )
         )
 
-        # js.bbox_1_10.onTrue(
-        #     Intake_Deploy(intake=self.intake, position='down').andThen(
-        #     Intake_Set_RPM(intake=self.intake, rpm=3000, led=self.led))
-        # )
+        js.bbox_1_10.onTrue(
+            Intake_Deploy(intake=self.intake, position='down').andThen(
+            Intake_Set_RPM(intake=self.intake, rpm=3000, led=self.led))
+        )
 
 
         # TODO - figure out where to bind the brownout mode toggle switch
