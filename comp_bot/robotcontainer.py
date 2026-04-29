@@ -49,6 +49,7 @@ from commands.swerve_test import SwerveTest
 from commands.swerve_set_x import SwerveSetX
 from commands.stop_shooter import StopShooter
 from commands.shooting_command import ShootingCommand
+from commands.shooting_feeding_command import ShootingFeedingCommand
 from commands.intake_set_rpm import Intake_Set_RPM
 from commands.intake_deploy import Intake_Deploy
 from commands.intake_calibrate import CalibrateIntake
@@ -136,7 +137,7 @@ class RobotContainer:
 
         js.driver_b.onTrue(InstantCommand(lambda: self.shooter.set_shooter_rpm(sc.k_fire_up_speed)))
         js.driver_b.whileTrue(commands2.ParallelCommandGroup(
-            ShootingCommand(shooter=self.shooter, targeting=self.targeting, rpm=sc.k_shooter_max_speed),
+            ShootingFeedingCommand(shooter=self.shooter, rpm=sc.k_shooter_max_speed),
             commands2.SequentialCommandGroup(commands2.WaitCommand(constants.AutoConstants.k_intake_raise_delay),
                                              Intake_Deploy(intake=self.intake, position='shoot'),
                                              commands2.WaitCommand(constants.AutoConstants.k_intake_raise_delay),
