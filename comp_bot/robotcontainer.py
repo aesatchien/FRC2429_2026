@@ -230,7 +230,7 @@ class RobotContainer:
                 InstantCommand(lambda: self.swerve.set_brownout_mode(True))
                     .andThen(SetLEDs(container=self, led=self.led, indicator=Led.Indicator.kFAILURE, indicator_timeout=2)),
                 self.swerve.get_brownout_mode
-            )
+            ).ignoringDisable(True)
         )
 
         # user should never sync the odometry.  should only be done with a good apriltag, not by the operator

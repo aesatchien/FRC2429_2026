@@ -129,7 +129,7 @@ class SwerveModule:
         no_persists = rev.PersistMode.kNoPersistParameters
         tmp_config = rev.SparkBaseConfig().smartCurrentLimit(stallLimit=amps, freeLimit=amps)
         error = self.drivingSpark.configure(tmp_config, no_resets, no_persists)
-        print(f'  [{self.label}] drive current limit → {amps}A  ({error})')
+        print(f'  [{self.label}] drive current limit -> {amps}A  ({error})')
 
     def resetEncoders(self) -> None:
         """ Zeroes all the SwerveModule encoders. """
