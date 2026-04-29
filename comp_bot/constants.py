@@ -262,6 +262,7 @@ class ShooterConstants:
     k_indexer_left_leader_config.inverted(False)  # TODO - check which way it spins for positive RPM
     k_indexer_right_follower_config.follow(k_CANID_indexer_left_leader, invert=False) # depends on motor placement
     k_indexer_rpm = 4000  # TODO - decide if this can just be a voltage
+    k_max_indexer_rpm = 5600  # - Trentan using this for feeding command
 
     # FLYWHEEL
     k_CANID_flywheel_left_leader, k_CANID_flywheel_right_follower = 10, 11  # left flywheel and follower
@@ -274,7 +275,7 @@ class ShooterConstants:
     # TODO - document all these numbers - are they used?
     k_fire_up_speed = 3800  # prefire rpm to ramp up, used in autos
     k_shooter_test_speed = 4000  # used as a defualt, as well as a spin up speed for tracking
-    k_shooter_max_speed = 6500  # max rpm of the neos, if the rpm exceeds this, we run at max speed
+    k_shooter_max_speed = 5800  # max rpm of the neos, if the rpm exceeds this, we run at max speed
     k_shooter_rpm_tolerance = 300  # rpm tolerance for when we can allow the shooter to fire
     k_operator_rpm_adjustment = 180  # rpm increase or decrease from operator joystick
 
