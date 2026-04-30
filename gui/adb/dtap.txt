@@ -1,0 +1,337 @@
+cjhill@MT-502988 MINGW64 /c/CJH/Python/FRC/2026/gui/adb (main)
+$ ./adb.exe -s 192.168.86.39:5802 logcat -c && ./adb.exe -s 192.168.86.39:5802  logcat | grep -i "intent\|broadcast\|passthrough\|dtap\|shortcut"
+04-14 21:29:57.606  1785  2041 I [CT]    : MIXEDREALITY: PassthroughApiManager: GetUpdatedLayerState: (every 2 seconds) PT is: ON numLayers: 2
+04-14 21:29:58.849  2298  2298 D [SEO] ShellControlBroadcastReceiver: onReceive: Intent{action=com.oculus.vrshell.intent.action.OVERLAY_HANDS_AFFORDANCE, data=null, type=null, categories=null, component=ComponentInfo{com.oculus.vrshell/com.oculus.vrshell.ShellControlBroadcastReceiver}, flags=0x10}
+04-14 21:29:58.849  2298  2298 D [SEO] ShellControlBroadcastReceiver: isLaunchAction = false, isTrustedAppLaunch = false
+04-14 21:29:58.849  2298  2298 D [SEO] ShellControlBroadcastReceiver: Transitioning broadcast to nativeBroadcastIntent.
+04-14 21:29:58.849  2298  2298 D [SEO] ShellService: onStartCommand() with action com.oculus.intent.action.BROADCAST_INTENT
+04-14 21:29:59.523  1785  2041 I ProxyToPassthroughLayerProcessor: ProcessPTProxyLayers: In/Out=2/2 PTApiLCnt=2 skipped=0
+04-14 21:29:59.562  1108  4179 I MRSS    : MIXEDREALITY: MrRuntimeCompute: dispatchFrameset : (every 5 seconds). MetaForegroundFreespaceScan: OFF, MetaAssistedSceneCapture: OFF, LightingEstimation: OFF, TrackedKeypoints: OFF, SceneLayout: OFF, DepthMeshing: OFF, VisionInterfaceTelemetry: ON, Depth: ON, Passthrough: ON, SceneObjects: OFF, MrFeatureTelemetry: ON, Semantics: OFF, MetaBackgroundFreespaceScan: OFF, Camera: ON, PlaneFreespace: OFF, SceneReconstruction: OFF, SemanticVolume: OFF, InstantPlacement: OFF, WarpGrid: OFF, FloorHeight: OFF, Fiducials: OFF
+04-14 21:29:59.607  1785  2041 I [CT]    : MIXEDREALITY: PassthroughApiManager: GetUpdatedLayerState: (every 2 seconds) PT is: ON numLayers: 2
+04-14 21:29:59.665  1785  2041 W PassthroughInCompositorRenderer: PTINC: Dropped 2 consecutive camera frames.
+04-14 21:30:01.249  1785  2041 W PassthroughInCompositorRenderer: PTINC: Dropped 2 consecutive camera frames.
+04-14 21:30:01.289  1108  1240 I MRSS    : MIXEDREALITY: MrFeatureTelemetry: Passthrough Slam-based mesh metrics for telemetry completed. 2535.584276
+04-14 21:30:01.607  1785  2041 I [CT]    : MIXEDREALITY: PassthroughApiManager: GetUpdatedLayerState: (every 2 seconds) PT is: ON numLayers: 2
+04-14 21:30:02.266  1785  2041 W PassthroughInCompositorRenderer: PTINC: Dropped 2 consecutive camera frames.
+04-14 21:30:02.995  2298  2939 I [SEO] FullPassthroughController: [IsControlPointForFullPassthrough] isInHomeWorld: 0
+04-14 21:30:02.995  2298  2939 I [SEO] FullPassthroughController: isInFullPassthrough is updated from 1 to value 0 from control point DoubleTap
+04-14 21:30:02.995  2298  2939 I [SEO] TelemetryProvider: [LogFullPassthroughEvent] trigger_state[DoubleTap_exit] passthrough_session_id[bbbf2dad-1b35-421f-8c78-e0246fe2455c]
+04-14 21:30:02.999  2298  2939 I [SEO] FlowController: UpdateActiveFlow from FullPassthroughFlow to NonModalFlow
+04-14 21:30:02.999  2298  2939 I [SEO] FullPassthroughFlow: FullPassthroughFlow Deactivated
+04-14 21:30:02.999  2298  2939 I [SEO] FullPassthroughFlow: DismissExitToast
+04-14 21:30:02.999  4232  4479 I VrGuardianService: com.oculus.vrshell -> GuardianSDKServer::SetIsInFullPassthrough to 0
+04-14 21:30:03.002  2298  2939 I [SEO] TelemetryProvider: [LogFullPassthroughEvent] trigger_state[flow_end] passthrough_session_id[bbbf2dad-1b35-421f-8c78-e0246fe2455c]
+04-14 21:30:03.006  2105  2105 D OculusNotificationListenerService: Notification removed: 0|com.oculus.vrshell|19789|vrshell_full_passthrough_exit_guiding_toast|10028
+04-14 21:30:03.007  2298  2298 I [SEO] VrNotificationListenerService: onNotificationRemoved() - key = 0|com.oculus.vrshell|19789|vrshell_full_passthrough_exit_guiding_toast|10028, type = guiding_toast_notification
+04-14 21:30:03.008  2298  2298 I ToastsActivity: dismissToast(0|com.oculus.vrshell|19789|vrshell_full_passthrough_exit_guiding_toast|10028): Forwarding dismiss command to ToastController
+04-14 21:30:03.009  2298  2298 E [SEO] NotificationDataSetService: Unable to fetch notification for key 0|com.oculus.vrshell|19789|vrshell_full_passthrough_exit_guiding_toast|10028
+04-14 21:30:03.009  2298  2298 E [SEO] ToastController: Notification with key 0|com.oculus.vrshell|19789|vrshell_full_passthrough_exit_guiding_toast|10028 not found.
+04-14 21:30:03.009  2298  2298 D [SEO] ToastLayerView: hideNotificationIfDisplaying(0|com.oculus.vrshell|19789|vrshell_full_passthrough_exit_guiding_toast|10028)
+04-14 21:30:03.009  2298  2298 V [SEO] ToastLayerView: Tag is 0|com.oculus.vrshell|19789|vrshell_full_passthrough_exit_guiding_toast|10028 and key is 0|com.oculus.vrshell|19789|vrshell_full_passthrough_exit_guiding_toast|10028
+04-14 21:30:03.010  1419  3068 W ActivityTaskManager: startActivity called from non-Activity context; forcing Intent.FLAG_ACTIVITY_NEW_TASK for: Intent { act=com.oculus.os.clearactivity.FINISH flg=0x800000 cmp=com.oculus.os.clearactivity/.ClearActivity (has extras) }
+04-14 21:30:03.012  1419  1471 W ActivityTaskManager: startActivity called from non-Activity context; forcing Intent.FLAG_ACTIVITY_NEW_TASK for: Intent { act=com.oculus.os.clearactivity.FINISH flg=0x800000 cmp=com.oculus.os.clearactivity/.ClearActivity (has extras) }
+04-14 21:30:03.012  1419  1471 E CellBroadcastUtils: getDefaultCellBroadcastReceiverPackageName: no package found
+04-14 21:30:03.016  1785  2041 I ProxyToPassthroughLayerProcessor: Layer without color map style
+04-14 21:30:03.017  1108  1399 I MRSS    : MIXEDREALITY: MrServiceView: passthroughLayersToSubmit stats No submitted layers - there was render or submit failure. (every 10 sec).
+04-14 21:30:03.030  2298  2939 I [SEO] PassthroughFeatureController: Begin transition: type PT_TRANSITION_TYPE_WIPE, direction MR_TO_VR, reason TRANSITION_FULL_PASSTHROUGH
+04-14 21:30:03.031  2298  2939 I [SEO] PassthroughFeatureController: [PlayOneShotAudioForTransition] Playing audio clip apk://com.oculus.guardianresources/assets/audio/system_transition_mrvr_enter.ogg
+04-14 21:30:03.031  2298  2939 I [SEO] PassthroughFeatureController: [ConfigureMrServiceClient] Disabling System Reconstructed Passthrough
+04-14 21:30:03.031  2298  2939 I OpenXR_Passthrough: ------------ xrPassthroughLayerPauseFB -----------
+04-14 21:30:03.031  1785  4171 I [CT]    : MIXEDREALITY: MrSvc: PassthroughLayer: setPaused: Layer 1001 is being paused
+04-14 21:30:03.031  2298  2939 I [SEO] PassthroughFeatureController: [PausePassthroughSession] Passthrough type changed from PT_TYPE_SYSTEM_RECONSTRUCTED to PT_TYPE_PAUSED
+04-14 21:30:03.032  1785  2041 I CompositorVR: Passthrough usage state changed: app 1, guardian 0, shell 0, system 0, mask 0, surface_proj 0
+04-14 21:30:03.036  2298  2939 I [SEO] PassthroughFeatureController: [LogShellEnvironmentAllowedState] isShellEnvironmentAllowed changed from 0 to 1, guardian allows shell env 1, shell allows shell env 1, transition in progress 1, transition percentage -0.975586
+04-14 21:30:03.041  1785  2041 I BackgroundPassthroughLogic: Starting passthrough hysteresis
+04-14 21:30:03.041  1785  2041 I CompositorVR: Passthrough usage state changed: app 0, guardian 0, shell 0, system 1, mask 0, surface_proj 0
+04-14 21:30:03.044  1785  2322 I InterstitialRenderer: ovrInterstitialRenderer::Start frameType=2, clientPackageName=gg.QuestNav.QuestNav, description=Black frame over passthrough for previously rendering app launchId=
+04-14 21:30:03.044  1785  2322 I InterstitialRendererLoggerSession:      [description: Black frame over passthrough for previously rendering app]
+04-14 21:30:03.044  1785  2322 I InterstitialRendererLoggerSession: SessionId: 2373820ee8c45550a077ba048b5f1438, Event: start, FrameType: Black, Reason: Black frame over passthrough for previously rendering app, Duration: 0, Category:
+04-14 21:30:03.044  1785  2322 I InterstitialRenderer: Starting broadcastTimer_
+04-14 21:30:03.049  1785  2041 I BackgroundPassthroughLogic: Stopping passthrough hysteresis because a client has started PT
+04-14 21:30:03.064  1785  2322 I InterstitialRenderer: Stopping broadcastTimer_
+04-14 21:30:03.067  2298  2939 I Shell   : PassthroughFeatureFramework created surface: before=-1  targetLayer=62
+04-14 21:30:03.067  2298  2939 I Shell   : _createHsrRenderingAndSurfaces Passthrough mask layer created: surfaceId=62 size=1024 x 1024
+04-14 21:30:03.067  2298  2939 I Shell   : _createHsrPassthroughFeatureRendering Creating wipeTransition mesh proxy: ENABLE_HSR: 1, IS_DEV: 0, is overlay mask: 1
+04-14 21:30:03.068  1785  2041 I BackgroundPassthroughLogic: Starting passthrough hysteresis
+04-14 21:30:03.068  1785  2041 I [CT]    : MIXEDREALITY: [Insights] PassthroughTelemetry: rendering over 23.4 sec, session 572.6 sec, dropped_draw_rate: 0.0% (0 failed draw calls)
+04-14 21:30:03.068  1785  2041 I [CT]    : MIXEDREALITY: [Insights] PassthroughTelemetry: - TTFR completed: --, predicted: -- (skipped mid session)
+04-14 21:30:03.068  1785  2041 I [CT]    : MIXEDREALITY: [Insights] PassthroughTelemetry: - TTFR depth rendered: --, computed: -- (skipped mid session)
+04-14 21:30:03.068  1785  2041 I [CT]    : MIXEDREALITY: [Insights] PassthroughTelemetry: - rates: rendering: 119.4/120.0, images: color 59.7, geometry: 29.7 fps
+04-14 21:30:03.068  1785  2041 I [CT]    : MIXEDREALITY: [Insights] PassthroughTelemetry: - p2pLat: 34.1,44.4,51.6 p2geomLat: 46.5,73.9,138.5 ms, min,avg,max
+04-14 21:30:03.068  1785  2041 I [CT]    : MIXEDREALITY: [Insights] PassthroughTelemetry: - system latency: c2a: 16.5,16.8,17.3 a2w: 0.0,0.0,0.3 w2r: 0.0,5.6,8.4 ms, min,avg,max
+04-14 21:30:03.068  1785  2041 I [CT]    : MIXEDREALITY: [Insights] PassthroughTelemetry: - avg exp/gain  10.8/17.9
+04-14 21:30:03.068  1785  2041 I [CT]    : MIXEDREALITY: [Insights] PassthroughTelemetry: - consecutive frame drops count: 19/0/0 (>1/>3/>7)
+04-14 21:30:03.068  1785  2041 I [CT]    : MIXEDREALITY: PassthroughRenderingTelemetry: sendPassthroughRenderingTelemetry: Logging telemetry.
+04-14 21:30:03.073  1419  1470 V WindowManager: Sent Transition #245 createdAt=04-14 21:30:03.012 via request=TransitionRequestInfo { type = OPEN, triggerTask = TaskInfo{userId=0 taskId=1518 displayId=0 isRunning=true baseIntent=Intent { act=android.intent.action.MAIN flg=0x10810100 cmp=com.oculus.os.clearactivity/.ClearActivity } baseActivity=ComponentInfo{com.oculus.os.clearactivity/com.oculus.os.clearactivity.ClearActivity} topActivity=ComponentInfo{com.oculus.os.clearactivity/com.oculus.os.clearactivity.ClearActivity} origActivity=null realActivity=ComponentInfo{com.oculus.os.clearactivity/com.oculus.os.clearactivity.ClearActivity} numActivities=1 numActivitiesPerUser={0=1} lastActiveTime=2513854 supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=1 token=WCT{RemoteToken{54c7360 Task{8159e71 #1518 type=standard A=10005:com.oculus.os.clearactivity}}} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=null topActivityInfo=ActivityInfo{41a9f73 com.oculus.os.clearactivity.ClearActivity} launchCookies=[] telemetryLaunchIds=[] positionInParent=Point(0, 0) parentTaskId=3 isFocused=false isVisible=false isVisibleRequested=false isSleeping=false topActivityInSizeCompat=false topActivityEligibleForLetterboxEducation= false topActivityLetterboxed= false isFromDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1 locusId=null displayAreaFeatureId=1 cameraCompatControlState=hidden}, remoteTransition = null, displayChange = null }
+04-14 21:30:03.088  1785  2322 I InterstitialRenderer: ovrInterstitialRenderer::Start frameType=2, clientPackageName=gg.QuestNav.QuestNav, description=Black frame over passthrough for previously rendering app launchId=
+04-14 21:30:03.088  1785  2322 I InterstitialRendererLoggerSession:      [description: Black frame over passthrough for previously rendering app]
+04-14 21:30:03.088  1785  2322 I InterstitialRendererLoggerSession: SessionId: e1bc1568af105e8414658efc414899a6, Event: start, FrameType: Black, Reason: Black frame over passthrough for previously rendering app, Duration: 0, Category:
+04-14 21:30:03.088  1785  2322 I InterstitialRenderer: Starting broadcastTimer_
+04-14 21:30:03.098  1785  2041 I BackgroundPassthroughLogic: Stopping passthrough hysteresis because a client has started PT
+04-14 21:30:03.127  1419  1419 I VolumetricTaskOrganizer: onTaskActivitiesDisappeared: taskId = 6, userId = 0, taskInfo = TaskInfo{userId=0 taskId=6 displayId=0 isRunning=false baseIntent=Intent {  } baseActivity=null topActivity=null origActivity=null realActivity=null numActivities=0 numActivitiesPerUser={} lastActiveTime=11783 supportsMultiWindow=true resizeMode=2 isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=1 token=WCT{RemoteToken{5f00014 Task{630968d #6 type=standard}}} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=null topActivityInfo=null launchCookies=[] telemetryLaunchIds=[] positionInParent=Point(24000, 0) parentTaskId=-1 isFocused=false isVisible=false isVisibleRequested=false isSleeping=false topActivityInSizeCompat=false topActivityEligibleForLetterboxEducation= false topActivityLetterboxed= false isFromDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1 locusId=null displayAreaFeatureId=1 cameraCompatControlState=hidden}
+04-14 21:30:03.153  2298  2939 I [SEO] WorldManager: OnTopActivityChange, disabling mr home world passthrough on leaving home
+04-14 21:30:03.153  2298  2939 I [SEO] WorldManager: SetMRHomeWorldPassthrough, enable: 0, reason leaving home
+04-14 21:30:03.163  2298  2939 I [SEO] WorldManager: OnTopActivityChange, disabling mr home world passthrough on leaving home
+04-14 21:30:03.164  2298  2939 I [SEO] WorldManager: SetMRHomeWorldPassthrough, enable: 0, reason leaving home
+04-14 21:30:03.164  2298  2298 V [SEO] ToastLayerView: Removing view 0|com.oculus.vrshell|19789|vrshell_full_passthrough_exit_guiding_toast|10028
+04-14 21:30:03.168  2298  2939 I [SEO] PassthroughFeatureController: [ConfigureMrServiceClient] Enabling System Reconstructed Passthrough
+04-14 21:30:03.168  2298  2939 I OpenXR_Passthrough: ------------ xrPassthroughLayerResumeFB -----------
+04-14 21:30:03.168  1785  4171 I [CT]    : MIXEDREALITY: MrSvc: PassthroughLayer: setPaused: Layer 1001 is being resumed
+04-14 21:30:03.169  2298  2939 I [SEO] PassthroughFeatureController: [Render] Passthrough type changed from PT_TYPE_PAUSED to PT_TYPE_SYSTEM_RECONSTRUCTED, requestedPassthroughAlpha 1.000000, requestedDimmingBrightness 1.000000
+04-14 21:30:03.202  4232  4583 I GuardianPassthroughMgr: [GuardianPassthroughMgr::UpdateIsAppPassthroughInUse] isAppPassthroughInUse updated from 1 to 0
+04-14 21:30:03.218  1785  2041 I CompositorVR: PassthroughMaskLayer successfully processed PT layerId=1001
+04-14 21:30:03.218  1785  2041 I CompositorVR: Passthrough usage state changed: app 0, guardian 0, shell 1, system 1, mask 0, surface_proj 0
+04-14 21:30:03.218  1785  2041 I CompositorVR: Passthrough usage state changed: app 0, guardian 0, shell 1, system 1, mask 1, surface_proj 0
+04-14 21:30:03.218  1785  2041 I [CT]    : MIXEDREALITY: [Insights] PassthroughTelemetry: rendering over 0.2 sec, session 572.7 sec, dropped_draw_rate: 0.0% (0 failed draw calls)
+04-14 21:30:03.218  1785  2041 I [CT]    : MIXEDREALITY: [Insights] PassthroughTelemetry: - TTFR completed: --, predicted: -- (skipped mid session)
+04-14 21:30:03.218  1785  2041 I [CT]    : MIXEDREALITY: [Insights] PassthroughTelemetry: - TTFR depth rendered: --, computed: -- (skipped mid session)
+04-14 21:30:03.218  1785  2041 I [CT]    : MIXEDREALITY: [Insights] PassthroughTelemetry: - rates: rendering: 93.2/90.0, images: color 66.6, geometry: 33.3 fps
+04-14 21:30:03.218  1785  2041 I [CT]    : MIXEDREALITY: [Insights] PassthroughTelemetry: - p2pLat: 37.7,43.3,48.9 p2geomLat: 60.0,76.3,93.3 ms, min,avg,max
+04-14 21:30:03.218  1785  2041 I [CT]    : MIXEDREALITY: [Insights] PassthroughTelemetry: - system latency: c2a: 16.6,16.8,17.2 a2w: 0.0,0.0,0.1 w2r: 2.0,5.4,10.9 ms, min,avg,max
+04-14 21:30:03.218  1785  2041 I [CT]    : MIXEDREALITY: [Insights] PassthroughTelemetry: - avg exp/gain  10.7/21.6
+04-14 21:30:03.218  1785  2041 I [CT]    : MIXEDREALITY: [Insights] PassthroughTelemetry: - consecutive frame drops count: 1/0/0 (>1/>3/>7)
+04-14 21:30:03.218  1785  2041 I [CT]    : MIXEDREALITY: PassthroughRenderingTelemetry: sendPassthroughRenderingTelemetry: Logging telemetry.
+04-14 21:30:03.223  1785  2041 I [CT]    : MIXEDREALITY: ClientMessengerImpl: Posting event PassthroughLayerResumed for layerId: 1001 clientId: 741865183
+04-14 21:30:03.226  1785  2041 I CompositorVR: Passthrough usage state changed: app 0, guardian 0, shell 1, system 1, mask 0, surface_proj 0
+04-14 21:30:03.226  1785  2041 I CompositorVR: Passthrough usage state changed: app 0, guardian 0, shell 1, system 1, mask 1, surface_proj 0
+04-14 21:30:03.237  1785  2041 I CompositorVR: Passthrough usage state changed: app 0, guardian 0, shell 1, system 1, mask 0, surface_proj 0
+04-14 21:30:03.237  1785  2041 I CompositorVR: Passthrough usage state changed: app 0, guardian 0, shell 1, system 1, mask 1, surface_proj 0
+04-14 21:30:03.245  1785  2041 I CompositorVR: Passthrough usage state changed: app 0, guardian 0, shell 1, system 1, mask 0, surface_proj 0
+04-14 21:30:03.245  1785  2041 I CompositorVR: Passthrough usage state changed: app 0, guardian 0, shell 1, system 1, mask 1, surface_proj 0
+04-14 21:30:03.254  1785  2041 I CompositorVR: Skipped at least one passthrough usage state change log due to throttling
+04-14 21:30:03.275  2298  2939 I [SEO] VrPlatformOpenXr: xrPollEvent: received XR_TYPE_EVENT_DATA_PASSTHROUGH_LAYER_RESUMED_META event
+04-14 21:30:03.275  2298  2939 I [SEO] MrServiceClientOpenXr: OnPassthroughLayerResumedEvent: KEYBOARD_HANDS_LAYER[0] PASSTHROUGH_FEATURE_FRAMEWORK_LAYER[1] PROJECTED_LAYER[0]
+04-14 21:30:03.348  3391  4844 I Unity   : [XR] [479766157808] [21:30:03.348][Info   ]   XR_FB_passthrough: Version=4
+04-14 21:30:03.348  3391  4844 I Unity   : [XR] [479766157808] [21:30:03.348][Info   ]   XR_META_passthrough_color_lut: Version=1
+04-14 21:30:03.348  3391  4844 I Unity   : [XR] [479766157808] [21:30:03.348][Info   ]   XR_META_passthrough_layer_resumed_event: Version=1
+04-14 21:30:03.348  3391  4844 I Unity   : [XR] [479766157808] [21:30:03.348][Info   ]   XR_META_passthrough_preferences: Version=1
+04-14 21:30:03.348  3391  4844 I Unity   : [XR] [479766157808] [21:30:03.348][Info   ]   XR_FB_passthrough: Version=4
+04-14 21:30:03.348  3391  4844 I Unity   : [XR] [479766157808] [21:30:03.348][Info   ]   XR_META_passthrough_color_lut: Version=1
+04-14 21:30:03.348  3391  4844 I Unity   : [XR] [479766157808] [21:30:03.348][Info   ]   XR_META_passthrough_layer_resumed_event: Version=1
+04-14 21:30:03.348  3391  4844 I Unity   : [XR] [479766157808] [21:30:03.348][Info   ]   XR_META_passthrough_preferences: Version=1
+04-14 21:30:03.349  3391  4844 I Unity   : [XR] [479766157808] [21:30:03.349][Info   ]   Meta Quest: Camera (Passthrough): Version=0.1.0, Company="Unity Technologies", Extensions="XR_FB_passthrough"
+04-14 21:30:03.349  3391  4844 I Unity   : [XR] [479766157808] [21:30:03.349][Info   ]   XR_FB_passthrough_keyboard_hands: Feature="Meta XR Feature": Version=0.0.1, Company="Meta"
+04-14 21:30:03.349  3391  4844 I Unity   : [XR] [479766157808] [21:30:03.349][Info   ]   Meta Quest: Camera (Passthrough): Version=0.1.0, Company="Unity Technologies", Extensions="XR_FB_passthrough"
+04-14 21:30:03.349  3391  4844 I Unity   : [XR] [479766157808] [21:30:03.349][Info   ]   XR_FB_passthrough_keyboard_hands: Feature="Meta XR Feature": Version=0.0.1, Company="Meta"
+04-14 21:30:03.349  3391  4844 I Unity   : [XR] [479766157808] [21:30:03.349][Info   ]   Meta Quest: Camera (Passthrough): Version=0.1.0, Company="Unity Technologies", Extensions="XR_FB_passthrough"
+04-14 21:30:03.349  3391  4844 I Unity   : [XR] [479766157808] [21:30:03.349][Info   ]   XR_FB_passthrough_keyboard_hands: Feature="Meta XR Feature": Version=0.0.1, Company="Meta"
+04-14 21:30:03.355  3391  4844 I Unity   : [XR] [479766157808] [21:30:03.355][Info   ]   XR_FB_passthrough_keyboard_hands: Feature="Meta XR Feature": Version=0.0.1, Company="Meta"
+04-14 21:30:03.356  3391  4844 I Unity   : [XR] [479766157808] [21:30:03.356][Info   ]   Meta Quest: Camera (Passthrough): Version=0.1.0, Company="Unity Technologies", Extensions="XR_FB_passthrough"
+04-14 21:30:03.357  3391  4844 I Unity   : [XR] [479766157808] [21:30:03.357][Info   ]   XR_FB_passthrough_keyboard_hands: Feature="Meta XR Feature": Version=0.0.1, Company="Meta"
+04-14 21:30:03.357  3391  4844 I Unity   : [XR] [479766157808] [21:30:03.357][Info   ]   Meta Quest: Camera (Passthrough): Version=0.1.0, Company="Unity Technologies", Extensions="XR_FB_passthrough"
+04-14 21:30:03.357  3391  4844 I Unity   : [XR] [479766157808] [21:30:03.357][Info   ]   XR_FB_passthrough_keyboard_hands: Feature="Meta XR Feature": Version=0.0.1, Company="Meta"
+04-14 21:30:03.360  3391  4844 I Unity   : [XR] [479766157808] [21:30:03.360][Info   ]   Meta Quest: Camera (Passthrough): Version=0.1.0, Company="Unity Technologies", Extensions="XR_FB_passthrough"
+04-14 21:30:03.361  3391  4844 I Unity   : [XR] [479766157808] [21:30:03.361][Info   ]   XR_FB_passthrough_keyboard_hands: Feature="Meta XR Feature": Version=0.0.1, Company="Meta"
+04-14 21:30:03.361  3391  4844 I Unity   : [XR] [479766157808] [21:30:03.361][Info   ]   XR_FB_passthrough_keyboard_hands: Feature="Meta XR Feature": Version=0.0.1, Company="Meta"
+04-14 21:30:03.363  3391  4844 I Unity   : [XR] [479766157808] [21:30:03.363][Info   ]   Meta Quest: Camera (Passthrough): Version=0.1.0, Company="Unity Technologies", Extensions="XR_FB_passthrough"
+04-14 21:30:03.364  3391  4844 I Unity   : [XR] [479766157808] [21:30:03.364][Info   ]   XR_FB_passthrough_keyboard_hands: Feature="Meta XR Feature": Version=0.0.1, Company="Meta"
+04-14 21:30:03.364  3391  4844 I Unity   : [XR] [479766157808] [21:30:03.364][Info   ]   Meta Quest: Camera (Passthrough): Version=0.1.0, Company="Unity Technologies", Extensions="XR_FB_passthrough"
+04-14 21:30:03.364  3391  4844 I Unity   : [XR] [479766157808] [21:30:03.364][Info   ]   XR_FB_passthrough_keyboard_hands: Feature="Meta XR Feature": Version=0.0.1, Company="Meta"
+04-14 21:30:03.381  1785  2041 W PassthroughInCompositorRenderer: PTINC: Stale images. Staleness=0.13s
+04-14 21:30:03.403  4232  4583 I GuardianPassthroughMgr: [GuardianPassthroughMgr::UpdateIsAppPassthroughInUse] isAppPassthroughInUse updated from 0 to 1
+04-14 21:30:03.411  1785  2322 I InterstitialRenderer: Stopping broadcastTimer_
+04-14 21:30:03.442  2298  2939 I [SEO] TravelController: ProcessImmersiveTransitionEvent: End Transition for package: gg.QuestNav.QuestNav and launchId: , isPassthroughActive: false, isPassthroughTransition: false
+04-14 21:30:03.455  2298  2939 I [SEO] WorldManager: SetMRHomeWorldPassthrough, enable: 0, reason Non-Home app has loaded
+04-14 21:30:03.562  2298  2939 I [SEO] PassthroughFeatureController: [ConfigureMrServiceClient] Disabling System Reconstructed Passthrough
+04-14 21:30:03.562  2298  2939 I OpenXR_Passthrough: ------------ xrPassthroughLayerPauseFB -----------
+04-14 21:30:03.563  1785  4171 I [CT]    : MIXEDREALITY: MrSvc: PassthroughLayer: setPaused: Layer 1001 is being paused
+04-14 21:30:03.563  2298  2939 I [SEO] PassthroughFeatureController: [PausePassthroughSession] Passthrough type changed from PT_TYPE_SYSTEM_RECONSTRUCTED to PT_TYPE_PAUSED
+04-14 21:30:03.613  1785  2041 I [CT]    : MIXEDREALITY: PassthroughApiManager: GetUpdatedLayerState: (every 2 seconds) PT is: ON numLayers: 1
+04-14 21:30:04.049  2298  2939 I Shell   : _destroyHsrRenderingAndSurfaces Passthrough mask layer destoryed: surfaceId=62
+04-14 21:30:04.049  2298  2939 I Shell   : _destroyHsrPassthroughFeatureRendering Destroying wipeTransition mesh proxy: ENABLE_HSR: 1, IS_DEV: 0
+04-14 21:30:04.079  1108  1389 W MRSS    : MIXEDREALITY: CapabilityWorkExecutor: WatchdogProbe [mrss_compu_sys]: Capability Passthrough timed out, it's taking more than 30ms to complete, expected max 30ms. Total expirations: 1.
+04-14 21:30:04.080  1108  1243 W MRSS    : MIXEDREALITY: CapabilityWorkExecutor: WatchdogProbe [mrss_compu_sys]: Capability Passthrough completed in 31ms, expected max 30ms. Total expirations: 1.
+04-14 21:30:04.531  1785  2041 I ProxyToPassthroughLayerProcessor: ProcessPTProxyLayers: In/Out=1/1 PTApiLCnt=1 skipped=0
+04-14 21:30:04.574  1108  4179 I MRSS    : MIXEDREALITY: MrRuntimeCompute: dispatchFrameset : (every 5 seconds). MetaForegroundFreespaceScan: OFF, MetaAssistedSceneCapture: OFF, LightingEstimation: OFF, TrackedKeypoints: OFF, SceneLayout: OFF, DepthMeshing: OFF, VisionInterfaceTelemetry: ON, Depth: ON, Passthrough: ON, SceneObjects: OFF, MrFeatureTelemetry: ON, Semantics: OFF, MetaBackgroundFreespaceScan: OFF, Camera: ON, PlaneFreespace: OFF, SceneReconstruction: OFF, SemanticVolume: OFF, InstantPlacement: OFF, WarpGrid: OFF, FloorHeight: OFF, Fiducials: OFF
+04-14 21:30:05.280  1108  1243 I MRSS    : MIXEDREALITY: ComputeCapabilityComputeResultStats: MrSS Stats (SUCCESS/NOOP/SKIPPING/ASYNC/ASYNC_IN_PROGRESS/SKIPPING_KEYFRAMING/SKIPPING_ALIGN/FAILURE/MISSING_DATA/FAILED_TO_PUBLISH) - [Passthrough] (598/0/0/0/0/0/0/0/0/0) [MrFeatureTelemetry] (597/0/0/0/0/0/0/0/0/0) [Depth] (299/0/0/0/0/0/0/0/0/0) [VisionInterfaceTelemetry] (299/0/0/0/0/0/0/0/0/0)
+04-14 21:30:05.614  1785  2041 I [CT]    : MIXEDREALITY: PassthroughApiManager: GetUpdatedLayerState: (every 2 seconds) PT is: ON numLayers: 1
+04-14 21:30:07.614  1785  2041 I [CT]    : MIXEDREALITY: PassthroughApiManager: GetUpdatedLayerState: (every 2 seconds) PT is: ON numLayers: 1
+04-14 21:30:07.681  1785  2041 W PassthroughInCompositorRenderer: PTINC: Dropped 2 consecutive camera frames.
+04-14 21:30:08.542   888  1569 D EpsMixerShimEngineStream:             "PASSTHROUGH_IN_FORMAT": false,
+04-14 21:30:09.315  2298  2939 I [SEO] FullPassthroughController: [IsControlPointForFullPassthrough] isInHomeWorld: 0
+04-14 21:30:09.315  2298  2939 I [SEO] FullPassthroughController: isInFullPassthrough is updated from 0 to value 1 from control point DoubleTap
+04-14 21:30:09.315  2298  2939 I [SEO] TelemetryProvider: [LogFullPassthroughEvent] trigger_state[DoubleTap_enter] passthrough_session_id[fdedc048-1ba7-4caa-88db-6a0ce8e352b2]
+04-14 21:30:09.358  2298  2939 I [SEO] FlowController: UpdateActiveFlow from (none) to FullPassthroughFlow
+04-14 21:30:09.359  2298  2939 I [SEO] FullPassthroughFlow: FullPassthroughFlow Activated
+04-14 21:30:09.359  4232  4479 I VrGuardianService: com.oculus.vrshell -> GuardianSDKServer::SetIsInFullPassthrough to 1
+04-14 21:30:09.363  2298  2939 V [SEO] FullPassthroughToastMediaManager: Use App Image: content://com.oculus.ocms.image2/__default___2.png?last_modified=1752165828000
+04-14 21:30:09.365  2298  2939 I [SEO] TelemetryProvider: [LogFullPassthroughEvent] trigger_state[flow_start] passthrough_session_id[fdedc048-1ba7-4caa-88db-6a0ce8e352b2]
+04-14 21:30:09.368   888  1569 D EpsMixerShimEngineStream:             "PASSTHROUGH_IN_FORMAT": false,
+04-14 21:30:09.380  2298  2939 I [SEO] PassthroughFeatureController: ProcessTransitionRequests Requested transition to MR but passthrough already showing, ignore
+04-14 21:30:09.380  2298  2939 I [SEO] ShellApp: ProcessForegroundBlockingState Requesting blocking foreground app, flow=FullPassthroughFlow
+04-14 21:30:09.388  1419  1440 W ActivityTaskManager: startActivity called from non-Activity context; forcing Intent.FLAG_ACTIVITY_NEW_TASK for: Intent { act=android.intent.action.MAIN flg=0x800000 cmp=com.oculus.os.clearactivity/.ClearActivity (has extras) }
+04-14 21:30:09.388  1419  1440 I ActivityTaskManager: START u0 {act=android.intent.action.MAIN cmp=com.oculus.os.clearactivity/.ClearActivity (has extras)} with LAUNCH_SINGLE_TASK from uid 10028 (BAL_ALLOW_ALLOWLISTED_COMPONENT) result code=0
+04-14 21:30:09.392  2298  2939 I [SEO] PassthroughFeatureController: [ConfigureMrServiceClient] Enabling System Reconstructed Passthrough
+04-14 21:30:09.393  2298  2939 I OpenXR_Passthrough: ------------ xrPassthroughLayerResumeFB -----------
+04-14 21:30:09.393  1785  4171 I [CT]    : MIXEDREALITY: MrSvc: PassthroughLayer: setPaused: Layer 1001 is being resumed
+04-14 21:30:09.393  2298  2939 I [SEO] PassthroughFeatureController: [Render] Passthrough type changed from PT_TYPE_PAUSED to PT_TYPE_SYSTEM_RECONSTRUCTED, requestedPassthroughAlpha 1.000000, requestedDimmingBrightness 1.000000
+04-14 21:30:09.393  2298  2939 I [SEO] PassthroughFeatureController: [LogShellEnvironmentAllowedState] isShellEnvironmentAllowed changed from 1 to 0, guardian allows shell env 1, shell allows shell env 0, transition in progress 0, transition percentage -0.979736
+04-14 21:30:09.405  1419  1471 E CellBroadcastUtils: getDefaultCellBroadcastReceiverPackageName: no package found
+04-14 21:30:09.406  1785  2041 I CompositorVR: Passthrough usage state changed: app 1, guardian 0, shell 1, system 0, mask 0, surface_proj 0
+04-14 21:30:09.411  1785  2041 I [CT]    : MIXEDREALITY: ClientMessengerImpl: Posting event PassthroughLayerResumed for layerId: 1001 clientId: 741865183
+04-14 21:30:09.457  1419  1470 V WindowManager: Sent Transition #248 createdAt=04-14 21:30:09.405 via request=TransitionRequestInfo { type = OPEN, triggerTask = TaskInfo{userId=0 taskId=1519 displayId=0 isRunning=true baseIntent=Intent { flg=0x10810100 cmp=com.oculus.vrshell/.FocusPlaceholderActivity } baseActivity=ComponentInfo{com.oculus.vrshell/com.oculus.vrshell.FocusPlaceholderActivity} topActivity=ComponentInfo{com.oculus.vrshell/com.oculus.vrshell.FocusPlaceholderActivity} origActivity=null realActivity=ComponentInfo{com.oculus.vrshell/com.oculus.vrshell.FocusPlaceholderActivity} numActivities=1 numActivitiesPerUser={0=1} lastActiveTime=2543779 supportsMultiWindow=true resizeMode=0 isResizeable=false minWidth=-1 minHeight=-1 defaultMinSize=1 token=WCT{RemoteToken{1528ae7 Task{bdefcc #1519 type=standard A=10028:com.oculus.vrshell:-339196040}}} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=null topActivityInfo=ActivityInfo{c21b694 com.oculus.vrshell.FocusPlaceholderActivity} launchCookies=[] telemetryLaunchIds=[] positionInParent=Point(0, 0) parentTaskId=6 isFocused=false isVisible=false isVisibleRequested=true isSleeping=false topActivityInSizeCompat=false topActivityEligibleForLetterboxEducation= false topActivityLetterboxed= false isFromDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1 locusId=null displayAreaFeatureId=1 cameraCompatControlState=hidden}, remoteTransition = null, displayChange = null }
+04-14 21:30:09.464  2298  2298 D [SEO] ShellSpatialWindowManagerService: Routing activity intent through Shell's launch checks
+04-14 21:30:09.464  2298  2298 D [SEO] ShellControlBroadcastReceiver: onReceive: Intent{action=com.oculus.vrshell.intent.action.OVERLAY, data=com.oculus.os.clearactivity/com.oculus.os.clearactivity.ClearActivity, type=null, categories=null, component=null, flags=0x810000, extras={activity_surface_width=1280, requestingCrashRecovery=null, isHomeIntent=false, launchId=b1b34b86-2306-461c-a89e-b44c34bc98ed, target=null, activity_intent=true, defaultLaunchReason=0, activity_surface_height=800, queryParametersUri=null}}
+04-14 21:30:09.464  2298  2298 D [SEO] ShellControlBroadcastReceiver: isLaunchAction = false, isTrustedAppLaunch = true
+04-14 21:30:09.464  2298  2298 D [SEO] ShellControlBroadcastReceiver: OverlayAction
+04-14 21:30:09.464  2298  2298 D [SEO] ShellControlBroadcastReceiver: onReceive: Intent{action=com.oculus.vrshell.intent.action.LAUNCH, data=com.oculus.os.clearactivity/com.oculus.os.clearactivity.ClearActivity, type=null, categories=null, component=null, flags=0x810000, extras={activity_surface_width=1280, requestingCrashRecovery=null, isHomeIntent=false, launchId=b1b34b86-2306-461c-a89e-b44c34bc98ed, target=null, activity_intent=true, defaultLaunchReason=0, activity_surface_height=800, queryParametersUri=null}}
+04-14 21:30:09.464  2298  2298 D [SEO] ShellControlBroadcastReceiver: isLaunchAction = true, isTrustedAppLaunch = true
+04-14 21:30:09.465  2298  2298 D [SEO] ShellControlBroadcastReceiver: Transitioning broadcast to nativeBroadcastIntent.
+04-14 21:30:09.465  2298  2298 W [SEO] IntentParser: Got intent with null or empty value for key(s): requestingCrashRecovery target queryParametersUri
+04-14 21:30:09.465  2298  2298 D [SEO] ShellService: onStartCommand() with action com.oculus.intent.action.BROADCAST_INTENT
+04-14 21:30:09.465  2298  2298 W [SEO] IntentParser: Got intent with null or empty value for key(s): requestingCrashRecovery target queryParametersUri
+04-14 21:30:09.467  2298  2939 I [SEO] FrameCommandHelpers: Handling Pending Launch from Intent - target=com.oculus.os.clearactivity/com.oculus.os.clearactivity.ClearActivity, launch source=com.oculus.vrshell.intent.action.LAUNCH
+04-14 21:30:09.476  2298  2939 I [SEO] LaunchController: Registering Pending Launch of type External with component: com.oculus.os.clearactivity/com.oculus.os.clearactivity.ClearActivity launchId: b1b34b86-2306-461c-a89e-b44c34bc98ed requested by com.oculus.vrshell.intent.action.LAUNCH, overwriting existing launch false, of type None.
+04-14 21:30:09.476  2298  2939 I [SEO] VrPlatformOpenXr: xrPollEvent: received XR_TYPE_EVENT_DATA_PASSTHROUGH_LAYER_RESUMED_META event
+04-14 21:30:09.476  2298  2939 I [SEO] MrServiceClientOpenXr: OnPassthroughLayerResumedEvent: KEYBOARD_HANDS_LAYER[0] PASSTHROUGH_FEATURE_FRAMEWORK_LAYER[1] PROJECTED_LAYER[0]
+04-14 21:30:09.487  2298  2939 I [SEO] ApplicationLaunchData: UpdateShortcutCurrencyInLibrary aliasId is empty
+04-14 21:30:09.488  2298  2939 D [UNSET] ShellApplication: sendLaunchIntent: 'com.oculus.os.clearactivity/com.oculus.os.clearactivity.ClearActivity' command: '' launchId: 'b1b34b86-2306-461c-a89e-b44c34bc98ed' launchDisplayId: '0'
+04-14 21:30:09.494  1419  1471 E CellBroadcastUtils: getDefaultCellBroadcastReceiverPackageName: no package found
+04-14 21:30:09.504  1419  1471 I ActivityTaskManager: START u0 {act=android.intent.action.MAIN flg=0x10810100 cmp=com.oculus.os.clearactivity/.ClearActivity (has extras)} with LAUNCH_SINGLE_TASK from uid 10028 (realCallingUid=1000) (BAL_ALLOW_ALLOWLISTED_COMPONENT) result code=0
+04-14 21:30:09.515  1785  2041 W PassthroughInCompositorRenderer: PTINC: Dropped 2 consecutive camera frames.
+04-14 21:30:09.531  1785  2041 I ProxyToPassthroughLayerProcessor: ProcessPTProxyLayers: In/Out=2/2 PTApiLCnt=2 skipped=0
+04-14 21:30:09.539  1785  2041 I CompositorVR: Passthrough usage state changed: app 0, guardian 0, shell 1, system 0, mask 0, surface_proj 0
+04-14 21:30:09.543  1785  2322 I InterstitialRenderer: ovrInterstitialRenderer::Start frameType=2, clientPackageName=gg.QuestNav.QuestNav, description=Black frame over passthrough for previously rendering app launchId=
+04-14 21:30:09.543  1785  2322 I InterstitialRendererLoggerSession:      [description: Black frame over passthrough for previously rendering app]
+04-14 21:30:09.543  1785  2322 I InterstitialRendererLoggerSession: SessionId: d131357fd03b1d4989a6c465da5ace9e, Event: start, FrameType: Black, Reason: Black frame over passthrough for previously rendering app, Duration: 0, Category:
+04-14 21:30:09.543  1785  2322 I InterstitialRenderer: Starting broadcastTimer_
+04-14 21:30:09.548  1785  2041 I CompositorVR: Passthrough usage state changed: app 0, guardian 0, shell 1, system 1, mask 0, surface_proj 0
+04-14 21:30:09.563  1785  2322 I InterstitialRenderer: Stopping broadcastTimer_
+04-14 21:30:09.564  1785  2041 I CompositorVR: Passthrough usage state changed: app 0, guardian 0, shell 1, system 0, mask 0, surface_proj 0
+04-14 21:30:09.590  1108  4179 I MRSS    : MIXEDREALITY: MrRuntimeCompute: dispatchFrameset : (every 5 seconds). MetaForegroundFreespaceScan: OFF, MetaAssistedSceneCapture: OFF, LightingEstimation: OFF, TrackedKeypoints: OFF, SceneLayout: OFF, DepthMeshing: OFF, VisionInterfaceTelemetry: ON, Depth: ON, Passthrough: ON, SceneObjects: OFF, MrFeatureTelemetry: ON, Semantics: OFF, MetaBackgroundFreespaceScan: OFF, Camera: ON, PlaneFreespace: OFF, SceneReconstruction: OFF, SemanticVolume: OFF, InstantPlacement: OFF, WarpGrid: OFF, FloorHeight: OFF, Fiducials: OFF
+04-14 21:30:09.608  2298  2939 I [SEO] WorldManager: OnTopActivityChange, disabling mr home world passthrough on leaving home
+04-14 21:30:09.608  2298  2939 I [SEO] WorldManager: SetMRHomeWorldPassthrough, enable: 0, reason leaving home
+04-14 21:30:09.609  1785  2041 I [CT]    : MIXEDREALITY: [Insights] PassthroughTelemetry: rendering over 6.4 sec, session 579.1 sec, dropped_draw_rate: 0.0% (0 failed draw calls)
+04-14 21:30:09.609  1785  2041 I [CT]    : MIXEDREALITY: [Insights] PassthroughTelemetry: - TTFR completed: --, predicted: -- (skipped mid session)
+04-14 21:30:09.609  1785  2041 I [CT]    : MIXEDREALITY: [Insights] PassthroughTelemetry: - TTFR depth rendered: --, computed: -- (skipped mid session)
+04-14 21:30:09.609  1785  2041 I [CT]    : MIXEDREALITY: [Insights] PassthroughTelemetry: - rates: rendering: 118.1/120.0, images: color 59.2, geometry: 29.6 fps
+04-14 21:30:09.609  1785  2041 I [CT]    : MIXEDREALITY: [Insights] PassthroughTelemetry: - p2pLat: 33.1,43.1,50.2 p2geomLat: 48.9,79.3,132.6 ms, min,avg,max
+04-14 21:30:09.609  1785  2041 I [CT]    : MIXEDREALITY: [Insights] PassthroughTelemetry: - system latency: c2a: 16.3,16.6,17.7 a2w: 0.0,0.0,0.3 w2r: 0.0,5.1,8.4 ms, min,avg,max
+04-14 21:30:09.609  1785  2041 I [CT]    : MIXEDREALITY: [Insights] PassthroughTelemetry: - avg exp/gain  10.5/34.3
+04-14 21:30:09.609  1785  2041 I [CT]    : MIXEDREALITY: [Insights] PassthroughTelemetry: - consecutive frame drops count: 14/0/0 (>1/>3/>7)
+04-14 21:30:09.609  1785  2041 I [CT]    : MIXEDREALITY: PassthroughRenderingTelemetry: sendPassthroughRenderingTelemetry: Logging telemetry.
+04-14 21:30:09.616  4232  4583 I GuardianPassthroughMgr: [GuardianPassthroughMgr::UpdateIsAppPassthroughInUse] isAppPassthroughInUse updated from 1 to 0
+04-14 21:30:09.619  1419  1470 V WindowManager: Sent Transition #250 createdAt=04-14 21:30:09.494 via request=TransitionRequestInfo { type = OPEN, triggerTask = TaskInfo{userId=0 taskId=1520 displayId=0 isRunning=true baseIntent=Intent { act=android.intent.action.MAIN flg=0x10810100 cmp=com.oculus.os.clearactivity/.ClearActivity } baseActivity=ComponentInfo{com.oculus.os.clearactivity/com.oculus.os.clearactivity.ClearActivity} topActivity=ComponentInfo{com.oculus.os.clearactivity/com.oculus.os.clearactivity.ClearActivity} origActivity=null realActivity=ComponentInfo{com.oculus.os.clearactivity/com.oculus.os.clearactivity.ClearActivity} numActivities=1 numActivitiesPerUser={0=1} lastActiveTime=2543868 supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=1 token=WCT{RemoteToken{79748eb Task{22befdf #1520 type=standard A=10005:com.oculus.os.clearactivity}}} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=null topActivityInfo=ActivityInfo{889aafb com.oculus.os.clearactivity.ClearActivity} launchCookies=[] telemetryLaunchIds=[] positionInParent=Point(0, 0) parentTaskId=3 isFocused=false isVisible=false isVisibleRequested=false isSleeping=false topActivityInSizeCompat=false topActivityEligibleForLetterboxEducation= false topActivityLetterboxed= false isFromDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1 locusId=null displayAreaFeatureId=1 cameraCompatControlState=hidden}, remoteTransition = null, displayChange = null }
+04-14 21:30:09.620  1785  2041 I [CT]    : MIXEDREALITY: PassthroughApiManager: GetUpdatedLayerState: (every 2 seconds) PT is: ON numLayers: 1
+04-14 21:30:09.626  2105  2105 D OculusNotificationListenerService: Notification posted: 0|com.oculus.vrshell|19790|vrshell_full_passthrough_exit_guiding_toast|10028
+04-14 21:30:09.653  2298  2298 V [SEO] VrNotificationListenerService: isNotificationAToast() - isToastPriority = true, sbn.key = 0|com.oculus.vrshell|19790|vrshell_full_passthrough_exit_guiding_toast|10028
+04-14 21:30:09.653  2298  2298 V [SEO] VrNotificationListenerService: isNotificationAToast() - isValidToast = true, sbn.key = 0|com.oculus.vrshell|19790|vrshell_full_passthrough_exit_guiding_toast|10028
+04-14 21:30:09.653  2298  2298 V [SEO] VrNotificationListenerService: isNotificationAToast() - isWifiCaptivePortal = false, sbn.key = 0|com.oculus.vrshell|19790|vrshell_full_passthrough_exit_guiding_toast|10028
+04-14 21:30:09.653  2298  2298 V [SEO] VrNotificationListenerService: isNotificationAToast() - isRecommendation = false, sbn.key = 0|com.oculus.vrshell|19790|vrshell_full_passthrough_exit_guiding_toast|10028
+04-14 21:30:09.655  2298  2298 V [SEO] VrNotificationListenerService: isNotificationAToast() - isToastPriority = true, sbn.key = 0|com.oculus.vrshell|19790|vrshell_full_passthrough_exit_guiding_toast|10028
+04-14 21:30:09.655  2298  2298 V [SEO] VrNotificationListenerService: isNotificationAToast() - isValidToast = true, sbn.key = 0|com.oculus.vrshell|19790|vrshell_full_passthrough_exit_guiding_toast|10028
+04-14 21:30:09.655  2298  2298 V [SEO] VrNotificationListenerService: isNotificationAToast() - isWifiCaptivePortal = false, sbn.key = 0|com.oculus.vrshell|19790|vrshell_full_passthrough_exit_guiding_toast|10028
+04-14 21:30:09.655  2298  2298 V [SEO] VrNotificationListenerService: isNotificationAToast() - isRecommendation = false, sbn.key = 0|com.oculus.vrshell|19790|vrshell_full_passthrough_exit_guiding_toast|10028
+04-14 21:30:09.655  2298  2298 D [SEO] VrNotificationSeenStateTracker: setSeenState - seen state for key [0|com.oculus.vrshell|19790|vrshell_full_passthrough_exit_guiding_toast|10028] had a cached value of [null]. The attempted update for after is [UNSEEN_AND_UNREAD]. Updated? true
+04-14 21:30:09.655  2298  2298 D [SEO] VrNotificationSeenStateTracker: setSeenState - attempting to update the seen state in the server for notification key [0|com.oculus.vrshell|19790|vrshell_full_passthrough_exit_guiding_toast|10028]
+04-14 21:30:09.655  2298  2298 D [SEO] VrNotificationListenerService: setSeenState() - notification key [0|com.oculus.vrshell|19790|vrshell_full_passthrough_exit_guiding_toast|10028]: was seen state tracker updated? [true] was sbn seen state updated? [false]
+04-14 21:30:09.655  2298  2298 I [SEO] VrNotificationListenerService: addNotificationToCache() - key = 0|com.oculus.vrshell|19790|vrshell_full_passthrough_exit_guiding_toast|10028, type = guiding_toast_notification, isToast = true, isBlocked with reason = false Toast passes block checks
+04-14 21:30:09.655  2298  2298 I [SEO] VrNotificationListenerService: toastNotification() - key = 0|com.oculus.vrshell|19790|vrshell_full_passthrough_exit_guiding_toast|10028, type = guiding_toast_notification, toasting checks passed
+04-14 21:30:09.656  2298  2298 I ToastsActivity: showToast(0|com.oculus.vrshell|19790|vrshell_full_passthrough_exit_guiding_toast|10028): Forwarding show command to ToastController
+04-14 21:30:09.677  2298  2298 V [SEO] VrNotificationListenerService: isNotificationAToast() - isToastPriority = true, sbn.key = 0|com.oculus.vrshell|19790|vrshell_full_passthrough_exit_guiding_toast|10028
+04-14 21:30:09.677  2298  2298 V [SEO] VrNotificationListenerService: isNotificationAToast() - isValidToast = true, sbn.key = 0|com.oculus.vrshell|19790|vrshell_full_passthrough_exit_guiding_toast|10028
+04-14 21:30:09.677  2298  2298 V [SEO] VrNotificationListenerService: isNotificationAToast() - isWifiCaptivePortal = false, sbn.key = 0|com.oculus.vrshell|19790|vrshell_full_passthrough_exit_guiding_toast|10028
+04-14 21:30:09.677  2298  2298 V [SEO] VrNotificationListenerService: isNotificationAToast() - isRecommendation = false, sbn.key = 0|com.oculus.vrshell|19790|vrshell_full_passthrough_exit_guiding_toast|10028
+04-14 21:30:09.677  2298  2298 D VrNotificationAnalytics: logNotificationPosted: key(0|com.oculus.vrshell|19790|vrshell_full_passthrough_exit_guiding_toast|10028), type(guiding_toast_notification), isToast(true)
+04-14 21:30:09.759   888  1569 D EpsMixerShimEngineStream:             "PASSTHROUGH_IN_FORMAT": false,
+04-14 21:30:10.179  1419  1471 E CellBroadcastUtils: getDefaultCellBroadcastReceiverPackageName: no package found
+04-14 21:30:10.180  1419  1471 I ActivityTaskManager: START u0 {flg=0x10800000 cmp=gg.QuestNav.QuestNav/com.unity3d.player.UnityPlayerGameActivity} with LAUNCH_SINGLE_TASK from uid 2000 (realCallingUid=1000) (BAL_ALLOW_PENDING_INTENT) result code=2
+04-14 21:30:10.194  2298  2939 I [SEO] WorldManager: OnTopActivityChange, disabling mr home world passthrough on leaving home
+04-14 21:30:10.194  2298  2939 I [SEO] WorldManager: SetMRHomeWorldPassthrough, enable: 0, reason leaving home
+04-14 21:30:10.196  1785  2322 I InterstitialRenderer: ovrInterstitialRenderer::Start frameType=2, clientPackageName=gg.QuestNav.QuestNav, description=Black frame over passthrough for previously rendering app launchId=
+04-14 21:30:10.196  1785  2322 I InterstitialRendererLoggerSession:      [description: Black frame over passthrough for previously rendering app]
+04-14 21:30:10.196  1785  2322 I InterstitialRendererLoggerSession: SessionId: dfa66ea597cf5b9cf60044936a7c4156, Event: start, FrameType: Black, Reason: Black frame over passthrough for previously rendering app, Duration: 0, Category:
+04-14 21:30:10.196  1785  2322 I InterstitialRenderer: Starting broadcastTimer_
+04-14 21:30:10.197  1419  1470 V WindowManager: Sent Transition #252 createdAt=04-14 21:30:10.179 via request=TransitionRequestInfo { type = OPEN, triggerTask = TaskInfo{userId=0 taskId=1474 displayId=0 isRunning=true baseIntent=Intent { flg=0x10810100 cmp=gg.QuestNav.QuestNav/com.unity3d.player.UnityPlayerGameActivity } baseActivity=ComponentInfo{gg.QuestNav.QuestNav/com.unity3d.player.UnityPlayerGameActivity} topActivity=ComponentInfo{gg.QuestNav.QuestNav/com.unity3d.player.UnityPlayerGameActivity} origActivity=null realActivity=ComponentInfo{gg.QuestNav.QuestNav/com.unity3d.player.UnityPlayerGameActivity} numActivities=1 numActivitiesPerUser={0=1} lastActiveTime=2543867 supportsMultiWindow=true resizeMode=2 isResizeable=true minWidth=400 minHeight=300 defaultMinSize=1 token=WCT{RemoteToken{ab18b04 Task{765b134 #1474 type=standard A=10161:gg.QuestNav.QuestNav}}} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=null topActivityInfo=ActivityInfo{92e7dd0 com.unity3d.player.UnityPlayerGameActivity} launchCookies=[] telemetryLaunchIds=[] positionInParent=Point(0, 0) parentTaskId=3 isFocused=false isVisible=false isVisibleRequested=false isSleeping=false topActivityInSizeCompat=false topActivityEligibleForLetterboxEducation= false topActivityLetterboxed= false isFromDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1 locusId=null displayAreaFeatureId=1 cameraCompatControlState=hidden}, remoteTransition = null, displayChange = null }
+04-14 21:30:10.197  1785  2041 I CompositorVR: Passthrough usage state changed: app 0, guardian 0, shell 1, system 1, mask 0, surface_proj 0
+04-14 21:30:10.238   888  1569 D EpsMixerShimEngineStream:             "PASSTHROUGH_IN_FORMAT": false,
+04-14 21:30:10.327  1785  2041 I [CT]    : MIXEDREALITY: [Insights] PassthroughTelemetry: rendering over 0.7 sec, session 579.8 sec, dropped_draw_rate: 0.0% (0 failed draw calls)
+04-14 21:30:10.327  1785  2041 I [CT]    : MIXEDREALITY: [Insights] PassthroughTelemetry: - TTFR completed: --, predicted: -- (skipped mid session)
+04-14 21:30:10.327  1785  2041 I [CT]    : MIXEDREALITY: [Insights] PassthroughTelemetry: - TTFR depth rendered: --, computed: -- (skipped mid session)
+04-14 21:30:10.327  1785  2041 I [CT]    : MIXEDREALITY: [Insights] PassthroughTelemetry: - rates: rendering: 90.5/90.0, images: color 59.9, geometry: 32.0 fps
+04-14 21:30:10.327  1785  2041 I [CT]    : MIXEDREALITY: [Insights] PassthroughTelemetry: - p2pLat: 36.4,41.9,47.5 p2geomLat: 47.5,69.4,80.8 ms, min,avg,max
+04-14 21:30:10.327  1785  2041 I [CT]    : MIXEDREALITY: [Insights] PassthroughTelemetry: - system latency: c2a: 16.2,16.4,16.7 a2w: 0.0,0.0,0.1 w2r: 1.8,4.9,8.3 ms, min,avg,max
+04-14 21:30:10.327  1785  2041 I [CT]    : MIXEDREALITY: [Insights] PassthroughTelemetry: - avg exp/gain  9.4/42.1
+04-14 21:30:10.327  1785  2041 I [CT]    : MIXEDREALITY: [Insights] PassthroughTelemetry: - consecutive frame drops count: 0/0/0 (>1/>3/>7)
+04-14 21:30:10.327  1785  2041 I [CT]    : MIXEDREALITY: PassthroughRenderingTelemetry: sendPassthroughRenderingTelemetry: Logging telemetry.
+04-14 21:30:10.483  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.483][Info   ]   XR_FB_passthrough: Version=4
+04-14 21:30:10.483  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.483][Info   ]   XR_META_passthrough_color_lut: Version=1
+04-14 21:30:10.483  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.483][Info   ]   XR_META_passthrough_layer_resumed_event: Version=1
+04-14 21:30:10.483  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.483][Info   ]   XR_META_passthrough_preferences: Version=1
+04-14 21:30:10.484  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.484][Info   ]   XR_FB_passthrough: Version=4
+04-14 21:30:10.484  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.484][Info   ]   XR_META_passthrough_color_lut: Version=1
+04-14 21:30:10.484  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.484][Info   ]   XR_META_passthrough_layer_resumed_event: Version=1
+04-14 21:30:10.484  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.484][Info   ]   XR_META_passthrough_preferences: Version=1
+04-14 21:30:10.484  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.484][Info   ]   Meta Quest: Camera (Passthrough): Version=0.1.0, Company="Unity Technologies", Extensions="XR_FB_passthrough"
+04-14 21:30:10.484  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.484][Info   ]   XR_FB_passthrough_keyboard_hands: Feature="Meta XR Feature": Version=0.0.1, Company="Meta"
+04-14 21:30:10.485  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.485][Info   ]   Meta Quest: Camera (Passthrough): Version=0.1.0, Company="Unity Technologies", Extensions="XR_FB_passthrough"
+04-14 21:30:10.485  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.485][Info   ]   XR_FB_passthrough_keyboard_hands: Feature="Meta XR Feature": Version=0.0.1, Company="Meta"
+04-14 21:30:10.485  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.485][Info   ]   Meta Quest: Camera (Passthrough): Version=0.1.0, Company="Unity Technologies", Extensions="XR_FB_passthrough"
+04-14 21:30:10.486  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.486][Info   ]   Meta Quest: Camera (Passthrough): Version=0.1.0, Company="Unity Technologies", Extensions="XR_FB_passthrough"
+04-14 21:30:10.486  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.486][Info   ]   XR_FB_passthrough_keyboard_hands: Feature="Meta XR Feature": Version=0.0.1, Company="Meta"
+04-14 21:30:10.486  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.486][Info   ]   Meta Quest: Camera (Passthrough): Version=0.1.0, Company="Unity Technologies", Extensions="XR_FB_passthrough"
+04-14 21:30:10.487  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.487][Info   ]   XR_FB_passthrough_keyboard_hands: Feature="Meta XR Feature": Version=0.0.1, Company="Meta"
+04-14 21:30:10.487  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.487][Info   ]   Meta Quest: Camera (Passthrough): Version=0.1.0, Company="Unity Technologies", Extensions="XR_FB_passthrough"
+04-14 21:30:10.487  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.487][Info   ]   XR_FB_passthrough_keyboard_hands: Feature="Meta XR Feature": Version=0.0.1, Company="Meta"
+04-14 21:30:10.488  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.488][Info   ]   Meta Quest: Camera (Passthrough): Version=0.1.0, Company="Unity Technologies", Extensions="XR_FB_passthrough"
+04-14 21:30:10.488  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.488][Info   ]   XR_FB_passthrough_keyboard_hands: Feature="Meta XR Feature": Version=0.0.1, Company="Meta"
+04-14 21:30:10.488  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.488][Info   ]   Meta Quest: Camera (Passthrough): Version=0.1.0, Company="Unity Technologies", Extensions="XR_FB_passthrough"
+04-14 21:30:10.488  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.488][Info   ]   XR_FB_passthrough_keyboard_hands: Feature="Meta XR Feature": Version=0.0.1, Company="Meta"
+04-14 21:30:10.488  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.488][Info   ]   Meta Quest: Camera (Passthrough): Version=0.1.0, Company="Unity Technologies", Extensions="XR_FB_passthrough"
+04-14 21:30:10.488  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.488][Info   ]   XR_FB_passthrough_keyboard_hands: Feature="Meta XR Feature": Version=0.0.1, Company="Meta"
+04-14 21:30:10.489  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.489][Info   ]   Meta Quest: Camera (Passthrough): Version=0.1.0, Company="Unity Technologies", Extensions="XR_FB_passthrough"
+04-14 21:30:10.489  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.489][Info   ]   XR_FB_passthrough_keyboard_hands: Feature="Meta XR Feature": Version=0.0.1, Company="Meta"
+04-14 21:30:10.489  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.489][Info   ]   Meta Quest: Camera (Passthrough): Version=0.1.0, Company="Unity Technologies", Extensions="XR_FB_passthrough"
+04-14 21:30:10.489  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.489][Info   ]   XR_FB_passthrough_keyboard_hands: Feature="Meta XR Feature": Version=0.0.1, Company="Meta"
+04-14 21:30:10.489  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.489][Info   ]   Meta Quest: Camera (Passthrough): Version=0.1.0, Company="Unity Technologies", Extensions="XR_FB_passthrough"
+04-14 21:30:10.489  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.489][Info   ]   XR_FB_passthrough_keyboard_hands: Feature="Meta XR Feature": Version=0.0.1, Company="Meta"
+04-14 21:30:10.490  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.490][Info   ]   Meta Quest: Camera (Passthrough): Version=0.1.0, Company="Unity Technologies", Extensions="XR_FB_passthrough"
+04-14 21:30:10.490  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.490][Info   ]   XR_FB_passthrough_keyboard_hands: Feature="Meta XR Feature": Version=0.0.1, Company="Meta"
+04-14 21:30:10.490  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.490][Info   ]   Meta Quest: Camera (Passthrough): Version=0.1.0, Company="Unity Technologies", Extensions="XR_FB_passthrough"
+04-14 21:30:10.490  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.490][Info   ]   XR_FB_passthrough_keyboard_hands: Feature="Meta XR Feature": Version=0.0.1, Company="Meta"
+04-14 21:30:10.490  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.490][Info   ]   Meta Quest: Camera (Passthrough): Version=0.1.0, Company="Unity Technologies", Extensions="XR_FB_passthrough"
+04-14 21:30:10.490  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.490][Info   ]   XR_FB_passthrough_keyboard_hands: Feature="Meta XR Feature": Version=0.0.1, Company="Meta"
+04-14 21:30:10.491  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.491][Info   ]   Meta Quest: Camera (Passthrough): Version=0.1.0, Company="Unity Technologies", Extensions="XR_FB_passthrough"
+04-14 21:30:10.491  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.491][Info   ]   XR_FB_passthrough_keyboard_hands: Feature="Meta XR Feature": Version=0.0.1, Company="Meta"
+04-14 21:30:10.491  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.491][Info   ]   Meta Quest: Camera (Passthrough): Version=0.1.0, Company="Unity Technologies", Extensions="XR_FB_passthrough"
+04-14 21:30:10.491  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.491][Info   ]   XR_FB_passthrough_keyboard_hands: Feature="Meta XR Feature": Version=0.0.1, Company="Meta"
+04-14 21:30:10.491  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.491][Info   ]   Meta Quest: Camera (Passthrough): Version=0.1.0, Company="Unity Technologies", Extensions="XR_FB_passthrough"
+04-14 21:30:10.491  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.491][Info   ]   XR_FB_passthrough_keyboard_hands: Feature="Meta XR Feature": Version=0.0.1, Company="Meta"
+04-14 21:30:10.492  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.492][Info   ]   Meta Quest: Camera (Passthrough): Version=0.1.0, Company="Unity Technologies", Extensions="XR_FB_passthrough"
+04-14 21:30:10.492  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.492][Info   ]   XR_FB_passthrough_keyboard_hands: Feature="Meta XR Feature": Version=0.0.1, Company="Meta"
+04-14 21:30:10.494  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.494][Info   ]   Meta Quest: Camera (Passthrough): Version=0.1.0, Company="Unity Technologies", Extensions="XR_FB_passthrough"
+04-14 21:30:10.495  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.495][Info   ]   XR_FB_passthrough_keyboard_hands: Feature="Meta XR Feature": Version=0.0.1, Company="Meta"
+04-14 21:30:10.495  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.495][Info   ]   Meta Quest: Camera (Passthrough): Version=0.1.0, Company="Unity Technologies", Extensions="XR_FB_passthrough"
+04-14 21:30:10.497  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.497][Info   ]   Meta Quest: Camera (Passthrough): Version=0.1.0, Company="Unity Technologies", Extensions="XR_FB_passthrough"
+04-14 21:30:10.498  3391  4844 I Unity   : [XR] [479766157808] [21:30:10.498][Info   ]   Meta Quest: Camera (Passthrough): Version=0.1.0, Company="Unity Technologies", Extensions="XR_FB_passthrough"
+04-14 21:30:10.513  1785  2041 W PassthroughInCompositorRenderer: PTINC: Stale images. Staleness=0.14s
+04-14 21:30:10.522  1785  2041 I CompositorVR: Passthrough usage state changed: app 1, guardian 0, shell 1, system 1, mask 0, surface_proj 0
+04-14 21:30:10.555  1785  2322 I InterstitialRenderer: Stopping broadcastTimer_
+04-14 21:30:10.563  1785  2041 I CompositorVR: Passthrough usage state changed: app 1, guardian 0, shell 1, system 0, mask 0, surface_proj 0
+04-14 21:30:10.570  2298  2939 I [SEO] TravelController: ProcessImmersiveTransitionEvent: End Transition for package: gg.QuestNav.QuestNav and launchId: , isPassthroughActive: false, isPassthroughTransition: false
+04-14 21:30:10.600  2298  2939 I [SEO] WorldManager: SetMRHomeWorldPassthrough, enable: 0, reason Non-Home app has loaded
+04-14 21:30:10.611  1108  1243 I MRSS    : MIXEDREALITY: PassthroughTelemetry: Passthrough compute telemetry over 30.0 seconds:
+04-14 21:30:10.611  1108  1243 I MRSS    : MIXEDREALITY: PassthroughTelemetry: - using online cal: yes, calibration age: 4.8 minutes
+04-14 21:30:10.611  1108  1243 I MRSS    : MIXEDREALITY: PassthroughTelemetry: - frames processed (stereo/depth): 895.0 (895.0/0.0)
+04-14 21:30:10.611  1108  1243 I MRSS    : MIXEDREALITY: PassthroughTelemetry: - avg exp/gain stereo: 3.5/2.1 depth: 0.0/0.0
+04-14 21:30:10.611  1108  1243 I MRSS    : MIXEDREALITY: PassthroughTelemetry: - per frame: primary: 0.0,0.0,0.0, secondary: 0.0,0.0,0.0, prev mesh: 0.0,0.0,0.0
+04-14 21:30:10.611  1108  1243 I MRSS    : MIXEDREALITY: PassthroughTelemetry: - mld: model hash: 16384365530014645678
+04-14 21:30:10.611  1108  1243 I MRSS    : MIXEDREALITY: PassthroughTelemetry: - mld per stereo frame: count: 134750.0, extracted: 0.0, sparsified: 0.0
+04-14 21:30:10.611  1108  1243 I MRSS    : MIXEDREALITY: PassthroughComputeCapability: sendComputeTelemetry: Logging telemetry.
+04-14 21:30:10.618  4232  4583 I GuardianPassthroughMgr: [GuardianPassthroughMgr::UpdateIsAppPassthroughInUse] isAppPassthroughInUse updated from 0 to 1
+04-14 21:30:11.007  1108  1389 W MRSS    : MIXEDREALITY: CapabilityWorkExecutor: WatchdogProbe [mrss_compu_sys]: Capability Passthrough timed out, it's taking more than 30ms to complete, expected max 30ms. Total expirations: 1.
+04-14 21:30:11.007  1108  1243 W MRSS    : MIXEDREALITY: CapabilityWorkExecutor: WatchdogProbe [mrss_compu_sys]: Capability Passthrough completed in 30ms, expected max 30ms. Total expirations: 1.
+04-14 21:30:11.237  1108  1389 W MRSS    : MIXEDREALITY: CapabilityWorkExecutor: WatchdogProbe [mrss_compu_sys]: Capability Passthrough timed out, it's taking more than 30ms to complete, expected max 30ms. Total expirations: 1.
+04-14 21:30:11.244  1108  1243 W MRSS    : MIXEDREALITY: CapabilityWorkExecutor: WatchdogProbe [mrss_compu_sys]: Capability Passthrough completed in 37ms, expected max 30ms. Total expirations: 1.
+04-14 21:30:11.328  1108  1240 I MRSS    : MIXEDREALITY: MrFeatureTelemetry: Passthrough Slam-based mesh metrics for telemetry completed. 2545.584173
+04-14 21:30:11.373  1108  1389 W MRSS    : MIXEDREALITY: CapabilityWorkExecutor: WatchdogProbe [mrss_compu_sys]: Capability Passthrough timed out, it's taking more than 30ms to complete, expected max 30ms. Total expirations: 1.
+04-14 21:30:11.378  1108  1243 W MRSS    : MIXEDREALITY: CapabilityWorkExecutor: WatchdogProbe [mrss_compu_sys]: Capability Passthrough completed in 35ms, expected max 30ms. Total expirations: 1.
+04-14 21:30:11.623  1785  2041 I [CT]    : MIXEDREALITY: PassthroughApiManager: GetUpdatedLayerState: (every 2 seconds) PT is: ON numLayers: 2
+04-14 21:30:12.011  1108  1389 W MRSS    : MIXEDREALITY: CapabilityWorkExecutor: WatchdogProbe [mrss_compu_sys]: Capability Passthrough timed out, it's taking more than 30ms to complete, expected max 30ms. Total expirations: 1.
+04-14 21:30:12.013  1108  1243 W MRSS    : MIXEDREALITY: CapabilityWorkExecutor: WatchdogProbe [mrss_compu_sys]: Capability Passthrough completed in 32ms, expected max 30ms. Total expirations: 1.
+04-14 21:30:12.055  1108  1389 W MRSS    : MIXEDREALITY: CapabilityWorkExecutor: WatchdogProbe [mrss_compu_sys]: Capability Passthrough timed out, it's taking more than 30ms to complete, expected max 30ms. Total expirations: 1.
+04-14 21:30:12.055  1108  1243 W MRSS    : MIXEDREALITY: CapabilityWorkExecutor: WatchdogProbe [mrss_compu_sys]: Capability Passthrough completed in 30ms, expected max 30ms. Total expirations: 1.
+04-14 21:30:12.181  1785  2041 W PassthroughInCompositorRenderer: PTINC: Dropped 2 consecutive camera frames.
+
+
+cjhill@MT-502988 MINGW64 /c/CJH/Python/FRC/2026/gui/adb (main)
