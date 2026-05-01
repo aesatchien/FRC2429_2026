@@ -75,6 +75,7 @@ class Shooter(Subsystem):
 
     def set_shooting_offset(self, value):
         self.shooting_offset = value
+        print(f'Shooting rpm offset set to: {self.shooting_offset}')
 
     def _init_networktables(self):
         self.inst = ntcore.NetworkTableInstance.getDefault()

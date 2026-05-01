@@ -241,7 +241,7 @@ class RobotContainer:
         js.bbox_1_7.onTrue(InstantCommand(lambda: self.questnav.quest_unsync_odometry()).ignoringDisable(True))
 
 
-        # buttons 8-10 set intake position and speed
+        #  buttons 8-10 set intake position and speed
         js.bbox_1_8.onTrue(
             Intake_Deploy(intake=self.intake, position='up').andThen(
             Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
@@ -260,7 +260,9 @@ class RobotContainer:
 
         # buttons 11 and 12 are tied to the joystick switch
         js.bbox_1_11.onTrue(InstantCommand(lambda: self.shooter.set_shooting_offset(-sc.k_operator_rpm_adjustment)))
+        js.bbox_1_11.onFalse(InstantCommand(lambda: self.shooter.set_shooting_offset(0)))
         js.bbox_1_12.onTrue(InstantCommand(lambda: self.shooter.set_shooting_offset(sc.k_operator_rpm_adjustment)))
+        js.bbox_1_12.onFalse(InstantCommand(lambda: self.shooter.set_shooting_offset(0)))
 
         # test the intake deploy positions on the L1-L4 buttons
         # js.bbox_2_1.whileTrue(CalibrateIntake(intake=self.intake))
