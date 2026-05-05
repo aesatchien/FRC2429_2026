@@ -28,7 +28,8 @@ class Led(commands2.Subsystem):
         kCOOLBOW = {'name': "COOLBOW", "on_color": None, "off_color": None, "animated": True, "frequency": 10, "duty_cycle": None,
                     'animation_data': [(int(60 + 90 * (i / constants.LedConstants.k_led_count)), 255, 255) for i in range(constants.LedConstants.k_led_count)], 'use_hsv': True, 'use_mode': False}
         kHOTBOW = {'name': "HOTBOW", "on_color": None, "off_color": None, "animated": True, "frequency": 10, "duty_cycle": None,
-                   'animation_data': [(int(150 + 60 * (i / constants.LedConstants.k_led_count)), 255, 255) for i in range(constants.LedConstants.k_led_count)], 'use_hsv': True, 'use_mode': False}
+                   'animation_data': [(int(0 + 36 * (i / constants.LedConstants.k_led_count)), 255, 255) for i in range(constants.LedConstants.k_led_count)],  # but it wraps at 180
+                   'use_hsv': True, 'use_mode': False}
         kPOLKA = {'name': "POLKA", "on_color": None, "off_color": None, "animated": True, "frequency": 2, "duty_cycle": None,
                   'animation_data': [(255, 255, 255) if i % 2 == 0 else (0, 0, 0) for i in range(constants.LedConstants.k_led_count)], 'use_hsv': False, 'use_mode': False}
         # non-animated indicators (flashing is not an animation)
