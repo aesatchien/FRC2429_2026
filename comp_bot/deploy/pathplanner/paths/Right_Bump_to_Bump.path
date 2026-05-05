@@ -24,7 +24,7 @@
         "y": 2.418288340661146
       },
       "nextControl": {
-        "x": 3.717761205429957,
+        "x": 3.717761205429958,
         "y": 2.4082504962970726
       },
       "isLocked": false,
@@ -60,7 +60,7 @@
       "minWaypointRelativePos": 0.11416122939560437,
       "maxWaypointRelativePos": 0.3510688530219781,
       "constraints": {
-        "maxVelocity": 2.5,
+        "maxVelocity": 2.75,
         "maxAcceleration": 2.0,
         "maxAngularVelocity": 540.0,
         "maxAngularAcceleration": 720.0,
@@ -73,7 +73,7 @@
       "minWaypointRelativePos": 0.7302631578947357,
       "maxWaypointRelativePos": 0.9934210526315801,
       "constraints": {
-        "maxVelocity": 2.5,
+        "maxVelocity": 2.0,
         "maxAcceleration": 2.0,
         "maxAngularVelocity": 540.0,
         "maxAngularAcceleration": 720.0,
@@ -86,7 +86,7 @@
       "minWaypointRelativePos": 1.281355932203394,
       "maxWaypointRelativePos": 1.728813559322035,
       "constraints": {
-        "maxVelocity": 2.0,
+        "maxVelocity": 2.75,
         "maxAcceleration": 2.0,
         "maxAngularVelocity": 540.0,
         "maxAngularAcceleration": 720.0,
@@ -121,7 +121,7 @@
     }
   ],
   "globalConstraints": {
-    "maxVelocity": 3.0,
+    "maxVelocity": 3.5,
     "maxAcceleration": 2.0,
     "maxAngularVelocity": 540.0,
     "maxAngularAcceleration": 720.0,
@@ -138,5 +138,5 @@
     "velocity": 0,
     "rotation": 42.80128844745275
   },
-  "useDefaultConstraints": true
+  "useDefaultConstraints": false
 }

@@ -92,7 +92,7 @@
       "minWaypointRelativePos": 0.0,
       "maxWaypointRelativePos": 0.7214019495412843,
       "constraints": {
-        "maxVelocity": 2.0,
+        "maxVelocity": 2.5,
         "maxAcceleration": 3.0,
         "maxAngularVelocity": 540.0,
         "maxAngularAcceleration": 720.0,
@@ -105,7 +105,7 @@
       "minWaypointRelativePos": 2.736842105263159,
       "maxWaypointRelativePos": 3.38157894736842,
       "constraints": {
-        "maxVelocity": 2.0,
+        "maxVelocity": 2.5,
         "maxAcceleration": 3.0,
         "maxAngularVelocity": 540.0,
         "maxAngularAcceleration": 720.0,
@@ -140,7 +140,7 @@
     }
   ],
   "globalConstraints": {
-    "maxVelocity": 3.0,
+    "maxVelocity": 3.5,
     "maxAcceleration": 2.0,
     "maxAngularVelocity": 540.0,
     "maxAngularAcceleration": 720.0,
@@ -157,5 +157,5 @@
     "velocity": 0,
     "rotation": 44.41816977740279
   },
-  "useDefaultConstraints": true
+  "useDefaultConstraints": false
 }
