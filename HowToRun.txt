@@ -1,0 +1,25 @@
+Guide for practice_bot and comp_bot
+
+    Open a new terminal
+    Type and enter 'git pull' to recieve any updates
+    To Sim: Type 'python -m robotpy sim'
+    To Deploy: Type 'python -m robotpy deploy'
+    Open a gui window:
+        Find the folder gui, it is FRC2429_2026/gui (In the resources folder, find the photo labeled "comp_bot_directory.png" to confirm the path)
+        Open a terminal
+        Type: 'python main.py'
+    Connect to the robots wifi
+    Open FRC Driver Station, you should be able to enable. If not, redeploy
+
+
+Guide for Chairbot:
+
+    Open a new terminal
+    Open the chairbot folder in that termal (In the resources folder, find the photo labeled "chairbot_directory.png" to confirm the path)
+        To navigate the terminal, type cd <The_next_item_in_path> to move down a directory, or cd .. to move back up.
+    Once in the chairbot directory, type "cd gui" to enter the gui directory
+    Next type "python dashboard.py" to open the chairbot dashboard.
+    Next connect to the chairbot wifi
+    Finally, open a driver station, and you should be able to enable chairbot.
+    Use the gui to change translation or twist percentages.
+    
