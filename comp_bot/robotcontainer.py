@@ -80,13 +80,15 @@ class RobotContainer:
         self.bind_driver_buttons()
         self.bind_codriver_buttons()  # if we need to
         self.bind_bbox_buttons()
+        self.bind_ps_buttons()
 
         self.swerve.setDefaultCommand(DriveByJoystickSubsystemTargeting(
               container=self,
               swerve=self.swerve,
               controller=js.driver_controller,
               targeting=self.targeting,
-              button_box=js.bbox_1
+              button_box=js.bbox_1,
+              ps5controller=js.play_station_controller  # ps5 is play station controller
          ))
 
         if not constants.k_swerve_only:
@@ -104,8 +106,6 @@ class RobotContainer:
     def bind_driver_buttons(self):
         # ----------  DRIVER BUTTONS  ---------------
         print("Binding driver buttons")
-
-        self.bind_codriver_buttons()
 
         # --- Drive & Navigation ---
 
@@ -286,6 +286,78 @@ class RobotContainer:
         # ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
         # # does not work as an "andThen" for some reason
         # js.bbox_2_7.onFalse(Intake_Deploy(intake=self.intake, position='down'))
+
+    def bind_ps_buttons(self):
+
+         # ----------  DRIVER BUTTONS  ---------------
+        print("Binding play station buttons")
+
+        # --- Drive & Navigation ---
+
+        # Allow the driver to reset the field in case of emergency
+        js.ps_triangle.onTrue(ResetFieldCentric(container=self, swerve=self.swerve, angle=0).ignoringDisable(True))
+        js.ps_triangle.debounce(0.5).onTrue(InstantCommand(lambda: self.questnav.quest_sync_odometry()).ignoringDisable(True))
+
+        # --- The current shooting cycle
+        # slow intake rollers, start the shooting cycle, then raise the intake after a short wait
+        js.ps_cross.whileTrue(commands2.ParallelCommandGroup(
+            ShootingCommand(shooter=self.shooter, targeting=self.targeting),
+            commands2.SequentialCommandGroup(commands2.WaitCommand(constants.AutoConstants.k_intake_raise_delay),
+                                             Intake_Deploy(intake=self.intake, position='shoot'),
+                                             commands2.WaitCommand(constants.AutoConstants.k_intake_raise_delay),
+                                             Intake_Deploy(intake=self.intake, position='shoot2')),
+        ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=500, led=self.led)))
+        # does not work as an "andThen" for some reason
+        js.ps_cross.onFalse(Intake_Deploy(intake=self.intake, position='down').andThen(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
+
+        # manual shooting - identical to the above but with fixed RPM
+        js.ps_square.whileTrue(commands2.ParallelCommandGroup(
+            ShootingCommand(shooter=self.shooter, targeting=self.targeting, rpm=3300),
+            commands2.SequentialCommandGroup(commands2.WaitCommand(constants.AutoConstants.k_intake_raise_delay),
+                                             Intake_Deploy(intake=self.intake, position='shoot'),
+                                             commands2.WaitCommand(constants.AutoConstants.k_intake_raise_delay),
+                                             Intake_Deploy(intake=self.intake, position='shoot2')),
+        ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=500, led=self.led)))
+        js.ps_square.onFalse(Intake_Deploy(intake=self.intake, position='down').andThen(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
+
+        js.ps_circle.onTrue(InstantCommand(lambda: self.shooter.set_shooter_rpm(sc.k_fire_up_speed)))
+        js.ps_circle.whileTrue(commands2.ParallelCommandGroup(
+            ShootingFeedingCommand(shooter=self.shooter, rpm=sc.k_shooter_max_speed),
+            commands2.SequentialCommandGroup(commands2.WaitCommand(constants.AutoConstants.k_intake_raise_delay),
+                                             Intake_Deploy(intake=self.intake, position='shoot'),
+                                             commands2.WaitCommand(constants.AutoConstants.k_intake_raise_delay),
+                                             Intake_Deploy(intake=self.intake, position='shoot2')),
+        ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=500, led=self.led)))
+        js.ps_circle.onFalse(Intake_Deploy(intake=self.intake, position='down').andThen(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
+
+
+        # start / stop tracking
+        js.ps_r1.onTrue(InstantCommand(lambda: self.targeting.start_tracking())
+                            .andThen(InstantCommand(lambda: self.shooter.set_shooter_rpm(rpm=sc.k_fire_up_speed))))
+        js.ps_r1.onFalse(InstantCommand(lambda: self.targeting.stop_tracking()))
+
+        # D-Pad: Slow, smooth robot-centric alignment (Nudge)
+        dpad_driving = True
+        if dpad_driving:
+            dpad_output = 0.15
+            js.ps_up.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(dpad_output, 0, 0), timeout=10))
+            js.ps_down.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(-dpad_output, 0, 0), timeout=10))
+            js.ps_left.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(0, dpad_output, 0), timeout=10))
+            js.ps_right.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(0, -dpad_output, 0), timeout=10))
+        else:
+            # js.ps_up.whileTrue(CalibrateIntake(intake=self.intake))
+            js.ps_up.onTrue(Intake_Deploy(intake=self.intake, position='up'))
+            #js.ps_right.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=1))
+            #js.ps_left.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=-1))
+            js.ps_down.onTrue(Intake_Deploy(intake=self.intake, position='down'))
+
+        # --- Subsystems ---
+        # Giving Jeremy faster and slower fixed speeds
+        js.ps_l1.onTrue(Intake_Set_RPM(intake=self.intake, rpm=ic.k_intake_teleop_rpm, led=self.led))
+        js.ps_l2.whileTrue(SwerveSetX(container=self, swerve=self.swerve))
+        js.ps_share.onTrue(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
+        js.ps_options.whileTrue(Intake_Deploy(self.intake, "down").andThen(Intake_Set_RPM(self.intake, -constants.IntakeConstants.k_intake_default_rpm).alongWith(InstantCommand(lambda: self.shooter.set_hopper_rpm(-constants.ShooterConstants.k_hopper_rpm)))))
+
 
 
 
