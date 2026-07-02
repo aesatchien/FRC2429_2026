@@ -219,7 +219,7 @@ class RobotContainer:
             InstantCommand(lambda: self.shooter.set_hopper_rpm(0))
             #Set_Afterburner(afterburner_on=True)
         ))
-        #js.bbox_1_3.debounce(.2).whileTrue(SwerveTest(container=self, swerve=self.swerve))
+        js.bbox_1_3.debounce(.2).whileTrue(SwerveTest(container=self, swerve=self.swerve))
 
         # allow us to react to brownouts by lowering the current limit on the drive motors
         js.bbox_1_4.onTrue(
