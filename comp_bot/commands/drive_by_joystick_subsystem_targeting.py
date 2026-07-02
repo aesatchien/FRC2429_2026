@@ -7,7 +7,7 @@ import ntcore
 import constants
 from subsystems.swerve import Swerve  # allows us to access the definitions
 from subsystems.targeting import Targeting
-from commands2.button import CommandXboxController, CommandJoystick
+from commands2.button import CommandPS4Controller, CommandXboxController, CommandJoystick
 from wpimath.geometry import Translation2d
 from wpimath.filter import Debouncer, SlewRateLimiter
 from subsystems.swerve_constants import DriveConstants as dc, RateLimiters as rl
@@ -16,7 +16,7 @@ from helpers.log_command import log_command
 
 @log_command(console=True, nt=False, print_init=True, print_end=False)
 class DriveByJoystickSubsystemTargeting(commands2.Command):
-    def __init__(self, container, swerve: Swerve, targeting: Targeting, controller: CommandXboxController, button_box: CommandJoystick=None) -> None:
+    def __init__(self, container, swerve: Swerve, targeting: Targeting, controller: CommandXboxController=None, ps5controller: CommandPS4Controller=None, button_box: CommandJoystick=None) -> None:
         super().__init__()
         self.setName('drive_by_joystick_subsystem_targeting')
         
@@ -27,7 +27,9 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
         self.swerve = swerve
         self.targeting = targeting
         self.addRequirements(self.swerve)
-        self.controller: CommandXboxController = controller
+
+        self.xbox_controller: CommandXboxController = controller
+        self.ps5_controller: CommandPS4Controller = ps5controller
         self.button_box: CommandJoystick = button_box
 
         # -----------------------------------------------------------
@@ -68,26 +70,59 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
     def initialize(self) -> None:
         """Called just before this Command runs the first time."""
         pass
+    
+    def read_xbox(self, hid):
+        """Returns (left_y, left_x, right_x, right trigger, robot_oriented) from the Xbox HID"""
+        return (
+            hid.getLeftY(),
+            hid.getLeftX(),
+            hid.getRightX(),
+            hid.getRightTriggerAxis(),
+            hid.getLeftBumperButton()
+        )
+
+    def read_ps5(self, hid):
+        """Returns (left_y, left_x, right_x, right trigger, robot_oriented) from the PS5 HID"""
+        # This was from gemini, but it is helpful to test the controller mapping in sim.
+        # axis_count = hid.getAxisCount()
+        # values = [round(hid.getRawAxis(i), 3) for i in range(axis_count)]
+        # print(f"DEBUGGING: port={hid.getPort()} axis_count={axis_count} values={values}")
+        return (
+            hid.getLeftY(),
+            hid.getLeftX(),
+            hid.getRawAxis(2),  # Right X is axis 2 on PS5 controller
+            hid.getRawAxis(4) + 1,  # Right Trigger is axis 4 on PS5 controller, and is -1 by default, so we add 1 to make it 0
+            hid.getL1Button()
+        )
 
     def execute(self) -> None:
         # -----------------------------------------------------------
         # 1. READ INPUTS
         # -----------------------------------------------------------
-        hid = self.controller.getHID()
+        xbox_connected = self.xbox_controller is not None and wpilib.DriverStation.isJoystickConnected(0)
+        ps5_connected = self.ps5_controller is not None and wpilib.DriverStation.isJoystickConnected(5)
+        
+        if xbox_connected:
+            left_y, left_x, right_x, right_trigger, robot_oriented = self.read_xbox(self.xbox_controller.getHID())
+        elif ps5_connected:
+            left_y, left_x, right_x, right_trigger, robot_oriented = self.read_ps5(self.ps5_controller.getHID())
+        else:
+            left_y, left_x, right_x, right_trigger, robot_oriented = 0.0, 0.0, 0.0, 0.0, False  # cooked??? IDK - Trentan
+
         if self.button_box is not None:
             after_burner = self.button_box.getHID().getRawButton(3)
-        else: 
+        else:
             after_burner = False
+
         inputs = {
             'robot_pose': self.swerve.get_pose(),
-            'left_y': hid.getLeftY(),
-            'left_x': hid.getLeftX(),
-            'right_x': hid.getRightX(),
-            'trigger': hid.getRightTriggerAxis(),
+            'left_y': left_y,
+            'left_x': left_x,
+            'right_x': right_x,
+            'right_trigger': right_trigger,
             'after_burner' : after_burner,
-            'robot_oriented': hid.getLeftBumperButton(),
-            # 'tracking_on': hid.getRightBumperButton(),  # use a button to turn on tracking
-            'tracking_on': self.container.targeting.get_tracking_state(),  # now instead of a button
+            'robot_oriented': robot_oriented,
+            'tracking_on': self.container.targeting.get_tracking_state(),
             'alliance': wpilib.DriverStation.getAlliance()
         }
 
@@ -96,7 +131,7 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
         # -----------------------------------------------------------
         
         # --- Drive Mode & Multipliers ---
-        turbo = self.turbo_limiter.calculate(inputs['trigger']**2)
+        turbo = min(1.0, self.turbo_limiter.calculate(inputs['right_trigger']**2))
         afterburner = self.afterburner_limiter.calculate(inputs['after_burner'])
 
         if (inputs['after_burner'] == False):

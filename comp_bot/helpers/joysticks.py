@@ -74,3 +74,28 @@ bbox_1_12 = bbox_1.button(12)
 # copilot_r_stick_negative_x = copilot_controller.axisLessThan(4, -0.5)
 # copilot_r_stick_positive_y = copilot_controller.axisGreaterThan(5, 0.5)
 # copilot_r_stick_negative_y = copilot_controller.axisLessThan(5, -0.5)
+
+play_station_controller = commands2.button.CommandPS4Controller(constants.k_ps5_controller_port)
+
+ps_square = play_station_controller.square()
+ps_cross = play_station_controller.cross()
+ps_circle = play_station_controller.circle()
+ps_triangle = play_station_controller.triangle()
+ps_l1 = play_station_controller.L1()
+ps_r1 = play_station_controller.R1()
+ps_l2 = play_station_controller.L2()
+ps_r2 = play_station_controller.R2()
+ps_share = play_station_controller.share()
+ps_options = play_station_controller.options()
+ps_l_stick = play_station_controller.L3()
+ps_r_stick = play_station_controller.R3()
+ps_ps_logo = play_station_controller.PS()
+ps_touchpad = play_station_controller.touchpad()
+
+# Mic isn't part of WPILib's standard PS5 button map, keeping it a raw button - Trentan
+ps_mic = play_station_controller.button(15)
+
+ps_up = play_station_controller.povUp()
+ps_down = play_station_controller.povDown()
+ps_left = play_station_controller.povLeft()
+ps_right = play_station_controller.povRight()
