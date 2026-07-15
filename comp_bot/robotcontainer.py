@@ -338,7 +338,7 @@ class RobotContainer:
         js.ps_r1.onFalse(InstantCommand(lambda: self.targeting.stop_tracking()))
 
         # D-Pad: Slow, smooth robot-centric alignment (Nudge)
-        dpad_driving = True
+        dpad_driving = False
         if dpad_driving:
             dpad_output = 0.15
             js.ps_up.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(dpad_output, 0, 0), timeout=10))
@@ -354,7 +354,7 @@ class RobotContainer:
 
         # --- Subsystems ---
         # Giving Jeremy faster and slower fixed speeds
-        js.ps_l1.onTrue(Intake_Set_RPM(intake=self.intake, rpm=ic.k_intake_teleop_rpm, led=self.led))
+        js.ps_l1.onTrue(Intake_Set_RPM(intake=self.intake, rpm=ic.k_intake_teleop_rpm * .6, led=self.led))
         js.ps_l2.whileTrue(SwerveSetX(container=self, swerve=self.swerve))
         js.ps_share.onTrue(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
         js.ps_options.whileTrue(Intake_Deploy(self.intake, "down").andThen(Intake_Set_RPM(self.intake, -constants.IntakeConstants.k_intake_default_rpm).alongWith(InstantCommand(lambda: self.shooter.set_hopper_rpm(-constants.ShooterConstants.k_hopper_rpm)))))

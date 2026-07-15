@@ -223,7 +223,7 @@ class IntakeConstants:
     k_top_angle = 148  # degrees when at top position - i think the maxplanetary added about 4 degrees of backlash total
     k_bottom_angle = 0  # degrees when at bottom position
     k_shooting_angle = 75  # degrees when in shooting position - this is a guess, will need to be tuned
-    k_second_shooting_angle = 95
+    k_second_shooting_angle = 105
 
     k_intake_left_leader_config, k_intake_right_follower_config = SparkMaxConfig(), SparkMaxConfig()
     k_intake_configs = [k_intake_left_leader_config, k_intake_right_follower_config, k_deploy_config]
