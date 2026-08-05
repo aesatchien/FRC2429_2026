@@ -55,6 +55,7 @@ from commands.shooting_feeding_command import ShootingFeedingCommand
 from commands.intake_set_rpm import Intake_Set_RPM
 from commands.intake_deploy import Intake_Deploy
 from commands.intake_calibrate import CalibrateIntake
+from commands.intake_crunch import Intake_Crunch
 
 
 class RobotContainer:
@@ -350,6 +351,8 @@ class RobotContainer:
             # js.ps_up.whileTrue(CalibrateIntake(intake=self.intake))
             js.ps_up.onTrue(Intake_Deploy(intake=self.intake, position='up'))
             #js.ps_right.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=1))
+            js.ps_left.onTrue(Intake_Crunch(intake=self.intake))
+            js.ps_r_stick.whileTrue(ShootingFeedingCommand(shooter=self.shooter, rpm=sc.k_shooter_max_speed))
             #js.ps_left.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=-1))
             js.ps_down.onTrue(Intake_Deploy(intake=self.intake, position='down'))
 
