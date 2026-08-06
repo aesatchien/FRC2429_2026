@@ -89,6 +89,8 @@ class RobotContainer:
         self.bind_driver_buttons()
         self.bind_codriver_buttons()  # if we need to
         self.bind_bbox_buttons()
+        self.bind_ps_buttons()
+        
 
         self.swerve.setDefaultCommand(DriveByJoystickSubsystemTargeting(
               container=self,

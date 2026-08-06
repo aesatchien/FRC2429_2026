@@ -39,6 +39,7 @@ from autonomous.teleop_cycle import TeleopCycle
 from autonomous.pathing_center_back import PathingCenterBack
 from autonomous.pathing_center_to_outpost import PathingCenterOutpost
 from autonomous.pathing_drawing import DrawingAuto
+from autonomous.short_bump import ShortBump
 
 # 2429 commands
 from commands.can_status import CANStatus
@@ -354,7 +355,7 @@ class RobotContainer:
 
         # --- Subsystems ---
         # Giving Jeremy faster and slower fixed speeds
-        js.ps_l1.onTrue(Intake_Set_RPM(intake=self.intake, rpm=ic.k_intake_teleop_rpm * .6, led=self.led))
+        js.ps_l1.onTrue(Intake_Set_RPM(intake=self.intake, rpm=ic.k_intake_teleop_rpm*.9, led=self.led))
         js.ps_l2.whileTrue(SwerveSetX(container=self, swerve=self.swerve))
         js.ps_share.onTrue(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
         js.ps_options.whileTrue(Intake_Deploy(self.intake, "down").andThen(Intake_Set_RPM(self.intake, -constants.IntakeConstants.k_intake_default_rpm).alongWith(InstantCommand(lambda: self.shooter.set_hopper_rpm(-constants.ShooterConstants.k_hopper_rpm)))))
@@ -458,11 +459,12 @@ class RobotContainer:
         # self.auto_chooser.addOption('2d: Two Cycles *CODE*', TwoCycle(self, indent=0))
         # self.auto_chooser.addOption('3a: FSF Bump *CODE*', FillShootFillBump(self, indent=0))
         # self.auto_chooser.setDefaultOption('3b: FSFS Bump *CODE*', FillShootFillShootBump(self, indent=0))
-        self.auto_chooser.setDefaultOption('3a: FSFS Bump to Bump *CODE*', PathingFSFSBumptoBump(self, indent=0))
+        self.auto_chooser.addOption('3a: FSFS Bump to Bump *CODE*', PathingFSFSBumptoBump(self, indent=0))
         self.auto_chooser.addOption('3b: FSFS Trench to Bump *CODE*', PathingFSFSTrenchtoBump(self, indent=0))
         self.auto_chooser.addOption('3c: FSFS Trench to Trench *CODE*', PathingFSFSTrenchtoTrench(self, indent=0))
         # self.auto_chooser.addOption('4a: Intake Depot or Outpost Shoot *CODE*', DepotOrOutpostAndShoot(self, indent=0))
         self.auto_chooser.addOption('4a: Drawing Auto *CODE*', DrawingAuto(self, indent=0))
+        self.auto_chooser.setDefaultOption('4b: Short Bump Auto *CODE*', ShortBump(self, indent=0))
 
         wpilib.SmartDashboard.putData('autonomous routines', self.auto_chooser)  #
 

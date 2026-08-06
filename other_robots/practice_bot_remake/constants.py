@@ -30,6 +30,7 @@ k_driver_controller_port = 0
 k_co_driver_controller_port = 1
 k_bbox_2_port = 3
 k_bbox_1_port = 2
+ps_controller_port = 5
 
 # should be fine to burn on every reboot, but we can turn this off
 k_burn_flash = True
