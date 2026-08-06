@@ -39,6 +39,7 @@ from autonomous.teleop_cycle import TeleopCycle
 from autonomous.pathing_center_back import PathingCenterBack
 from autonomous.pathing_center_to_outpost import PathingCenterOutpost
 from autonomous.pathing_drawing import DrawingAuto
+from autonomous.pathing_right_bump_cycle import RightBumpCycle
 from autonomous.short_bump import ShortBump
 
 # 2429 commands
@@ -55,6 +56,7 @@ from commands.shooting_feeding_command import ShootingFeedingCommand
 from commands.intake_set_rpm import Intake_Set_RPM
 from commands.intake_deploy import Intake_Deploy
 from commands.intake_calibrate import CalibrateIntake
+from commands.intake_crunch import Intake_Crunch
 
 
 class RobotContainer:
@@ -350,6 +352,8 @@ class RobotContainer:
             # js.ps_up.whileTrue(CalibrateIntake(intake=self.intake))
             js.ps_up.onTrue(Intake_Deploy(intake=self.intake, position='up'))
             #js.ps_right.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=1))
+            js.ps_left.onTrue(Intake_Crunch(intake=self.intake))
+            js.ps_r_stick.whileTrue(ShootingFeedingCommand(shooter=self.shooter, rpm=sc.k_shooter_max_speed))
             #js.ps_left.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=-1))
             js.ps_down.onTrue(Intake_Deploy(intake=self.intake, position='down'))
 
@@ -464,6 +468,8 @@ class RobotContainer:
         self.auto_chooser.addOption('3c: FSFS Trench to Trench *CODE*', PathingFSFSTrenchtoTrench(self, indent=0))
         # self.auto_chooser.addOption('4a: Intake Depot or Outpost Shoot *CODE*', DepotOrOutpostAndShoot(self, indent=0))
         self.auto_chooser.addOption('4a: Drawing Auto *CODE*', DrawingAuto(self, indent=0))
+        self.auto_chooser.addOption('4b: Right Bump Cycle *CODE*', RightBumpCycle(self, indent=0))
+
         self.auto_chooser.setDefaultOption('4b: Short Bump Auto *CODE*', ShortBump(self, indent=0))
 
         wpilib.SmartDashboard.putData('autonomous routines', self.auto_chooser)  #
