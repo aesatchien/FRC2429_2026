@@ -188,6 +188,9 @@ class Intake(Subsystem):
     def get_profile_setpoint(self):
         return self.arm_profile.getSetpoint().position
 
+    def set_profile_setpoint(self, angle):
+        return self.arm_profile.setGoal(angle)
+
     def get_rpm(self):
         return self.current_rpm
 

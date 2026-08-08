@@ -4,6 +4,7 @@ import typing
 import wpilib
 import commands2
 import constants
+from constants import IntakeConstants as ic
 from wpimath.units import inchesToMeters
 
 from helpers import log_command
@@ -148,8 +149,18 @@ class MyRobot(commands2.TimedCommandRobot):
         # Update Mechanism2d visualization (works on Real Robot and Sim)
         if self.mech:
             # Intake
-            self.mech.update_intake(angle=self.container.intake.get_profile_setpoint(),
+            if wpilib.RobotState.isDisabled() == False:
+                self.mech.update_intake(angle=self.container.intake.get_profile_setpoint(),
                                     rpm=self.container.intake.current_rpm if self.container.intake.intake_on else 0)
+            else:
+                if self.container.intake.get_profile_setpoint() < 90 and self.container.intake.get_profile_setpoint() > ic.k_bottom_angle:
+                    self.mech.update_intake(angle=self.container.intake.get_profile_setpoint() - 1,
+                                    rpm=self.container.intake.current_rpm if self.container.intake.intake_on else 0)
+                    self.container.intake.set_profile_setpoint(self.container.intake.get_profile_setpoint() - 1)
+                elif self.container.intake.get_profile_setpoint() > 90 and self.container.intake.get_profile_setpoint() < ic.k_top_angle:
+                    self.mech.update_intake(angle=self.container.intake.get_profile_setpoint() + 1,
+                                        rpm=self.container.intake.current_rpm if self.container.intake.intake_on else 0)
+                    self.container.intake.set_profile_setpoint(self.container.intake.get_profile_setpoint() + 1)
 
             # Shooter
             self.mech.update_hopper(self.container.shooter.current_hopper_rpm / 6000)
