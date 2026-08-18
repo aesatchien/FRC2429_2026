@@ -344,10 +344,7 @@ class BlockheadMech:
         # Deployed: Down to ground. Relative angle -200 -> Absolute -110.
         
         # Note: appendLigament angle is relative to parent. Parent is 90 deg (vertical).
-        if self._get_rel_angle(angle, self.intake_mount_angle) > (30 + self.intake_post.getAngle()) % 360 and self.intake_post.getAngle() < ic.k_top_angle:
-            self.intake_post.setAngle(self.intake_post.getAngle() + 1)
-        elif self._get_rel_angle(angle, self.intake_mount_angle) <= (30+ self.intake_post.getAngle()) % 360 and self.intake_post.getAngle() > ic.k_bottom_angle:
-            self.intake_post.setAngle(self.intake_post.getAngle() - 1)
+        self.intake_post.setAngle(self._get_rel_angle(angle, self.intake_mount_angle))
         
         if abs(rpm) > 10:
 

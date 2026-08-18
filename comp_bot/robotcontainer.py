@@ -354,16 +354,20 @@ class RobotContainer:
             js.ps_up.onTrue(Intake_Deploy(intake=self.intake, position='up'))
             #js.ps_right.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=1))
             js.ps_left.onTrue(Intake_Crunch(intake=self.intake))
-            js.ps_r_stick.whileTrue(ShootingFeedingCommand(shooter=self.shooter, rpm=sc.k_shooter_max_speed))
-            js.ps_right.onTrue(Intake_Close(intake=self.intake))
+            js.ps_share.whileTrue(ShootingFeedingCommand(shooter=self.shooter, rpm=sc.k_shooter_test_speed))
+            js.ps_right.onTrue(commands2.ParallelCommandGroup(
+                Intake_Close(intake=self.intake, time=2),
+                ShootingCommand(shooter=self.shooter, targeting=self.targeting)))  # Two seconds to close intake
             #js.ps_left.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=-1))
             js.ps_down.onTrue(Intake_Deploy(intake=self.intake, position='down'))
 
         # --- Subsystems ---
         # Giving Jeremy faster and slower fixed speeds
-        js.ps_l1.onTrue(Intake_Set_RPM(intake=self.intake, rpm=ic.k_intake_teleop_rpm*.9, led=self.led))
+        js.ps_l1.onTrue(
+                Intake_Set_RPM(intake=self.intake, rpm=ic.k_intake_teleop_rpm*.9, led=self.led).andThen(
+                Intake_Deploy(intake=self.intake, position='down')))
         js.ps_l2.whileTrue(SwerveSetX(container=self, swerve=self.swerve))
-        js.ps_share.onTrue(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
+        # js.ps_share.onTrue(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
         js.ps_options.whileTrue(Intake_Deploy(self.intake, "down").andThen(Intake_Set_RPM(self.intake, -constants.IntakeConstants.k_intake_default_rpm).alongWith(InstantCommand(lambda: self.shooter.set_hopper_rpm(-constants.ShooterConstants.k_hopper_rpm)))))
 
 

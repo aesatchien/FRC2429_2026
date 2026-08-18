@@ -19,6 +19,7 @@ class Intake_Crunch(commands2.Command):  # change the name for your command
 
     def initialize(self) -> None:
 
+        self.counter = 0
         self.intake.set_intake_position(angle=ic.k_crunch_angle)
 
 

@@ -8,13 +8,14 @@ from subsystems.intake import Intake
 class Intake_Close(commands2.Command):  # change the name for your command
 
 
-    def __init__(self, intake: Intake,  on_start=False, indent=0) -> None:
+    def __init__(self, intake: Intake,  on_start=False, time=2, indent=0) -> None:
         super().__init__()
         self.setName('Intake_Close')  # change this to something appropriate for this command
         self.intake = intake
         self.indent = indent
         self.addRequirements(self.intake)  # commandsv2 version of requirements
         self.counter = 0
+        self.time = time
 
     def initialize(self) -> None:
         self.counter = 0
@@ -22,12 +23,12 @@ class Intake_Close(commands2.Command):  # change the name for your command
 
 
     def execute(self) -> None:
-        # In three seconds, I want the intake to go from open to closed.
-        # What that would mean is basically every cycle, move the intake one degree
-        # That would be 150 in 3 seconds ~ 148 degrees (which is currently top angle) - Trentan
+        # In the amount of passed seconds, I want the intake to go from open to closed.
+        # To caluclate that, perform math with counter:
+        # time / 3 = mult, take mult * counter set that to angle
         self.counter += 1
-        if self.counter < ic.k_top_angle:
-            self.intake.set_intake_position(angle=self.counter)
+        if self.counter * (3 / self.time) < ic.k_top_angle:
+            self.intake.set_intake_position(angle=self.counter * (3 / self.time))
 
 
     def isFinished(self) -> bool:
