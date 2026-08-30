@@ -11,7 +11,7 @@ from rev import SparkBase, SparkLowLevel  # trying to save some typing
 
 import constants
 from constants import IntakeConstants as ic
-from helpers.utilities import _get_motor_state, compare_motors
+from helpers.utilities import _get_motor_state, compare_motors, configure_sparks
 
 
 class Intake(Subsystem):
@@ -40,17 +40,12 @@ class Intake(Subsystem):
         self.deploy_controller = self.deploy_motor.getClosedLoopController()
         self.deploy_encoder = self.deploy_motor.getEncoder()
 
-        # default parameters for the sparkmaxes reset and persist modes -
-        self.rev_resets = rev.ResetMode.kResetSafeParameters
-        self.rev_persists = rev.PersistMode.kPersistParameters if constants.k_burn_flash \
-            else rev.PersistMode.kNoPersistParameters
-
-        # put the configs in a list matching the motors
-        self.configs = ic.k_intake_configs
-
-        # this should be its own function later - we will call it whenever we change brake mode
-        rev_errors = [motor.configure(config, self.rev_resets, self.rev_persists)
-                      for motor, config in zip(self.motors, self.configs)]
+        # Each motor is paired with its own named config, so you cannot silently mis-order them.
+        configure_sparks([
+            (self.intake_motor,          ic.k_intake_left_leader_config),
+            (self.intake_motor_follower, ic.k_intake_right_follower_config),
+            (self.deploy_motor,          ic.k_deploy_config),
+        ], subsystem_name='intake')
 
         # initialize states
         self.intake_on = False
@@ -207,27 +202,6 @@ class Intake(Subsystem):
         self.arm_profile.setGoal(current_pos)
         self.deploy_motor.setVoltage(0)
 
-    def set_down(self, position_to_go_to="down"):
-        # when position_to_go_to is "down", intake is lowered
-        pass
-        if position_to_go_to == "down":
-            self.set_intake_position(ic.k_bottom_angle)
-            print("down boy")
-
-        elif position_to_go_to == "up":
-            self.set_intake_position(ic.k_top_angle)
-            print("giddy up")
-
-        if self.deploy_controller.get_average_current() > ic.k_deploy_current_peak:
-            print("Something got cooked.")
-            self.deploy_stop()
-            self.done = True
-            self.deployed = False
-            self.deployed_angle = 0
-
-        self.update_nt()
-        return position_to_go_to == "down"
-
     def set_brake_mode(self, brake_on=True):
         
         idle_mode = rev.SparkBaseConfig.IdleMode.kBrake if brake_on else rev.SparkBaseConfig.IdleMode.kCoast
@@ -240,11 +214,10 @@ class Intake(Subsystem):
         tmp_config = rev.SparkBaseConfig().setIdleMode(idle_mode)
         print(f'Temp config on intake: {tmp_config.Presets}')  # just wondering what is in there; delete after testing
 
-        state_before = _get_motor_state(self.deploy_motor)
         rev_errors = self.deploy_motor.configure(tmp_config, no_resets, no_persists)
-        state_after = _get_motor_state(self.deploy_motor)
-        # If you are paranoid you can see each state - only the idle mode changes
-        # compare_motors(state_before, state_after, name_a='INTAKE BEFORE', name_b='INTAKE AFTER')
+        # To see exactly what changed, wrap the configure() above in:
+        #   before = _get_motor_state(self.deploy_motor);  ... ;  after = _get_motor_state(self.deploy_motor)
+        #   compare_motors(before, after, name_a='INTAKE BEFORE', name_b='INTAKE AFTER')
 
         # report our results - but not the best way since there is no timestamp here
         print(f'Setting intake to idle mode {idle_mode}: {rev_errors} at {wpilib.Timer.getFPGATimestamp():.1f}s')

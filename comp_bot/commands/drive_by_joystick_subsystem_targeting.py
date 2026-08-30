@@ -208,7 +208,9 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
         elif processing_vector.norm() < dc.k_inner_deadband:
             processing_vector = Translation2d(0, 0)
 
-        # Response Curve (Sqrt)
+        # Response curve.  Scaling the vector BY sqrt(|v|) makes the magnitude |v|**1.5 - i.e. a
+        # power curve that is LESS sensitive near center.  (Do not call this a 'sqrt curve': an
+        # actual |v|**0.5 curve is MORE sensitive near center, the opposite of what we want.)
         processing_vector *= math.sqrt(processing_vector.norm())
         
         # Scaling

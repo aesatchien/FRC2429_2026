@@ -35,7 +35,6 @@ from autonomous.pathing_fsfs_bump_to_bump import PathingFSFSBumptoBump
 from autonomous.pathing_fsfs_trench_to_bump import PathingFSFSTrenchtoBump
 from autonomous.pathing_fsfs_trench_to_trench import PathingFSFSTrenchtoTrench
 from autonomous.depot_or_output_and_shoot import DepotOrOutpostAndShoot
-from autonomous.teleop_cycle import TeleopCycle
 from autonomous.pathing_center_back import PathingCenterBack
 from autonomous.pathing_center_to_outpost import PathingCenterOutpost
 from autonomous.pathing_drawing import DrawingAuto
@@ -95,9 +94,6 @@ class RobotContainer:
               button_box=js.bbox_1,
               ps5controller=js.play_station_controller  # ps5 is play station controller
          ))
-
-        if not constants.k_swerve_only:
-            pass
 
         # ----------  DASHBOARD & PATHPLANNER  ---------------
         self.register_commands()

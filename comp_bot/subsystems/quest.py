@@ -44,13 +44,13 @@ class Questnav(SubsystemBase):
         self.quest_pose_timestamp = 0.0
 
         # --- TIMEOUTS & RECOVERY (CRITICAL ORDERING) ---
-        # 1. missed_frame_count (10 loops = 200ms): Fires the ADB recovery script. 
-        #    Must be >= 10 to absorb normal 100ms NT4 network batching and wake-up stutters.
+        # 1. missed_frame_count (k_max_missed_frames below): Fires the ADB recovery script.
+        #    Must be >= 10 loops to absorb normal 100ms NT4 network batching and wake-up stutters.
         # 2. disconnected_count (qc.k_max_disconnected_count): Fires the hard Odometry Unsync.
         #    Because disconnected_count only starts ticking AFTER the 200ms network timeout, 
         #    the ADB script gets a crucial head-start to save the day before we wipe the field sync.
         self.missed_frame_count = 0
-        self.k_max_missed_frames = 14  # number of iterations with no new frames - protects against double tap 0.2 seconds at 50Hz
+        self.k_max_missed_frames = 14  # loops with no new frames before we call it a passthru (raised from 10 - see note above)
         self.was_tracking = False
         self.was_connected = False
         self.disconnected_count = 0  # count how many frames we've been disconnected to avoid ping-ponging in and out of sync
@@ -77,7 +77,7 @@ class Questnav(SubsystemBase):
 
     def _ping_connection(self):
         connected_before = self.questnav.is_connected()
-        frames = self.questnav.get_all_unread_pose_frames()  # this causes a networked to quest to ACK
+        self.questnav.get_all_unread_pose_frames()  # reading the frames is what makes the quest ACK
         connected_after = self.questnav.is_connected()
         if connected_after != connected_before:
             # let us know if the situation changes

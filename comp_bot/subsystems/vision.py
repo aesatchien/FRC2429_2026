@@ -13,7 +13,7 @@ class Vision(SubsystemBase):
     def __init__(self) -> None:
         super().__init__()
         self.setName('Vision')
-        self.counter = constants.SimConstants.k_counter_offset
+        self.counter = constants.VisionConstants.k_counter_offset  # was SimConstants' by copy-paste
         self.ntinst = NetworkTableInstance.getDefault()
 
         # Initialize dictionary with logical keys from constants
@@ -79,7 +79,7 @@ class Vision(SubsystemBase):
                 print(f'{key}: {item}')
             print()
 
-    def target_available(self, camera_key='arducam_high'):
+    def target_available(self, camera_key: str):  # no default - 'arducam_high' was not a real key and KeyError'd
         # Use getAtomic to get the value and the timestamp of the last update
         atomic_targets = self.camera_dict[camera_key]['targets_entry'].getAtomic()
         target_exists = atomic_targets.value > 0

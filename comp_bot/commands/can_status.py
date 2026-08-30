@@ -3,7 +3,6 @@ import random
 import commands2
 import wpilib
 import rev
-import random
 
 from helpers.log_command import log_command
 from subsystems.swerve_constants import DriveConstants as dc

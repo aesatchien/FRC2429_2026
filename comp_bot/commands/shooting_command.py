@@ -12,11 +12,13 @@ from subsystems.targeting import Targeting
 class ShootingCommand(commands2.Command):  # change the name for your command
 
 
-    def __init__(self, shooter: Shooter, targeting: Targeting=None, indent=0, auto_timeout=None, rpm=0, delay_cycles=50) -> None:
+    def __init__(self, shooter: Shooter, targeting: Targeting, indent=0, auto_timeout=None, rpm=0, delay_cycles=50) -> None:
         super().__init__()
         self.setName('Shooting') # change this to something appropriate for this command
         self.indent = indent
         self.shooter = shooter
+        # targeting is REQUIRED even when rpm is fixed: end() asks it whether we are still tracking.
+        # It used to default to None, which ran fine and then raised AttributeError on button release.
         self.targeting = targeting
         self.addRequirements(self.shooter)  # commandsv2 version of requirements
         self.extra_log_info = None
