@@ -1,0 +1,174 @@
+import math
+import robotpy_apriltag
+import wpilib
+from wpimath.geometry import Pose2d, Rotation2d, Translation2d
+
+import constants
+from constants import FieldConstants as fc, AutoConstants as cac
+
+# This data is initialized once when the module is first imported.
+# TODO -  right now all the libraries are messed up, so we have to do this manually  - 20260118 CJH
+#layout = robotpy_apriltag.AprilTagFieldLayout.loadField(robotpy_apriltag.AprilTagField.k2026RebuiltWelded)
+if wpilib.RobotBase.isSimulation():
+    layout = robotpy_apriltag.AprilTagFieldLayout('2026-rebuilt-welded_json')
+else:
+    #layout = robotpy_apriltag.AprilTagFieldLayout.loadField(robotpy_apriltag.AprilTagField.k2025ReefscapeWelded)
+    layout = robotpy_apriltag.AprilTagFieldLayout('/home/lvuser/py/2026-rebuilt-welded_json')
+
+
+# Pre-calculate tag positions for plotting or other uses
+tag_positions = {tag_id: layout.getTagPose(tag_id).translation().toTranslation2d()
+                 for tag_id in range(17, 23) if layout.getTagPose(tag_id) is not None}
+
+def get_tag_distance(tag_id, current_pose):
+    """ Return the distance from the current pose to the given tag ID """
+    tag_pose = layout.getTagPose(tag_id).toPose2d()
+    distance = current_pose.translation().distance(tag_pose.translation())
+    return distance
+
+def auto_reflect_pose(robot_pose:Pose2d, goal_pose:Pose2d, alliance, is_shooting=False):
+    print(f"alliance: {alliance}, robot_pose: {robot_pose}, goal_pose: {goal_pose}")
+    if alliance == wpilib.DriverStation.Alliance.kRed:
+        # x and theta for lower half red
+        theta = math.pi - goal_pose.rotation().radians()
+        x = fc.k_field_length - goal_pose.X()
+    else:
+        # x and theta for lower half blue
+        theta = goal_pose.rotation().radians()
+        x = goal_pose.X()
+
+    # reflect y about the center if we're on the top half of the field
+    y = fc.k_field_width - goal_pose.Y() if robot_pose.Y() > fc.k_field_width / 2 else goal_pose.Y()
+
+    # for a shooting pose, flip theta if we're on the top half of the field, so we face the hub
+    if is_shooting and robot_pose.Y() > fc.k_field_width / 2:
+        theta = -theta
+
+    # print(f"pose.Y =={pose.Y():.1f}")
+
+    return Pose2d(x, y, Rotation2d(theta))
+
+def get_nearest_tag(current_pose, destination='stage'):
+    """ Return the nearest allowed tag to a given pose """
+
+    if destination == 'reef':
+        # get all distances to the stage tags
+        tags = [6, 7, 8, 9, 10, 11, 17, 18, 19, 20, 21,
+                22]  # the ones we can see from driver's station - does not matter if red or blue
+        x_offset, y_offset = -0.10, 0.10  # subtracting translations below makes +x INTO the tage, +y LEFT of tag
+        robot_offset = Pose2d(Translation2d(x_offset, y_offset), Rotation2d(0))
+        face_tag = True  # do we want to face the tag?
+    else:
+        raise ValueError('  location for get_nearest tag must be in ["stage", "amp"] etc')
+
+    poses = [layout.getTagPose(tag).toPose2d() for tag in tags]
+    distances = [current_pose.translation().distance(pose.translation()) for pose in poses]
+
+    # sort the distances
+    combined = list(zip(tags, distances))
+    combined.sort(key=lambda x: x[1])  # sort on the distances
+    sorted_tags, sorted_distances = zip(*combined)
+    nearest_pose = layout.getTagPose(sorted_tags[0])  # get the pose of the nearest stage tag
+
+    # transform the tag pose to our specific needs
+    tag_pose = nearest_pose.toPose2d()  # work with a 2D pose
+    tag_rotation = tag_pose.rotation()  # we are either going to match this or face opposite
+    robot_offset_corrected = robot_offset.rotateBy(tag_rotation)  # rotate our offset so we align with the tag
+    updated_translation = tag_pose.translation() - robot_offset_corrected.translation()  # careful with these signs
+    updated_rotation = tag_rotation + Rotation2d(math.pi) if face_tag else tag_rotation  # choose if we flip
+    updated_pose = Pose2d(translation=updated_translation, rotation=updated_rotation)  # drive to here
+
+    return sorted_tags[0]  # changed this in 2025 instead of updated_pose
+
+
+def pose_from_nearest_tag(robot_state, current_pose: Pose2d, destination='reef') -> Pose2d:
+    """Calculates the target pose based on the nearest AprilTag."""
+    nearest_tag = get_nearest_tag(current_pose=current_pose, destination=destination)
+    robot_state.set_reef_goal_by_tag(nearest_tag)
+    target = robot_state.reef_goal_pose
+    
+    if wpilib.DriverStation.getAlliance() == wpilib.DriverStation.Alliance.kRed:
+        mid_x = fc.k_field_length / 2
+        mid_y = fc.k_field_width / 2
+        target = target.rotateAround(point=Translation2d(mid_x, mid_y), rot=Rotation2d(math.pi))
+        
+    return target
+
+def pose_from_robot_state(robot_state) -> Pose2d:
+    """Retrieves the reef goal pose from RobotState and applies alliance mirroring."""
+    target = robot_state.reef_goal_pose
+    
+    if wpilib.DriverStation.getAlliance() == wpilib.DriverStation.Alliance.kRed:
+        mid_x = fc.k_field_length / 2
+        mid_y = fc.k_field_width / 2
+        target = target.rotateAround(point=Translation2d(mid_x, mid_y), rot=Rotation2d(math.pi))
+        
+    return target
+
+def pose_from_static(target_pose: Pose2d) -> Pose2d:
+    """Applies alliance mirroring to a static pose."""
+    target = target_pose
+    if wpilib.DriverStation.getAlliance() == wpilib.DriverStation.Alliance.kRed:
+        mid_x = fc.k_field_length / 2
+        mid_y = fc.k_field_width / 2
+        target = target.rotateAround(point=Translation2d(mid_x, mid_y), rot=Rotation2d(math.pi))
+        
+    return target
+
+#  ---------   DEPRECATED REEFSCAPE STUFF
+# Mapping from letter to tag ID and which side of the reef face it corresponds to.
+# Note: 'e' is the right side of tag 22, 'f' is the left side, etc.
+letter_map = {
+    'a': {'tag_id': 18, 'side': 'left'}, 'b': {'tag_id': 18, 'side': 'right'},
+    'c': {'tag_id': 17, 'side': 'left'}, 'd': {'tag_id': 17, 'side': 'right'},
+    'e': {'tag_id': 22, 'side': 'right'}, 'f': {'tag_id': 22, 'side': 'left'},
+    'g': {'tag_id': 21, 'side': 'right'}, 'h': {'tag_id': 21, 'side': 'left'},
+    'i': {'tag_id': 20, 'side': 'right'}, 'j': {'tag_id': 20, 'side': 'left'},
+    'k': {'tag_id': 19, 'side': 'left'}, 'l': {'tag_id': 19, 'side': 'right'},
+}
+
+
+def get_reefscape_scoring_pose(letter: str) -> Pose2d:
+    """
+    Calculates the ideal robot pose to score on a specific branch (a-l) of the Reef.
+    This encapsulates the geometric calculations based on the 2025 AprilTag field layout.
+
+    :param letter: The single character name of the scoring branch ('a' through 'l').
+    :return: A Pose2d representing the robot's target position and orientation,
+             or a default Pose2d(0,0,0) if the letter is invalid or tag is not found.
+    """
+    letter = letter.lower()
+    if letter not in letter_map:
+        return Pose2d()
+
+    map_info = letter_map[letter]
+    tag_id = map_info['tag_id']
+    side = map_info['side']
+
+    this_face_tag_pose = layout.getTagPose(tag_id)
+    if not this_face_tag_pose:
+        return Pose2d()
+
+    # --- Geometric calculations moved from constants.py ---
+    tag_translation = this_face_tag_pose.translation().toTranslation2d()
+    tag_yaw = Rotation2d(this_face_tag_pose.rotation().Z())
+
+    robot_rotation = tag_yaw + Rotation2d(math.radians(-90))
+    coral_center_offset = 0.0
+    x_offset = 0.47
+    right_y_offset = 0.15
+    left_y_offset = 0.17
+    robot_offset_left = Translation2d(x_offset, -left_y_offset - coral_center_offset).rotateBy(tag_yaw)
+    robot_offset_right = Translation2d(x_offset - coral_center_offset, +right_y_offset - coral_center_offset).rotateBy(tag_yaw)
+
+    left_branch_position = tag_translation + robot_offset_left
+    right_branch_position = tag_translation + robot_offset_right
+
+    if side == 'left':
+        return Pose2d(left_branch_position, robot_rotation)
+    else:  # side == 'right'
+        return Pose2d(right_branch_position, robot_rotation)
+
+
+# Dictionary to store robot poses for reefscape autos
+k_useful_robot_poses_blue = {letter: get_reefscape_scoring_pose(letter) for letter in 'abcdefghijkl'}

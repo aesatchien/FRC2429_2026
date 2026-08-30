@@ -1,0 +1,47 @@
+we have a beta unit
+
+5x8Mbps CAN
+20 second reboot
+M.2 compatable with ai accelerator cards -> is ml viable in real time?
+anything on pi5 works here
+can crush the corners, dont tighten too much!
+m.4 screws on the corners, number 8 should work
+Number 8 screw in number 10 hole
+Mount directly to aluminum for heat dissapation
+Aluminum heat sink on the back
+No mixing gold and tin. System core is moving to gold, so make sure to buy gold finish
+We are using beta unit, so we are using tin though.
+Can configure can speeds, look at a vender basis to see support for the speed we select
+    lowest speed that all devices can use
+    5 to 6 devices on one can bus
+Split can buses to different sub System
+Password for wifi is: PASSWORD
+url is robot.local
+Make sure to configure radio, should be .2, and system core enabled
+Custom dashboard on webui
+full root access in webui terminal
+
+public system core repo
+Go to the markdown files for firmware info, api changes, and updates for motors
+
+rev hardware client 2! Remote access to the system (via the ui)
+.ipk files are sendable to systemcore via web ui
+
+warnings will show up in the webui
+
+good news: we can finally block code the robot!
+
+Over the air update process
+we will need to update to alpha 14 for system core and wpilib alpha 7 before socal showdown
+imu display on web ui
+
+you can buy a usb camera and plug it directly into the system core, april tag detection and all. only issue is cpu power
+there is a linux slice for vision system which by default is low. raspberry pis seperate might be the way though
+
+code on the webui might be local only kinda buns
+
+
+Extra installs for code:
+    wpilib 2027
+    driver station 2027 public release
+
