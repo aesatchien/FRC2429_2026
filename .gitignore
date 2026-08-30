@@ -65,3 +65,7 @@ var/
 *.egg-info/
 .installed.cfg
 *.egg
+
+# Phoenix 6 sim scratch dir (recreated every sim run)
+ctre_sim/
+*.hoot

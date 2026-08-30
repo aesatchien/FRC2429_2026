@@ -34,17 +34,15 @@ class SwerveSim:
         self.navx = simlib.SimDeviceSim("navX-Sensor[4]")
         self.navx_yaw = self.navx.getDouble("Yaw")
         
-        # Sparks
+        # Turn sparks only.  update() below writes turn positions so the dashboard shows wheel
+        # angles; the DRIVE motors were also allocated here and never touched - and under the
+        # comp_kraken config they are TalonFXs, so 'SPARK MAX [21]' would not exist anyway.
+        # Chassis motion comes from get_desired_swerve_module_states(), which is vendor-neutral.
         self.spark_dict = {}
-        self.spark_drives = ['lf_drive', 'rf_drive', 'lb_drive', 'rb_drive']
-        self.spark_drive_ids = [21, 25, 23, 27]
         self.spark_turns = ['lf_turn', 'rf_turn', 'lb_turn', 'rb_turn']
-        self.spark_turn_ids = [20, 24, 22, 26]
-        
-        self.spark_names = self.spark_drives + self.spark_turns
-        self.spark_ids = self.spark_drive_ids + self.spark_turn_ids
-        
-        for spark_name, can_id in zip(self.spark_names, self.spark_ids):
+        self.spark_turn_ids = [dc.swerve_dict[k]['turning_can'] for k in ('LF', 'RF', 'LB', 'RB')]
+
+        for spark_name, can_id in zip(self.spark_turns, self.spark_turn_ids):
             spark = simlib.SimDeviceSim(f'SPARK MAX [{can_id}]')
             position = spark.getDouble('Position')
             velocity = spark.getDouble('Velocity')

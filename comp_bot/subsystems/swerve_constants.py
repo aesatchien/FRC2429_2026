@@ -2,31 +2,43 @@
 Swerve Drive Constants
 
 This file contains all the physical, kinematic, and electrical constants for the Swerve Drive subsystem.
-It also includes the configuration for the REV SparkMax/Flex motor controllers.
+It also includes the motor controller configuration for both vendors - REV SparkMax/Flex
+and CTRE Kraken X60/TalonFX.  Which one a given position uses is set per-config below and
+resolved in subsystems/motors.py.
 
---- Control Loop Hierarchy and Tuning "Strengths" ---
+--- Control Loop Hierarchy: WHAT each layer is for ---
 
-1. Driver Input Layer (The "Feel") - Located in DriveByJoystickSwerveTargeting.py
-   - Response Curve (sqrt): Makes robot less sensitive near center, ramps to full speed quickly.
-   - Slow Mode Multiplier: 0.2 (Base) to 1.0 (Turbo). Caps speed at 20% unless trigger pulled.
-   - Manual Slew Rate: 3.0 units/sec. Limits how fast rotation command changes manually.
+This map deliberately does NOT repeat any numbers.  It used to, and by mid-season four of
+them were wrong (it claimed slow mode was 0.2, teleop rotation kP was 0.8, and max angular
+speed was 0.75*tau, none of which had been true for months).  A comment that restates a
+constant is a second copy that nothing checks.  Read the value off the constant itself;
+read the *purpose* here.
 
-2. Targeting Layer (The "Brain") - Located in DriveByJoystickSwerveTargeting.py & TargetingConstants
-   - Lookahead Time (kTargetingLookaheadS): 0.9s. Aims at future target position to compensate for lag.
-   - Rotation PID (kTeleopRotationPID.kP): 0.8. "Spring constant" pulling nose to target.
-   - Physics Feedforward: 1.0. Calculates exact angular velocity needed for tangential speed.
-   - Static Friction (kTeleopRotationkS): 0.05. Minimum output to break friction.
-   - Tracking Slew Rate: Disabled/High. Allows auto-aim to react instantly.
+1. Driver Input Layer (The "Feel") - commands/drive_by_joystick_subsystem_targeting.py
+   - Response curve: raises stick magnitude to a power > 1, so small stick motions near
+     center are gentle and the top of the throw still reaches full speed.
+   - Slow-mode floor + turbo trigger: the floor caps speed for normal driving; squeezing
+     the trigger interpolates from the floor up to 1.0.
+   - Translation slew: bounds how fast the driver can change a translation command.
 
-3. Kinematics Layer (The "Limiter") - Located in DriveConstants
-   - Max Speed: 4.75 m/s. Ceiling for translation.
-   - Max Angular Speed: 0.75 * 2pi rad/s. Ceiling for rotation.
-   - Acceleration Limit: 5.0 (100%/0.2s). Prevents tipping/brownouts.
+2. Targeting Layer (The "Brain") - subsystems/targeting.py & TargetingConstants
+   - Time-of-flight lookahead: aims where the robot WILL be when the ball lands, not where
+     it is now.  Iterated twice because ToF depends on the distance it is trying to find.
+   - Rotation PID: the spring pulling the nose onto the hub.
+   - Physics feedforward: the angular velocity needed to keep the nose on a target while
+     translating past it.  Pure geometry - omega = (v x r) / |r|^2 - so 1.0 is "exact".
+   - Static friction term: minimum output that actually breaks the drivetrain loose.
 
-4. Motor Control Layer (The "Muscle") - Located in ModuleConstants
-   - Drive Feedforward: 1/FreeSpeed. Open loop control providing ~95% of power.
-   - Drive PID: 0.0. Currently disabled.
-   - Turning PID: 0.3. Stiffness of wheel angle servo.
+3. Kinematics Layer (The "Limiter") - DriveConstants
+   - Max translation / angular speed: the ceilings we choose to allow, NOT what the
+     hardware can do.  See kMaxSpeedMetersPerSecond for the measured hardware number.
+   - Slew rates (RateLimiters below): bound acceleration to prevent tipping and brownouts.
+
+4. Motor Control Layer (The "Muscle") - ModuleConstants
+   - Drive feedforward 1/FreeSpeed: open-loop term that provides most of the power; the
+     drive PID only trims the remainder.
+   - Turning PID: stiffness of the wheel-angle servo.  Runs on the roboRIO against the
+     analog absolute encoder, not on the Spark.
 """
 
 import math
@@ -58,16 +70,25 @@ class DriveConstants:
     # ==========================================
     # Speed & Acceleration Limits
     # ==========================================
-    # Note that these are not the maximum possible speeds, rather the allowed maximum speeds
-    # real max is  1/60 * 6780 rpm * pi * 0.101m (4in) / 6.75 (MK4i L2)  ~ 5.35 m/s
-    kMaxSpeedMetersPerSecond = 4.75  # Sanjith started at 3.7, 4.25 was Haochen competition, 4.8 is full out on NEOs
+    # These are the speeds we ALLOW, not the speeds the hardware can reach.
+    # Physical ceiling = free_rpm/60 * wheel_circumference / reduction: a Vortex at 6.75:1 on
+    # 4in wheels is 5.35 m/s.
+    # History: Sanjith started at 3.7, 4.25 was the Haochen competition setting, 4.8 was full out
+    # on NEOs.
+    kMaxSpeedMetersPerSecond = 4.75
     kMaxAngularSpeed = 7 # 0.5 * math.tau  # radians per second was 0.5 tau through AVR - too slow
     kSlowModeCap = 0.35                   # translation slow-mode floor for targeting command
     kAngularSlowFloor = 0.5               # angular slow-mode floor for both joystick commands
     kJoystickLegacyTranslationFloor = 0.2 # translation slow-mode floor for drive_by_joystick_swerve only
     # our hardware can do 11.11 hertz =
     # TODO: actually figure out what the total max speed should be - vector sum?
-    kMaxTotalSpeed = 1.1 * math.sqrt(2) * kMaxSpeedMetersPerSecond  # sum of angular and rotational, should probably do hypotenuse
+    # Ceiling handed to SwerveDrive4Kinematics.desaturateWheelSpeeds().  NOTE this is 7.39, far
+    # ABOVE what a module can physically do (5.35 m/s on a Vortex at 6.75:1), so desaturation
+    # effectively never fires: full-forward + full-rotation asks two modules for ~7.0 m/s, they
+    # clip individually instead of the set scaling down together, and the chassis stops moving in
+    # the commanded direction.  Left as-is because changing it changes driving feel - but it
+    # should become the measured module top speed, which is the whole point of the function.
+    kMaxTotalSpeed = 1.1 * math.sqrt(2) * kMaxSpeedMetersPerSecond
     
     # Acceleration limits: see RateLimiters class below for all SlewRateLimiter rates.
     
@@ -128,11 +149,15 @@ class DriveConstants:
     # CAN IDs and Offsets
     # ==========================================
     
+    # Each config names its motors per-position.  'drive_vendor'/'turn_vendor' are 'rev' or 'ctre'
+    # and are read by subsystems/motors.py; the *_cls / *_free_speed_rpm entries only matter for
+    # whichever positions are 'rev' (CTRE gearing and free speed live in ModuleConstants below).
     PRACTICE_CONFIG = {
         'robot_id': 'practice',
-        'controller_cls': SparkMax,
+        'drive_vendor': 'rev',      'turn_vendor': 'rev',
+        'drive_controller_cls': SparkMax,  'turn_controller_cls': SparkMax,
         'config_cls': SparkMaxConfig,
-        'free_speed_rpm': 5676,
+        'drive_free_speed_rpm': 5676,      # NEO
         'modules': {
             'LF': {'driving_can': 21, 'turning_can': 20, 'port': 3, 'turning_offset': sf * 0.498},
             'LB': {'driving_can': 23, 'turning_can': 22, 'port': 1, 'turning_offset': sf * 0.113},
@@ -144,9 +169,10 @@ class DriveConstants:
 
     COMP_CONFIG = {
         'robot_id': 'comp',
-        'controller_cls': SparkFlex,
+        'drive_vendor': 'rev',      'turn_vendor': 'rev',
+        'drive_controller_cls': SparkFlex,  'turn_controller_cls': SparkFlex,
         'config_cls': SparkFlexConfig,
-        'free_speed_rpm': 6784,
+        'drive_free_speed_rpm': 6784,      # NEO Vortex
         'modules': {
             'LF': {'driving_can': 21, 'turning_can': 20, 'port': 3, 'turning_offset': sf * 0.672},  # .475 worked then got off then changed to .511
             'LB': {'driving_can': 23, 'turning_can': 22, 'port': 1, 'turning_offset': sf * 0.435},
@@ -156,17 +182,31 @@ class DriveConstants:
         'inversions': {'drive_motors_inverted': False, 'turn_motors_inverted': True}
     }
 
+    # The same comp robot with Kraken X60s on the drive and the existing SparkFlexes on the turn.
+    # Not selected yet - k_swerve_config still says "comp".  Shares COMP_CONFIG's modules and
+    # inversions, because swapping a drive motor does not move the turn motor or its encoder.
+    # NOTE CTRE and REV use different device-type fields in the CAN arbitration id, so a TalonFX
+    # at id 21 and a SparkFlex at id 20 coexist on the roboRIO bus exactly as before.
+    COMP_KRAKEN_CONFIG = {
+        'robot_id': 'comp_kraken',
+        'drive_vendor': 'ctre',     'turn_vendor': 'rev',
+        'drive_controller_cls': None,       'turn_controller_cls': SparkFlex,
+        'config_cls': SparkFlexConfig,      # still used to build the REV turn config
+        'drive_free_speed_rpm': 6000,       # Kraken X60, trapezoidal.  5800 if you license FOC.
+        'modules': COMP_CONFIG['modules'],
+        'inversions': COMP_CONFIG['inversions'],
+    }
+
     # Select the active configuration based on constants.py
-    if constants.k_swerve_config == "practice":
-        ACTIVE_CONFIG = PRACTICE_CONFIG
-    elif constants.k_swerve_config == "comp":
-        ACTIVE_CONFIG = COMP_CONFIG
-    else:
-        raise ValueError(f'k_swerve_config "{constants.k_swerve_config}" must be one of [comp, practice]')
+    k_all_configs = {'practice': PRACTICE_CONFIG, 'comp': COMP_CONFIG, 'comp_kraken': COMP_KRAKEN_CONFIG}
+    if constants.k_swerve_config not in k_all_configs:
+        raise ValueError(f'k_swerve_config "{constants.k_swerve_config}" must be one of {sorted(k_all_configs)}')
+    ACTIVE_CONFIG = k_all_configs[constants.k_swerve_config]
 
     # Aliases for compatibility
     k_robot_id = ACTIVE_CONFIG['robot_id']
-    k_drive_controller_type = ACTIVE_CONFIG['controller_cls']
+    k_drive_vendor = ACTIVE_CONFIG['drive_vendor']
+    k_turn_vendor = ACTIVE_CONFIG['turn_vendor']
     swerve_dict = ACTIVE_CONFIG['modules']
     swerve_motor_inversions = ACTIVE_CONFIG['inversions']
 
@@ -245,7 +285,10 @@ class RateLimiters:
 
 
 class NeoMotorConstants:
-    kFreeSpeedRpm = DriveConstants.ACTIVE_CONFIG['free_speed_rpm']
+    # Free speed of whatever motor is on the DRIVE - Vortex, NEO or Kraken.  Kept under the old
+    # name so nothing outside this file has to change; the turn motor's free speed is not used
+    # anywhere (the RIO closes that loop) so there is only ever one number to track here.
+    kFreeSpeedRpm = DriveConstants.ACTIVE_CONFIG['drive_free_speed_rpm']
 
 class ModuleConstants:
     """
@@ -290,6 +333,12 @@ class ModuleConstants:
     kTurningMotorCurrentLimit = 40         # amp
 
     # ==========================================
+    # Controller classes for whichever positions are 'rev'
+    # ==========================================
+    k_drive_controller_cls = DriveConstants.ACTIVE_CONFIG['drive_controller_cls']
+    k_turn_controller_cls = DriveConstants.ACTIVE_CONFIG['turn_controller_cls']
+
+    # ==========================================
     # SparkMax/Flex Configurations
     # ==========================================
     k_driving_config = DriveConstants.ACTIVE_CONFIG['config_cls']()
@@ -317,6 +366,107 @@ class ModuleConstants:
     # nor do we use this encoder-- we configure it "just to watch it if we need to for velocities, etc."
     k_turning_config.encoder.positionConversionFactor(math.tau/k_turning_motor_gear_ratio) # radian
     k_turning_config.encoder.velocityConversionFactor(math.tau/(k_turning_motor_gear_ratio * 60)) # radians per second
+
+    # ==========================================
+    # Kraken X60 / TalonFX Configuration  (drive only, for k_swerve_config = "comp_kraken")
+    # ==========================================
+    # Built unconditionally so the numbers are readable and diffable even on an all-REV robot;
+    # nothing constructs a TalonFX unless a config actually says drive_vendor='ctre'.
+    #
+    # Where the gains came from.  REV closed-loop output is DUTY CYCLE and our conversion factors
+    # put the setpoint in m/s, so REV `ff` has units of duty per m/s.  Phoenix `k_v` is VOLTS per
+    # ROTATION-PER-SECOND.  Converting needs both a voltage scale and a length scale:
+    #
+    #     k_v = ff_rev * 12 V * circumference          and equivalently   12 V / wheel_free_rps
+    #     k_p = kP_rev * 12 V * circumference
+    #
+    # Both routes agree, which is the check that the units are right.  These are DERIVED starting
+    # points, not measured ones - run SysId before you trust them, and see k_kraken_ks below.
+    k_kraken_free_speed_rpm = 6000           # X60 trapezoidal.  FOC is 5800 and a different curve.
+    k_kraken_wheel_free_speed_rps = k_kraken_free_speed_rpm / 60 / kDrivingMotorReduction  # wheel rot/s
+    k_kraken_kv = 12.0 / k_kraken_wheel_free_speed_rps                # ~0.810 V per wheel-rps
+    k_kraken_kp = 0.02 * 12.0 * kWheelCircumferenceMeters             # ~0.0766, from REV kP=0.02
+    k_kraken_ki = 0.0
+    k_kraken_kd = 0.0
+    # No REV equivalent exists - our Spark config has no static term at all, which is why
+    # setDesiredState has to deadband below 0.002 m/s.  Measure this with SysId and the
+    # deadband hack may become unnecessary.
+    k_kraken_ks = 0.0
+
+    # FOC needs a per-device Phoenix Pro licence.  Every Phoenix control request defaults to
+    # enable_foc=True, so we have to say False explicitly until the licences are bought.
+    # When you do buy them: set this True AND change k_kraken_free_speed_rpm to 5800.
+    k_kraken_enable_foc = False
+    k_kraken_canbus = 'rio'                  # no CANivore yet
+
+    # REV gives one current knob; Phoenix gives two, and they are different quantities.
+    #   supply  - protects the breaker and the battery.  This is what brownout mode moves.
+    #   stator  - limits torque, and therefore wheel slip.  This is the traction knob.
+    # Starting conservative: supply matches today's 50 A exactly, stator is only slightly above
+    # so the swap does not hand the drivers a large torque change on day one.  A Kraken will
+    # happily take 80-120 A stator; raise it deliberately after testing traction and brownouts.
+    k_kraken_supply_current_limit = kDrivingMotorCurrentLimit   # 50 A, same as the Vortex today
+    k_kraken_stator_current_limit = 60                          # amps
+
+    # Guarded so a laptop without phoenix6 can still run the all-REV robot and the sim.
+    # If a config asks for drive_vendor='ctre' without the package, motors.py raises a clear
+    # error naming the pip command - we do not want an ImportError at module scope taking
+    # down the whole robot program the way the apriltag layout path used to.
+    try:
+        from phoenix6.configs import TalonFXConfiguration as _TalonFXConfiguration
+        from phoenix6.signals import InvertedValue as _InvertedValue, NeutralModeValue as _NeutralModeValue
+        k_kraken_configs_built = True
+    except ImportError:
+        k_kraken_configs_built = False
+        k_kraken_driving_config = None
+        k_kraken_turning_config = None
+
+    if k_kraken_configs_built:
+
+        k_kraken_driving_config = _TalonFXConfiguration()
+
+        # inverted(bool) -> an enum.  Same physical meaning, driven off the same dict.
+        k_kraken_driving_config.motor_output.inverted = (
+            _InvertedValue.CLOCKWISE_POSITIVE if DriveConstants.swerve_motor_inversions['drive_motors_inverted']
+            else _InvertedValue.COUNTER_CLOCKWISE_POSITIVE)
+        k_kraken_driving_config.motor_output.neutral_mode = _NeutralModeValue.BRAKE   # was setIdleMode(kBrake)
+        k_kraken_driving_config.motor_output.duty_cycle_neutral_deadband = 0.0        # REV has none; match it
+
+        # sensor_to_mechanism_ratio makes the device report WHEEL rotations.  The metres
+        # conversion happens in motors.TalonDriveMotor, per CTRE's own recommendation.
+        k_kraken_driving_config.feedback.sensor_to_mechanism_ratio = kDrivingMotorReduction
+
+        k_kraken_driving_config.slot0.k_p = k_kraken_kp
+        k_kraken_driving_config.slot0.k_i = k_kraken_ki
+        k_kraken_driving_config.slot0.k_d = k_kraken_kd
+        k_kraken_driving_config.slot0.k_v = k_kraken_kv
+        k_kraken_driving_config.slot0.k_s = k_kraken_ks
+
+        # was closedLoop.minOutput/maxOutput(+/-0.96) - i.e. +/- 0.96 * 12 V
+        k_kraken_driving_config.voltage.peak_forward_voltage = 0.96 * 12
+        k_kraken_driving_config.voltage.peak_reverse_voltage = -0.96 * 12
+
+        k_kraken_driving_config.current_limits.supply_current_limit = k_kraken_supply_current_limit
+        k_kraken_driving_config.current_limits.supply_current_limit_enable = True
+        k_kraken_driving_config.current_limits.stator_current_limit = k_kraken_stator_current_limit
+        k_kraken_driving_config.current_limits.stator_current_limit_enable = True
+
+        # Deliberately NOT ported, and why:
+        #   voltageCompensation(12)      - VelocityVoltage control is inherently compensated
+        #   closedLoop.IZone(0.001)      - Phoenix slot configs have no IZone, and our kI is 0
+        #   maxMotion.maxVelocity(3)     - dead on the REV side too; we command kVelocity, not MAXMotion
+        #   maxMotion.maxAcceleration(2) - same
+        #   PersistMode / k_burn_flash   - Phoenix configs persist in the device by default
+
+        # Turn config, for the day a module goes all-CTRE.  Nothing builds this today.
+        k_kraken_turning_config = _TalonFXConfiguration()
+        k_kraken_turning_config.motor_output.inverted = (
+            _InvertedValue.CLOCKWISE_POSITIVE if DriveConstants.swerve_motor_inversions['turn_motors_inverted']
+            else _InvertedValue.COUNTER_CLOCKWISE_POSITIVE)
+        k_kraken_turning_config.motor_output.neutral_mode = _NeutralModeValue.BRAKE
+        k_kraken_turning_config.feedback.sensor_to_mechanism_ratio = k_turning_motor_gear_ratio
+        k_kraken_turning_config.current_limits.supply_current_limit = kTurningMotorCurrentLimit
+        k_kraken_turning_config.current_limits.supply_current_limit_enable = True
 
 
 class AutoConstantsSwerve:
@@ -350,7 +500,8 @@ class TargetingConstants:
     Constants for AutoToPose and Joystick Targeting.
     Centralizes PID gains and tolerances for targeting logic.
     """
-    #  ROTATION PIDs -  AutoToPoseClean uses 0.7, Joystick uses 0.8.
+    #  ROTATION PIDs - one set per consumer.  (Do not write the values in this comment;
+    #  the previous version said 0.7 / 0.8 and had been wrong for most of the season.)
     kAutoRotationPID = PIDConstants(0.7, 0.0, 0.0)  # auto_to_pose.py
     kTeleopRotationPID = PIDConstants(0.5, 0.0, 0.06) # targeting.py
     
