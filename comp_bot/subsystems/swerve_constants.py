@@ -71,8 +71,12 @@ class DriveConstants:
     # Speed & Acceleration Limits
     # ==========================================
     # These are the speeds we ALLOW, not the speeds the hardware can reach.
-    # Physical ceiling = free_rpm/60 * wheel_circumference / reduction: a Vortex at 6.75:1 on
-    # 4in wheels is 5.35 m/s.
+    # Physical ceiling = free_rpm/60 * wheel_circumference / reduction, at 6.75:1 on 4in wheels:
+    #     Vortex 6784 rpm -> 5.35 m/s      Kraken X60 6000 rpm -> 4.73 m/s
+    # !! The comp bot is on Krakens now, so 4.75 is ABOVE the 4.73 the drivetrain can deliver.
+    #    Nothing breaks - the closed loop just saturates - but the top of the stick does nothing
+    #    and there is zero headroom. Lower it (4.2-4.5) or accept a permanently saturated full
+    #    stick. Left alone for now because changing it changes driving feel. -- see kMaxTotalSpeed
     # History: Sanjith started at 3.7, 4.25 was the Haochen competition setting, 4.8 was full out
     # on NEOs.
     kMaxSpeedMetersPerSecond = 4.75
@@ -82,12 +86,13 @@ class DriveConstants:
     kJoystickLegacyTranslationFloor = 0.2 # translation slow-mode floor for drive_by_joystick_swerve only
     # our hardware can do 11.11 hertz =
     # TODO: actually figure out what the total max speed should be - vector sum?
-    # Ceiling handed to SwerveDrive4Kinematics.desaturateWheelSpeeds().  NOTE this is 7.39, far
-    # ABOVE what a module can physically do (5.35 m/s on a Vortex at 6.75:1), so desaturation
-    # effectively never fires: full-forward + full-rotation asks two modules for ~7.0 m/s, they
-    # clip individually instead of the set scaling down together, and the chassis stops moving in
-    # the commanded direction.  Left as-is because changing it changes driving feel - but it
-    # should become the measured module top speed, which is the whole point of the function.
+    # Ceiling handed to SwerveDrive4Kinematics.desaturateWheelSpeeds().  NOTE this is 7.39, which
+    # is far ABOVE what a module can physically do (4.73 m/s on Krakens, 5.35 on Vortexes), so
+    # desaturation effectively never fires: full-forward + full-rotation asks two modules for
+    # ~7.0 m/s, they clip individually instead of the set scaling down together, and the chassis
+    # stops moving in the commanded direction.  The Kraken swap makes this worse, not better.
+    # Left as-is because changing it changes driving feel - but it should become the measured
+    # module top speed, which is the whole point of the function.
     kMaxTotalSpeed = 1.1 * math.sqrt(2) * kMaxSpeedMetersPerSecond
     
     # Acceleration limits: see RateLimiters class below for all SlewRateLimiter rates.
@@ -167,12 +172,16 @@ class DriveConstants:
         'inversions': {'drive_motors_inverted': False, 'turn_motors_inverted': True}
     }
 
+    # THE COMP BOT: Kraken X60 on the drive, SparkFlex on the turn.
+    # CAN ids are unchanged from the Vortex era - CTRE and REV use different device-type fields
+    # in the CAN arbitration id, so a TalonFX at 21 and a SparkFlex at 20 coexist on the roboRIO
+    # bus exactly as they did before.
     COMP_CONFIG = {
         'robot_id': 'comp',
-        'drive_vendor': 'rev',      'turn_vendor': 'rev',
-        'drive_controller_cls': SparkFlex,  'turn_controller_cls': SparkFlex,
-        'config_cls': SparkFlexConfig,
-        'drive_free_speed_rpm': 6784,      # NEO Vortex
+        'drive_vendor': 'ctre',     'turn_vendor': 'rev',
+        'drive_controller_cls': None,       'turn_controller_cls': SparkFlex,
+        'config_cls': SparkFlexConfig,      # still used to build the REV turn config
+        'drive_free_speed_rpm': 6000,       # Kraken X60, trapezoidal.  5800 if you license FOC.
         'modules': {
             'LF': {'driving_can': 21, 'turning_can': 20, 'port': 3, 'turning_offset': sf * 0.672},  # .475 worked then got off then changed to .511
             'LB': {'driving_can': 23, 'turning_can': 22, 'port': 1, 'turning_offset': sf * 0.435},
@@ -182,23 +191,23 @@ class DriveConstants:
         'inversions': {'drive_motors_inverted': False, 'turn_motors_inverted': True}
     }
 
-    # The same comp robot with Kraken X60s on the drive and the existing SparkFlexes on the turn.
-    # Not selected yet - k_swerve_config still says "comp".  Shares COMP_CONFIG's modules and
-    # inversions, because swapping a drive motor does not move the turn motor or its encoder.
-    # NOTE CTRE and REV use different device-type fields in the CAN arbitration id, so a TalonFX
-    # at id 21 and a SparkFlex at id 20 coexist on the roboRIO bus exactly as before.
-    COMP_KRAKEN_CONFIG = {
-        'robot_id': 'comp_kraken',
-        'drive_vendor': 'ctre',     'turn_vendor': 'rev',
-        'drive_controller_cls': None,       'turn_controller_cls': SparkFlex,
-        'config_cls': SparkFlexConfig,      # still used to build the REV turn config
-        'drive_free_speed_rpm': 6000,       # Kraken X60, trapezoidal.  5800 if you license FOC.
+    # ROLLBACK: the same comp bot with Vortexes back on the drive.  If a Kraken dies at an event
+    # and you bolt a Vortex in, this is a one-word change in constants.k_swerve_config instead of
+    # a code edit under pressure.  It shares COMP_CONFIG's modules and inversions, so the two
+    # cannot drift apart - only the drive motor differs.  Remember settings.json's driveMotorType
+    # has to go back to "vortex" too; the boot check in Swerve will shout at you if you forget.
+    COMP_VORTEX_CONFIG = {
+        'robot_id': 'comp_vortex',
+        'drive_vendor': 'rev',      'turn_vendor': 'rev',
+        'drive_controller_cls': SparkFlex,  'turn_controller_cls': SparkFlex,
+        'config_cls': SparkFlexConfig,
+        'drive_free_speed_rpm': 6784,       # NEO Vortex
         'modules': COMP_CONFIG['modules'],
         'inversions': COMP_CONFIG['inversions'],
     }
 
     # Select the active configuration based on constants.py
-    k_all_configs = {'practice': PRACTICE_CONFIG, 'comp': COMP_CONFIG, 'comp_kraken': COMP_KRAKEN_CONFIG}
+    k_all_configs = {'practice': PRACTICE_CONFIG, 'comp': COMP_CONFIG, 'comp_vortex': COMP_VORTEX_CONFIG}
     if constants.k_swerve_config not in k_all_configs:
         raise ValueError(f'k_swerve_config "{constants.k_swerve_config}" must be one of {sorted(k_all_configs)}')
     ACTIVE_CONFIG = k_all_configs[constants.k_swerve_config]
