@@ -25,7 +25,7 @@ robotpy-native-wpinet==2026.1.1
 robotpy-native-wpiutil==2026.1.1
 robotpy-native-xrp==2026.1.1
 robotpy-navx==2026.0.0b1
-robotpy-pathplannerlib==2025.2.7
+robotpy-pathplannerlib==2026.1.1
 robotpy-rev==2026.0.0
 robotpy-romi==2026.1.1
 robotpy-urcl==2026.0.0
