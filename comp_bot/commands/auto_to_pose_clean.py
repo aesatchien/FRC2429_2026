@@ -16,8 +16,10 @@ from subsystems.swerve import Swerve
 from subsystems.led import Led
 from subsystems.vision import Vision
 from helpers.log_command import log_command
-from helpers.apriltag_utils import get_nearest_tag, auto_reflect_pose
+from helpers.apriltag_utils import auto_reflect_pose, mirror_for_alliance
+from helpers.utilities import deprecated
 
+@deprecated("Use drive_to_pose_custom_control instead. This class is outdated.")
 @log_command(console=True, nt=False, print_init=True, print_end=True)
 class AutoToPoseClean(commands2.Command):  #
     """
@@ -26,8 +28,7 @@ class AutoToPoseClean(commands2.Command):  #
     Modes of Operation (determined by arguments):
     1. Static Target: Pass `target_pose`.
     2. Vision Target: Pass `use_vision=True`. Uses cameras to find a target relative to the robot.
-    3. Nearest Tag: Pass `nearest=True`. Finds nearest AprilTag and drives to a scoring location associated with it.
-    4. Robot State: Pass `from_robot_state=True`. Uses a goal previously set in the RobotState subsystem.
+    3. Reflected Play: Pass `mode=` one of 'ball_pickup', 'ball_pickup++', 'shooting'.
 
     Control Types:
     - 'pathplanner': Uses PathPlanner's holonomic controller.
@@ -35,7 +36,7 @@ class AutoToPoseClean(commands2.Command):  #
     """
 
     def __init__(self, container, swerve: Swerve, target_pose: Pose2d, use_vision=False, cameras=None,
-                 mode=None, from_robot_state=False, control_type='not_pathplanner', indent=0,
+                 mode=None, control_type='not_pathplanner', indent=0,
                  offset: Transform2d = None, tolerance_type='exact') -> None:
         super().__init__()
         self.setName('AutoToPoseClean')  # using the pathplanner controller instead
@@ -48,8 +49,7 @@ class AutoToPoseClean(commands2.Command):  #
 
         # --- Configuration ---
         self.control_type = control_type
-        self.from_robot_state = from_robot_state
-        self.mode = mode  # only use nearest tags as the target
+        self.mode = mode  # None (static/vision) or one of the reflected-play modes above
         self.use_vision = use_vision  # use the cameras to tell us where to go
         self.cameras = cameras  # which cameras to use
         self.offset = offset  # offset in robot frame (x=forward, y=left, rot=ccw)
@@ -172,14 +172,12 @@ class AutoToPoseClean(commands2.Command):  #
         """Calculates the target pose based on the selected mode."""
         current_pose = self.container.swerve.get_pose()
 
-        if self.mode == "nearest":
-            # 1. Nearest Tag Mode
-            nearest_tag = get_nearest_tag(current_pose=current_pose, destination='reef')
-            self.container.robot_state.set_reef_goal_by_tag(nearest_tag)
-            target = self.container.robot_state.reef_goal_pose
-            # Mirroring handled below
+        # NOTE 2026: the 2025 "nearest" and from_robot_state modes used to live here.  They called
+        # robot_state.set_reef_goal_by_tag() / .reef_goal_pose, neither of which exists on the 2026
+        # RobotState - they would have raised AttributeError the moment anything reached them.
+        # Removed; if we want a nearest-tag mode again, build it on helpers.apriltag_utils.get_nearest_tag.
 
-        elif self.mode == "ball_pickup":
+        if self.mode == "ball_pickup":
             return auto_reflect_pose(robot_pose=current_pose, goal_pose=cac.k_first_ball_pickup_pose, alliance=wpilib.DriverStation.getAlliance(), is_shooting=False)
 
         elif self.mode == "ball_pickup++":
@@ -187,10 +185,6 @@ class AutoToPoseClean(commands2.Command):  #
 
         elif self.mode == "shooting":
             return auto_reflect_pose(robot_pose=current_pose, goal_pose=cac.k_shooting_pose, alliance=wpilib.DriverStation.getAlliance(), is_shooting=True)
-
-        elif self.from_robot_state:
-            # 2. Robot State Mode
-            target = self.container.robot_state.reef_goal_pose
 
         elif self.use_vision:
             # 3. Vision Mode
@@ -218,13 +212,8 @@ class AutoToPoseClean(commands2.Command):  #
             # 4. Static Target Mode
             target = self.original_target_pose
 
-        # Apply Red Alliance Mirroring to everything EXCEPT Vision
-        if wpilib.DriverStation.getAlliance() == wpilib.DriverStation.Alliance.kRed:
-            mid_x = constants.FieldConstants.k_field_length / 2
-            mid_y = constants.FieldConstants.k_field_width / 2
-            target = target.rotateAround(point=Translation2d(mid_x, mid_y), rot=Rotation2d(math.pi))
-            
-        return target
+        # Apply Red Alliance Mirroring to everything EXCEPT Vision (vision is robot-relative)
+        return mirror_for_alliance(target)
 
 
     def initialize(self) -> None:

@@ -15,7 +15,7 @@ from commands.drive_by_velocity_swerve import DriveByVelocitySwerve
 from commands.drive_by_joystick_subsystem_targeting import DriveByJoystickSubsystemTargeting
 from commands.intake_deploy import Intake_Deploy
 from commands.intake_set_rpm import Intake_Set_RPM
-from commands.shooting_command import ShootingCommand
+from autonomous.shoot_cycle import shoot_cycle
 from commands.drive_to_pose_custom_control import DriveToPoseCustomControl
 
 from helpers import joysticks as js
@@ -52,25 +52,12 @@ class PathingCenterOutpost(commands2.SequentialCommandGroup):
 
         # -----  PHASE II:  SHOOT INITIAL HOPPER -----
         # Tracks the hub
-        self.addCommands(commands2.InstantCommand(lambda: self.container.targeting.start_tracking()))
 
         # Starts the shooting cycle and then raises the intake after a delay to prevent compression and jams
         # forces it to die when the first command finishes
         
-        self.addCommands(commands2.ParallelRaceGroup(
-            ShootingCommand(shooter=container.shooter, targeting=container.targeting, indent=1, auto_timeout=ac.k_shooting_timeout, delay_cycles=10),
-            DriveByJoystickSubsystemTargeting(self.container, swerve=self.container.swerve, controller=js.driver_controller, targeting=container.targeting),
-            SequentialCommandGroup(
-                WaitCommand(ac.k_intake_raise_delay),
-                Intake_Deploy(intake=self.container.intake, position='shoot', indent=1),
-                Intake_Set_RPM(intake=self.container.intake, rpm=500),
-                WaitCommand(ac.k_intake_raise_delay),
-                Intake_Deploy(intake=self.container.intake, position='shoot2', indent=1),
-                WaitCommand(5)
-            ).withTimeout(ac.k_shooting_timeout)
-        ))
+        self.addCommands(shoot_cycle(self.container, indent=1))
         # stops tracking and kill intake
-        self.addCommands(commands2.InstantCommand(lambda: self.container.targeting.stop_tracking()))
 
         self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=0))
 

@@ -5,7 +5,7 @@ from commands.drive_by_velocity_swerve import DriveByVelocitySwerve
 from commands.drive_by_joystick_subsystem_targeting import DriveByJoystickSubsystemTargeting
 from commands.intake_deploy import Intake_Deploy
 from commands.intake_set_rpm import Intake_Set_RPM
-from commands.shooting_command import ShootingCommand
+from autonomous.shoot_cycle import shoot_cycle
 from commands.auto_to_pose_clean import AutoToPoseClean
 
 from helpers import joysticks as js
@@ -16,22 +16,15 @@ class ThroughTrenchFillShoot(commands2.SequentialCommandGroup):
         super().__init__()
         self.setName(f'ThroughTrenchFillShoot')
         self.container = container
-        # self.addCommands(commands2.InstantCommand(lambda: self.container.targeting.start_tracking()))
-
         # PUTS THE INTAKE DOWN
         self.addCommands(Intake_Deploy(intake=container.intake, position='down', indent=1))
 
         # self.addCommands(commands2.WaitCommand(0.5))
 
         # because the drive by velocity needs swerve, we have to actively use the swerve to auto target
-        # self.addCommands(commands2.ParallelRaceGroup(
-        #     ShootingCommand(shooter=container.shooter, targeting=container.targeting, indent=1, auto_timeout=3.5),
-        #     DriveByJoystickSubsystemTargeting(self.container, swerve=self.container.swerve, controller=js.driver_controller, targeting=container.targeting)
-        # ))
+        # self.addCommands(shoot_cycle(self.container, timeout=3.5, delay_cycles=50, intake='none', indent=1))
 
         # self.addCommands(ShootingCommand(shooter=container.shooter, targeting=container.targeting, indent=1, auto_timeout=5))
-
-        # self.addCommands(commands2.InstantCommand(lambda: self.container.targeting.stop_tracking()))
 
         # ACTIVATES THE INTAKE
         self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=constants.IntakeConstants.k_intake_default_rpm))
@@ -39,7 +32,7 @@ class ThroughTrenchFillShoot(commands2.SequentialCommandGroup):
         # self.addCommands(commands2.ParallelCommandGroup(
         #     commands2.WaitCommand(1).andThen(Intake_Deploy(intake=container.intake, position='down', indent=1)),
         #     AutoToPoseClean(container=self.container, swerve=self.container.swerve, target_pose=None,
-        #                     mode="ball_pickup", from_robot_state=True, control_type='not_pathplanner')
+        #                     mode="ball_pickup", control_type='not_pathplanner')
         # ))
 
         # self.addCommands(Intake_Deploy(intake=container.intake, position='down', indent=1))
@@ -49,11 +42,11 @@ class ThroughTrenchFillShoot(commands2.SequentialCommandGroup):
 
         # moves to the neutral zone to intake fuel --> come back to shoot
         self.addCommands(AutoToPoseClean(container=self.container, swerve=self.container.swerve, target_pose=None,
-                            mode="ball_pickup", from_robot_state=True, control_type='not_pathplanner', tolerance_type='fast').withTimeout(5)
+                            mode="ball_pickup", control_type='not_pathplanner', tolerance_type='fast').withTimeout(5)
         )
 
         self.addCommands(AutoToPoseClean(container=self.container, swerve=self.container.swerve, target_pose=None,
-                            mode="shooting", from_robot_state=True, control_type='not_pathplanner', tolerance_type='exact').withTimeout(5)
+                            mode="shooting", control_type='not_pathplanner', tolerance_type='exact').withTimeout(5)
         )
 
         # Raises the intake to shooting position
@@ -61,15 +54,9 @@ class ThroughTrenchFillShoot(commands2.SequentialCommandGroup):
         self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=0))
 
         # Tracks the hub
-        self.addCommands(commands2.InstantCommand(lambda: self.container.targeting.start_tracking()))
 
         #Shoots fuel and stops tracking
-        self.addCommands(commands2.ParallelRaceGroup(
-            ShootingCommand(shooter=container.shooter, targeting=container.targeting
-                            , indent=1, auto_timeout=5),
-            DriveByJoystickSubsystemTargeting(self.container, swerve=self.container.swerve, controller=js.driver_controller, targeting=container.targeting)
-        ))
-        self.addCommands(commands2.InstantCommand(lambda: self.container.targeting.stop_tracking()))
+        self.addCommands(shoot_cycle(self.container, timeout=5, delay_cycles=50, intake='none', indent=1))
 
         # Moves the intake down
         self.addCommands(Intake_Deploy(intake=container.intake, position='down', indent=1))
@@ -78,23 +65,16 @@ class ThroughTrenchFillShoot(commands2.SequentialCommandGroup):
 
         # Repeat what happened above
         self.addCommands(AutoToPoseClean(container=self.container, swerve=self.container.swerve, target_pose=None,
-                            mode="ball_pickup++", from_robot_state=True, control_type='not_pathplanner', tolerance_type='fast').withTimeout(4.5)
+                            mode="ball_pickup++", control_type='not_pathplanner', tolerance_type='fast').withTimeout(4.5)
         )
 
         self.addCommands(AutoToPoseClean(container=self.container, swerve=self.container.swerve, target_pose=None,
-                            mode="shooting", from_robot_state=True, control_type='not_pathplanner', tolerance_type='exact').withTimeout(4.5)
+                            mode="shooting", control_type='not_pathplanner', tolerance_type='exact').withTimeout(4.5)
         )
         self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=0))
         self.addCommands(Intake_Deploy(intake=self.container.intake, position='shoot', indent=1))
 
-        self.addCommands(commands2.InstantCommand(lambda: self.container.targeting.start_tracking()))
 
-        self.addCommands(commands2.ParallelRaceGroup(
-            ShootingCommand(shooter=self.container.shooter, targeting=container.targeting
-                            , indent=1, auto_timeout=5),
-            DriveByJoystickSubsystemTargeting(self.container, swerve=self.container.swerve,
-                                              controller=js.driver_controller, targeting=container.targeting)
-        ))
-        self.addCommands(commands2.InstantCommand(lambda: self.container.targeting.stop_tracking()))
+        self.addCommands(shoot_cycle(self.container, timeout=5, delay_cycles=50, intake='none', indent=1))
 
         self.addCommands(commands2.PrintCommand(f"{'    ' * indent}** Finished {self.getName()} **"))
