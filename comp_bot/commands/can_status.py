@@ -2,50 +2,35 @@ import random
 
 import commands2
 import wpilib
-import rev
 
 from helpers.log_command import log_command
-from subsystems.swerve_constants import DriveConstants as dc
+
 
 @log_command(console=True, nt=False, print_init=True, print_end=False)
-class CANStatus(commands2.Command):  # change the name for your command
+class CANStatus(commands2.Command):
+    """Dump and clear sticky faults for every swerve motor.
 
-    def __init__(self, container, ) -> None:
+    Goes through the motor adapters rather than touching a Spark directly, because the
+    two vendors report faults completely differently - REV hands you one bitmask,
+    Phoenix hands you 27 separate boolean signals.  motors.py normalises both to a list
+    of names, so this command does not care what is bolted to the module.
+    """
+
+    def __init__(self, container) -> None:
         super().__init__()
-        self.setName('CANStatus')  #
+        self.setName('CANStatus')
         self.container = container
-        #self.addRequirements()  # commandsv2 version of requirements
+        # self.addRequirements()  # deliberately none - this is read-only diagnostics
 
-        # Corrected swerve module indexing for RF (module 1) and LB (module 2)
-        # TODO - see if i can't get this from driveconstants w/o hand-coding it
-        self.can_ids = {#2: {'name': 'climber', 'motor': self.container.climber.sparkmax},
-                        #3: {'name': 'climber', 'motor': self.container.climber.follower},
-                        #4: {'name': 'elevator', 'motor': self.container.elevator.motor},
-                        #5: {'name': 'elevator', 'motor': self.container.elevator.follower},
-                        #6: {'name': 'shoulder', 'motor': self.container.pivot.motor},
-                        #7: {'name': 'shoulder', 'motor': self.container.pivot.follower},
-                        #10: {'name': 'wrist', 'motor': self.container.wrist.sparkmax},
-                        #12: {'name': 'intake', 'motor': self.container.intake.spark_flex},
-                        20: {'name': 'lf_turn',  'motor': self.container.swerve.swerve_modules[0].turningSpark},
-                        22: {'name': 'lb_turn', 'motor': self.container.swerve.swerve_modules[2].turningSpark},
-                        24: {'name': 'rf_turn', 'motor': self.container.swerve.swerve_modules[1].turningSpark},
-                        26: {'name': 'rb_turn', 'motor': self.container.swerve.swerve_modules[3].turningSpark},
-                        21: {'name': 'lf_drive', 'motor': self.container.swerve.swerve_modules[0].drivingSpark},
-                        23: {'name': 'lb_drive', 'motor': self.container.swerve.swerve_modules[2].drivingSpark},
-                        25: {'name': 'rf_drive', 'motor': self.container.swerve.swerve_modules[1].drivingSpark},
-                        27: {'name': 'rb_drive', 'motor': self.container.swerve.swerve_modules[3].drivingSpark}
-                        }
-        self.fault_ids = {0:'kBrownout', 1:'kOvercurrent', 2:'kIWDTReset', 3:'kMotorFault', 4:'kSensorFault',
-                          5:'kStall', 6: 'kEEPROMCRC', 7: 'kCANTX', 8: 'kCANRX', 9: 'kHasReset',
-                          10: 'kDRVFault', 11: 'kOtherFault', 12: 'kSoftLimitFwd', 13: 'kSoftLimitRev',
-                            14:'kHardLimitFwd', 15:'kHardLimitRev'}
+        # Built from the modules themselves.  This used to be a hand-written dict of CAN ids
+        # 20-27 with a TODO asking to derive it; hand-maintained id tables go stale the first
+        # time someone re-ids a controller.
+        self.motors = {}
+        for module in self.container.swerve.swerve_modules:
+            self.motors[f'{module.label}_drive'] = module.drive_motor
+            self.motors[f'{module.label}_turn'] = module.turn_motor
 
         self.write_log = False
-
-        # Set up NT4 publishers for efficiency and organization
-        #self.inst = ntcore.NetworkTableInstance.getDefault()
-        #self.can_status_pubs = {key: self.inst.getStringTopic(f"/SmartDashboard/CAN/CANID {key:02d}").publish()
-        #                       for key in self.can_ids.keys()}
 
     def runsWhenDisabled(self) -> bool:
         return True
@@ -86,35 +71,19 @@ class CANStatus(commands2.Command):  # change the name for your command
 
     def execute(self) -> None:
         # single execution and end
-        for key in self.can_ids.keys():
-            motor: rev.SparkBase = self.can_ids[key]['motor']
-            sticky_faults_mask = 0
-
-            # In the 2025 REV library, getStickyFaults() returns an object.
-            # We must use .rawBits to get the integer bitmask.
+        for name, motor in self.motors.items():
             if wpilib.RobotBase.isSimulation():
-                sticky_faults_mask = random.randint(0, 2048) # Simulate random faults
+                # sim has no real faults - make some up so the dashboard path gets exercised
+                faults = random.sample(['kBrownout', 'kCANRX', 'kHasReset', 'kStall'],
+                                       k=random.randint(0, 2))
             else:
-                sticky_faults_mask = motor.getStickyFaults().rawBits
+                faults = motor.get_sticky_faults()
 
-            motor.clearFaults()  # This clears active (non-sticky) faults.
+            motor.clear_faults()
 
-            set_bits = []
-            binary_string = bin(sticky_faults_mask)[2:]  # convert to binary and ignore the initial two 0b characters
-            for i, bit in enumerate(reversed(binary_string), start=0):
-                # Check if the bit is set (i.e., equals '1')
-                if bit == '1':
-                    # Add the position (0-based indexing) of the set bit to the list
-                    set_bits.append(i)
-
-            fault_codes = [self.fault_ids[id] for id in set_bits if id in self.fault_ids]
-            self.can_ids[key].update({'sticky_faults': sticky_faults_mask})
-            self.can_ids[key].update({'set_bits': set_bits})
-            self.can_ids[key].update({'fault_codes': fault_codes})
-
-            status_string = f"{self.can_ids[key]['name']:13} sticky_faults: {sticky_faults_mask} {set_bits} {fault_codes}"
-            print(f"CANID {key:02d}: {status_string}")
-            # self.can_status_pubs[key].set(status_string)
+            vendor = motor.describe()['vendor']
+            can_id = motor.can_id
+            print(f"CANID {can_id:02d}: {name:13} [{vendor}] sticky_faults: {faults if faults else 'none'}")
 
     def isFinished(self) -> bool:
         return True

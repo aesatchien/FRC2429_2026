@@ -44,7 +44,7 @@ import constants
 #     python -m pip install phoenix6
 # ---------------------------------------------------------------------------------
 try:
-    from phoenix6 import CANBus, StatusCode
+    from phoenix6 import BaseStatusSignal, CANBus, StatusCode
     from phoenix6.hardware import TalonFX
     from phoenix6.configs import TalonFXConfiguration, CurrentLimitsConfigs
     from phoenix6.controls import VelocityVoltage, DutyCycleOut
@@ -76,6 +76,8 @@ class DriveMotor(typing.Protocol):
     def zero_position(self) -> None: ...
     def set_current_limit(self, amps: int) -> None: ...
     def describe(self) -> dict: ...
+    def get_sticky_faults(self) -> list: ...
+    def clear_faults(self) -> None: ...
 
 
 class TurnMotor(typing.Protocol):
@@ -84,6 +86,8 @@ class TurnMotor(typing.Protocol):
     def get_position_rad(self) -> float: ...
     def seed_position_rad(self, radians: float) -> None: ...
     def describe(self) -> dict: ...
+    def get_sticky_faults(self) -> list: ...
+    def clear_faults(self) -> None: ...
 
 
 # =================================================================================
@@ -92,6 +96,21 @@ class TurnMotor(typing.Protocol):
 
 def _rev_persist_mode():
     return rev.PersistMode.kPersistParameters if constants.k_burn_flash else rev.PersistMode.kNoPersistParameters
+
+
+# REV reports sticky faults as one bitmask.  Bit -> name, from the REVLib fault enum.
+k_rev_fault_names = {0: 'kBrownout', 1: 'kOvercurrent', 2: 'kIWDTReset', 3: 'kMotorFault',
+                     4: 'kSensorFault', 5: 'kStall', 6: 'kEEPROMCRC', 7: 'kCANTX', 8: 'kCANRX',
+                     9: 'kHasReset', 10: 'kDRVFault', 11: 'kOtherFault', 12: 'kSoftLimitFwd',
+                     13: 'kSoftLimitRev', 14: 'kHardLimitFwd', 15: 'kHardLimitRev'}
+
+
+def _rev_sticky_faults(spark) -> list:
+    """Decode the bitmask into names.  Vendors disagree completely on fault reporting -
+    REV hands you one integer, Phoenix hands you 27 separate boolean signals - so the
+    adapters normalise both to a list of strings."""
+    mask = spark.getStickyFaults().rawBits
+    return [name for bit, name in k_rev_fault_names.items() if mask & (1 << bit)]
 
 
 def _rev_describe(spark, kind: str) -> dict:
@@ -150,6 +169,12 @@ class RevDriveMotor:
         error = self.spark.configure(tmp, rev.ResetMode.kNoResetSafeParameters, rev.PersistMode.kNoPersistParameters)
         print(f'  [{self.label}] REV drive current limit -> {amps}A  ({error})')
 
+    def get_sticky_faults(self) -> list:
+        return _rev_sticky_faults(self.spark)
+
+    def clear_faults(self) -> None:
+        self.spark.clearFaults()
+
     def describe(self) -> dict:
         return _rev_describe(self.spark, 'drive')
 
@@ -181,6 +206,12 @@ class RevTurnMotor:
     def seed_position_rad(self, radians: float) -> None:
         self.encoder.setPosition(radians)
 
+    def get_sticky_faults(self) -> list:
+        return _rev_sticky_faults(self.spark)
+
+    def clear_faults(self) -> None:
+        self.spark.clearFaults()
+
     def describe(self) -> dict:
         return _rev_describe(self.spark, 'turn')
 
@@ -188,6 +219,37 @@ class RevTurnMotor:
 # =================================================================================
 #  CTRE  -  Kraken X60 / TalonFX
 # =================================================================================
+
+def _talon_enable_fault_signals(talon) -> dict:
+    """{short_name: StatusSignal} for every sticky fault the device exposes (27 of them).
+
+    Deferred until something actually asks for faults, for two reasons:
+      - optimize_bus_utilization() slows every signal we did not explicitly request, so
+        fault frames are not flowing during a match.  That is what we want on a shared bus;
+        we do not spend bandwidth on diagnostics all match.  Turn them on here instead.
+      - constructing a StatusSignal performs an initial refresh, and doing 27 of those per
+        motor at boot prints a wall of "CAN frame not received" warnings before the bus has
+        settled.
+
+    Discovered by introspection rather than hand-listed, so a Phoenix update that adds a
+    fault does not silently stop being reported.
+    """
+    prefix = 'get_sticky_fault_'
+    signals = {name[len(prefix):]: getattr(talon, name)()
+               for name in dir(talon) if name.startswith(prefix)}
+    values = list(signals.values())
+    # Faults share status frames, so asking for a few enables the frame for all of them.
+    BaseStatusSignal.set_update_frequency_for_all(10, *values)
+    BaseStatusSignal.wait_for_all(0.25, *values, report_error=False)  # let one frame arrive
+    return signals
+
+
+def _talon_sticky_faults(signals: dict) -> list:
+    """Phoenix caches signal values off the CAN stream, so this is a local read."""
+    values = list(signals.values())
+    BaseStatusSignal.refresh_all(*values, report_error=False)
+    return sorted(name for name, sig in signals.items() if sig.value)
+
 
 class TalonDriveMotor:
     """
@@ -227,6 +289,7 @@ class TalonDriveMotor:
         # Everything we did NOT ask for drops to 4 Hz.  We share the roboRIO CAN bus with
         # nine REV controllers, so this is not optional.
         self.talon.optimize_bus_utilization()
+        self._fault_signals = None  # built on first get_sticky_faults() - see the helper
 
         self.zero_position()
 
@@ -263,6 +326,14 @@ class TalonDriveMotor:
                   .with_stator_current_limit(self.stator_limit_a).with_stator_current_limit_enable(True))
         self._apply(limits, f'supply current limit -> {amps}A')
         print(f'  [{self.label}] Kraken supply current limit -> {amps}A (stator held at {self.stator_limit_a}A)')
+
+    def get_sticky_faults(self) -> list:
+        if self._fault_signals is None:
+            self._fault_signals = _talon_enable_fault_signals(self.talon)
+        return _talon_sticky_faults(self._fault_signals)
+
+    def clear_faults(self) -> None:
+        self.talon.clear_sticky_faults()
 
     def describe(self) -> dict:
         cfg = TalonFXConfiguration()
@@ -304,6 +375,7 @@ class TalonTurnMotor:
         self._position_sig = self.talon.get_position()
         self._position_sig.set_update_frequency(50)
         self.talon.optimize_bus_utilization()
+        self._fault_signals = None  # built on first get_sticky_faults()
 
     def set_duty_cycle(self, output: float) -> None:
         self._duty_req.output = output
@@ -314,6 +386,14 @@ class TalonTurnMotor:
 
     def seed_position_rad(self, radians: float) -> None:
         self.talon.set_position(radians / math.tau)
+
+    def get_sticky_faults(self) -> list:
+        if self._fault_signals is None:
+            self._fault_signals = _talon_enable_fault_signals(self.talon)
+        return _talon_sticky_faults(self._fault_signals)
+
+    def clear_faults(self) -> None:
+        self.talon.clear_sticky_faults()
 
     def describe(self) -> dict:
         return {'vendor': 'CTRE', 'kind': 'turn', 'can_id': self.can_id,
