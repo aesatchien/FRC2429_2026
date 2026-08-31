@@ -365,6 +365,11 @@ class ClimberConstants:
         "upper_bar": 18  # relative
     }
 
+    # Climber.set_position() branches on this and there was no such constant, so that method
+    # would have raised AttributeError the moment the climber was enabled.  The subsystem is
+    # still commented out in RobotContainer and is only half written - see climber.py.
+    k_control_type = 'max_motion'
+
     k_climber_config = SparkMaxConfig()
     k_climber_configs = [k_climber_config]
     k_test_rpm = 20  # pi * diameter roller / 60  to get inches per second

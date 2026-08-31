@@ -32,13 +32,8 @@ whether or not a Kraken is on the other end of the bus.  You find that out from 
 
 import pytest
 
-
-@pytest.fixture(scope='module')
-def container():
-    """The one and only RobotContainer.  Building it IS the test - if robotInit would
-    crash on the robot, this fixture raises and every test below errors."""
-    from robotcontainer import RobotContainer
-    return RobotContainer()
+# `container` is a session fixture in conftest.py - see the note there about why it can only
+# be built once per process.
 
 
 def test_all_four_modules_have_working_adapters(container):
