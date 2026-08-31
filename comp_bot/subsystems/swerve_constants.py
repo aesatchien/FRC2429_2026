@@ -84,16 +84,16 @@ class DriveConstants:
     kSlowModeCap = 0.35                   # translation slow-mode floor for targeting command
     kAngularSlowFloor = 0.5               # angular slow-mode floor for both joystick commands
     kJoystickLegacyTranslationFloor = 0.2 # translation slow-mode floor for drive_by_joystick_swerve only
-    # our hardware can do 11.11 hertz =
-    # TODO: actually figure out what the total max speed should be - vector sum?
-    # Ceiling handed to SwerveDrive4Kinematics.desaturateWheelSpeeds().  NOTE this is 7.39, which
-    # is far ABOVE what a module can physically do (4.73 m/s on Krakens, 5.35 on Vortexes), so
-    # desaturation effectively never fires: full-forward + full-rotation asks two modules for
-    # ~7.0 m/s, they clip individually instead of the set scaling down together, and the chassis
-    # stops moving in the commanded direction.  The Kraken swap makes this worse, not better.
-    # Left as-is because changing it changes driving feel - but it should become the measured
-    # module top speed, which is the whole point of the function.
-    kMaxTotalSpeed = 1.1 * math.sqrt(2) * kMaxSpeedMetersPerSecond
+    # Ceiling handed to SwerveDrive4Kinematics.desaturateWheelSpeeds().  Its whole job is: when
+    # ANY module is asked for more than it can deliver, scale all four down TOGETHER so the
+    # chassis still moves in the commanded direction, just slower.
+    #
+    # This used to be 1.1 * sqrt(2) * kMaxSpeedMetersPerSecond = 7.39 m/s - far above the ~4.73
+    # a module can actually do - so desaturation never fired.  Full-forward plus full-rotation
+    # asks two modules for ~7.0 m/s; they clipped individually and the robot quietly stopped
+    # going where it was told.  Assigned just below the class, because the real number depends
+    # on ModuleConstants' gearing and free speed, which are defined after this.
+    kMaxTotalSpeed = None  # -> set to the module's physical top speed at the bottom of this file
     
     # Acceleration limits: see RateLimiters class below for all SlewRateLimiter rates.
     
@@ -476,6 +476,19 @@ class ModuleConstants:
         k_kraken_turning_config.feedback.sensor_to_mechanism_ratio = k_turning_motor_gear_ratio
         k_kraken_turning_config.current_limits.supply_current_limit = kTurningMotorCurrentLimit
         k_kraken_turning_config.current_limits.supply_current_limit_enable = True
+
+
+# ---------------------------------------------------------------------------------------------
+# The desaturation ceiling, resolved now that ModuleConstants knows the gearing and free speed.
+# kDriveWheelFreeSpeedRps is misnamed - it is the wheel's free speed in METRES PER SECOND, which
+# is exactly the per-module limit desaturateWheelSpeeds() wants.  Tracking it off the active
+# drive motor means a vendor or gearing change carries this along instead of leaving it stale.
+#   Kraken X60 @ 6.75:1 -> 4.73 m/s      NEO Vortex @ 6.75:1 -> 5.35 m/s
+# DRIVER-VISIBLE: at full stick WITH rotation the robot now trades translation speed to keep
+# heading, instead of two modules clipping and the chassis sliding off the commanded direction.
+# To go back to the old (broken) behaviour: kMaxTotalSpeed = 1.1 * sqrt(2) * kMaxSpeedMetersPerSecond
+DriveConstants.kMaxTotalSpeed = ModuleConstants.kDriveWheelFreeSpeedRps
+# ---------------------------------------------------------------------------------------------
 
 
 class AutoConstantsSwerve:

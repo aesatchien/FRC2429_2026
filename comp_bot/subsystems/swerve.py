@@ -222,6 +222,14 @@ class Swerve (Subsystem):
         :param rateLimit:     Whether to enable rate limiting for smoother control.
         """
 
+        # ORDER MATTERS.  keep_angle first, because it needs the RAW driver intent to decide
+        # whether we are deliberately rotating or drifting; then rate limiting, on whatever
+        # keep_angle decided to send.  It used to be the other way round, which meant the
+        # rate-limited rotation was computed and then immediately overwritten by
+        # perform_keep_angle() - so default_rotation_slew_rate had never once applied.
+        if keep_angle:
+            rot = self.perform_keep_angle(xSpeed, ySpeed, rot)  # the 1706 keep angle routine
+
         if rate_limited:
             xSpeedCommanded = self.fwd_magLimiter.calculate(xSpeed)
             ySpeedCommanded = self.strafe_magLimiter.calculate(ySpeed)
@@ -230,9 +238,6 @@ class Swerve (Subsystem):
             xSpeedCommanded = xSpeed
             ySpeedCommanded = ySpeed
             rotation_commanded = rot
-
-        if keep_angle:
-            rotation_commanded = self.perform_keep_angle(xSpeed, ySpeed, rot)  # call the 1706 keep angle routine to maintain rotation
 
         # Convert the commanded speeds into the correct units for the drivetrain
         xSpeedDelivered = xSpeedCommanded * dc.kMaxSpeedMetersPerSecond
@@ -448,7 +453,9 @@ class Swerve (Subsystem):
                     tag_pose = Pose3d(Translation3d(tx, ty, tz), Rotation3d(rx, ry, rz)).toPose2d()
 
                     use_tag = constants.k_use_CJH_tags  # can disable this in constants
-                    use_tag = False if self.gyro.getRate() > 90 else use_tag  # no more than n degrees per second turning if using a tag
+                    # abs() because AHRS.getRate() is SIGNED - without it we rejected motion-blurred
+                    # tags when spinning one direction and accepted them at any rate spinning the other.
+                    use_tag = False if abs(self.gyro.getRate()) > 90 else use_tag  # no more than n deg/s while using a tag
 
                     if use_tag:
                         if self.validate_odometry(tag_pose):

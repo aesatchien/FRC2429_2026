@@ -25,7 +25,11 @@ class ShootingFeedingCommand(commands2.Command):  # change the name for your com
         self.delay_cycles = delay_cycles  # Trentan: this is .75 seconds, was 37, 50 seems good for aluminum shooter
         self.auto_timeout = auto_timeout
         self.timer = wpilib.Timer()
-        self.rpm = sc.k_shooter_max_speed
+        # Was `self.rpm = sc.k_shooter_max_speed` unconditionally, which silently discarded the
+        # rpm argument.  Invisible only because the one call site happened to pass that same
+        # value - the day someone tuned the feed speed at an event, nothing would have happened.
+        # Defaulting to max preserves today's behaviour for callers that pass nothing.
+        self.rpm = rpm if rpm > 0 else sc.k_shooter_max_speed
         self.indexer_started_cycle = -1
 
     def initialize(self) -> None:

@@ -101,6 +101,7 @@ class RobotContainer:
         self.initialize_dashboard()
 
         self.position_index = 0
+        self.scheduled_auto_command = None  # set by get_autonomous_command(), read by robot.teleopInit
 
         Pathfinding.setPathfinder(LocalADStar())
 
@@ -500,6 +501,13 @@ class RobotContainer:
     def get_autonomous_command(self):
         cmd = self.auto_chooser.getSelected()
         delay = self.auto_delay_entry.get()
+
+        # Remember WHICH command we handed out.  teleopInit has to cancel the auto that actually
+        # ran, and it used to call auto_chooser.getSelected().cancel() - so if anyone touched the
+        # chooser between auto and teleop (which happens constantly in practice) it cancelled the
+        # newly selected command while the one still running carried on into teleop.
+        self.scheduled_auto_command = cmd
+
         if delay > 0.0:
             # Schedule the command independently to avoid composition ownership crashes
             # when running Auto multiple times!

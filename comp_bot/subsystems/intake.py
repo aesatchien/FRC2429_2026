@@ -241,16 +241,29 @@ class Intake(Subsystem):
 
         # --- Run WPILib Profiled PID and Gravity Feedforward ---
         current_pos = self.deploy_encoder.getPosition()
+
+        # While disabled the arm cannot move, but the profile's internal setpoint marches to the
+        # goal anyway - so on enable the PID sees the full error at once and steps.  Worst case:
+        # press IntakeIdle (coast, and ignoringDisable) while disabled, the arm falls to 0 deg,
+        # the profile is already parked at 148, and enabling hands the gearbox the whole error.
+        # Keeping the profile pinned to where the arm actually is makes enable a no-op.
+        if wpilib.DriverStation.isDisabled():
+            self.arm_profile.reset(current_pos)
+            self.arm_profile.setGoal(current_pos)
+            self.setpoint = current_pos
+
         pid_voltage = self.arm_profile.calculate(current_pos)
-        
+
         # Get the internal setpoint of the trajectory for feedforward
         setpoint = self.arm_profile.getSetpoint()
-        
-        # ArmFeedforward takes radians. 
+
+        # ArmFeedforward takes radians.
         # NOTE: If 0 degrees is NOT horizontal, add an offset here. e.g., math.radians(setpoint.position) + offset
         ff_voltage = self.arm_feedforward.calculate(math.radians(setpoint.position), math.radians(setpoint.velocity))
-        
-        total_voltage = pid_voltage + ff_voltage
+
+        # Clamp.  The Spark config's outputRange(+/-0.6) bounds the CLOSED-LOOP path only; it does
+        # nothing to setVoltage(), which was previously unbounded.
+        total_voltage = max(-ic.k_deploy_max_voltage, min(ic.k_deploy_max_voltage, pid_voltage + ff_voltage))
         self.deploy_motor.setVoltage(total_voltage)
         # -------------------------------------------------------
 
