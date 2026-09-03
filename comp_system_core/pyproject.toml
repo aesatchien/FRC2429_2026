@@ -49,7 +49,8 @@ components = [
 requires = [
     "protobuf>=6.0,<7",
     "robotpy-urcl",
-    "robotpy-pathplannerlib>=2026.1.1",
+    # robotpy-pathplannerlib - VENDORED into pathplannerlib/, see its VENDORED.md.
+    #   Restore this line and delete that directory once a 2027 wheel exists.
     "robotpy-navx>=2026.0.0",
     "robotpy-rev>=2026.0.1",
     "phoenix6>=26.1",          # Kraken X60 / TalonFX - needed by subsystems/motors.py
