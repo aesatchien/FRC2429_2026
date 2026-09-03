@@ -52,7 +52,7 @@ requires = [
     "robotpy-pathplannerlib>=2026.1.1",
     "robotpy-navx>=2026.0.0",
     "robotpy-rev>=2026.0.1",
-    "phoenix6",
+    "phoenix6>=26.1",          # Kraken X60 / TalonFX - needed by subsystems/motors.py
 
 ]
 

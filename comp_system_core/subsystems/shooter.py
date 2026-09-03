@@ -5,6 +5,7 @@ from rev import SparkBase, SparkLowLevel  # trying to save some typing
 
 import constants
 from constants import ShooterConstants as sc
+from helpers.utilities import configure_sparks
 
 
 class Shooter(Subsystem):
@@ -28,7 +29,7 @@ class Shooter(Subsystem):
         # TODO - add rollers here and in list - decide if they are just followers or independent
         self.roller_motor = rev.SparkFlex(sc.k_CANID_flywheel_roller, motor_type)
 
-        # convenient list of motors if we need to query or set all of them - SAME ORDER AS COBSTANTS!
+        # convenient list of motors if we need to query or set all of them
         self.motors = [self.hopper,
                        self.indexer_left_leader, self.indexer_right_follower,
                         self.flywheel_left_leader, self.flywheel_right_follower,
@@ -47,17 +48,15 @@ class Shooter(Subsystem):
         self.hopper_controller = self.hopper.getClosedLoopController()
         self.hopper_encoder = self.hopper.getEncoder()
 
-        # default parameters for the sparkmaxes reset and persist modes -
-        self.rev_resets = rev.ResetMode.kResetSafeParameters
-        self.rev_persists = rev.PersistMode.kPersistParameters if constants.k_burn_flash \
-            else rev.PersistMode.kNoPersistParameters
-
-        # put the configs in a list matching the motors
-        self.configs:list = sc.k_shooter_configs
- 
-        # this should be its own function later - we will call it whenever we change brake mode
-        rev_errors = [motor.configure(config, self.rev_resets, self.rev_persists)
-                      for motor, config in zip(self.motors, self.configs)]
+        # Each motor is paired with its own named config, so you cannot silently mis-order them.
+        configure_sparks([
+            (self.hopper,                  sc.k_hopper_config),
+            (self.indexer_left_leader,     sc.k_indexer_left_leader_config),
+            (self.indexer_right_follower,  sc.k_indexer_right_follower_config),
+            (self.flywheel_left_leader,    sc.k_flywheel_left_leader_config),
+            (self.flywheel_right_follower, sc.k_flywheel_right_follower_config),
+            (self.roller_motor,            sc.k_flywheel_roller_config),
+        ], subsystem_name='shooter')
 
         # initialize states
         self.shooter_on = False  # state of shooter
@@ -177,7 +176,6 @@ class Shooter(Subsystem):
     def set_shooter_rpm(self, rpm=1000):
         # multiple different ways to set the shooter
         # self.flywheel_left_leader.set(rpm)
-        roller_feed_forward = min(12, 12 * rpm / 6784)  # if there is no gearing, then this gets you close
         # rev is a pain in the ass - you have to pass EXACTLY the types it wants - no using "0" for the slots anymore
         # self.roller_controller.setReference(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=roller_feed_forward)
 

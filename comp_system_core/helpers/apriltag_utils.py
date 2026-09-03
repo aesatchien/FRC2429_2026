@@ -1,4 +1,6 @@
 import math
+from pathlib import Path
+
 import robotpy_apriltag
 import wpilib
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
@@ -7,13 +9,13 @@ import constants
 from constants import FieldConstants as fc, AutoConstants as cac
 
 # This data is initialized once when the module is first imported.
-# TODO -  right now all the libraries are messed up, so we have to do this manually  - 20260118 CJH
+# TODO -  robotpy_apriltag has no k2026RebuiltWelded field yet, so we ship the layout ourselves - 20260118 CJH
 #layout = robotpy_apriltag.AprilTagFieldLayout.loadField(robotpy_apriltag.AprilTagField.k2026RebuiltWelded)
-if wpilib.RobotBase.isSimulation():
-    layout = robotpy_apriltag.AprilTagFieldLayout('2026-rebuilt-welded_json')
-else:
-    #layout = robotpy_apriltag.AprilTagFieldLayout.loadField(robotpy_apriltag.AprilTagField.k2025ReefscapeWelded)
-    layout = robotpy_apriltag.AprilTagFieldLayout('/home/lvuser/py/2026-rebuilt-welded_json')
+# Resolve relative to this file, not the working directory.  The old version hardcoded
+# '2026-rebuilt-welded_json' (sim, CWD-relative) and '/home/lvuser/py/...' (robot); either one
+# going stale is an ImportError at module scope, which takes down the whole robot program.
+k_tag_layout_file = Path(__file__).resolve().parent.parent / '2026-rebuilt-welded_json'
+layout = robotpy_apriltag.AprilTagFieldLayout(str(k_tag_layout_file))
 
 
 # Pre-calculate tag positions for plotting or other uses
@@ -48,127 +50,35 @@ def auto_reflect_pose(robot_pose:Pose2d, goal_pose:Pose2d, alliance, is_shooting
 
     return Pose2d(x, y, Rotation2d(theta))
 
-def get_nearest_tag(current_pose, destination='stage'):
-    """ Return the nearest allowed tag to a given pose """
+def get_nearest_tag(current_pose: Pose2d, tags: list[int]) -> int:
+    """ Return the ID of the nearest tag in `tags` to a given pose.
 
-    if destination == 'reef':
-        # get all distances to the stage tags
-        tags = [6, 7, 8, 9, 10, 11, 17, 18, 19, 20, 21,
-                22]  # the ones we can see from driver's station - does not matter if red or blue
-        x_offset, y_offset = -0.10, 0.10  # subtracting translations below makes +x INTO the tage, +y LEFT of tag
-        robot_offset = Pose2d(Translation2d(x_offset, y_offset), Rotation2d(0))
-        face_tag = True  # do we want to face the tag?
-    else:
-        raise ValueError('  location for get_nearest tag must be in ["stage", "amp"] etc')
-
-    poses = [layout.getTagPose(tag).toPose2d() for tag in tags]
-    distances = [current_pose.translation().distance(pose.translation()) for pose in poses]
-
-    # sort the distances
-    combined = list(zip(tags, distances))
-    combined.sort(key=lambda x: x[1])  # sort on the distances
-    sorted_tags, sorted_distances = zip(*combined)
-    nearest_pose = layout.getTagPose(sorted_tags[0])  # get the pose of the nearest stage tag
-
-    # transform the tag pose to our specific needs
-    tag_pose = nearest_pose.toPose2d()  # work with a 2D pose
-    tag_rotation = tag_pose.rotation()  # we are either going to match this or face opposite
-    robot_offset_corrected = robot_offset.rotateBy(tag_rotation)  # rotate our offset so we align with the tag
-    updated_translation = tag_pose.translation() - robot_offset_corrected.translation()  # careful with these signs
-    updated_rotation = tag_rotation + Rotation2d(math.pi) if face_tag else tag_rotation  # choose if we flip
-    updated_pose = Pose2d(translation=updated_translation, rotation=updated_rotation)  # drive to here
-
-    return sorted_tags[0]  # changed this in 2025 instead of updated_pose
-
-
-def pose_from_nearest_tag(robot_state, current_pose: Pose2d, destination='reef') -> Pose2d:
-    """Calculates the target pose based on the nearest AprilTag."""
-    nearest_tag = get_nearest_tag(current_pose=current_pose, destination=destination)
-    robot_state.set_reef_goal_by_tag(nearest_tag)
-    target = robot_state.reef_goal_pose
-    
-    if wpilib.DriverStation.getAlliance() == wpilib.DriverStation.Alliance.kRed:
-        mid_x = fc.k_field_length / 2
-        mid_y = fc.k_field_width / 2
-        target = target.rotateAround(point=Translation2d(mid_x, mid_y), rot=Rotation2d(math.pi))
-        
-    return target
-
-def pose_from_robot_state(robot_state) -> Pose2d:
-    """Retrieves the reef goal pose from RobotState and applies alliance mirroring."""
-    target = robot_state.reef_goal_pose
-    
-    if wpilib.DriverStation.getAlliance() == wpilib.DriverStation.Alliance.kRed:
-        mid_x = fc.k_field_length / 2
-        mid_y = fc.k_field_width / 2
-        target = target.rotateAround(point=Translation2d(mid_x, mid_y), rot=Rotation2d(math.pi))
-        
-    return target
-
-def pose_from_static(target_pose: Pose2d) -> Pose2d:
-    """Applies alliance mirroring to a static pose."""
-    target = target_pose
-    if wpilib.DriverStation.getAlliance() == wpilib.DriverStation.Alliance.kRed:
-        mid_x = fc.k_field_length / 2
-        mid_y = fc.k_field_width / 2
-        target = target.rotateAround(point=Translation2d(mid_x, mid_y), rot=Rotation2d(math.pi))
-        
-    return target
-
-#  ---------   DEPRECATED REEFSCAPE STUFF
-# Mapping from letter to tag ID and which side of the reef face it corresponds to.
-# Note: 'e' is the right side of tag 22, 'f' is the left side, etc.
-letter_map = {
-    'a': {'tag_id': 18, 'side': 'left'}, 'b': {'tag_id': 18, 'side': 'right'},
-    'c': {'tag_id': 17, 'side': 'left'}, 'd': {'tag_id': 17, 'side': 'right'},
-    'e': {'tag_id': 22, 'side': 'right'}, 'f': {'tag_id': 22, 'side': 'left'},
-    'g': {'tag_id': 21, 'side': 'right'}, 'h': {'tag_id': 21, 'side': 'left'},
-    'i': {'tag_id': 20, 'side': 'right'}, 'j': {'tag_id': 20, 'side': 'left'},
-    'k': {'tag_id': 19, 'side': 'left'}, 'l': {'tag_id': 19, 'side': 'right'},
-}
-
-
-def get_reefscape_scoring_pose(letter: str) -> Pose2d:
+    Callers pass the tag list explicitly.  The 2025 version took a `destination` string
+    and looked the list up internally, which meant every new destination needed an edit here.
     """
-    Calculates the ideal robot pose to score on a specific branch (a-l) of the Reef.
-    This encapsulates the geometric calculations based on the 2025 AprilTag field layout.
+    poses = {tag: layout.getTagPose(tag) for tag in tags}
+    valid = {tag: pose.toPose2d() for tag, pose in poses.items() if pose is not None}
+    if not valid:
+        raise ValueError(f'none of the tags {tags} exist in the {k_tag_layout_file.name} layout')
 
-    :param letter: The single character name of the scoring branch ('a' through 'l').
-    :return: A Pose2d representing the robot's target position and orientation,
-             or a default Pose2d(0,0,0) if the letter is invalid or tag is not found.
+    return min(valid, key=lambda tag: current_pose.translation().distance(valid[tag].translation()))
+
+
+def mirror_for_alliance(pose: Pose2d, alliance=None) -> Pose2d:
+    """ Rotate a blue-origin pose 180 degrees about field center when we are on red.
+
+    This is THE alliance mirror for the whole codebase.  It used to be copy-pasted into
+    three helpers here plus AutoToPoseClean._determine_target_pose; if you find a fourth
+    copy, delete it and call this instead.
+
+    Note this is a rotation about center (the 2025+ "rotationally symmetric field" rule),
+    NOT a reflection.  auto_reflect_pose() above is a different operation - it mirrors a
+    play about the field's horizontal centerline so the same auto works top or bottom.
     """
-    letter = letter.lower()
-    if letter not in letter_map:
-        return Pose2d()
+    if alliance is None:
+        alliance = wpilib.DriverStation.getAlliance()
+    if alliance != wpilib.DriverStation.Alliance.kRed:
+        return pose
 
-    map_info = letter_map[letter]
-    tag_id = map_info['tag_id']
-    side = map_info['side']
-
-    this_face_tag_pose = layout.getTagPose(tag_id)
-    if not this_face_tag_pose:
-        return Pose2d()
-
-    # --- Geometric calculations moved from constants.py ---
-    tag_translation = this_face_tag_pose.translation().toTranslation2d()
-    tag_yaw = Rotation2d(this_face_tag_pose.rotation().Z())
-
-    robot_rotation = tag_yaw + Rotation2d(math.radians(-90))
-    coral_center_offset = 0.0
-    x_offset = 0.47
-    right_y_offset = 0.15
-    left_y_offset = 0.17
-    robot_offset_left = Translation2d(x_offset, -left_y_offset - coral_center_offset).rotateBy(tag_yaw)
-    robot_offset_right = Translation2d(x_offset - coral_center_offset, +right_y_offset - coral_center_offset).rotateBy(tag_yaw)
-
-    left_branch_position = tag_translation + robot_offset_left
-    right_branch_position = tag_translation + robot_offset_right
-
-    if side == 'left':
-        return Pose2d(left_branch_position, robot_rotation)
-    else:  # side == 'right'
-        return Pose2d(right_branch_position, robot_rotation)
-
-
-# Dictionary to store robot poses for reefscape autos
-k_useful_robot_poses_blue = {letter: get_reefscape_scoring_pose(letter) for letter in 'abcdefghijkl'}
+    field_center = Translation2d(fc.k_field_length / 2, fc.k_field_width / 2)
+    return pose.rotateAround(point=field_center, rot=Rotation2d(math.pi))

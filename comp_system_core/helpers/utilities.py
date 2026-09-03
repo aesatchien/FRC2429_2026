@@ -1,11 +1,45 @@
 # repo for utility functions anyone can use
 import functools
 import warnings
-from typing import Union, List
-from rev import ClosedLoopSlot, SparkMaxConfig, SparkFlexConfig
+from typing import Union, List, Sequence, Tuple
+
+import rev
+from rev import ClosedLoopSlot, SparkMaxConfig, SparkFlexConfig, REVLibError
+
+import constants
 
  # ----------------  COMMON FUNCTIONS  ------------------------------------
 SparkConfig = Union[SparkMaxConfig, SparkFlexConfig]  # let our functions take either Spark flavor
+
+
+def configure_sparks(pairs: Sequence[Tuple[object, SparkConfig]], subsystem_name: str = '') -> bool:
+    """
+    Push a config to each Spark and REPORT ANY FAILURE.  Returns True if every motor took its config.
+
+    Pass explicit (motor, config) pairs.  Intake, Shooter and Climber each used to do
+
+        rev_errors = [motor.configure(c, resets, persists) for motor, c in zip(self.motors, self.configs)]
+
+    which had two problems: the result was never looked at, so a motor that failed to configure
+    booted silently; and `self.motors` and `self.configs` were two hand-maintained lists in two
+    different files that had to stay in the same order (the comment in shooter.py said
+    "SAME ORDER AS COBSTANTS!").  Inserting one motor mis-paired everything after it - no error,
+    just a flywheel running on the roller's current limit.  Pairing them at the call site
+    makes that mistake impossible to make silently.
+    """
+    resets = rev.ResetMode.kResetSafeParameters       # always start from a clean slate
+    persists = rev.PersistMode.kPersistParameters if constants.k_burn_flash else rev.PersistMode.kNoPersistParameters
+
+    all_ok = True
+    for motor, config in pairs:
+        error = motor.configure(config, resets, persists)
+        if error != REVLibError.kOk:
+            all_ok = False
+            print(f'*** CONFIG FAILED: {subsystem_name} CAN id {motor.getDeviceId()} returned {error} ***')
+
+    if all_ok:
+        print(f'  configured {len(pairs)} {subsystem_name} sparks (burn_flash={constants.k_burn_flash})')
+    return all_ok
 
 def set_config_defaults(configs: Union[SparkConfig, List[SparkConfig]]) -> None:
     """

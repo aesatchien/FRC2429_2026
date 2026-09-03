@@ -102,10 +102,14 @@ class MyRobot(commands2.TimedCommandRobot):
         if self.autonomousCommand:
             self.autonomousCommand.cancel()
             
-        # Ensure the actual selected auto command is also canceled, 
+        # Ensure the actual selected auto command is also canceled,
         # in case it was scheduled independently by our auto delay wrapper!
-        if self.container.auto_chooser.getSelected():
-            self.container.auto_chooser.getSelected().cancel()
+        # NOTE this is the command get_autonomous_command() actually handed out, NOT
+        # auto_chooser.getSelected().  Touching the chooser between auto and teleop - which
+        # happens constantly in practice - used to cancel the newly selected command while
+        # the one still running carried on driving into teleop.
+        if self.container.scheduled_auto_command is not None:
+            self.container.scheduled_auto_command.cancel()
 
         self.container.targeting.stop_tracking()  # make absolutely sure that tracking is exited in teleop
             

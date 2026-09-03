@@ -3,7 +3,6 @@
 # Command: GoToL1, GoToL2, GoToL3, UnClimb)
 
 #Things to import:
-from time import sleep
 
 #Subsystem methods:
 # - deploy: open the motor
@@ -39,6 +38,7 @@ from rev import ClosedLoopSlot, SparkMax
 from commands2 import SubsystemBase
 import constants
 from constants import ClimberConstants as cc
+from helpers.utilities import configure_sparks
 from rev import SparkBase, SparkLowLevel
 
 class Climber(SubsystemBase):
@@ -63,17 +63,7 @@ class Climber(SubsystemBase):
         self.climber_controller = self.motor.getClosedLoopController()
         self.climber_encoder = self.motor.getEncoder()
 
-        # default parameters for the sparkmaxes reset and persist modes
-        self.rev_resets = rev.ResetMode.kResetSafeParameters
-        self.rev_persists = rev.PersistMode.kPersistParameters if constants.k_burn_flash \
-            else rev.PersistMode.kNoPersistParameters
-
-        # put the configs in a list matching the motors
-        self.configs = cc.k_climber_configs
-
-        # this should be its own function later - we will call it whenever we change brake mode
-        rev_errors = [motor.configure(config, self.rev_resets, self.rev_persists)
-                      for motor, config in zip(self.motors, self.configs)]
+        configure_sparks([(self.motor, cc.k_climber_config)], subsystem_name='climber')
 
         # initialize states
         self.motor_on = False

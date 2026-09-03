@@ -32,10 +32,10 @@ class CalibrateIntake(commands2.Command):  # change the name for your command
         # put your safe cleanup code here - turn off motors, set LEDs, etc
         self.intake.deploy_motor.set(0) # stop the dropper crank when the command ends
         if interrupted:
-            self.intake.calibrated = False
+            self.intake.is_calibrated = False
         else:
-            self.intake.calibrated = True
+            self.intake.is_calibrated = True
             self.intake.deployed_angle = ic.k_top_angle
             self.intake.reset_encoder(ic.k_top_angle)
             self.intake.deployed = False
-        print("Calibration status:", self.intake.calibrated)
+        print("Calibration status:", self.intake.is_calibrated)

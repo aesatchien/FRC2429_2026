@@ -35,7 +35,6 @@ from autonomous.pathing_fsfs_bump_to_bump import PathingFSFSBumptoBump
 from autonomous.pathing_fsfs_trench_to_bump import PathingFSFSTrenchtoBump
 from autonomous.pathing_fsfs_trench_to_trench import PathingFSFSTrenchtoTrench
 from autonomous.depot_or_output_and_shoot import DepotOrOutpostAndShoot
-from autonomous.teleop_cycle import TeleopCycle
 from autonomous.pathing_center_back import PathingCenterBack
 from autonomous.pathing_center_to_outpost import PathingCenterOutpost
 from autonomous.pathing_drawing import DrawingAuto
@@ -96,15 +95,13 @@ class RobotContainer:
               ps5controller=js.play_station_controller  # ps5 is play station controller
          ))
 
-        if not constants.k_swerve_only:
-            pass
-
         # ----------  DASHBOARD & PATHPLANNER  ---------------
         self.register_commands()
 
         self.initialize_dashboard()
 
         self.position_index = 0
+        self.scheduled_auto_command = None  # set by get_autonomous_command(), read by robot.teleopInit
 
         Pathfinding.setPathfinder(LocalADStar())
 
@@ -504,6 +501,13 @@ class RobotContainer:
     def get_autonomous_command(self):
         cmd = self.auto_chooser.getSelected()
         delay = self.auto_delay_entry.get()
+
+        # Remember WHICH command we handed out.  teleopInit has to cancel the auto that actually
+        # ran, and it used to call auto_chooser.getSelected().cancel() - so if anyone touched the
+        # chooser between auto and teleop (which happens constantly in practice) it cancelled the
+        # newly selected command while the one still running carried on into teleop.
+        self.scheduled_auto_command = cmd
+
         if delay > 0.0:
             # Schedule the command independently to avoid composition ownership crashes
             # when running Auto multiple times!

@@ -46,8 +46,10 @@ class Swerve (Subsystem):
                 turning_encoder_offset=offset, label=label))
         self.frontLeft, self.frontRight, self.rearLeft, self.rearRight = self.swerve_modules
 
-        # let's make sure we're getting the right properties in the swerves
-        compare_motors(self.frontLeft.drivingSpark, self.frontLeft.turningSpark, name_a='LF DRIVE', name_b='LF TURN')
+        # let's make sure we're getting the right properties in the swerves.  describe() works
+        # whichever vendor is underneath, so this still prints on a mixed Kraken/REV module.
+        lf_drive, lf_turn = self.frontLeft.describe()
+        compare_motors(lf_drive, lf_turn, name_a='LF DRIVE', name_b='LF TURN')
 
         # ---------- set up gyro   ----------
         self.gyro = navx.AHRS.create_spi()
@@ -101,6 +103,7 @@ class Swerve (Subsystem):
 
         # -------------  Pathplanner section --------------
         robot_config = RobotConfig.fromGUISettings()
+        self._check_pathplanner_config(robot_config)
 
         AutoBuilder.configure(
                 pose_supplier=self.get_pose,
@@ -120,9 +123,45 @@ class Swerve (Subsystem):
             DataLogManager.start()  # start wpilib datalog for AdvantageScope
             DriverStation.startDataLog(DataLogManager.getLog())  # Record both DS control and joystick data
             urcl.URCL.start()  # start the unofficial rev urcl logger for AdvantageScope
+            # URCL only sees REV devices.  If any Krakens are on the bus they log through
+            # Phoenix's own SignalLogger, which writes .hoot files AdvantageScope opens separately.
+            if dc.k_drive_vendor == 'ctre' or dc.k_turn_vendor == 'ctre':
+                from phoenix6 import SignalLogger
+                SignalLogger.start()
+                print('  started Phoenix SignalLogger (.hoot) alongside URCL')
 
         # pre-allocate all the keys for speed
         self._init_networktables()
+
+    def _check_pathplanner_config(self, robot_config) -> None:
+        """Shout if deploy/pathplanner/settings.json disagrees with our own constants.
+
+        settings.json is edited in the PathPlanner GUI and feeds AutoBuilder's feedforward and
+        acceleration model.  Nothing links it to this file, so it silently drifts - it was
+        describing a NEO on L3 with 0.048 m wheels while the code ran a Vortex on L2 with
+        0.0508 m wheels, which had PathPlanner planning for a drivetrain 24% faster than ours.
+        Switching drive vendors makes that worse, because driveMotorType has to change too.
+        """
+        module = robot_config.moduleConfig
+        # DCMotor.freeSpeed is rad/s AFTER withReduction(gearing), i.e. at the wheel
+        expected_free_rad_s = mc.kDrivingMotorFreeSpeedRps * math.tau / mc.kDrivingMotorReduction
+        expected_motor = {'rev': 'a REV motor (vortex/NEO)', 'ctre': 'krakenX60 or krakenX60FOC'}[dc.k_drive_vendor]
+
+        checks = [
+            ('wheel radius (m)', module.wheelRadiusMeters, mc.kWheelDiameterMeters / 2, 0.001),
+            ('drive current limit (A)', module.driveCurrentLimit, mc.kDrivingMotorCurrentLimit, 0.5),
+            ('wheel free speed (rad/s)', module.driveMotor.freeSpeed, expected_free_rad_s, 0.5),
+        ]
+        bad = [(name, got, want) for name, got, want, tol in checks if abs(got - want) > tol]
+        if bad:
+            print('*' * 78)
+            print(f'*** deploy/pathplanner/settings.json DISAGREES with swerve_constants '
+                  f'(drive vendor = {dc.k_drive_vendor}) ***')
+            for name, got, want in bad:
+                print(f'***   {name:26s} settings.json says {got:8.4f}   code says {want:8.4f}')
+            print(f'***   driveMotorType should be {expected_motor}')
+            print('***   Fix it in the PathPlanner GUI - autos will follow paths with the wrong feedforward.')
+            print('*' * 78)
 
     # ------------- NetworkTables  ------------
     def _init_networktables(self):
@@ -183,6 +222,14 @@ class Swerve (Subsystem):
         :param rateLimit:     Whether to enable rate limiting for smoother control.
         """
 
+        # ORDER MATTERS.  keep_angle first, because it needs the RAW driver intent to decide
+        # whether we are deliberately rotating or drifting; then rate limiting, on whatever
+        # keep_angle decided to send.  It used to be the other way round, which meant the
+        # rate-limited rotation was computed and then immediately overwritten by
+        # perform_keep_angle() - so default_rotation_slew_rate had never once applied.
+        if keep_angle:
+            rot = self.perform_keep_angle(xSpeed, ySpeed, rot)  # the 1706 keep angle routine
+
         if rate_limited:
             xSpeedCommanded = self.fwd_magLimiter.calculate(xSpeed)
             ySpeedCommanded = self.strafe_magLimiter.calculate(ySpeed)
@@ -191,9 +238,6 @@ class Swerve (Subsystem):
             xSpeedCommanded = xSpeed
             ySpeedCommanded = ySpeed
             rotation_commanded = rot
-
-        if keep_angle:
-            rotation_commanded = self.perform_keep_angle(xSpeed, ySpeed, rot)  # call the 1706 keep angle routine to maintain rotation
 
         # Convert the commanded speeds into the correct units for the drivetrain
         xSpeedDelivered = xSpeedCommanded * dc.kMaxSpeedMetersPerSecond
@@ -380,8 +424,6 @@ class Swerve (Subsystem):
                     # Apply that latency to the FPGA Match Time (protect against negative clock jitter)
                     quest_fpga_timestamp = ts - max(0.0, latency_sec)
 
-                    if self.counter % 500 == 0:
-                        pass
                     self.pose_estimator.addVisionMeasurement(quest_pose, quest_fpga_timestamp, constants.DrivetrainConstants.k_pose_stdevs_large)
                 elif self.counter % 100 == 0:
                     print(f"*** QuestNav update REJECTED: {quest_pose.X():.2f}, {quest_pose.Y():.2f} is outside field limits! ***")
@@ -411,7 +453,9 @@ class Swerve (Subsystem):
                     tag_pose = Pose3d(Translation3d(tx, ty, tz), Rotation3d(rx, ry, rz)).toPose2d()
 
                     use_tag = constants.k_use_CJH_tags  # can disable this in constants
-                    use_tag = False if self.gyro.getRate() > 90 else use_tag  # no more than n degrees per second turning if using a tag
+                    # abs() because AHRS.getRate() is SIGNED - without it we rejected motion-blurred
+                    # tags when spinning one direction and accepted them at any rate spinning the other.
+                    use_tag = False if abs(self.gyro.getRate()) > 90 else use_tag  # no more than n deg/s while using a tag
 
                     if use_tag:
                         if self.validate_odometry(tag_pose):
@@ -421,7 +465,6 @@ class Swerve (Subsystem):
                             # Standard deviations tell the pose estimator how much to "trust" this measurement.
                             # Smaller numbers = more trust. We trust vision more when disabled and stationary.
                             # Units are (x_meters, y_meters, rotation_radians).
-                            tag_distance = atu.get_tag_distance(tag_id, current_pose)  # also available from NT
                             sdevs = constants.DrivetrainConstants.k_pose_stdevs_large if DriverStation.isEnabled() else constants.DrivetrainConstants.k_pose_stdevs_disabled
                             
                             self.pose_estimator.addVisionMeasurement(tag_pose, tag_fpga_timestamp, sdevs)
@@ -472,7 +515,7 @@ class Swerve (Subsystem):
 
 
         if constants.k_swerve_debugging_messages:
-            angles = [m.turningEncoder.getPosition() for m in self.swerve_modules]
+            angles = [m.get_turn_motor_position() for m in self.swerve_modules]
             absolutes = [m.get_turn_encoder() for m in self.swerve_modules]
             
             for pub, val in zip(self.abs_enc_pubs, absolutes):

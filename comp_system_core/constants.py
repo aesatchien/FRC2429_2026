@@ -220,6 +220,10 @@ class IntakeConstants:
 
     k_intake_crank_voltage = .5  # volts for now
     k_deploy_current_peak = 35  # amps for now
+    # Hard ceiling on what Intake.periodic() hands setVoltage().  Matches the intent of the
+    # closedLoop outputRange(+/-0.6) above (0.6 * 12V), which only bounds the Spark's own
+    # closed loop and does nothing to setVoltage().
+    k_deploy_max_voltage = 7.2  # volts
     k_top_angle = 148  # degrees when at top position - i think the maxplanetary added about 4 degrees of backlash total
     k_bottom_angle = 0  # degrees when at bottom position
     k_shooting_angle = 75  # degrees when in shooting position - this is a guess, will need to be tuned
@@ -360,6 +364,11 @@ class ClimberConstants:
         "middle_bar": 18,  # relative
         "upper_bar": 18  # relative
     }
+
+    # Climber.set_position() branches on this and there was no such constant, so that method
+    # would have raised AttributeError the moment the climber was enabled.  The subsystem is
+    # still commented out in RobotContainer and is only half written - see climber.py.
+    k_control_type = 'max_motion'
 
     k_climber_config = SparkMaxConfig()
     k_climber_configs = [k_climber_config]

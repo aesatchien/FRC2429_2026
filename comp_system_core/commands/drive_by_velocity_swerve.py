@@ -44,8 +44,16 @@ class DriveByVelocitySwerve(commands2.Command):  # change the name for your comm
         x_out = self.x_drive_limiter.calculate(self.velocity.x)
         y_out = self.y_drive_limiter.calculate(self.velocity.y)
         if self.field_relative:
+            # DO NOT "FIX" THIS TO MATCH DriveByJoystickSubsystemTargeting, WHICH FLIPS ON RED.
+            # The two commands take opposite input sign conventions and both end up correct:
+            #   joystick command : +1 means "the driver's forward", so it flips on RED
+            #   this command     : NEGATIVE x means "away from our own driver station", so it
+            #                      flips on BLUE.  See the callers - Pose2d(-0.25, 0, 0) is
+            #                      commented "negative numbers go forward on field relative",
+            #                      and Pose2d(0.1, 0, 0) is labelled "Drive 2s To Driver Station".
+            # Blue: -0.25 -> +0.25 -> +X, away from the blue wall.  Red: -0.25 stays -X, away
+            # from the red wall.  Consistent, just inverted relative to the stick.
             if DriverStation.getAlliance() == DriverStation.Alliance.kBlue:
-                # Since our angle is now always 0 when facing away from blue driver station, we have to appropriately reverse translation commands
                 x_out *= -1
                 y_out *= -1
             self.swerve.drive(x_out, y_out, self.velocity.rotation().radians(), fieldRelative=True, keep_angle=True, rate_limited=True)

@@ -119,11 +119,16 @@ class Led(commands2.Subsystem):
         self.indicator = indicator
         self.led_indicator_pub.set(self.indicator.value['name'])
 
-    def set_indicator_with_timeout(self, indicator: Indicator, timeout: float) -> commands2.ParallelRaceGroup:
+    def set_indicator_with_timeout(self, indicator: Indicator, timeout: float) -> commands2.Command:
+        # ignoringDisable is required, not optional.  A ParallelRaceGroup's runsWhenDisabled() is
+        # the AND of its members, and StartEndCommand defaults to False - so the scheduler silently
+        # refused to schedule this whenever the robot was disabled.  That is exactly when we use it:
+        # the brownout toggle on the button box changed the current limit correctly and then gave
+        # no green or red confirmation, which reads as a dead button.
         return commands2.StartEndCommand(
             lambda: self.set_indicator(indicator),
             lambda: self.set_indicator(Led.Indicator.kNONE),
-        ).withTimeout(timeout)
+        ).withTimeout(timeout).ignoringDisable(True)
 
     def set_leds(self, color_or_data, start_index=0, end_index=None, is_hsv=False):
         """
