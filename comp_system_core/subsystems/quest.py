@@ -1,7 +1,7 @@
 import wpilib
 import random
 from commands2 import Subsystem, InstantCommand
-from wpilib import SmartDashboard, DriverStation, Timer, Field2d
+from wpilib import Alliance, Field2d, MatchState, SmartDashboard, Timer
 from wpimath.units import inchesToMeters
 from wpimath import Pose2d, Rotation2d, Translation2d, Pose3d, Rotation3d, Translation3d, Transform2d, Transform3d
 from ntcore import NetworkTableInstance
@@ -81,7 +81,7 @@ class Questnav(Subsystem):
         connected_after = self.questnav.is_connected()
         if connected_after != connected_before:
             # let us know if the situation changes
-            print(f'*** {Timer.getFPGATimestamp():04.1f}s: Questnav connection status {connected_before} before ping and {connected_after} after  ***')
+            print(f'*** {Timer.getTimestamp():04.1f}s: Questnav connection status {connected_before} before ping and {connected_after} after  ***')
 
     def _init_networktables(self):
         self.inst = NetworkTableInstance.getDefault()
@@ -160,24 +160,24 @@ class Questnav(Subsystem):
     def quest_reset_odometry(self) -> None:
         """Reset robot odometry at the Subwoofer."""
         if not self.mock_questnav and not self.questnav.is_connected():
-            print(f"*** Cannot reset QuestNav: Headset not connected at {Timer.getFPGATimestamp():.1f}s ***")
+            print(f"*** Cannot reset QuestNav: Headset not connected at {Timer.getTimestamp():.1f}s ***")
             return
 
         red_pose = Pose2d(14.0, 4.00, Rotation2d.fromDegrees(0))
         blue_pose = Pose2d(3., 4.00, Rotation2d.fromDegrees(180))
 
-        if DriverStation.getAlliance() == DriverStation.Alliance.kRed:
+        if MatchState.getAlliance() == Alliance.RED:
             new_pose = red_pose
         else:
             new_pose = blue_pose
 
         self.set_quest_pose(new_pose)
-        print(f"Reset questnav at {Timer.getFPGATimestamp():.2f}s")
+        print(f"Reset questnav at {Timer.getTimestamp():.2f}s")
         self.quest_unsync_odometry()
 
     def quest_sync_odometry(self) -> None:
         if not self.mock_questnav and not self.questnav.is_connected():
-            print(f"*** Cannot sync QuestNav: Headset not connected at {Timer.getFPGATimestamp():.2f}s ***")
+            print(f"*** Cannot sync QuestNav: Headset not connected at {Timer.getTimestamp():.2f}s ***")
             return
 
         self.quest_has_synched = True  # let the robot know we have been synched so we don't automatically do it again
@@ -200,11 +200,11 @@ class Questnav(Subsystem):
         # handle the case where we disconnect but the pose is still accurate when we come back up
         self.quest_has_synched = True
         self.quest_synched_pub.set(self.quest_has_synched)
-        print(f'  Soft-resynced quest at {Timer.getFPGATimestamp():.2f}s')
+        print(f'  Soft-resynced quest at {Timer.getTimestamp():.2f}s')
 
     def quest_unsync_odometry(self) -> None:
         self.quest_has_synched = False  # let the robot know we have been synched so we don't automatically do it again
-        print(f'  Unsynched quest at {Timer.getFPGATimestamp():.2f}s')
+        print(f'  Unsynched quest at {Timer.getTimestamp():.2f}s')
         self.quest_synched_pub.set(self.quest_has_synched)
 
     def quest_enabled_toggle(self, force=None):  # allow us to stop using quest if it is a problem - 20251014 CJH
@@ -217,7 +217,7 @@ class Questnav(Subsystem):
         else:
             self.use_quest = False
 
-        print(f'swerve use_quest updated to {self.use_quest} at {Timer.getFPGATimestamp():.1f}s')
+        print(f'swerve use_quest updated to {self.use_quest} at {Timer.getTimestamp():.1f}s')
         self.quest_in_use_pub.set(self.use_quest)
 
     def quest_sync_toggle(self, force=None):  # toggle sync state for dashboard - 20251014 CJH
@@ -258,7 +258,7 @@ class Questnav(Subsystem):
         if not is_connected:
             self.disconnected_count += 1
             if self.disconnected_count > self.k_max_disconnected_count and self.was_connected:
-                print(f"*** QuestNav connection dropped for  {self.disconnected_count / 50:.2f}s at {wpilib.Timer.getFPGATimestamp():.2f}s. ***")
+                print(f"*** QuestNav connection dropped for  {self.disconnected_count / 50:.2f}s at {wpilib.Timer.getTimestamp():.2f}s. ***")
                 self.quest_unsync_odometry()
                 self.was_connected = False
         else:
@@ -280,11 +280,11 @@ class Questnav(Subsystem):
                     self.quest_pose_timestamp = frame_last.data_timestamp
                     
                     if not self.was_tracking:
-                        print(f"  Quest tracking restored at {wpilib.Timer.getFPGATimestamp():.2f}s ... ")
+                        print(f"  Quest tracking restored at {wpilib.Timer.getTimestamp():.2f}s ... ")
                         # Defensively clear the flag when tracking successfully resumes
                         self.quest_passthrough_entry.set(False)
                         
-                        time_in_passthru = wpilib.Timer.getFPGATimestamp() - self.passthru_start_time
+                        time_in_passthru = wpilib.Timer.getTimestamp() - self.passthru_start_time
                         if time_in_passthru < constants.QuestConstants.k_max_resync_time and self.synced_before_passthru and not self.quest_has_synched:
                             distance_moved = self.quest_pose.translation().distance(self.pre_passthru_pose.translation())
                             if distance_moved < constants.QuestConstants.k_max_passthru_distance:
@@ -307,7 +307,7 @@ class Questnav(Subsystem):
                 self.missed_frame_count += 1
                 if self.missed_frame_count > self.k_max_missed_frames and self.was_tracking:
                     self.was_tracking = False
-                    self.passthru_start_time = wpilib.Timer.getFPGATimestamp()
+                    self.passthru_start_time = wpilib.Timer.getTimestamp()
                     self.synced_before_passthru = self.quest_has_synched
                     self.pre_passthru_pose = self.quest_pose
                     # Trigger the external ADB script
@@ -315,7 +315,7 @@ class Questnav(Subsystem):
                     self.dtap_count += 1
                     self.quest_passthrough_count_entry.set(self.dtap_count)
                     # Optional: Print a warning to the driver station that the data stream is dead
-                    print(f"Detecting a lost QuestNav at FPGA timestamp: {wpilib.Timer.getFPGATimestamp():.2f}s")
+                    print(f"Detecting a lost QuestNav at FPGA timestamp: {wpilib.Timer.getTimestamp():.2f}s")
 
 
         else:  # simulate a pose read ground truth from sim and apply the current "drift/error" of the Quest
@@ -352,7 +352,7 @@ class Questnav(Subsystem):
         if self.quest_has_synched and not in_bounds:
             self.out_of_bounds_count += 1
             if self.out_of_bounds_count >= 25:
-                print(f"*** QuestNav pose out of bounds for >0.5s at {wpilib.Timer.getFPGATimestamp():.2f}s. Forcing unsync. ***")
+                print(f"*** QuestNav pose out of bounds for >0.5s at {wpilib.Timer.getTimestamp():.2f}s. Forcing unsync. ***")
                 self.quest_unsync_odometry()
         else:
             self.out_of_bounds_count = 0

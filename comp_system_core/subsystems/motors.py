@@ -126,7 +126,7 @@ def _rev_describe(spark, kind: str) -> dict:
         'position_units_per_rev': ca.encoder.getPositionConversionFactor(),
         'velocity_units_per_rev': ca.encoder.getVelocityConversionFactor(),
         'kP': ca.closedLoop.getP(rev.ClosedLoopSlot.kSlot0),
-        'kFF_or_kV': ca.closedLoop.getFF(rev.ClosedLoopSlot.kSlot0),
+        'kFF_or_kV': ca.closedLoop.feedForward.getkV(rev.ClosedLoopSlot.kSlot0),  # 2027: volts, not duty
     }
 
 
@@ -140,7 +140,7 @@ class RevDriveMotor:
     def __init__(self, can_id: int, controller_cls, config, label: str = '') -> None:
         self.label = label
         self.can_id = can_id
-        self.spark = controller_cls(can_id, rev.SparkLowLevel.MotorType.kBrushless)
+        self.spark = controller_cls(constants.k_can_bus, can_id, rev.SparkLowLevel.MotorType.kBrushless)
 
         error = self.spark.configure(config, rev.ResetMode.kResetSafeParameters, _rev_persist_mode())
         if error != rev.REVLibError.kOk:
@@ -155,10 +155,10 @@ class RevDriveMotor:
         self.controller.setReference(mps, rev.SparkLowLevel.ControlType.kVelocity)
 
     def get_position_m(self) -> float:
-        return self.encoder.getPosition()
+        return self.encoder.getPosition().get()   # 2027: REV getters return a Signal
 
     def get_velocity_mps(self) -> float:
-        return self.encoder.getVelocity()
+        return self.encoder.getVelocity().get()   # 2027: REV getters return a Signal
 
     def zero_position(self) -> None:
         self.encoder.setPosition(0)
@@ -189,7 +189,7 @@ class RevTurnMotor:
     def __init__(self, can_id: int, controller_cls, config, label: str = '') -> None:
         self.label = label
         self.can_id = can_id
-        self.spark = controller_cls(can_id, rev.SparkLowLevel.MotorType.kBrushless)
+        self.spark = controller_cls(constants.k_can_bus, can_id, rev.SparkLowLevel.MotorType.kBrushless)
 
         error = self.spark.configure(config, rev.ResetMode.kResetSafeParameters, _rev_persist_mode())
         if error != rev.REVLibError.kOk:
@@ -201,7 +201,7 @@ class RevTurnMotor:
         self.spark.set(output)
 
     def get_position_rad(self) -> float:
-        return self.encoder.getPosition()  # positionConversionFactor puts this in radians
+        return self.encoder.getPosition().get()  # positionConversionFactor puts this in radians
 
     def seed_position_rad(self, radians: float) -> None:
         self.encoder.setPosition(radians)

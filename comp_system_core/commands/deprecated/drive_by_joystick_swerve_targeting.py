@@ -109,7 +109,7 @@ class DriveByJoystickSwerveTargeting(commands2.Command):
             'trigger': hid.getRightTriggerAxis(),
             'robot_oriented': hid.getLeftBumperButton(),
             'tracking_on': hid.getRightBumper(),
-            'alliance': wpilib.DriverStation.getAlliance()
+            'alliance': wpilib.MatchState.getAlliance()
         }
 
         # -----------------------------------------------------------
@@ -210,7 +210,7 @@ class DriveByJoystickSwerveTargeting(commands2.Command):
         desired_strafe = self.strafe_limiter.calculate(processing_vector.Y())
 
         # Alliance Adjustment
-        if inputs['alliance'] == wpilib.DriverStation.Alliance.kRed and self.field_oriented:
+        if inputs['alliance'] == wpilib.Alliance.RED and self.field_oriented:
             desired_fwd *= -1
             desired_strafe *= -1
             

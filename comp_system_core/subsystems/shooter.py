@@ -20,14 +20,14 @@ class Shooter(Subsystem):
         
         motor_type = rev.SparkMax.MotorType.kBrushless
 
-        self.hopper = rev.SparkMax(sc.k_CANID_hopper, motor_type)
-        self.indexer_left_leader = rev.SparkMax(sc.k_CANID_indexer_left_leader, motor_type)
-        self.indexer_right_follower = rev.SparkMax(sc.k_CANID_indexer_right_follower, motor_type)
+        self.hopper = rev.SparkMax(constants.k_can_bus, sc.k_CANID_hopper, motor_type)
+        self.indexer_left_leader = rev.SparkMax(constants.k_can_bus, sc.k_CANID_indexer_left_leader, motor_type)
+        self.indexer_right_follower = rev.SparkMax(constants.k_can_bus, sc.k_CANID_indexer_right_follower, motor_type)
 
-        self.flywheel_left_leader = rev.SparkFlex(sc.k_CANID_flywheel_left_leader, motor_type)
-        self.flywheel_right_follower = rev.SparkFlex(sc.k_CANID_flywheel_right_follower, motor_type)
+        self.flywheel_left_leader = rev.SparkFlex(constants.k_can_bus, sc.k_CANID_flywheel_left_leader, motor_type)
+        self.flywheel_right_follower = rev.SparkFlex(constants.k_can_bus, sc.k_CANID_flywheel_right_follower, motor_type)
         # TODO - add rollers here and in list - decide if they are just followers or independent
-        self.roller_motor = rev.SparkFlex(sc.k_CANID_flywheel_roller, motor_type)
+        self.roller_motor = rev.SparkFlex(constants.k_can_bus, sc.k_CANID_flywheel_roller, motor_type)
 
         # convenient list of motors if we need to query or set all of them
         self.motors = [self.hopper,
@@ -100,7 +100,7 @@ class Shooter(Subsystem):
         self.hopper_rpm_pub.set(self.current_hopper_rpm)
         self.roller_on_pub.set(self.roller_on)
         self.roller_rpm_pub.set(self.current_roller_rpm)
-        self.measured_shooter_rpm_pub.set(self.flywheel_encoder.getVelocity())
+        self.measured_shooter_rpm_pub.set(self.flywheel_encoder.getVelocity().get())
         self.shooter_at_speed_pub.set(self.is_at_speed())  # don't like how there are two calls to getVelocity here
 
 
@@ -194,7 +194,7 @@ class Shooter(Subsystem):
         self.update_nt()
 
     def get_velocity(self):
-        return self.flywheel_encoder.getVelocity()
+        return self.flywheel_encoder.getVelocity().get()
 
     def is_at_speed(self) -> bool:
         """Returns True if the shooter is within tolerance RPM of the target speed."""

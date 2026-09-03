@@ -149,7 +149,7 @@ class Targeting(Subsystem):
         robot_vel = self.swerve.get_relative_speeds()
 
         self.counter += 1
-        self.last_calc_time = wpilib.Timer.getFPGATimestamp()
+        self.last_calc_time = wpilib.Timer.getTimestamp()
         self.last_robot_pose = robot_pose
         
         # Deadband velocity to prevent jitter at start/stop

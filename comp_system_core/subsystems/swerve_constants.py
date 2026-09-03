@@ -352,18 +352,22 @@ class ModuleConstants:
     # ==========================================
     k_driving_config = DriveConstants.ACTIVE_CONFIG['config_cls']()
     k_driving_config.inverted(DriveConstants.swerve_motor_inversions['drive_motors_inverted'])
-    k_driving_config.closedLoop.pidf(p=0.02, i=0, d=0, ff=1/kDriveWheelFreeSpeedRps)
+    k_driving_config.closedLoop.pid(p=0.02, i=0, d=0)
+    # 2027: REV removed pidf()'s ff term.  kV is in VOLTS per wheel-rps; the old ff was
+    # duty cycle per wheel-rps, so the same gain is ff * 12.  This is the identical
+    # conversion motors.py already does for the Kraken's k_v.
+    k_driving_config.closedLoop.feedForward.kV(12.0 / kDriveWheelFreeSpeedRps)
     k_driving_config.closedLoop.minOutput(-0.96)
     k_driving_config.closedLoop.maxOutput(0.96)
     k_driving_config.closedLoop.IZone(0.001)
-    k_driving_config.closedLoop.maxMotion.maxVelocity(3)
+    k_driving_config.closedLoop.maxMotion.cruiseVelocity(3)
     k_driving_config.closedLoop.maxMotion.maxAcceleration(2)
     k_driving_config.setIdleMode(idleMode=SparkFlexConfig.IdleMode.kBrake)
     k_driving_config.smartCurrentLimit(stallLimit=kDrivingMotorCurrentLimit, freeLimit=kDrivingMotorCurrentLimit, limitRpm=5700)
     k_driving_config.voltageCompensation(12)
     k_driving_config.encoder.positionConversionFactor((kWheelDiameterMeters * math.pi) / kDrivingMotorReduction) # meters
     k_driving_config.encoder.velocityConversionFactor((kWheelDiameterMeters * math.pi) / ( kDrivingMotorReduction * 60)) # meters per second
-    # k_driving_config.closedLoop.pidf(0, 0, 0, 0.01)
+    # k_driving_config.closedLoop.pid(0, 0, 0); feedForward.kV(0.12)
 
     # note: we don't use any spark pid or ff for turning
     k_turning_config = DriveConstants.ACTIVE_CONFIG['config_cls']()
@@ -463,7 +467,7 @@ class ModuleConstants:
         # Deliberately NOT ported, and why:
         #   voltageCompensation(12)      - VelocityVoltage control is inherently compensated
         #   closedLoop.IZone(0.001)      - Phoenix slot configs have no IZone, and our kI is 0
-        #   maxMotion.maxVelocity(3)     - dead on the REV side too; we command kVelocity, not MAXMotion
+        #   maxMotion.cruiseVelocity(3)     - dead on the REV side too; we command kVelocity, not MAXMotion
         #   maxMotion.maxAcceleration(2) - same
         #   PersistMode / k_burn_flash   - Phoenix configs persist in the device by default
 

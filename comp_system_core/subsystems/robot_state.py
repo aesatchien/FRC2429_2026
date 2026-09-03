@@ -2,7 +2,7 @@ import math
 from enum import Enum
 import commands2
 import wpilib
-from wpilib import Timer, DriverStation, PowerDistribution
+from wpilib import PowerDistribution, Timer
 from wpimath import LinearFilter, MedianFilter
 import ntcore
 import constants
@@ -36,7 +36,7 @@ class RobotState(commands2.Subsystem):
         # try to start all the subsystems on a different count so they don't all do the periodic updates at the same time
         self.counter = constants.RobotStateConstants.k_counter_offset
 
-        self.pdh = PowerDistribution(1, PowerDistribution.ModuleType.kRev)
+        self.pdh = PowerDistribution(constants.k_can_bus, 1, PowerDistribution.ModuleType.REV)
 
         self._init_networktables()
 
@@ -104,7 +104,7 @@ class RobotState(commands2.Subsystem):
         self.prev_state = getattr(self, '_state', self.State.NONE)
         self._state = new_state
         self._notify_callbacks()  # Call all registered callbacks
-        print(f'State set to {new_state.value["name"]} at {Timer.getFPGATimestamp():.1f}s')
+        print(f'State set to {new_state.value["name"]} at {Timer.getTimestamp():.1f}s')
         self.state_pub.set(self._state.value['name'])
 
 
@@ -141,7 +141,7 @@ class RobotState(commands2.Subsystem):
             self._brownout_detected = False  # reset for next window
 
         if self.counter % 100 == 0:  # let's check if we have connected to the FMS
-            fms = DriverStation.isFMSAttached()
+            fms = wpilib.RobotState.isFMSAttached()  # wpilib's, not this module's class
             just_connected = fms and not self._last_fms
             if just_connected:
                 print("**** Just connected to FMS! ****")

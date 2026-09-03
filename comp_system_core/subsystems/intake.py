@@ -25,11 +25,11 @@ class Intake(Subsystem):
         # --------------- add motors and set intake rpm ----------------
         
         motor_type = rev.SparkMax.MotorType.kBrushless
-        self.intake_motor = rev.SparkMax(ic.k_CANID_intake_left_leader, motor_type)
-        self.intake_motor_follower = rev.SparkMax(ic.k_CANID_intake_right_follower, motor_type)
+        self.intake_motor = rev.SparkMax(constants.k_can_bus, ic.k_CANID_intake_left_leader, motor_type)
+        self.intake_motor_follower = rev.SparkMax(constants.k_can_bus, ic.k_CANID_intake_right_follower, motor_type)
 
         motor_type = rev.SparkFlex.MotorType.kBrushless
-        self.deploy_motor = rev.SparkFlex(ic.k_CANID_dropper, motor_type)
+        self.deploy_motor = rev.SparkFlex(constants.k_can_bus, ic.k_CANID_dropper, motor_type)
 
         # convenient list of motors if we need to query or set all of them
         self.motors = [self.intake_motor, self.intake_motor_follower, self.deploy_motor]
@@ -101,7 +101,7 @@ class Intake(Subsystem):
         self.intake_on_pub.set(self.intake_on)
         self.intake_rpm_pub.set(self.current_rpm)
         self.deployed_pub.set(self.deployed)
-        self.deployer_angle_pub.set(self.deploy_encoder.getPosition())
+        self.deployer_angle_pub.set(self.deploy_encoder.getPosition().get())
         self.deployer_average_current_pub.set(0)
         self.intake_calibration_pub.set(self.is_calibrated)
 
@@ -197,7 +197,7 @@ class Intake(Subsystem):
         # return sum(self.last_currents) / len(self.last_currents)
 
     def deploy_stop(self):
-        current_pos = self.deploy_encoder.getPosition()
+        current_pos = self.deploy_encoder.getPosition().get()
         self.arm_profile.reset(current_pos)
         self.arm_profile.setGoal(current_pos)
         self.deploy_motor.setVoltage(0)
@@ -220,7 +220,7 @@ class Intake(Subsystem):
         #   compare_motors(before, after, name_a='INTAKE BEFORE', name_b='INTAKE AFTER')
 
         # report our results - but not the best way since there is no timestamp here
-        print(f'Setting intake to idle mode {idle_mode}: {rev_errors} at {wpilib.Timer.getFPGATimestamp():.1f}s')
+        print(f'Setting intake to idle mode {idle_mode}: {rev_errors} at {wpilib.Timer.getTimestamp():.1f}s')
 
 
     def periodic(self) -> None:
@@ -228,7 +228,7 @@ class Intake(Subsystem):
 
         # keep track of the deploy currents in case we want to check for calibrating or a stall condition
         # self.last_currents[self.counter % len(self.last_currents)] = self.deploy_motor.getOutputCurrent()
-        self.current_filter.calculate(self.deploy_motor.getOutputCurrent())
+        self.current_filter.calculate(self.deploy_motor.getOutputCurrent().get())
 
         # get the state of the magnetic switch and calibrate the intake if at bottom position
         at_bumper = not self.bumper_switch.get()
@@ -240,14 +240,14 @@ class Intake(Subsystem):
                 self.is_calibrated = False
 
         # --- Run WPILib Profiled PID and Gravity Feedforward ---
-        current_pos = self.deploy_encoder.getPosition()
+        current_pos = self.deploy_encoder.getPosition().get()
 
         # While disabled the arm cannot move, but the profile's internal setpoint marches to the
         # goal anyway - so on enable the PID sees the full error at once and steps.  Worst case:
         # press IntakeIdle (coast, and ignoringDisable) while disabled, the arm falls to 0 deg,
         # the profile is already parked at 148, and enabling hands the gearbox the whole error.
         # Keeping the profile pinned to where the arm actually is makes enable a no-op.
-        if wpilib.DriverStation.isDisabled():
+        if wpilib.RobotState.isDisabled():
             self.arm_profile.reset(current_pos)
             self.arm_profile.setGoal(current_pos)
             self.setpoint = current_pos
@@ -272,10 +272,10 @@ class Intake(Subsystem):
             self.deployer_internal_setpoint_pub.set(setpoint.position)
 
         if self.counter % 20 == 0:
-             self.intake_rpm_pub.set(self.intake_encoder.getVelocity())
-             self.deployer_angle_pub.set(self.deploy_encoder.getPosition())
-             self.deployer_output_pub.set(self.deploy_motor.getAppliedOutput())
-             self.deployer_velocity_pub.set(self.deploy_encoder.getVelocity())
+             self.intake_rpm_pub.set(self.intake_encoder.getVelocity().get())
+             self.deployer_angle_pub.set(self.deploy_encoder.getPosition().get())
+             self.deployer_output_pub.set(self.deploy_motor.getAppliedOutput().get())
+             self.deployer_velocity_pub.set(self.deploy_encoder.getVelocity().get())
              self.intake_calibration_pub.set(self.is_calibrated)
 
              # this is not right in the simulation

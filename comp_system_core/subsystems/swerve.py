@@ -7,7 +7,7 @@ import ntcore
 import wpilib
 from commands2 import Subsystem
 
-from wpilib import SmartDashboard, DataLogManager, DriverStation, Timer, RobotBase
+from wpilib import Alliance, DataLogManager, DriverStation, MatchState, RobotBase, SmartDashboard, Timer
 from wpimath import SlewRateLimiter
 from wpimath import Pose2d, Rotation2d, Translation2d, Pose3d, Rotation3d, Translation3d
 from wpimath import (ChassisVelocities, SwerveModuleVelocity, SwerveDrive4Kinematics)
@@ -391,7 +391,7 @@ class Swerve (Subsystem):
             module.setDesiredState(state)
 
     def flip_path(self):  # pathplanner needs a function to see if it should mirror a path
-        if DriverStation.getAlliance() == DriverStation.Alliance.kBlue:
+        if MatchState.getAlliance() == Alliance.BLUE:
             return False
         else:
             return True
@@ -401,7 +401,7 @@ class Swerve (Subsystem):
     # -------------- periodic and periodic helpers --------------
     def periodic(self) -> None:
         self.counter += 1
-        ts = Timer.getFPGATimestamp()
+        ts = Timer.getTimestamp()
         current_pose = self.get_pose()  # Optimization: Cache pose to avoid recalculating it below
 
         self._update_vision_measurements(current_pose, ts)
@@ -469,7 +469,7 @@ class Swerve (Subsystem):
                             # Standard deviations tell the pose estimator how much to "trust" this measurement.
                             # Smaller numbers = more trust. We trust vision more when disabled and stationary.
                             # Units are (x_meters, y_meters, rotation_radians).
-                            sdevs = constants.DrivetrainConstants.k_pose_stdevs_large if DriverStation.isEnabled() else constants.DrivetrainConstants.k_pose_stdevs_disabled
+                            sdevs = constants.DrivetrainConstants.k_pose_stdevs_large if wpilib.RobotState.isEnabled() else constants.DrivetrainConstants.k_pose_stdevs_disabled
                             
                             self.pose_estimator.addVisionMeasurement(tag_pose, tag_fpga_timestamp, sdevs)
                         elif self.counter % 100 == 0:
@@ -498,7 +498,7 @@ class Swerve (Subsystem):
         # self.pose_pub.set([pose.X(), pose.Y(), pose.rotation().degrees()])  # legacy version
 
         # allow averaging to AprilTags on coprocessors when disabled OR when we are sitting still
-        if constants.k_allow_tag_averaging and wpilib.DriverStation.isDisabled():
+        if constants.k_allow_tag_averaging and wpilib.RobotState.isDisabled():
             self.allow_tag_averaging_pub.set(True)
         else:
             self.allow_tag_averaging_pub.set(False)

@@ -32,11 +32,11 @@ class FillShootFillBump(commands2.SequentialCommandGroup):
 
         # moves to the neutral zone to intake fuel --> come back to shoot
         self.addCommands(DriveToPoseCustomControl(container=self.container, swerve=self.container.swerve,
-                            target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_first_ball_pickup_pose, wpilib.DriverStation.getAlliance(), is_shooting=False), tolerance_type='exact').withTimeout(5)
+                            target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_first_ball_pickup_pose, wpilib.MatchState.getAlliance(), is_shooting=False), tolerance_type='exact').withTimeout(5)
         )
 
         self.addCommands(DriveToPoseCustomControl(container=self.container, swerve=self.container.swerve,
-                            target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_shooting_pose, wpilib.DriverStation.getAlliance(), is_shooting=True), tolerance_type='exact').withTimeout(5)
+                            target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_shooting_pose, wpilib.MatchState.getAlliance(), is_shooting=True), tolerance_type='exact').withTimeout(5)
         )
 
         # -----  PHASE II:  SHOOT INITIAL HOPPER -----
@@ -55,5 +55,5 @@ class FillShootFillBump(commands2.SequentialCommandGroup):
 
         # Repeat what happened above
         self.addCommands(DriveToPoseCustomControl(container=self.container, swerve=self.container.swerve,
-                            target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_second_ball_pickup_pose, wpilib.DriverStation.getAlliance(), is_shooting=False), tolerance_type='fast').withTimeout(4.5)
+                            target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_second_ball_pickup_pose, wpilib.MatchState.getAlliance(), is_shooting=False), tolerance_type='fast').withTimeout(4.5)
         )

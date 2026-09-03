@@ -99,8 +99,8 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
         # -----------------------------------------------------------
         # 1. READ INPUTS
         # -----------------------------------------------------------
-        xbox_connected = self.xbox_controller is not None and wpilib.DriverStation.isJoystickConnected(0)
-        ps5_connected = self.ps5_controller is not None and wpilib.DriverStation.isJoystickConnected(5)
+        xbox_connected = self.xbox_controller is not None and wpilib.DriverStationBackend.isJoystickConnected(0)
+        ps5_connected = self.ps5_controller is not None and wpilib.DriverStationBackend.isJoystickConnected(5)
         
         if xbox_connected:
             left_y, left_x, right_x, right_trigger, robot_oriented = self.read_xbox(self.xbox_controller.getHID())
@@ -123,7 +123,7 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
             'after_burner' : after_burner,
             'robot_oriented': robot_oriented,
             'tracking_on': self.container.targeting.get_tracking_state(),
-            'alliance': wpilib.DriverStation.getAlliance()
+            'alliance': wpilib.MatchState.getAlliance()
         }
 
         # -----------------------------------------------------------
@@ -221,7 +221,7 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
         desired_strafe = self.strafe_limiter.calculate(processing_vector.Y())
 
         # Alliance Adjustment
-        if inputs['alliance'] == wpilib.DriverStation.Alliance.kRed and self.field_oriented:
+        if inputs['alliance'] == wpilib.Alliance.RED and self.field_oriented:
             desired_fwd *= -1
             desired_strafe *= -1
             

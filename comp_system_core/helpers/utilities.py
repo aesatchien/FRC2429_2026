@@ -81,7 +81,7 @@ def _get_motor_state(motor):
         "pid_p_gain_slot_0": ca.closedLoop.getP(s0),
         "pid_i_gain_slot_0": ca.closedLoop.getI(s0),
         "pid_d_gain_slot_0": ca.closedLoop.getD(s0),
-        "pid_ff_gain_slot_0": ca.closedLoop.getFF(s0),
+        "pid_ff_gain_slot_0": ca.closedLoop.feedForward.getkV(s0),  # 2027: getFF() -> feedForward.getkV(), now in volts
         "max_output_slot_0": ca.closedLoop.getMaxOutput(s0),
         "min_output_slot_0": ca.closedLoop.getMinOutput(s0),
     }

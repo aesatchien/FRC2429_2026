@@ -35,7 +35,7 @@ class FillShootFillShootBump(commands2.SequentialCommandGroup):
         self.addCommands(
             ParallelCommandGroup(
                 DriveToPoseCustomControl(container=self.container, swerve=self.container.swerve,
-                            target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_first_ball_pickup_pose, wpilib.DriverStation.getAlliance(), is_shooting=False),
+                            target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_first_ball_pickup_pose, wpilib.MatchState.getAlliance(), is_shooting=False),
                                                   tolerance_type='fast').withTimeout(5),
                 SequentialCommandGroup(
                     WaitCommand(1),
@@ -51,7 +51,7 @@ class FillShootFillShootBump(commands2.SequentialCommandGroup):
             ParallelCommandGroup(
             DriveToPoseCustomControl(container=self.container, swerve=self.container.swerve,
                                      target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_shooting_pose,
-                                                                                    wpilib.DriverStation.getAlliance(), is_shooting=True),
+                                                                                    wpilib.MatchState.getAlliance(), is_shooting=True),
                                      tolerance_type='fast').withTimeout(5),
             SequentialCommandGroup(
                 WaitCommand(1), InstantCommand(lambda: self.container.shooter.set_shooter_rpm(ac.k_shooter_startup_rpm)))
@@ -75,7 +75,7 @@ class FillShootFillShootBump(commands2.SequentialCommandGroup):
 
         # Repeat what happened above
         self.addCommands(DriveToPoseCustomControl(container=self.container, swerve=self.container.swerve,
-                            target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_second_ball_pickup_pose, wpilib.DriverStation.getAlliance(), is_shooting=False),
+                            target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_second_ball_pickup_pose, wpilib.MatchState.getAlliance(), is_shooting=False),
                                                   tolerance_type='fast').withTimeout(4.5)
         )
 
@@ -84,7 +84,7 @@ class FillShootFillShootBump(commands2.SequentialCommandGroup):
             ParallelCommandGroup(
             DriveToPoseCustomControl(container=self.container, swerve=self.container.swerve,
                                      target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_shooting_pose,
-                                                                                    wpilib.DriverStation.getAlliance(), is_shooting=True),
+                                                                                    wpilib.MatchState.getAlliance(), is_shooting=True),
                                      tolerance_type='fast').withTimeout(4),
             SequentialCommandGroup(
                 WaitCommand(.5), InstantCommand(lambda: self.container.shooter.set_shooter_rpm(ac.k_shooter_startup_rpm)))

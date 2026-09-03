@@ -24,10 +24,10 @@ class ResetFieldCentric(commands2.Command):
     def initialize(self) -> None:
         """Called just before this Command runs the first time."""
 
-        alliance = wpilib.DriverStation.getAlliance()
+        alliance = wpilib.MatchState.getAlliance()
         x_offset= 3.2
-        self.angle = self.angle_dict['Red'] if alliance == wpilib.DriverStation.Alliance.kRed else self.angle_dict['Blue']
-        if alliance == wpilib.DriverStation.Alliance.kRed:
+        self.angle = self.angle_dict['Red'] if alliance == wpilib.Alliance.RED else self.angle_dict['Blue']
+        if alliance == wpilib.Alliance.RED:
             x, y = constants.FieldConstants.k_field_length - x_offset, constants.FieldConstants.k_field_width / 2
         else:
             x, y = x_offset, constants.FieldConstants.k_field_width /2

@@ -73,7 +73,7 @@ class AutoStrafeToTag(commands2.Command):  #
         nearest_tag = get_nearest_tag(current_pose=current_pose, destination='reef')
         self.container.robot_state.set_reef_goal_by_tag(nearest_tag)
         self.target_pose = self.container.robot_state.get_reef_goal_pose()
-        if wpilib.DriverStation.getAlliance() == wpilib.DriverStation.Alliance.kRed:
+        if wpilib.MatchState.getAlliance() == wpilib.Alliance.RED:
             self.target_pose = self.target_pose.rotateAround(point=Translation2d(17.548 / 2, 8.062 / 2),
                                                              rot=Rotation2d(math.pi))
 

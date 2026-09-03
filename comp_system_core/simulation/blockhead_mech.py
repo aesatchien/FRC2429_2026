@@ -25,13 +25,13 @@ class BlockheadMech:
         self.mech_side = wpilib.Mechanism2d(self.width + inchesToMeters(10), self.height + inchesToMeters(10))
 
         # ----------------- Visual Constants -----------------
-        self.color_chassis = Color8Bit(Color.kGray)
-        self.color_wheel = Color8Bit(Color.kWhite)
-        self.color_intake = Color8Bit(Color.kOrange)
-        self.color_hopper = Color8Bit(Color.kYellow)
-        self.color_indexer = Color8Bit(Color.kCyan)
-        self.color_shooter = Color8Bit(Color.kRed)
-        self.color_ball = Color8Bit(Color.kYellow)
+        self.color_chassis = Color8Bit(Color.GRAY)
+        self.color_wheel = Color8Bit(Color.WHITE)
+        self.color_intake = Color8Bit(Color.ORANGE)
+        self.color_hopper = Color8Bit(Color.YELLOW)
+        self.color_indexer = Color8Bit(Color.CYAN)
+        self.color_shooter = Color8Bit(Color.RED)
+        self.color_ball = Color8Bit(Color.YELLOW)
         self.hopper_line_weight = 6
         self.hood_line_weight = 7
         self.line_weight = 10 # 1 inch approx 10 pixels?

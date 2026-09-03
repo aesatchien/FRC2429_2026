@@ -1,5 +1,5 @@
 import commands2
-from wpilib import Timer, DriverStation
+from wpilib import Alliance, MatchState, Timer
 from wpimath import Pose2d
 from wpimath import SlewRateLimiter
 
@@ -53,7 +53,7 @@ class DriveByVelocitySwerve(commands2.Command):  # change the name for your comm
             #                      and Pose2d(0.1, 0, 0) is labelled "Drive 2s To Driver Station".
             # Blue: -0.25 -> +0.25 -> +X, away from the blue wall.  Red: -0.25 stays -X, away
             # from the red wall.  Consistent, just inverted relative to the stick.
-            if DriverStation.getAlliance() == DriverStation.Alliance.kBlue:
+            if MatchState.getAlliance() == Alliance.BLUE:
                 x_out *= -1
                 y_out *= -1
             self.swerve.drive(x_out, y_out, self.velocity.rotation().radians(), fieldRelative=True, keep_angle=True, rate_limited=True)

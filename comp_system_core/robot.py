@@ -12,7 +12,7 @@ from robotcontainer import RobotContainer
 from subsystems.led import Led  # allows indexing of LED colors
 from simulation.blockhead_mech import BlockheadMech
 
-wpilib.DriverStation.silenceJoystickConnectionWarning(True)
+wpilib.DriverStationBackend.silenceJoystickConnectionWarning(True)
 
 
 class MyRobot(commands2.TimedCommandRobot):
@@ -45,15 +45,15 @@ class MyRobot(commands2.TimedCommandRobot):
         """This function is called periodically when disabled"""
         if self.disabled_counter % 100 == 0:
             # set the LEDs
-            # if wpilib.DriverStation.isFMSAttached():
-            alliance_color = wpilib.DriverStation.getAlliance()
-            is_connected = wpilib.DriverStation.isFMSAttached() or wpilib.DriverStation.isDSAttached()
+            # if wpilib.RobotState.isFMSAttached():
+            alliance_color = wpilib.MatchState.getAlliance()
+            is_connected = wpilib.RobotState.isFMSAttached() or wpilib.RobotState.isDSAttached()
             # print(f'color is {alliance_color}, connected is {is_connected}')
             if alliance_color is not None and is_connected:
-                if alliance_color == wpilib.DriverStation.Alliance.kRed:
+                if alliance_color == wpilib.Alliance.RED:
                     self.container.led.set_indicator(Led.Indicator.kHOTBOW)
                     self.alliance_zone = "Red"
-                elif alliance_color == wpilib.DriverStation.Alliance.kBlue:
+                elif alliance_color == wpilib.Alliance.BLUE:
                     self.container.led.set_indicator(Led.Indicator.kCOOLBOW)
                     self.alliance_zone = "Blue"
             else:
@@ -64,7 +64,7 @@ class MyRobot(commands2.TimedCommandRobot):
             # check on the questnav - auto synch it if we have been up more than 10s and have not synched yet
             # but attempt to see if we have a good starting tag (logitech reef)
             # TODO: make this robust - arducam right is index 0, not 1
-            if ( wpilib.Timer.getFPGATimestamp() > 10 and
+            if ( wpilib.Timer.getTimestamp() > 10 and
                     not self.container.questnav.quest_has_synched and
                     (self.container.swerve.count_subscribers[0]).get() > 0):
                 self.container.swerve.questnav.quest_sync_odometry()  # this will mark that we have synched
@@ -137,7 +137,7 @@ class MyRobot(commands2.TimedCommandRobot):
                 
             # Wait 0.5 seconds (25 loops) of being stationary with a tag in view to let the pose settle
             if self.stationary_counter > 25:  
-                print(f"*** Auto-resyncing QuestNav in Teleop at {wpilib.Timer.getFPGATimestamp():.1f}s ***")
+                print(f"*** Auto-resyncing QuestNav in Teleop at {wpilib.Timer.getTimestamp():.1f}s ***")
                 self.container.questnav.quest_sync_odometry()
                 self.stationary_counter = 0  # reset so we don't spam if headset isn't fully awake yet
 

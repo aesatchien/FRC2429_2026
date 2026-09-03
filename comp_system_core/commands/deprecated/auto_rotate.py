@@ -119,7 +119,7 @@ class AutoToAngle(commands2.Command):  #
 
             self.target_pose = self.container.robot_state.reef_goal_pose
 
-            if wpilib.DriverStation.getAlliance() == wpilib.DriverStation.Alliance.kRed:
+            if wpilib.MatchState.getAlliance() == wpilib.Alliance.RED:
                 self.target_pose = self.target_pose.rotateAround(point=Translation2d(17.548 / 2, 8.062 / 2),
                                                                  rot=Rotation2d(math.pi))
 

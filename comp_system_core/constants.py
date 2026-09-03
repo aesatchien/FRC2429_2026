@@ -33,6 +33,12 @@ k_bbox_2_port = 3
 k_ps5_controller_port = 5  # Testing this for now. -Trentan June 2026
 
 
+# SystemCore has multiple CAN buses, so 2027 device constructors take a bus ID as their
+# FIRST argument - rev.SparkMax(busID, deviceID, motorType), PowerDistribution(busID, ...).
+# Everything is on bus 0 for now.  When we split the drivetrain onto its own bus, change it
+# here and nowhere else.  (Phoenix is the exception: TalonFX names its bus with a string.)
+k_can_bus = 0
+
 # should be fine to burn on every reboot, but we can turn this off
 k_burn_flash = True
 
@@ -201,7 +207,7 @@ class IntakeConstants:
     #  --- GETTING RID OF THIS AS WELL - TRYING A WPILIB PROFILED PID SO IT'S SMOOTH ---
     # this is the setting for kPosition control - slot0 - WE USE THIS NOW
     # 143 degrees * kp of 1e-2 is .14 % output
-    k_deploy_config.closedLoop.pidf(p=1e-2, i=1e-5, d=1e0, ff=0, slot=rev.ClosedLoopSlot.kSlot0)
+    k_deploy_config.closedLoop.pid(p=1e-2, i=1e-5, d=1e0, slot=rev.ClosedLoopSlot.kSlot0)
     k_deploy_config.closedLoop.IMaxAccum(0.04, slot=rev.ClosedLoopSlot.kSlot0)
     k_deploy_config.closedLoop.IZone(5, slot=rev.ClosedLoopSlot.kSlot0) # degrees less than which no I is applied
 
@@ -209,13 +215,17 @@ class IntakeConstants:
     # this is the setting for kMaxMotionPosition control - slot1, TODO - make this work
     # the problem here is now we are in degrees per second from above, not RPM  - never get rev to work unless no conversion factors
     # 143 degrees * kp of 1e-2 is .14 % output
-    #k_deploy_config.closedLoop.pidf(p=1e-5, i=0, d=0, ff=1/crank_max_dps, slot=rev.ClosedLoopSlot.kSlot1)
-    k_deploy_config.closedLoop.pidf(p=1e-4, i=0, d=0, ff= 1 / vortex_max_rpm, slot=rev.ClosedLoopSlot.kSlot1)
+    #k_deploy_config.closedLoop.pid(p=1e-5, i=0, d=0, slot=rev.ClosedLoopSlot.kSlot1)
+    #k_deploy_config.closedLoop.feedForward.kV(12.0/crank_max_dps, slot=rev.ClosedLoopSlot.kSlot1)
+    k_deploy_config.closedLoop.pid(p=1e-4, i=0, d=0, slot=rev.ClosedLoopSlot.kSlot1)
+    # 2027: REV removed pidf()'s ff term.  kV is in VOLTS per unit, the old ff was duty
+    # cycle per unit, so the same gain is ff * 12.  See the note at the top of this file.
+    k_deploy_config.closedLoop.feedForward.kV(12.0 / vortex_max_rpm, slot=rev.ClosedLoopSlot.kSlot1)
     k_deploy_config.closedLoop.IMaxAccum(0.01, slot=rev.ClosedLoopSlot.kSlot1)
     # somehow i think these are in base units of rpm, but apparently not!
     k_deploy_config.closedLoop.maxMotion.cruiseVelocity(8 * vortex_max_rpm, slot=rev.ClosedLoopSlot.kSlot1)
     k_deploy_config.closedLoop.maxMotion.maxAcceleration(15 * vortex_max_rpm, slot=rev.ClosedLoopSlot.kSlot1)
-    k_deploy_config.closedLoop.maxMotion.allowedClosedLoopError(0, slot=rev.ClosedLoopSlot.kSlot1)
+    k_deploy_config.closedLoop.maxMotion.allowedProfileError(0, slot=rev.ClosedLoopSlot.kSlot1)
     ks_volts = 0.5
 
     k_intake_crank_voltage = .5  # volts for now
@@ -298,20 +308,22 @@ class ShooterConstants:
     # if we want, we could put the feed forward here instead of in the subsystem
     # maxmotion - allows us to set mav velocity, acceleration and jerk, letting us crank proportional response]
     vortex_max_rpm = 6784  # Vortex
-    k_flywheel_left_leader_config.closedLoop.pidf(p=1e-4, i=0, d=0, ff=1 / vortex_max_rpm, slot=rev.ClosedLoopSlot.kSlot0)
+    k_flywheel_left_leader_config.closedLoop.pid(p=1e-4, i=0, d=0, slot=rev.ClosedLoopSlot.kSlot0)
+    k_flywheel_left_leader_config.closedLoop.feedForward.kV(12.0 / vortex_max_rpm, slot=rev.ClosedLoopSlot.kSlot0)
 
     # Configure MAXMotion (The "Modern" Smart Motion) - Note: "maxMotion" object instead of "smartMotion"
     k_flywheel_left_leader_config.closedLoop.maxMotion.cruiseVelocity(6000, slot=rev.ClosedLoopSlot.kSlot0)
     k_flywheel_left_leader_config.closedLoop.maxMotion.maxAcceleration(10000, slot=rev.ClosedLoopSlot.kSlot0)
-    k_flywheel_left_leader_config.closedLoop.maxMotion.allowedClosedLoopError(0, slot=rev.ClosedLoopSlot.kSlot0)
+    k_flywheel_left_leader_config.closedLoop.maxMotion.allowedProfileError(0, slot=rev.ClosedLoopSlot.kSlot0)
     ks_volts = 0.5
     k_flywheel_left_leader_config.encoder.quadratureMeasurementPeriod(20)
 
     # Configure Roller to match Flywheel (MaxMotion)
-    k_flywheel_roller_config.closedLoop.pidf(p=1e-4, i=0, d=0, ff=1 / vortex_max_rpm, slot=rev.ClosedLoopSlot.kSlot0)
+    k_flywheel_roller_config.closedLoop.pid(p=1e-4, i=0, d=0, slot=rev.ClosedLoopSlot.kSlot0)
+    k_flywheel_roller_config.closedLoop.feedForward.kV(12.0 / vortex_max_rpm, slot=rev.ClosedLoopSlot.kSlot0)
     k_flywheel_roller_config.closedLoop.maxMotion.cruiseVelocity(6000, slot=rev.ClosedLoopSlot.kSlot0)
     k_flywheel_roller_config.closedLoop.maxMotion.maxAcceleration(8000, slot=rev.ClosedLoopSlot.kSlot0)
-    k_flywheel_roller_config.closedLoop.maxMotion.allowedClosedLoopError(0, slot=rev.ClosedLoopSlot.kSlot0)
+    k_flywheel_roller_config.closedLoop.maxMotion.allowedProfileError(0, slot=rev.ClosedLoopSlot.kSlot0)
     k_flywheel_roller_config.encoder.quadratureMeasurementPeriod(20)
     # k_flywheel_roller_config.encoder.quadratureAverageDepth(20)
 

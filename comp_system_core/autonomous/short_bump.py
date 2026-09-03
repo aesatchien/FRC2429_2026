@@ -60,7 +60,7 @@ class ShortBump(commands2.SequentialCommandGroup):
 
         # # Repeat what happened above
         # self.addCommands(DriveToPoseCustomControl(container=self.container, swerve=self.container.swerve,
-        #                     target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_second_ball_pickup_pose, wpilib.DriverStation.getAlliance(), is_shooting=False),
+        #                     target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_second_ball_pickup_pose, wpilib.MatchState.getAlliance(), is_shooting=False),
         #                                           tolerance_type='fast').withTimeout(4.5)
         # )
 
@@ -69,7 +69,7 @@ class ShortBump(commands2.SequentialCommandGroup):
         #     ParallelCommandGroup(
         #     DriveToPoseCustomControl(container=self.container, swerve=self.container.swerve,
         #                              target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_shooting_pose,
-        #                                                                             wpilib.DriverStation.getAlliance(), is_shooting=True),
+        #                                                                             wpilib.MatchState.getAlliance(), is_shooting=True),
         #                              tolerance_type='fast').withTimeout(5),
         #     SequentialCommandGroup(
         #         WaitCommand(1), InstantCommand(lambda: self.container.shooter.set_shooter_rpm(ac.k_shooter_startup_rpm)))
@@ -93,6 +93,6 @@ class ShortBump(commands2.SequentialCommandGroup):
         self.addCommands(commands2.PrintCommand(f"{'    ' * indent}** Finished {self.getName()} **"))
 
     def get_is_right(self):
-        alliance_color = wpilib.DriverStation.getAlliance() == wpilib.DriverStation.Alliance.kBlue
+        alliance_color = wpilib.MatchState.getAlliance() == wpilib.Alliance.BLUE
         is_left = self.container.swerve.get_pose().Y() > fc.k_field_width / 2
         return alliance_color ^ is_left

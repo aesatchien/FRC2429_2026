@@ -54,7 +54,7 @@ class Climber(Subsystem):
         # --------------- add motors and set motor rpm ----------------
 
         motor_type = rev.SparkMax.MotorType.kBrushless
-        self.motor = rev.SparkMax(cc.k_CANID_motor, motor_type)
+        self.motor = rev.SparkMax(constants.k_can_bus, cc.k_CANID_motor, motor_type)
 
         # convenient list of motors if we need to query or set all of them
         self.motors = [self.motor]

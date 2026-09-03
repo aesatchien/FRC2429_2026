@@ -64,7 +64,7 @@ class Led(commands2.Subsystem):
         # this should auto-update the lists for the dashboard.  you can iterate over enums
         self.indicators_dict = {indicator.value["name"]: indicator for indicator in self.Indicator}
         self.modes_dict = {mode.value["name"]: mode for mode in self.Mode}
-        self.last_toggle_time = Timer.getFPGATimestamp()  # Tracks the last toggle time
+        self.last_toggle_time = Timer.getTimestamp()  # Tracks the last toggle time
         self.toggle_state = False  # Keeps track of the current on/off state
 
         # necessary initialization for the LED strip
@@ -76,7 +76,8 @@ class Led(commands2.Subsystem):
 
         self.led_strip.setLength(self.led_count)
         self.led_strip.setData(self.led_data)
-        self.led_strip.start()
+        # 2027: AddressableLED lost start()/stop().  The strip outputs as soon as it is
+        # configured, so there is nothing to start - setData() alone drives it.
 
         self._init_networktables()
 
@@ -190,7 +191,7 @@ class Led(commands2.Subsystem):
             elif not is_dtap and self.mode == self.Mode.kDTAP:
                 self.set_mode(self.Mode.kNONE)
                 
-            current_time = Timer.getFPGATimestamp()
+            current_time = Timer.getTimestamp()
             time_since_toggle = current_time - self.last_toggle_time
 
             if self.indicator != self.Indicator.kNONE:

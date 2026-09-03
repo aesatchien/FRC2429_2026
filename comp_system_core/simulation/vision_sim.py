@@ -71,7 +71,7 @@ class VisionSim:
 
 
     def update(self, robot_pose: Pose2d, gamepieces: list[dict]):
-        now = wpilib.Timer.getFPGATimestamp()
+        now = wpilib.Timer.getTimestamp()
 
         # 1. Manual Override: Use External Cameras
         # If True: Do not simulate targets, do not blink test. Just draw FOV.

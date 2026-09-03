@@ -80,7 +80,7 @@ class DriveByJoystickSwerve(commands2.Command):
         right_x = hid.getRightX()
 
         # Alliance Color
-        alliance = wpilib.DriverStation.getAlliance()
+        alliance = wpilib.MatchState.getAlliance()
 
         # -----------------------------------------------------------
         # 2. CALCULATE
@@ -136,7 +136,7 @@ class DriveByJoystickSwerve(commands2.Command):
         desired_strafe = self.strafe_limiter.calculate(processing_vector.Y())
 
         # --- 2g. Alliance Adjustment ---
-        if alliance == wpilib.DriverStation.Alliance.kRed and self.field_oriented:
+        if alliance == wpilib.Alliance.RED and self.field_oriented:
             desired_fwd *= -1
             desired_strafe *= -1
 

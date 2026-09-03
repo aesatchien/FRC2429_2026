@@ -95,7 +95,7 @@ class QuestNav:
         self.data_listener = ntcore.NetworkTableListenerPoller(self.nt_instance)
         self.data_listener.addListener(
             self.multi_sub,
-            ntcore.EventFlags.kValueAll
+            ntcore.EventFlags.VALUE_ALL
         )
         
         # Publishers for commands (must match Quest's subscriber topic)

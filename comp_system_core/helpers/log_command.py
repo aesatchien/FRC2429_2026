@@ -17,11 +17,11 @@ class _LogTimer:
 
     def reset(self):
         """Resets the timer to 0.0 relative to the current FPGA timestamp."""
-        self._start_offset = wpilib.Timer.getFPGATimestamp()
+        self._start_offset = wpilib.Timer.getTimestamp()
 
     def get(self):
         """Returns the time in seconds since the last reset."""
-        return wpilib.Timer.getFPGATimestamp() - self._start_offset
+        return wpilib.Timer.getTimestamp() - self._start_offset
 
 # Internal global instance
 _log_timer = _LogTimer()

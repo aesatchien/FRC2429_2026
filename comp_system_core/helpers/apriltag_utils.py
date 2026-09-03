@@ -30,7 +30,7 @@ def get_tag_distance(tag_id, current_pose):
 
 def auto_reflect_pose(robot_pose:Pose2d, goal_pose:Pose2d, alliance, is_shooting=False):
     print(f"alliance: {alliance}, robot_pose: {robot_pose}, goal_pose: {goal_pose}")
-    if alliance == wpilib.DriverStation.Alliance.kRed:
+    if alliance == wpilib.Alliance.RED:
         # x and theta for lower half red
         theta = math.pi - goal_pose.rotation().radians()
         x = fc.k_field_length - goal_pose.X()
@@ -76,8 +76,8 @@ def mirror_for_alliance(pose: Pose2d, alliance=None) -> Pose2d:
     play about the field's horizontal centerline so the same auto works top or bottom.
     """
     if alliance is None:
-        alliance = wpilib.DriverStation.getAlliance()
-    if alliance != wpilib.DriverStation.Alliance.kRed:
+        alliance = wpilib.MatchState.getAlliance()
+    if alliance != wpilib.Alliance.RED:
         return pose
 
     field_center = Translation2d(fc.k_field_length / 2, fc.k_field_width / 2)

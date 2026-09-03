@@ -1,6 +1,6 @@
 import wpilib
 from commands2 import Subsystem
-from wpilib import DriverStation
+from wpilib import MatchState
 import ntcore
 from ntcore import NetworkTableInstance
 from wpimath import Pose2d, Rotation2d, Transform2d, Translation2d
@@ -89,7 +89,7 @@ class Vision(Subsystem):
         time_stamp_good = latency_us < 1000000
         
         # Check if the camera application has stalled (frames not increasing)
-        time_since_last_frame = wpilib.Timer.getFPGATimestamp() - self.last_valid_frame_time.get(camera_key, 0)
+        time_since_last_frame = wpilib.Timer.getTimestamp() - self.last_valid_frame_time.get(camera_key, 0)
         frames_good = time_since_last_frame < 2.0  # no frames in the past 2s?
 
         if target_exists and (not time_stamp_good or not frames_good):
@@ -207,7 +207,7 @@ class Vision(Subsystem):
         self.counter += 1
 
         # Update frame counts for stall detection
-        current_time = wpilib.Timer.getFPGATimestamp()
+        current_time = wpilib.Timer.getTimestamp()
         for key in self.camera_dict.keys():
             current_frames = self.camera_dict[key]['frames_entry'].get()
             if current_frames != self.last_frame_count[key]:
@@ -217,9 +217,9 @@ class Vision(Subsystem):
         # update x times a second
         if self.counter % 10 == 0:
             if wpilib.RobotBase.isSimulation():
-                self.match_time_pub.set(wpilib.Timer.getFPGATimestamp())
+                self.match_time_pub.set(wpilib.Timer.getTimestamp())
             else:
-                self.match_time_pub.set(DriverStation.getMatchTime())
+                self.match_time_pub.set(MatchState.getMatchTime())
 
             for ix, key in enumerate(self.camera_dict.keys()):
                 self.camera_values[key]['targets'] = self.camera_dict[key]['targets_entry'].get()

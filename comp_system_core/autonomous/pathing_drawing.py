@@ -27,6 +27,6 @@ class DrawingAuto(commands2.SequentialCommandGroup):
         self.addCommands(commands2.PrintCommand(f"{'    ' * indent}** Finished {self.getName()} **"))
 
     def get_is_right(self):
-        alliance_color = wpilib.DriverStation.getAlliance() == wpilib.DriverStation.Alliance.kBlue
+        alliance_color = wpilib.MatchState.getAlliance() == wpilib.Alliance.BLUE
         is_left = self.container.swerve.get_pose().Y() > fc.k_field_width / 2
         return alliance_color ^ is_left

@@ -178,13 +178,13 @@ class AutoToPoseClean(commands2.Command):  #
         # Removed; if we want a nearest-tag mode again, build it on helpers.apriltag_utils.get_nearest_tag.
 
         if self.mode == "ball_pickup":
-            return auto_reflect_pose(robot_pose=current_pose, goal_pose=cac.k_first_ball_pickup_pose, alliance=wpilib.DriverStation.getAlliance(), is_shooting=False)
+            return auto_reflect_pose(robot_pose=current_pose, goal_pose=cac.k_first_ball_pickup_pose, alliance=wpilib.MatchState.getAlliance(), is_shooting=False)
 
         elif self.mode == "ball_pickup++":
-            return auto_reflect_pose(robot_pose=current_pose, goal_pose=cac.k_second_ball_pickup_pose, alliance=wpilib.DriverStation.getAlliance(), is_shooting=False)
+            return auto_reflect_pose(robot_pose=current_pose, goal_pose=cac.k_second_ball_pickup_pose, alliance=wpilib.MatchState.getAlliance(), is_shooting=False)
 
         elif self.mode == "shooting":
-            return auto_reflect_pose(robot_pose=current_pose, goal_pose=cac.k_shooting_pose, alliance=wpilib.DriverStation.getAlliance(), is_shooting=True)
+            return auto_reflect_pose(robot_pose=current_pose, goal_pose=cac.k_shooting_pose, alliance=wpilib.MatchState.getAlliance(), is_shooting=True)
 
         elif self.use_vision:
             # 3. Vision Mode

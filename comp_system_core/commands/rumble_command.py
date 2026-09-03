@@ -41,9 +41,9 @@ class RumbleCommand(commands2.Command):
     def _set_rumble(self, amount: float) -> None:
         hid = self.controller.getHID()
         if self.left_rumble:
-            hid.setRumble(GenericHID.RumbleType.kLeftRumble, amount)
+            hid.setRumble(GenericHID.RumbleType.LEFT_RUMBLE, amount)
         if self.right_rumble:
-            hid.setRumble(GenericHID.RumbleType.kRightRumble, amount)
+            hid.setRumble(GenericHID.RumbleType.RIGHT_RUMBLE, amount)
 
     def initialize(self) -> None:
         self.timer.restart()
