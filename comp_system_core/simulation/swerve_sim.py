@@ -1,7 +1,7 @@
 import math
 import wpilib.simulation as simlib
-from wpimath.geometry import Pose2d, Pose3d, Rotation3d, Transform2d, Translation3d
-from wpimath.kinematics import SwerveModulePosition
+from wpimath import Pose2d, Pose3d, Rotation3d, Transform2d, Translation3d
+from wpimath import SwerveModulePosition
 import ntcore
 import constants
 from subsystems.swerve_constants import DriveConstants as dc
@@ -61,7 +61,7 @@ class SwerveSim:
 
         # Get desired states from robot code (for kinematics)
         module_states = self.robot.container.swerve.get_desired_swerve_module_states()
-        speeds = self.kinematics.toChassisSpeeds(tuple(module_states))
+        speeds = self.kinematics.toChassisVelocities(tuple(module_states))
 
         # Update physics controller
         self.physics_controller.drive(speeds, tm_diff)

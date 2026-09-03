@@ -35,13 +35,13 @@ import math
 import ntcore
 import wpilib
 from rev import ClosedLoopSlot, SparkMax
-from commands2 import SubsystemBase
+from commands2 import Subsystem
 import constants
 from constants import ClimberConstants as cc
 from helpers.utilities import configure_sparks
 from rev import SparkBase, SparkLowLevel
 
-class Climber(SubsystemBase):
+class Climber(Subsystem):
     def __init__(self) -> None:
         super().__init__()
         self.setName('Climber')

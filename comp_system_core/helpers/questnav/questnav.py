@@ -15,7 +15,7 @@ from typing import List, Optional
 import time
 
 import ntcore
-from wpimath.geometry import Pose3d, Translation3d, Rotation3d, Quaternion
+from wpimath import Pose3d, Translation3d, Rotation3d, Quaternion
 
 # Import generated protobuf classes
 import helpers.questnav.protos.generated.data_pb2 as data_pb2
@@ -60,7 +60,7 @@ class QuestNav:
         questnav = QuestNav()
         
         # Set initial pose
-        from wpimath.geometry import Pose2d, Rotation2d
+        from wpimath import Pose2d, Rotation2d
         initial_pose = Pose2d(1.0, 2.0, Rotation2d.fromDegrees(90))
         questnav.set_pose(Pose3d(initial_pose))
         

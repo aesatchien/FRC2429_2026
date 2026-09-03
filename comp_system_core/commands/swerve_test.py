@@ -1,8 +1,8 @@
 import commands2
 from helpers.log_command import log_command  # outsource explicit logging clutter to a single line
 from subsystems.swerve import Swerve
-from subsystems.swervemodule_2429 import SwerveModuleState
-from wpimath.geometry import Rotation2d
+from subsystems.swervemodule_2429 import SwerveModuleVelocity
+from wpimath import Rotation2d
 
 @log_command(console=True, nt=False, print_init=True, print_end=True)  # will print start and end messages
 class SwerveTest(commands2.Command):  # change the name for your command
@@ -50,7 +50,7 @@ class SwerveTest(commands2.Command):  # change the name for your command
 
         # rotate thru the modules
         for angle, velocity, swerve_module in zip(angles, velocities, self.swerve.swerve_modules):
-            swerve_module.setDesiredState(SwerveModuleState(velocity, Rotation2d.fromDegrees(angle)))
+            swerve_module.setDesiredState(SwerveModuleVelocity(velocity, Rotation2d.fromDegrees(angle)))
 
         # runs 50x per second, so be careful about messages and timing
         pass

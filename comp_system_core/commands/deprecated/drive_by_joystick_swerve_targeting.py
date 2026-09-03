@@ -5,12 +5,12 @@ import wpilib
 import ntcore
 
 import constants
-from wpimath.controller import PIDController
+from wpimath import PIDController
 from subsystems.swerve import Swerve  # allows us to access the definitions
-from commands2.button import CommandXboxController
-from wpimath.geometry import Translation2d
-from wpimath.filter import Debouncer, SlewRateLimiter
-from wpimath.kinematics import ChassisSpeeds
+from commands2.button import CommandNiDsXboxController
+from wpimath import Translation2d
+from wpimath import Debouncer, SlewRateLimiter
+from wpimath import ChassisVelocities
 from subsystems.swerve_constants import DriveConstants as dc, AutoConstantsSwerve as ac, TargetingConstants as tc, RateLimiters as rl
 from helpers.log_command import log_command
 from helpers.utilities import deprecated
@@ -18,7 +18,7 @@ from helpers.utilities import deprecated
 @deprecated("Use DriveByJoystickSubsystemTargeting instead. This class was for developing the math.")
 @log_command(console=True, nt=False, print_init=True, print_end=False)
 class DriveByJoystickSwerveTargeting(commands2.Command):
-    def __init__(self, container, swerve: Swerve, controller: CommandXboxController, rate_limited=False) -> None:
+    def __init__(self, container, swerve: Swerve, controller: CommandNiDsXboxController, rate_limited=False) -> None:
         super().__init__()
         self.setName('drive_by_joystick_swerve_targeting')
         
@@ -28,7 +28,7 @@ class DriveByJoystickSwerveTargeting(commands2.Command):
         self.container = container
         self.swerve = swerve
         self.addRequirements(self.swerve)
-        self.controller: CommandXboxController = controller
+        self.controller: CommandNiDsXboxController = controller
 
         # -----------------------------------------------------------
         # 2. Configuration & State
@@ -226,7 +226,7 @@ class DriveByJoystickSwerveTargeting(commands2.Command):
     def _calculate_tracking_rotation(self, robot_pose):
         # --- Targeting Calculations ---
         # Calculate robot velocity vector
-        robot_vel = self.swerve.get_relative_speeds() # Robot relative ChassisSpeeds
+        robot_vel = self.swerve.get_relative_speeds() # Robot relative ChassisVelocities
         v_robot = Translation2d(robot_vel.vx, robot_vel.vy)
         v_field = v_robot.rotateBy(robot_pose.rotation()) # Convert to field relative
 

@@ -61,7 +61,7 @@ def test_modules_report_metres_not_rotations(container):
     import math
     for module in container.swerve.swerve_modules:
         position = module.getPosition().distance
-        speed = module.getState().speed
+        speed = module.getState().velocity
         assert math.isfinite(position) and abs(position) < 1.0, \
             f'{module.label} position {position} - zeroed at construction, so should be ~0 m'
         assert math.isfinite(speed) and abs(speed) < 10.0, \

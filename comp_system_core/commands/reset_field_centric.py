@@ -3,7 +3,7 @@ import wpilib
 
 import constants
 from subsystems.swerve import Swerve
-from wpimath.geometry import Pose2d
+from wpimath import Pose2d
 import math
 from helpers.log_command import log_command
 

@@ -3,7 +3,7 @@
 import wpilib
 import ntcore
 from commands2 import InstantCommand
-from wpimath.geometry import Pose2d
+from wpimath import Pose2d
 import commands2
 from commands2.printcommand import PrintCommand
 

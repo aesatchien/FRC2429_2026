@@ -1,6 +1,6 @@
 import commands2
-from wpimath.controller import PIDController, ProfiledPIDController
-from wpimath.trajectory import TrapezoidProfile
+from wpimath import PIDController, ProfiledPIDController
+from wpimath import TrapezoidProfile
 from subsystems.swerve import Swerve
 from subsystems.vision import Vision
 from helpers.log_command import log_command

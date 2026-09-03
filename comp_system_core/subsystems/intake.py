@@ -2,9 +2,9 @@ import math
 
 import ntcore
 import wpilib
-from wpimath.filter import MedianFilter
-from wpimath.controller import ProfiledPIDController, ArmFeedforward
-from wpimath.trajectory import TrapezoidProfile
+from wpimath import MedianFilter
+from wpimath import ProfiledPIDController, ArmFeedforward
+from wpimath import TrapezoidProfile
 from commands2 import Subsystem
 import rev
 from rev import SparkBase, SparkLowLevel  # trying to save some typing

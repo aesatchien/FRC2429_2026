@@ -5,16 +5,16 @@ import ntcore
 
 import constants
 from subsystems.swerve import Swerve  # allows us to access the definitions
-from commands2.button import CommandXboxController
-from wpimath.geometry import Translation2d
-from wpimath.filter import Debouncer, SlewRateLimiter
+from commands2.button import CommandNiDsXboxController
+from wpimath import Translation2d
+from wpimath import Debouncer, SlewRateLimiter
 from subsystems.swerve_constants import DriveConstants as dc, RateLimiters as rl
 from helpers.log_command import log_command
 
 
 @log_command(console=True, nt=False, print_init=True, print_end=False)
 class DriveByJoystickSwerve(commands2.Command):
-    def __init__(self, container, swerve: Swerve, controller: CommandXboxController, rate_limited=False, afterburn=False) -> None:
+    def __init__(self, container, swerve: Swerve, controller: CommandNiDsXboxController, rate_limited=False, afterburn=False) -> None:
         super().__init__()
         self.setName('drive_by_joystick_swerve')
 
@@ -24,7 +24,7 @@ class DriveByJoystickSwerve(commands2.Command):
         self.container = container
         self.swerve = swerve
         self.addRequirements(self.swerve)
-        self.controller: CommandXboxController = controller
+        self.controller: CommandNiDsXboxController = controller
 
         # -----------------------------------------------------------
         # 2. Configuration & State

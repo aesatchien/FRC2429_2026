@@ -1,9 +1,9 @@
 import math
 
 from wpilib import AnalogPotentiometer
-from wpimath.geometry import Rotation2d
-from wpimath.kinematics import SwerveModuleState, SwerveModulePosition
-from wpimath.controller import PIDController
+from wpimath import Rotation2d
+from wpimath import SwerveModuleVelocity, SwerveModulePosition
+from wpimath import PIDController
 
 from .swerve_constants import ModuleConstants
 from .swerve_constants import DriveConstants as dc
@@ -26,7 +26,7 @@ class SwerveModule:
                  turning_encoder_offset: float, label='') -> None:
 
         self.label = label
-        self.desiredState = SwerveModuleState(0.0, Rotation2d())  # initialize desired state
+        self.desiredState = SwerveModuleVelocity(0.0, Rotation2d())  # initialize desired state
         self.turning_output = 0
 
         #  ---------------- MOTORS (vendor chosen by the active config)  ------------------
@@ -65,11 +65,11 @@ class SwerveModule:
         """(drive, turn) config snapshots for the boot-time printout in Swerve."""
         return self.drive_motor.describe(), self.turn_motor.describe()
 
-    def getState(self) -> SwerveModuleState:
+    def getState(self) -> SwerveModuleVelocity:
         """Returns the current state of the module.
         :returns: The current state of the module.
         """
-        return SwerveModuleState(self.drive_motor.get_velocity_mps(),
+        return SwerveModuleVelocity(self.drive_motor.get_velocity_mps(),
             Rotation2d(self.get_turn_encoder()),)
 
     def getPosition(self) -> SwerveModulePosition:
@@ -82,26 +82,26 @@ class SwerveModule:
     def getDesiredState(self):
         return self.desiredState
 
-    def setDesiredState(self, desiredState: SwerveModuleState) -> None:
+    def setDesiredState(self, desiredState: SwerveModuleVelocity) -> None:
         """Sets the desired state for the module.
-        :param desiredState: Desired state with speed and angle.
+        :param desiredState: Desired state with velocity and angle.
         """
 
         # Apply chassis angular offset to the desired state.
-        correctedDesiredState = SwerveModuleState()
-        correctedDesiredState.speed = desiredState.speed
+        correctedDesiredState = SwerveModuleVelocity()
+        correctedDesiredState.velocity = desiredState.velocity
         correctedDesiredState.angle = desiredState.angle
 
         # Optimize the reference state to avoid spinning further than 90 degrees
         correctedDesiredState.optimize(Rotation2d(self.get_turn_encoder()))
 
         # don't let wheels servo back if we aren't asking the module to move
-        if math.fabs(desiredState.speed) < 0.002:  # need to see what is this minimum m/s that makes sense
-            correctedDesiredState.speed = 0
+        if math.fabs(desiredState.velocity) < 0.002:  # need to see what is this minimum m/s that makes sense
+            correctedDesiredState.velocity = 0
             correctedDesiredState.angle = self.getState().angle
 
         # Command the drive motor.  The adapter takes m/s whichever vendor is underneath.
-        self.drive_motor.set_velocity_mps(correctedDesiredState.speed)
+        self.drive_motor.set_velocity_mps(correctedDesiredState.velocity)
 
         # calculate the PID value for the turning motor  - use the roborio instead of the sparkflex. todo: explain why
         self.turning_output = self.turning_PID_controller.calculate(self.get_turn_encoder(), correctedDesiredState.angle.radians())

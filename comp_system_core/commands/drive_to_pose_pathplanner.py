@@ -6,7 +6,7 @@ from pathplannerlib.util import DriveFeedforwards
 import typing
 import ntcore
 import wpilib
-from wpimath.geometry import Pose2d, Translation2d, Rotation2d, Transform2d
+from wpimath import Pose2d, Translation2d, Rotation2d, Transform2d
 
 import constants
 from constants import AutoConstants as cac

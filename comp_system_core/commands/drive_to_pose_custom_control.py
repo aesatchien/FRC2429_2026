@@ -4,9 +4,9 @@ import commands2
 import typing
 import ntcore
 import wpilib
-from wpimath.controller import PIDController
-from wpimath.geometry import Pose2d, Translation2d, Rotation2d, Transform2d
-from wpimath.filter import SlewRateLimiter
+from wpimath import PIDController
+from wpimath import Pose2d, Translation2d, Rotation2d, Transform2d
+from wpimath import SlewRateLimiter
 
 import constants
 from constants import AutoConstants as cac

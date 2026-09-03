@@ -4,9 +4,9 @@ import bisect
 import ntcore
 import wpilib
 from commands2 import Subsystem
-from wpimath.controller import PIDController
-from wpimath.geometry import Pose2d, Translation2d, Rotation2d
-from wpimath.kinematics import ChassisSpeeds
+from wpimath import PIDController
+from wpimath import Pose2d, Translation2d, Rotation2d
+from wpimath import ChassisVelocities
 import constants
 from constants import ShooterConstants as sc
 from subsystems.swerve_constants import DriveConstants as dc, TargetingConstants as tc
@@ -154,7 +154,7 @@ class Targeting(Subsystem):
         
         # Deadband velocity to prevent jitter at start/stop
         if math.hypot(robot_vel.vx, robot_vel.vy) < tc.kTargetingVelocityDeadband:
-            robot_vel = ChassisSpeeds(0, 0, 0)
+            robot_vel = ChassisVelocities(0, 0, 0)
 
         # --- Targeting Calculations ---
         

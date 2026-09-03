@@ -3,7 +3,7 @@ from enum import Enum
 import commands2
 import wpilib
 from wpilib import Timer, DriverStation, PowerDistribution
-from wpimath.filter import LinearFilter, MedianFilter
+from wpimath import LinearFilter, MedianFilter
 import ntcore
 import constants
 from constants import LedConstants

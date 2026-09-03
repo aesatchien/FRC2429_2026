@@ -1,6 +1,6 @@
 import commands2
 import wpilib
-from wpilib.interfaces import GenericHID
+from wpilib import GenericHID
 
 from helpers import joysticks as js
 from helpers.log_command import log_command

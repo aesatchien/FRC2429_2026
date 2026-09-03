@@ -1,9 +1,9 @@
 import wpilib
 import random
-from commands2 import SubsystemBase, InstantCommand
+from commands2 import Subsystem, InstantCommand
 from wpilib import SmartDashboard, DriverStation, Timer, Field2d
 from wpimath.units import inchesToMeters
-from wpimath.geometry import Pose2d, Rotation2d, Translation2d, Pose3d, Rotation3d, Translation3d, Transform2d, Transform3d
+from wpimath import Pose2d, Rotation2d, Translation2d, Pose3d, Rotation3d, Translation3d, Transform2d, Transform3d
 from ntcore import NetworkTableInstance
 
 from helpers.questnav.questnav import QuestNav as Metaquestnav
@@ -13,7 +13,7 @@ import constants
 from constants import FieldConstants as fc, QuestConstants as qc
 
 # TODO - clean and speed this up
-class Questnav(SubsystemBase):
+class Questnav(Subsystem):
     def __init__(self) -> None:
         super().__init__()
         self.setName('Quest')

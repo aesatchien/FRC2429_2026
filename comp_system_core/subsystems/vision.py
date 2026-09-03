@@ -1,15 +1,15 @@
 import wpilib
-from commands2 import SubsystemBase
+from commands2 import Subsystem
 from wpilib import DriverStation
 import ntcore
 from ntcore import NetworkTableInstance
-from wpimath.geometry import Pose2d, Rotation2d, Transform2d, Translation2d
+from wpimath import Pose2d, Rotation2d, Transform2d, Translation2d
 import math
 
 import constants
 
 
-class Vision(SubsystemBase):
+class Vision(Subsystem):
     def __init__(self) -> None:
         super().__init__()
         self.setName('Vision')

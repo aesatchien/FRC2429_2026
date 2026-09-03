@@ -1,6 +1,6 @@
 import math
 import wpilib
-from wpilib import Color, Color8Bit
+from wpiutil import Color, Color8Bit
 from wpimath.units import inchesToMeters
 import constants
 from constants import IntakeConstants as ic

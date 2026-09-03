@@ -2,8 +2,8 @@ from math import radians
 import math
 import commands2
 from wpilib import SmartDashboard
-from wpimath.controller import PIDController
-from wpimath.geometry import Pose2d
+from wpimath import PIDController
+from wpimath import Pose2d
 
 from subsystems.swerve_constants import AutoConstantsSwerve as ac
 from subsystems.swerve import Swerve

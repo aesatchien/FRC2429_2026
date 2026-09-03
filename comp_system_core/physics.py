@@ -2,7 +2,7 @@ import math
 
 import wpilib
 import wpilib.simulation as simlib  # 2021 name for the simulation library
-from  wpimath.geometry import Pose2d, Transform2d
+from wpimath import Pose2d, Transform2d
 from wpimath.units import inchesToMeters
 from pyfrc.physics.core import PhysicsInterface
 import ntcore

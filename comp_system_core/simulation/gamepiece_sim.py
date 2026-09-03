@@ -1,5 +1,5 @@
 import wpilib
-from wpimath.geometry import Translation2d, Pose2d, Rotation2d
+from wpimath import Translation2d, Pose2d, Rotation2d
 from simulation import sim_utils
 
 class GamepieceSim:

@@ -1,5 +1,5 @@
 import math
-from wpimath.geometry import Pose2d, Translation2d
+from wpimath import Pose2d, Translation2d
 
 
 def get_distance(pos1: Translation2d, pos2: Translation2d) -> float:

@@ -9,7 +9,7 @@ from autonomous.shoot_cycle import shoot_cycle
 from commands.auto_to_pose_clean import AutoToPoseClean
 
 from helpers import joysticks as js
-from wpimath.geometry import Pose2d
+from wpimath import Pose2d
 
 class TwoCycle(commands2.SequentialCommandGroup):
     def __init__(self, container, indent=0) -> None:

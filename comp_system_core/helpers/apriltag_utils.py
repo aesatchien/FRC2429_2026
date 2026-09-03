@@ -3,7 +3,7 @@ from pathlib import Path
 
 import robotpy_apriltag
 import wpilib
-from wpimath.geometry import Pose2d, Rotation2d, Translation2d
+from wpimath import Pose2d, Rotation2d, Translation2d
 
 import constants
 from constants import FieldConstants as fc, AutoConstants as cac

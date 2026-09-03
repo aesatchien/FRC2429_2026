@@ -1,6 +1,6 @@
 import commands2
 import ntcore
-from wpimath.geometry import Pose2d, Transform2d
+from wpimath import Pose2d, Transform2d
 from helpers.log_command import log_command  # outsource explicit logging clutter to a single line
 import constants
 

@@ -1,8 +1,8 @@
 import commands2.button
 import constants
 
-driver_controller = commands2.button.CommandXboxController(constants.k_driver_controller_port)
-copilot_controller = commands2.button.CommandXboxController(constants.k_co_driver_controller_port)
+driver_controller = commands2.button.CommandNiDsXboxController(constants.k_driver_controller_port)
+copilot_controller = commands2.button.CommandNiDsXboxController(constants.k_co_driver_controller_port)
 
 axis_trigger_threshold = 0.5
 # Driver Buttons
@@ -75,7 +75,7 @@ bbox_1_12 = bbox_1.button(12)
 # copilot_r_stick_positive_y = copilot_controller.axisGreaterThan(5, 0.5)
 # copilot_r_stick_negative_y = copilot_controller.axisLessThan(5, -0.5)
 
-play_station_controller = commands2.button.CommandPS4Controller(constants.k_ps5_controller_port)
+play_station_controller = commands2.button.CommandNiDsPS4Controller(constants.k_ps5_controller_port)
 
 ps_square = play_station_controller.square()
 ps_cross = play_station_controller.cross()

@@ -3,9 +3,9 @@ import math
 import commands2
 from wpilib import SmartDashboard
 import wpilib
-from wpimath.controller import PIDController
-from wpimath.geometry import Translation2d, Rotation2d
-from wpimath.filter import SlewRateLimiter
+from wpimath import PIDController
+from wpimath import Translation2d, Rotation2d
+from wpimath import SlewRateLimiter
 
 from subsystems.swerve import Swerve
 from subsystems.led import Led

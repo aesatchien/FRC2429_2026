@@ -20,7 +20,7 @@ from commands.drive_to_pose_custom_control import DriveToPoseCustomControl
 
 from helpers import joysticks as js
 from helpers.apriltag_utils import auto_reflect_pose
-from wpimath.geometry import Pose2d
+from wpimath import Pose2d
 
 class PathingFSFSTrenchtoTrench(commands2.SequentialCommandGroup):
     def __init__(self, container, indent=0) -> None:

@@ -4,10 +4,10 @@ import commands2
 from pathplannerlib.trajectory import PathPlannerTrajectoryState
 from pathplannerlib.util import DriveFeedforwards
 import wpilib
-from wpimath.controller import PIDController, ProfiledPIDController
-from wpimath.geometry import Pose2d, Translation2d, Rotation2d, Transform2d
-from wpimath.trajectory import TrapezoidProfile
-from wpimath.filter import SlewRateLimiter
+from wpimath import PIDController, ProfiledPIDController
+from wpimath import Pose2d, Translation2d, Rotation2d, Transform2d
+from wpimath import TrapezoidProfile
+from wpimath import SlewRateLimiter
 
 import constants
 from subsystems.swerve_constants import DriveConstants as dc, AutoConstantsSwerve as ac, RateLimiters as rl

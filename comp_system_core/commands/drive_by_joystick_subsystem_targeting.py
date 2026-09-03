@@ -7,16 +7,16 @@ import ntcore
 import constants
 from subsystems.swerve import Swerve  # allows us to access the definitions
 from subsystems.targeting import Targeting
-from commands2.button import CommandPS4Controller, CommandXboxController, CommandJoystick
-from wpimath.geometry import Translation2d
-from wpimath.filter import Debouncer, SlewRateLimiter
+from commands2.button import CommandNiDsPS4Controller, CommandNiDsXboxController, CommandJoystick
+from wpimath import Translation2d
+from wpimath import Debouncer, SlewRateLimiter
 from subsystems.swerve_constants import DriveConstants as dc, RateLimiters as rl
 from helpers.log_command import log_command
 
 
 @log_command(console=True, nt=False, print_init=True, print_end=False)
 class DriveByJoystickSubsystemTargeting(commands2.Command):
-    def __init__(self, container, swerve: Swerve, targeting: Targeting, controller: CommandXboxController=None, ps5controller: CommandPS4Controller=None, button_box: CommandJoystick=None) -> None:
+    def __init__(self, container, swerve: Swerve, targeting: Targeting, controller: CommandNiDsXboxController=None, ps5controller: CommandNiDsPS4Controller=None, button_box: CommandJoystick=None) -> None:
         super().__init__()
         self.setName('drive_by_joystick_subsystem_targeting')
         
@@ -28,8 +28,8 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
         self.targeting = targeting
         self.addRequirements(self.swerve)
 
-        self.xbox_controller: CommandXboxController = controller
-        self.ps5_controller: CommandPS4Controller = ps5controller
+        self.xbox_controller: CommandNiDsXboxController = controller
+        self.ps5_controller: CommandNiDsPS4Controller = ps5controller
         self.button_box: CommandJoystick = button_box
 
         # -----------------------------------------------------------

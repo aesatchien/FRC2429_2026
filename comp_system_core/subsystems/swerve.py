@@ -8,11 +8,11 @@ import wpilib
 from commands2 import Subsystem
 
 from wpilib import SmartDashboard, DataLogManager, DriverStation, Timer, RobotBase
-from wpimath.filter import SlewRateLimiter
-from wpimath.geometry import Pose2d, Rotation2d, Translation2d, Pose3d, Rotation3d, Translation3d
-from wpimath.kinematics import (ChassisSpeeds, SwerveModuleState, SwerveDrive4Kinematics)
-from wpimath.estimator import SwerveDrive4PoseEstimator
-from wpimath.controller import PIDController
+from wpimath import SlewRateLimiter
+from wpimath import Pose2d, Rotation2d, Translation2d, Pose3d, Rotation3d, Translation3d
+from wpimath import (ChassisVelocities, SwerveModuleVelocity, SwerveDrive4Kinematics)
+from wpimath import SwerveDrive4PoseEstimator
+from wpimath import PIDController
 
 from pathplannerlib.auto import AutoBuilder, PathPlannerAuto, PathPlannerPath
 from pathplannerlib.config import ModuleConfig, RobotConfig
@@ -245,12 +245,16 @@ class Swerve (Subsystem):
         rotDelivered = rotation_commanded * dc.kMaxAngularSpeed
 
         # create the swerve state array depending on if we are field relative or not
-        swerveModuleStates = dc.kDriveKinematics.toSwerveModuleStates(
-            ChassisSpeeds.fromFieldRelativeSpeeds(xSpeedDelivered, ySpeedDelivered, rotDelivered, Rotation2d.fromDegrees(self.get_angle()),)
-            if fieldRelative else ChassisSpeeds(xSpeedDelivered, ySpeedDelivered, rotDelivered))
+        # 2027: ChassisSpeeds.fromFieldRelativeSpeeds() no longer exists.  Build the
+        # velocities in the field frame, then rotate them into the robot frame.  Verified
+        # numerically identical to the 2026 call.
+        chassis_velocities = ChassisVelocities(xSpeedDelivered, ySpeedDelivered, rotDelivered)
+        if fieldRelative:
+            chassis_velocities = chassis_velocities.toRobotRelative(Rotation2d.fromDegrees(self.get_angle()))
+        swerveModuleStates = dc.kDriveKinematics.toSwerveModuleVelocities(chassis_velocities)
 
         # normalize wheel speeds so we do not exceed our speed limit
-        swerveModuleStates = SwerveDrive4Kinematics.desaturateWheelSpeeds(swerveModuleStates, dc.kMaxTotalSpeed)
+        swerveModuleStates = SwerveDrive4Kinematics.desaturateWheelVelocities(swerveModuleStates, dc.kMaxTotalSpeed)
         for state, module in zip(swerveModuleStates, self.swerve_modules):
             module.setDesiredState(state)
 
@@ -302,17 +306,17 @@ class Swerve (Subsystem):
         # print('Setting Swerve X')
         for angle, swerve_module in zip(angles, self.swerve_modules):
             # setDesiredState filters you out if your speed is less than a threshold, so gotta give it a small amount
-            swerve_module.setDesiredState(SwerveModuleState(0.005, Rotation2d.fromDegrees(angle)))
+            swerve_module.setDesiredState(SwerveModuleVelocity(0.005, Rotation2d.fromDegrees(angle)))
 
     def set_straight(self):
         """Sets the wheels straight so we can push the robot."""
         angles = [0, 0, 0, 0]
         for angle, swerve_module in zip(angles, self.swerve_modules):
             # setDesiredState filters you out if your speed is less than a threshold, so gotta give it a small amount
-            swerve_module.setDesiredState(SwerveModuleState(0.005, Rotation2d.fromDegrees(angle)))
+            swerve_module.setDesiredState(SwerveModuleVelocity(0.005, Rotation2d.fromDegrees(angle)))
 
-    def setModuleStates(self, desiredStates: typing.Tuple[SwerveModuleState]) -> None:
-        desiredStates = SwerveDrive4Kinematics.desaturateWheelSpeeds(desiredStates, dc.kMaxTotalSpeed)
+    def setModuleStates(self, desiredStates: typing.Tuple[SwerveModuleVelocity]) -> None:
+        desiredStates = SwerveDrive4Kinematics.desaturateWheelVelocities(desiredStates, dc.kMaxTotalSpeed)
         for idx, m in enumerate(self.swerve_modules):
             m.setDesiredState(desiredStates[idx])
 
@@ -366,7 +370,7 @@ class Swerve (Subsystem):
         self.reset_keep_angle()
 
     #  -------------  simulation helpers  ----------
-    def get_desired_swerve_module_states(self) -> list[SwerveModuleState]:
+    def get_desired_swerve_module_states(self) -> list[SwerveModuleVelocity]:
         """
         what it says on the wrapper; it's for physics.py because I don't like relying on an NT entry
         to communicate between them (it's less clear what the NT entry is there for, I think) LHACK 1/12/25
@@ -376,13 +380,13 @@ class Swerve (Subsystem):
 
     #  -------------  METHODS PATHPLANNER NEEDS  ----------
     def get_relative_speeds(self):
-        return dc.kDriveKinematics.toChassisSpeeds(self.get_module_states())
+        return dc.kDriveKinematics.toChassisVelocities(self.get_module_states())
 
-    def drive_robot_relative(self, chassis_speeds: ChassisSpeeds, feedforwards):
+    def drive_robot_relative(self, chassis_speeds: ChassisVelocities, feedforwards):
         # required for the pathplanner lib's pathfollowing based on chassis speeds
         # idk if we need the feedforwards
-        swerveModuleStates = dc.kDriveKinematics.toSwerveModuleStates(chassis_speeds)
-        swerveModuleStates = SwerveDrive4Kinematics.desaturateWheelSpeeds(swerveModuleStates, dc.kMaxTotalSpeed)
+        swerveModuleStates = dc.kDriveKinematics.toSwerveModuleVelocities(chassis_speeds)
+        swerveModuleStates = SwerveDrive4Kinematics.desaturateWheelVelocities(swerveModuleStates, dc.kMaxTotalSpeed)
         for state, module in zip(swerveModuleStates, self.swerve_modules):
             module.setDesiredState(state)
 

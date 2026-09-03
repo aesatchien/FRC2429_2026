@@ -46,9 +46,9 @@ from pathplannerlib.auto import PathConstraints
 from pathplannerlib.controller import PPHolonomicDriveController
 import wpilib
 from wpimath import units
-from wpimath.geometry import Rotation2d, Translation2d
-from wpimath.kinematics import SwerveDrive4Kinematics
-from wpimath.trajectory import TrapezoidProfileRadians
+from wpimath import Rotation2d, Translation2d
+from wpimath import SwerveDrive4Kinematics
+from wpimath import TrapezoidProfileRadians
 from rev import SparkMax, SparkFlex, SparkFlexConfig, SparkMaxConfig
 from pathplannerlib.config import DCMotor, PIDConstants
 
@@ -84,7 +84,7 @@ class DriveConstants:
     kSlowModeCap = 0.35                   # translation slow-mode floor for targeting command
     kAngularSlowFloor = 0.5               # angular slow-mode floor for both joystick commands
     kJoystickLegacyTranslationFloor = 0.2 # translation slow-mode floor for drive_by_joystick_swerve only
-    # Ceiling handed to SwerveDrive4Kinematics.desaturateWheelSpeeds().  Its whole job is: when
+    # Ceiling handed to SwerveDrive4Kinematics.desaturateWheelVelocities().  Its whole job is: when
     # ANY module is asked for more than it can deliver, scale all four down TOGETHER so the
     # chassis still moves in the commanded direction, just slower.
     #
@@ -481,7 +481,7 @@ class ModuleConstants:
 # ---------------------------------------------------------------------------------------------
 # The desaturation ceiling, resolved now that ModuleConstants knows the gearing and free speed.
 # kDriveWheelFreeSpeedRps is misnamed - it is the wheel's free speed in METRES PER SECOND, which
-# is exactly the per-module limit desaturateWheelSpeeds() wants.  Tracking it off the active
+# is exactly the per-module limit desaturateWheelVelocities() wants.  Tracking it off the active
 # drive motor means a vendor or gearing change carries this along instead of leaving it stale.
 #   Kraken X60 @ 6.75:1 -> 4.73 m/s      NEO Vortex @ 6.75:1 -> 5.35 m/s
 # DRIVER-VISIBLE: at full stick WITH rotation the robot now trades translation speed to keep

@@ -5,7 +5,7 @@ import wpilib
 import rev
 import wpimath.units
 from rev import ClosedLoopSlot, SparkClosedLoopController, SparkFlexConfig, SparkMax, SparkMaxConfig
-from wpimath.geometry import Pose2d, Rotation2d, Translation2d, Transform2d
+from wpimath import Pose2d, Rotation2d, Translation2d, Transform2d
 from wpimath.units import inchesToMeters, lbsToKilograms
 from typing import Union, List
 

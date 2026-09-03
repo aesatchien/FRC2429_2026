@@ -1,7 +1,7 @@
 import commands2
 from wpilib import Timer, DriverStation
-from wpimath.geometry import Pose2d
-from wpimath.filter import SlewRateLimiter
+from wpimath import Pose2d
+from wpimath import SlewRateLimiter
 
 from subsystems.swerve import Swerve
 from helpers.log_command import log_command
