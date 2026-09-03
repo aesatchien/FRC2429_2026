@@ -4,7 +4,7 @@
 
 [tool.robotpy]
 team_number = 2429
-robotpy_version = "2026.2.2"
+robotpy_version = "2027.0.0a6.post1"
 # note you also have robot_name as an option here, changes the deploy path from default
 # good for multiple robots on one roborio - makes redeploying faster
 #
@@ -48,11 +48,13 @@ components = [
 # version pins are ok here for non-core packages
 requires = [
     "protobuf>=6.0,<7",
-    "robotpy-urcl",
+    # robotpy-urcl - no 2027 build.  swerve.py imports it lazily behind
+    #   constants.k_enable_urcl, so restoring this line and flipping that flag is all
+    #   it takes once a 2027 wheel exists.
     # robotpy-pathplannerlib - VENDORED into pathplannerlib/, see its VENDORED.md.
     #   Restore this line and delete that directory once a 2027 wheel exists.
-    "robotpy-navx>=2026.0.0",
-    "robotpy-rev>=2026.0.1",
+    # robotpy-navx - REMOVED.  SystemCore has wpilib.OnboardIMU on the board.
+    "robotpy-rev>=2027.0.0a5",
     "phoenix6>=26.1",          # Kraken X60 / TalonFX - needed by subsystems/motors.py
 
 ]

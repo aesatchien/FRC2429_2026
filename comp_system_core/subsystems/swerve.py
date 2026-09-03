@@ -2,7 +2,6 @@ import math
 import typing
 import time
 
-import navx
 import ntcore
 import wpilib
 from commands2 import Subsystem
@@ -23,7 +22,6 @@ from .swerve_constants import DriveConstants as dc, AutoConstantsSwerve as ac, M
 from helpers.utilities import compare_motors
 import helpers.apriltag_utils as atu
 from subsystems.quest import Questnav
-import urcl # unofficial rev compatible logger for advantagescope
 
 class Swerve (Subsystem):
     def __init__(self, questnav:Questnav) -> None:
@@ -52,14 +50,18 @@ class Swerve (Subsystem):
         compare_motors(lf_drive, lf_turn, name_a='LF DRIVE', name_b='LF TURN')
 
         # ---------- set up gyro   ----------
-        self.gyro = navx.AHRS.create_spi()
-        if self.gyro.isCalibrating():
-            # schedule a command to reset the navx
-            print('unable to reset navx: Calibration in progress')
-        else:
-            pass
-
-        self.gyro.zeroYaw()  # we boot up at zero degrees  - note - you can't reset this while calibrating
+        # SystemCore has an IMU on the board, so there is no navX any more.  Two differences
+        # that matter and are easy to get wrong:
+        #   1. every OnboardIMU angle is in RADIANS.  navX was in degrees.  The wrappers
+        #      below convert, so the rest of the code still speaks degrees.
+        #   2. OnboardIMU is counter-clockwise-positive, the normal WPILib convention.  The
+        #      navX was clockwise-positive, which is the only reason kGyroReversed existed.
+        #      It is now False - see the note in swerve_constants.
+        # There is no isCalibrating() to wait on, and no setAngleAdjustment(), so the
+        # adjustment reset_gyro() used to hand the sensor is kept here in software instead.
+        self.gyro = wpilib.OnboardIMU(dc.k_imu_mount_orientation)
+        self.gyro.resetYaw()  # we boot up at zero degrees
+        self.gyro_angle_adjustment = 0.0  # degrees, replaces navX setAngleAdjustment()
         self.gyro_calibrated = False
 
         # ---------- timer and variables for checking if we should be using pid on rotation ----------
@@ -122,7 +124,16 @@ class Swerve (Subsystem):
         if constants.k_enable_logging:
             DataLogManager.start()  # start wpilib datalog for AdvantageScope
             DriverStation.startDataLog(DataLogManager.getLog())  # Record both DS control and joystick data
-            urcl.URCL.start()  # start the unofficial rev urcl logger for AdvantageScope
+            # URCL is optional and imported lazily, so a missing package is a message rather
+            # than an import error at module scope.  Toggle constants.k_enable_urcl.
+            if constants.k_enable_urcl:
+                try:
+                    import urcl
+                    urcl.URCL.start()  # unofficial REV logger for AdvantageScope
+                    print('  started URCL (REV device logging)')
+                except ImportError:
+                    print('  *** k_enable_urcl is True but robotpy-urcl is not installed - skipping ***')
+                    print('      (no 2027 build exists yet; set constants.k_enable_urcl = False to silence)')
             # URCL only sees REV devices.  If any Krakens are on the bus they log through
             # Phoenix's own SignalLogger, which writes .hoot files AdvantageScope opens separately.
             if dc.k_drive_vendor == 'ctre' or dc.k_turn_vendor == 'ctre':
@@ -337,11 +348,14 @@ class Swerve (Subsystem):
     #  -------------  gyro functions  ----------
 
     def get_raw_angle(self):  # never reversed value for using PIDs on the heading
-        return self.gyro.getAngle()
+        # getAngleZ() is the accumulating angle, the counterpart of navX getAngle().
+        # Adding the adjustment here matches navX, where setAngleAdjustment() moved
+        # getAngle() but deliberately left getYaw() alone.
+        return math.degrees(self.gyro.getAngleZ()) + self.gyro_angle_adjustment
 
     def get_gyro_angle(self):  # if necessary reverse the heading for swerve math
         # note this does add in the current offset
-        return -self.gyro.getAngle() if dc.kGyroReversed else self.gyro.getAngle()
+        return -self.get_raw_angle() if dc.kGyroReversed else self.get_raw_angle()
 
     def get_angle(self):  # if necessary reverse the heading for swerve math
         # used to be get_gyro_angle but LHACK changed it 12/24/24 so we don't have to manually reset gyro anymore
@@ -349,24 +363,24 @@ class Swerve (Subsystem):
 
     def get_yaw(self):  # helpful for determining nearest heading parallel to the wall
         # but you should probably never use this - just use get_angle to be consistent
-        return -self.gyro.getYaw() if dc.kGyroReversed else self.gyro.getYaw()  #2024 possible update
+        yaw = math.degrees(self.gyro.getYaw())  # OnboardIMU is radians
+        return -yaw if dc.kGyroReversed else yaw
 
-    def get_pitch(self):  # need to calibrate the navx, apparently
+    def get_pitch(self):
+        # Which physical axis is pitch depends on how the SystemCore is mounted - this
+        # assumes k_imu_mount_orientation.  Check it before trusting the number.
         pitch_offset = 0
-        return self.gyro.getPitch() - pitch_offset
+        return math.degrees(self.gyro.getAngleY()) - pitch_offset
 
-    def get_roll(self):  # need to calibrate the navx, apparently
+    def get_roll(self):
         roll_offset = 0
-        return self.gyro.getRoll() - roll_offset
+        return math.degrees(self.gyro.getAngleX()) - roll_offset
 
     def reset_gyro(self, adjustment=None):
-        self.gyro.reset()
-        if adjustment is not None:
-            # ADD adjustment - e.g trying to update the gyro from a pose
-            self.gyro.setAngleAdjustment(adjustment)
-        else:
-            # make sure there is no adjustment
-            self.gyro.setAngleAdjustment(0)
+        # OnboardIMU has no setAngleAdjustment(), so the offset lives in this class and
+        # get_raw_angle() applies it.  Same behaviour, one layer higher up.
+        self.gyro.resetYaw()
+        self.gyro_angle_adjustment = adjustment if adjustment is not None else 0.0
         self.reset_keep_angle()
 
     #  -------------  simulation helpers  ----------
@@ -457,9 +471,9 @@ class Swerve (Subsystem):
                     tag_pose = Pose3d(Translation3d(tx, ty, tz), Rotation3d(rx, ry, rz)).toPose2d()
 
                     use_tag = constants.k_use_CJH_tags  # can disable this in constants
-                    # abs() because AHRS.getRate() is SIGNED - without it we rejected motion-blurred
+                    # abs() because the gyro rate is SIGNED - without it we rejected motion-blurred
                     # tags when spinning one direction and accepted them at any rate spinning the other.
-                    use_tag = False if abs(self.gyro.getRate()) > 90 else use_tag  # no more than n deg/s while using a tag
+                    use_tag = False if abs(math.degrees(self.gyro.getGyroRateZ())) > 90 else use_tag  # no more than n deg/s while using a tag
 
                     if use_tag:
                         if self.validate_odometry(tag_pose):
@@ -514,7 +528,7 @@ class Swerve (Subsystem):
         self.keep_angle_pub.set(self.keep_angle)
 
         # post yaw, pitch, roll so we can see what is going on with the climb
-        ypr = [self.gyro.getYaw(), self.get_pitch(), self.gyro.getRoll(), self.gyro.getRotation2d().degrees()]
+        ypr = [self.get_yaw(), self.get_pitch(), self.get_roll(), self.gyro.getRotation2d().degrees()]
         self.ypr_pub.set(ypr)
 
 

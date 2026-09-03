@@ -137,7 +137,16 @@ class DriveConstants:
     # k_turn_motors_inverted = True  # True for 2023 - motors below are true, above are false
     # incorrect gyro inversion will make the pose odometry have the wrong sign on rotation
     # IF DRIVE MOTORS ARE CORRECT AND TURN MOTORS ARE CORRECT, THEN CCW IS POSITIVE OR YOU REVERSE GYRO?
-    kGyroReversed = True  # False for 2023 (was upside down), True for 2024/2025
+    # 2027: the navX was clockwise-positive, which is the ONLY reason this was ever True.
+    # SystemCore's OnboardIMU is counter-clockwise-positive - the normal WPILib convention -
+    # so no reversal is needed.  Measured against OnboardIMUSim: setYaw(+30 deg) reads back
+    # getYaw() +30 and getRotation2d() +30.  If the pose rotation comes out backwards on the
+    # real robot, this is the first thing to flip.
+    kGyroReversed = False  # was True through 2026 for the navX; OnboardIMU needs no reversal
+
+    # How the SystemCore is physically bolted in.  FLAT, LANDSCAPE or PORTRAIT.  This decides
+    # which axis get_pitch()/get_roll() actually read, so it has to match reality.
+    k_imu_mount_orientation = wpilib.OnboardIMU.MountOrientation.FLAT
     # used in the swerve modules themselves to reverse the direction of the analog encoder
     # note turn motors and analog encoders must agree - or you go haywire
     k_reverse_analog_encoders = False  # False for 2024 and probably always.

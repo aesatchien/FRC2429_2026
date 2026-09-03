@@ -115,9 +115,9 @@ class Intake(Subsystem):
 
     def stop_intake(self):
         # three different ways to stop the intake
-        self.intake_motor.set(0)  # this sets the output to zero (number between -1 and 1) - it is "dumb"
+        self.intake_motor.setThrottle(0)  # this sets the output to zero (number between -1 and 1) - it is "dumb"
         # self.intake_l.setVoltage(0)  # this sets the voltage to zero (number between -12 and 12) - it is also "dumb"
-        # self.intake_controller.setReference(value=0, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=0)
+        # self.intake_controller.setSetpoint(value=0, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=0)
 
         self.intake_on = False
         self.current_rpm = 0
@@ -154,7 +154,7 @@ class Intake(Subsystem):
     def set_intake_rpm(self, rpm=3500):
         # TODO - incorporate a PID to handle voltage sag from multiple balls
         feed_forward = min(12, 12 * rpm / 5600)  # if there is no gearing, then this gets you close
-        self.intake_controller.setReference(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
+        self.intake_controller.setSetpoint(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
         self.intake_on = True
         self.current_rpm = rpm
 
@@ -164,8 +164,8 @@ class Intake(Subsystem):
         # Clamp the angle to our physical limits so we don't drive it into the frame
         angle = max(ic.k_bottom_angle, min(ic.k_top_angle, angle))
 
-        # self.deploy_controller.setReference(setpoint=angle, ctrl=SparkLowLevel.ControlType.kPosition, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=ks)
-        # self.deploy_controller.setReference(setpoint=angle, ctrl=SparkLowLevel.ControlType.kMAXMotionPositionControl, slot=rev.ClosedLoopSlot.kSlot1, arbFeedforward=ks)
+        # self.deploy_controller.setSetpoint(setpoint=angle, ctrl=SparkLowLevel.ControlType.kPosition, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=ks)
+        # self.deploy_controller.setSetpoint(setpoint=angle, ctrl=SparkLowLevel.ControlType.kMAXMotionPositionControl, slot=rev.ClosedLoopSlot.kSlot1, arbFeedforward=ks)
         self.deployed_angle = angle
         self.setpoint = angle
         self.arm_profile.setGoal(angle)

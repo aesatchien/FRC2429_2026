@@ -30,9 +30,11 @@ class SwerveSim:
         self._initialize_sim_devices()
 
     def _initialize_sim_devices(self):
-        # NavX
-        self.navx = simlib.SimDeviceSim("navX-Sensor[4]")
-        self.navx_yaw = self.navx.getDouble("Yaw")
+        # SystemCore's onboard IMU replaces the navX, so there is no "navX-Sensor[4]" sim
+        # device to look up any more - OnboardIMUSim is a first-class sim object.
+        # It is write-only (setters, no getters), so the running yaw is tracked here.
+        self.imu_sim = simlib.OnboardIMUSim()
+        self.imu_yaw_rad = 0.0
         
         # Turn sparks only.  update() below writes turn positions so the dashboard shows wheel
         # angles; the DRIVE motors were also allocated here and never touched - and under the
@@ -70,8 +72,14 @@ class SwerveSim:
         pose = self.physics_controller.get_pose()
         self.robot.container.swerve.pose_estimator.resetPosition(gyroAngle=pose.rotation(), wheelPositions=[SwerveModulePosition()] * 4, pose=pose)
 
-        # Update NavX
-        self.navx_yaw.set(self.navx_yaw.get() - math.degrees(speeds.omega * tm_diff))
+        # Update the onboard IMU.  Note the sign flip against the old navX line: navX was
+        # clockwise-positive so a CCW chassis rotation had to be SUBTRACTED, while OnboardIMU
+        # is counter-clockwise-positive like the rest of WPILib, so it is added.  Radians,
+        # not degrees.  Yaw and the accumulating Z angle are separate signals in sim, and
+        # swerve.py reads both (get_yaw and get_raw_angle), so drive them together.
+        self.imu_yaw_rad += speeds.omega * tm_diff
+        self.imu_sim.setYaw(self.imu_yaw_rad)
+        self.imu_sim.setAngleZ(self.imu_yaw_rad)
 
         # --- Live Tag Snapping ---
         if constants.SimConstants.k_use_live_tags_in_sim:

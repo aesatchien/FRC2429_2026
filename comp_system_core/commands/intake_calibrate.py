@@ -20,7 +20,7 @@ class CalibrateIntake(commands2.Command):  # change the name for your command
         self.on_start = on_start
 
     def initialize(self) -> None:
-        self.intake.deploy_motor.set(0.1)
+        self.intake.deploy_motor.setThrottle(0.1)
 
     def execute(self) -> None:
         pass
@@ -30,7 +30,7 @@ class CalibrateIntake(commands2.Command):  # change the name for your command
         
     def end(self, interrupted: bool) -> None:
         # put your safe cleanup code here - turn off motors, set LEDs, etc
-        self.intake.deploy_motor.set(0) # stop the dropper crank when the command ends
+        self.intake.deploy_motor.setThrottle(0) # stop the dropper crank when the command ends
         if interrupted:
             self.intake.is_calibrated = False
         else:

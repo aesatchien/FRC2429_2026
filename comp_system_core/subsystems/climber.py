@@ -111,7 +111,7 @@ class Climber(Subsystem):
 
         if cc.k_control_type == 'max_motion':
             #ks = 0 if rpm < 1 else cc.ks_volts  # othrwise it still just turns at 0
-            self.climber_controller.setReference(setpoint=target_number_of_encoder_ticks, ctrl=SparkLowLevel.ControlType.kMAXMotionPositionControl,
+            self.climber_controller.setSetpoint(setpoint=target_number_of_encoder_ticks, ctrl=SparkLowLevel.ControlType.kMAXMotionPositionControl,
                                                  slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=0)
             self.current_position = self.climber_heights[self.position_index]
 

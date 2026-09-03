@@ -231,7 +231,7 @@ class Targeting(Subsystem):
         rot_output += ff_output
 
         # 8. Error analysis for fine-tuning (Overshoot detection)
-        diff_radians = self.rot_pid.getPositionError()
+        diff_radians = self.rot_pid.getError()
         self.debug_error_deg = math.degrees(diff_radians)
         if abs(diff_radians) > abs(self.last_diff_radians):
             self.rot_overshot = True

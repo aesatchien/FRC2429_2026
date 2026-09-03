@@ -279,7 +279,7 @@ class DriveByJoystickSwerveTargeting(commands2.Command):
         rot_output += ff_output
         """
         # Error analysis for fine-tuning
-        diff_radians = self.rot_pid.getPositionError()
+        diff_radians = self.rot_pid.getError()
         self.debug_error_deg = math.degrees(diff_radians)
         if abs(diff_radians) > abs(self.last_diff_radians):
             self.rot_overshot = True

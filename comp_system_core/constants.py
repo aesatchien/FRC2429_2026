@@ -22,6 +22,13 @@ _counter = count(1)
 # TODO - organize this better
 k_enable_logging = True  # allow logging from Advantagescope (in swerve.py), but really we may as well start it here
 
+# URCL is the Unofficial REV-Compatible Logger - it logs REV devices for AdvantageScope.
+# It has no 2027 build yet, so this is False.  Flip it to True once robotpy-urcl ships
+# for 2027; swerve.py imports it lazily and says so on the console if it is missing,
+# so turning it on before the package exists is a printed warning, not a crash.
+# Krakens are invisible to URCL either way - they log through Phoenix's SignalLogger.
+k_enable_urcl = False
+
 # starting position for odometry (real and in sim)
 k_start_x, k_start_y = 2.79, 2.20
 

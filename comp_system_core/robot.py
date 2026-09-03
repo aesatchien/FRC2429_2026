@@ -24,11 +24,14 @@ class MyRobot(commands2.TimedCommandRobot):
     """
 
     autonomousCommand: typing.Optional[commands2.Command] = None
-    def robotInit(self) -> None:
+    def __init__(self) -> None:
         """
-        This function is run when the robot is first started up and should be used for any
-        initialization code.
+        Startup code.  WPILib 2027 REMOVED robotInit() - initialization belongs in the
+        constructor now.  This is a silent failure mode if you miss it: the old robotInit()
+        simply never gets called, nothing complains, and the program dies later on the first
+        attribute it was supposed to have created.  That is exactly how this was found.
         """
+        super().__init__()
         # Instantiate our RobotContainer.  This will perform all our button bindings, and put our
         # autonomous chooser on the dashboard.
         self.container = RobotContainer()
@@ -141,8 +144,11 @@ class MyRobot(commands2.TimedCommandRobot):
                 self.container.questnav.quest_sync_odometry()
                 self.stationary_counter = 0  # reset so we don't spam if headset isn't fully awake yet
 
-    def testInit(self) -> None:
-        # Cancels all running commands at the start of test mode
+    def utilityInit(self) -> None:
+        # 2027: test mode was renamed to utility mode - testInit/testPeriodic/testExit are
+        # now utilityInit/utilityPeriodic/utilityExit.  Same silent failure as robotInit:
+        # a leftover testInit() is simply never called.
+        # Cancels all running commands at the start of utility mode
         commands2.CommandScheduler.getInstance().cancelAll()
 
     def robotPeriodic(self) -> None:

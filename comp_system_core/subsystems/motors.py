@@ -109,7 +109,9 @@ def _rev_sticky_faults(spark) -> list:
     """Decode the bitmask into names.  Vendors disagree completely on fault reporting -
     REV hands you one integer, Phoenix hands you 27 separate boolean signals - so the
     adapters normalise both to a list of strings."""
-    mask = spark.getStickyFaults().rawBits
+    # 2027: getStickyFaults() returns a Signal_SparkFaults, not the Faults value itself.
+    # .get() unwraps it, same as the encoder getters above.
+    mask = spark.getStickyFaults().get().rawBits
     return [name for bit, name in k_rev_fault_names.items() if mask & (1 << bit)]
 
 
@@ -152,7 +154,7 @@ class RevDriveMotor:
 
     def set_velocity_mps(self, mps: float) -> None:
         # The controller is already in m/s thanks to velocityConversionFactor.
-        self.controller.setReference(mps, rev.SparkLowLevel.ControlType.kVelocity)
+        self.controller.setSetpoint(mps, rev.SparkLowLevel.ControlType.kVelocity)
 
     def get_position_m(self) -> float:
         return self.encoder.getPosition().get()   # 2027: REV getters return a Signal
@@ -198,7 +200,7 @@ class RevTurnMotor:
         self.encoder = self.spark.getEncoder()
 
     def set_duty_cycle(self, output: float) -> None:
-        self.spark.set(output)
+        self.spark.setThrottle(output)   # 2027: SparkBase.set() -> setThrottle()
 
     def get_position_rad(self) -> float:
         return self.encoder.getPosition().get()  # positionConversionFactor puts this in radians
