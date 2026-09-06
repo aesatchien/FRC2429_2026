@@ -53,7 +53,10 @@ class Intake(Subsystem):
         self.current_rpm = 0
         #  self.last_currents = [0] * 10  # prefer a current filter below
         self.current_filter = MedianFilter(10)
-        self.bumper_switch = wpilib.DigitalInput(ic.k_bumper_switch_port)
+        # Disabled by default - see IntakeConstants.k_enable_bumper_switch.  Left as None so
+        # it claims no GPIO port and any accidental use fails loudly rather than silently.
+        self.bumper_switch = (wpilib.DigitalInput(ic.k_bumper_switch_port)
+                              if ic.k_enable_bumper_switch else None)
         self.is_calibrated = False
         self._allow_calibration = False
         self.deployed_angle = ic.k_bottom_angle if constants.k_at_home else ic.k_top_angle
@@ -230,8 +233,10 @@ class Intake(Subsystem):
         # self.last_currents[self.counter % len(self.last_currents)] = self.deploy_motor.getOutputCurrent()
         self.current_filter.calculate(self.deploy_motor.getOutputCurrent().get())
 
-        # get the state of the magnetic switch and calibrate the intake if at bottom position
-        at_bumper = not self.bumper_switch.get()
+        # get the state of the magnetic switch and calibrate the intake if at bottom position.
+        # With the switch disabled there is no bottom-position signal at all, so report False
+        # and let auto-calibration stay inert rather than fire on a value we do not have.
+        at_bumper = (not self.bumper_switch.get()) if self.bumper_switch is not None else False
         if self._allow_calibration:
             if at_bumper and not self.is_calibrated:
                 self.set_intake_position()

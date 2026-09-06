@@ -67,6 +67,9 @@ class RobotState(commands2.Subsystem):
         self._current = 0.0
         self._power = 0.0
         self._brownout_detected = False
+        # Cleared the first time the power reads raise, so a HAL call this hardware does not
+        # implement costs one console line instead of the whole robot program.
+        self._power_telemetry_ok = constants.k_enable_power_telemetry
 
     def _init_networktables(self):
         self.inst = ntcore.NetworkTableInstance.getDefault()
@@ -112,21 +115,31 @@ class RobotState(commands2.Subsystem):
         self.counter += 1  # Increment the main counter
 
         # fast path: read + filter + integrate at 25Hz (every 2 cycles)
-        if self.counter % 2 == 0:
-            self._brownout_detected |= wpilib.RobotController.isBrownedOut()
-            voltage = self.voltage_filter.calculate(self.pdh.getVoltage())
-            current = self.current_filter.calculate(self.pdh.getTotalCurrent())
-            power = voltage * current
-            # Trapezoidal is second-order accurate (error scales with dt²), left Riemann is first-order (error scales with dt)
-            self.cumulative_energy += (self._prev_power + power) / 2 * 0.04  # trapezoidal, Joules
-            self._prev_power = power
-            self.cumulative_charge += current * 0.04  # Amp-seconds
-            self.min_voltage = min(self.min_voltage, voltage)
-            self.max_current = max(self.max_current, current)
-            # cache for the publish path below
-            self._voltage = voltage
-            self._current = current
-            self._power = power
+        if self.counter % 2 == 0 and self._power_telemetry_ok:
+            # These three touch hardware that a beta SystemCore may not implement.  They are
+            # diagnostics, so a failure disables the block rather than killing the program -
+            # otherwise one unimplemented HAL call raises every single loop.  The cached
+            # _voltage/_current/_power keep their last values and publishing carries on.
+            try:
+                self._brownout_detected |= wpilib.RobotController.isBrownedOut()
+                voltage = self.voltage_filter.calculate(self.pdh.getVoltage())
+                current = self.current_filter.calculate(self.pdh.getTotalCurrent())
+            except RuntimeError as e:
+                self._power_telemetry_ok = False
+                print(f'*** power telemetry DISABLED for this run: {e} ***')
+                print('    (set constants.k_enable_power_telemetry = False to skip it silently)')
+            else:
+                power = voltage * current
+                # Trapezoidal is second-order accurate (error scales with dt²), left Riemann is first-order (error scales with dt)
+                self.cumulative_energy += (self._prev_power + power) / 2 * 0.04  # trapezoidal, Joules
+                self._prev_power = power
+                self.cumulative_charge += current * 0.04  # Amp-seconds
+                self.min_voltage = min(self.min_voltage, voltage)
+                self.max_current = max(self.max_current, current)
+                # cache for the publish path below
+                self._voltage = voltage
+                self._current = current
+                self._power = power
 
         # slow path: publish to NT at 5Hz (every 10 cycles)
         if self.counter % 10 == 0:
@@ -135,7 +148,9 @@ class RobotState(commands2.Subsystem):
             self.pdh_power_pub.set(self._power)
             self.pdh_cumulative_energy_pub.set(self.cumulative_energy / 3600)   # J → Wh
             self.pdh_cumulative_charge_pub.set(self.cumulative_charge / 3600)   # As → Ah
-            self.pdh_min_voltage_pub.set(self.min_voltage)
+            # min_voltage starts at +inf and stays there if the reads never ran; publish 0
+            # rather than an infinity that would poison a dashboard graph's axis
+            self.pdh_min_voltage_pub.set(self.min_voltage if math.isfinite(self.min_voltage) else 0.0)
             self.pdh_max_current_pub.set(self.max_current)
             self.rio_browned_out_pub.set(self._brownout_detected)
             self._brownout_detected = False  # reset for next window

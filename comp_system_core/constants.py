@@ -29,6 +29,18 @@ k_enable_logging = True  # allow logging from Advantagescope (in swerve.py), but
 # Krakens are invisible to URCL either way - they log through Phoenix's SignalLogger.
 k_enable_urcl = False
 
+# Battery / PDH power telemetry in RobotState.periodic().  This is DIAGNOSTICS, never
+# control, so it is not allowed to take the robot down: if any of it raises, the block
+# disables itself for the rest of the run and says so once on the console.
+#
+# It has to be defensive because these calls exist in the 2027 API but are not all
+# implemented on a beta SystemCore.  RobotController.isBrownedOut() is the example - it
+# imports and type-checks fine, then raises at runtime:
+#     RuntimeError: HAL: A handle parameter was passed incorrectly: IsBrownedOut
+# and since it lives in periodic() that fires every loop and kills the program.
+# Set this False to skip it entirely.
+k_enable_power_telemetry = True
+
 # ---------------------------------------------------------------------------
 # SYSTEMCORE GPIO PORTS - there are only SIX of them, numbered 0..5.
 #
@@ -47,12 +59,15 @@ k_enable_urcl = False
 #   0, 1, 2, 3   swerve absolute encoders (AnalogPotentiometer)
 #                  -> DriveConstants.swerve_dict[...]['port'] in swerve_constants.py
 #   4            free
-#   5            intake bumper switch (DigitalInput)  <- k_bumper_switch_port below
+#   5            LED strip (AddressableLED)  <- LedConstants.k_led_pwm_port
 #
-# UNVERIFIED: whether AddressableLED shares this numbering.  LedConstants
-# .k_led_pwm_port is still 0, which collides with the RB encoder if it does.
-# The robot has not reached Led() yet - it dies before that - so this is
-# untested.  Check it on the next run.
+#   intake bumper switch - DISABLED, claims no port at all.  See
+#   IntakeConstants.k_enable_bumper_switch.
+#
+# The LED used to be on 0, which is also the RB module's absolute encoder.
+# Whether AddressableLED shares this numbering was never established - the robot
+# died before ever reaching Led() - so it has been moved to 5 to take the
+# question off the table rather than leave a possible collision in place.
 # ---------------------------------------------------------------------------
 
 # starting position for odometry (real and in sim)
@@ -190,9 +205,9 @@ class LedConstants:
     k_nt_debugging = False  # print extra values to NT for debugging
     k_led_count = 8  # correct as of 2026 0319
     k_led_count_ignore = 4  # flat ones not for the height indicator
-    k_led_pwm_port = 0  # roboRIO PWM 0.  SystemCore has 6 shared GPIO ports - if this
-                        # turns out to share numbering with the analog encoders it
-                        # collides with the RB module on port 0.  See the GPIO map above.
+    k_led_pwm_port = 5  # SystemCore GPIO 5.  Was 0, which is roboRIO PWM 0 but is also the
+                        # RB module's absolute encoder here - moved off it rather than bet
+                        # on analog and LED numbering being separate.  See the GPIO map.
 
 class RobotStateConstants:
 
@@ -214,9 +229,13 @@ class DrivetrainConstants:
     # for now, the remaining constants are in swerve_constants.py
 
 class IntakeConstants:
-    # SystemCore GPIO port, 0..5 - was DigitalInput(9) on the roboRIO, which is out of
-    # range here and killed robotInit.  CONFIRM 5 AGAINST THE ACTUAL WIRING.
-    k_bumper_switch_port = 5
+    # The intake bumper switch is DISABLED.  Nothing is wired to it on the SystemCore, and
+    # as roboRIO DIO 9 it was what killed robotInit.  While this is False the switch is
+    # never constructed, claims no GPIO port, and auto-calibration stays inert - the intake
+    # is simply never reported as being at the bumper.  Flip it to True and set a real port
+    # when it is actually wired.
+    k_enable_bumper_switch = False
+    k_bumper_switch_port = 4   # unused while disabled; 4 is the only free GPIO port left
     k_counter_offset = next(_counter)
 
     k_CANID_dropper = 3  # reserve 4 if we need another

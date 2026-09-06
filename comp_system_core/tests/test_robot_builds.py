@@ -139,8 +139,14 @@ def test_gpio_ports_are_in_systemcore_range():
 
     claimed = {f"swerve {key} absolute encoder": mod['port']
                for key, mod in DriveConstants.swerve_dict.items()}
-    claimed['intake bumper switch'] = constants.IntakeConstants.k_bumper_switch_port
+    if constants.IntakeConstants.k_enable_bumper_switch:   # disabled -> claims no port
+        claimed['intake bumper switch'] = constants.IntakeConstants.k_bumper_switch_port
     claimed['LED strip'] = constants.LedConstants.k_led_pwm_port
+
+    duplicates = {ch for ch in claimed.values() if list(claimed.values()).count(ch) > 1}
+    assert not duplicates, (
+        f'two devices claim the same GPIO port {duplicates}: '
+        f'{ {n: c for n, c in claimed.items() if c in duplicates} }')
 
     bad = {name: ch for name, ch in claimed.items() if not 0 <= ch < K_GPIO_PORTS}
     assert not bad, (
