@@ -193,11 +193,25 @@ class Swerve (Subsystem):
         self.drive_y_pub = self.inst.getDoubleTopic(f"{swerve_prefix}/drive_y").publish()
         self.drive_theta_pub = self.inst.getDoubleTopic(f"{swerve_prefix}/drive_theta").publish()
 
+        # The "_navx" topic NAMES are historical - there is no navX any more, the source is
+        # SystemCore's OnboardIMU.  They are kept because gui/config.py subscribes to
+        # "_navx" for its heading readout, and that gui is shared with the roboRIO bot.
+        # Careful: "_navx" is NOT the gyro.  It publishes get_angle(), which is the POSE
+        # ESTIMATOR's heading (gyro fused with the april tags).  That is what the driver
+        # wants on the dashboard, so it is left alone - but it means the raw IMU was never
+        # actually broadcast anywhere.  _imu_raw_angle below fixes that.
         self.navx_angle_pub = self.inst.getDoubleTopic(f"{swerve_prefix}/_navx_angle").publish()
         self.navx_yaw_pub = self.inst.getDoubleTopic(f"{swerve_prefix}/_navx_yaw").publish()
         self.navx_raw_pub = self.inst.getDoubleTopic(f"{swerve_prefix}/_navx").publish()
         self.keep_angle_pub = self.inst.getDoubleTopic(f"{swerve_prefix}/keep_angle").publish()
         self.ypr_pub = self.inst.getDoubleArrayTopic(f"{swerve_prefix}/_navx_YPR").publish()
+
+        # The genuinely raw IMU heading, straight off OnboardIMU.getAngleZ() with no pose
+        # fusion.  Watch this one when you want to know whether the IMU itself is alive and
+        # sane - if the robot spins 90 degrees this must move 90 degrees, positive
+        # counter-clockwise.  Compare it against _navx to see the tags pulling the pose.
+        self.imu_raw_angle_pub = self.inst.getDoubleTopic(f"{swerve_prefix}/_imu_raw_angle").publish()
+        self.imu_rate_pub = self.inst.getDoubleTopic(f"{swerve_prefix}/_imu_rate_dps").publish()
 
         # Debugging publishers - pre-allocate list to avoid f-string creation in loop
         module_names = ['LF', 'RF', 'LB', 'RB']  # TODO - just save this order somewhere and reuse it
@@ -522,10 +536,15 @@ class Swerve (Subsystem):
         self.drive_y_pub.set(pose.Y())
         self.drive_theta_pub.set(pose.rotation().degrees())
 
-        self.navx_raw_pub.set(self.get_angle())
-        self.navx_yaw_pub.set(self.get_yaw())
-        self.navx_angle_pub.set(self.get_gyro_angle())
+        self.navx_raw_pub.set(self.get_angle())          # POSE heading, despite the name
+        self.navx_yaw_pub.set(self.get_yaw())            # IMU yaw, wrapped
+        self.navx_angle_pub.set(self.get_gyro_angle())   # IMU accumulated angle
         self.keep_angle_pub.set(self.keep_angle)
+
+        # the IMU on its own, with no pose fusion - this is the one to trust when asking
+        # "is the onboard IMU working at all?"
+        self.imu_raw_angle_pub.set(self.get_raw_angle())
+        self.imu_rate_pub.set(math.degrees(self.gyro.getGyroRateZ()))
 
         # post yaw, pitch, roll so we can see what is going on with the climb
         ypr = [self.get_yaw(), self.get_pitch(), self.get_roll(), self.gyro.getRotation2d().degrees()]
