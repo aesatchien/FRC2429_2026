@@ -105,6 +105,37 @@ k_rev_fault_names = {0: 'kBrownout', 1: 'kOvercurrent', 2: 'kIWDTReset', 3: 'kMo
                      13: 'kSoftLimitRev', 14: 'kHardLimitFwd', 15: 'kHardLimitRev'}
 
 
+_canbus_reported = set()
+
+
+def _report_canbus_once(bus) -> None:
+    """Say once, per bus, whether Phoenix can actually see it.
+
+    Getting this wrong is quiet in the worst way: every TalonFX still constructs, and you
+    get a wall of TX_FAILED and stale-frame lines with the real cause - one bad bus NAME -
+    buried in the middle.  'rio' was the roboRIO's name and does not exist on SystemCore,
+    where the buses are can_s0..can_s4.
+
+    This only tells you anything ON THE ROBOT.  Under simulation every bus name reports
+    OK - including 'rio' - so do not read a clean sim run as the name being right.
+    """
+    if bus.name in _canbus_reported:
+        return
+    _canbus_reported.add(bus.name)
+    try:
+        status = bus.get_status()
+        ok = status.status.is_ok()
+        print(f'  Phoenix CAN bus {bus.name!r}: {"OK" if ok else status.status.name}'
+              f'  (utilization {status.bus_utilization:.1%}, bus-off {status.bus_off_count},'
+              f' TX-full {status.tx_full_count})')
+        if not ok:
+            print(f'  *** Phoenix cannot see CAN bus {bus.name!r}.  Valid SystemCore names are')
+            print(f'      can_s0..can_s4; Phoenix\'s own default resolves to can_s1.  Set')
+            print(f'      ModuleConstants.k_kraken_canbus / constants.k_can_bus to match. ***')
+    except Exception as e:      # diagnostics must never be the thing that stops the robot
+        print(f'  (could not read Phoenix CAN bus status for {bus.name!r}: {e})')
+
+
 def _rev_sticky_faults(spark) -> list:
     """Decode the bitmask into names.  Vendors disagree completely on fault reporting -
     REV hands you one integer, Phoenix hands you 27 separate boolean signals - so the
@@ -267,7 +298,7 @@ class TalonDriveMotor:
 
     def __init__(self, can_id: int, config, circumference_m: float,
                  stator_limit_a: float, supply_limit_a: float,
-                 enable_foc: bool, canbus: str = 'rio', label: str = '') -> None:
+                 enable_foc: bool, canbus: str = '', label: str = '') -> None:
         _require_phoenix('TalonDriveMotor')
         self.label = label
         self.can_id = can_id
@@ -275,7 +306,9 @@ class TalonDriveMotor:
         self.stator_limit_a = stator_limit_a  # remembered so set_current_limit can preserve it
         self.supply_limit_a = supply_limit_a
 
-        self.talon = TalonFX(can_id, CANBus(canbus))
+        bus = CANBus(canbus)
+        _report_canbus_once(bus)
+        self.talon = TalonFX(can_id, bus)
         self._apply(config, 'initial config')
 
         # Allocate the control request ONCE and mutate it.  Phoenix requests are designed
@@ -362,7 +395,7 @@ class TalonTurnMotor:
     """
 
     def __init__(self, can_id: int, config, turn_gear_ratio: float,
-                 canbus: str = 'rio', label: str = '') -> None:
+                 canbus: str = '', label: str = '') -> None:
         _require_phoenix('TalonTurnMotor')
         self.label = label
         self.can_id = can_id
