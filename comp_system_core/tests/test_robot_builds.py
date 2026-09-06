@@ -118,3 +118,31 @@ def test_pathplanner_config_matches_our_constants():
         'settings.json driveCurrentLimit does not match kDrivingMotorCurrentLimit'
     assert abs(module.driveMotor.freeSpeed - expected_free_rad_s) < 0.5, \
         'settings.json driveMotorType/driveGearing does not match the active drive motor'
+
+
+def test_gpio_ports_are_in_systemcore_range():
+    """SystemCore has SIX general-purpose ports, 0..5.
+
+    This cannot be caught by constructing the objects: the desktop sim HAL still
+    advertises roboRIO-sized banks (DIO 0..30, analog 0..7), so DigitalInput(9) builds
+    happily here and then throws on the robot:
+
+        RuntimeError: Invalid Index for DIO
+          Minimum: 0 Maximum: 6 Requested: 9
+
+    So the limit is asserted explicitly against the number the hardware reported.
+    """
+    import constants
+    from subsystems.swerve_constants import DriveConstants
+
+    K_GPIO_PORTS = 6  # from the robot: "Minimum: 0 Maximum: 6"
+
+    claimed = {f"swerve {key} absolute encoder": mod['port']
+               for key, mod in DriveConstants.swerve_dict.items()}
+    claimed['intake bumper switch'] = constants.IntakeConstants.k_bumper_switch_port
+    claimed['LED strip'] = constants.LedConstants.k_led_pwm_port
+
+    bad = {name: ch for name, ch in claimed.items() if not 0 <= ch < K_GPIO_PORTS}
+    assert not bad, (
+        f'GPIO port(s) outside 0..{K_GPIO_PORTS - 1} on SystemCore: {bad}\n'
+        f'These construct fine in sim and throw at boot on the robot.')

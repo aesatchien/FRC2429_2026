@@ -53,7 +53,7 @@ class Intake(Subsystem):
         self.current_rpm = 0
         #  self.last_currents = [0] * 10  # prefer a current filter below
         self.current_filter = MedianFilter(10)
-        self.bumper_switch = wpilib.DigitalInput(9)
+        self.bumper_switch = wpilib.DigitalInput(ic.k_bumper_switch_port)
         self.is_calibrated = False
         self._allow_calibration = False
         self.deployed_angle = ic.k_bottom_angle if constants.k_at_home else ic.k_top_angle

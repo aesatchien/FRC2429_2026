@@ -29,6 +29,32 @@ k_enable_logging = True  # allow logging from Advantagescope (in swerve.py), but
 # Krakens are invisible to URCL either way - they log through Phoenix's SignalLogger.
 k_enable_urcl = False
 
+# ---------------------------------------------------------------------------
+# SYSTEMCORE GPIO PORTS - there are only SIX of them, numbered 0..5.
+#
+# The roboRIO had separate banks: 10 analog inputs, 26 DIO, 20 PWM.  SystemCore
+# has one small set of general-purpose ports, and the WPILib constructors did
+# NOT change shape - AnalogPotentiometer(channel), DigitalInput(channel) and
+# AddressableLED(channel) still take a bare int - so a roboRIO channel number
+# compiles, deploys, and then throws at boot.  That is how DigitalInput(9) got
+# to the robot:
+#
+#   RuntimeError: Invalid Index for DIO
+#     Minimum: 0 Maximum: 6 Requested: 9
+#
+# Keep every port assignment listed here so collisions are visible in one place.
+#
+#   0, 1, 2, 3   swerve absolute encoders (AnalogPotentiometer)
+#                  -> DriveConstants.swerve_dict[...]['port'] in swerve_constants.py
+#   4            free
+#   5            intake bumper switch (DigitalInput)  <- k_bumper_switch_port below
+#
+# UNVERIFIED: whether AddressableLED shares this numbering.  LedConstants
+# .k_led_pwm_port is still 0, which collides with the RB encoder if it does.
+# The robot has not reached Led() yet - it dies before that - so this is
+# untested.  Check it on the next run.
+# ---------------------------------------------------------------------------
+
 # starting position for odometry (real and in sim)
 k_start_x, k_start_y = 2.79, 2.20
 
@@ -164,7 +190,9 @@ class LedConstants:
     k_nt_debugging = False  # print extra values to NT for debugging
     k_led_count = 8  # correct as of 2026 0319
     k_led_count_ignore = 4  # flat ones not for the height indicator
-    k_led_pwm_port = 0  # correct as of 2025 0305
+    k_led_pwm_port = 0  # roboRIO PWM 0.  SystemCore has 6 shared GPIO ports - if this
+                        # turns out to share numbering with the analog encoders it
+                        # collides with the RB module on port 0.  See the GPIO map above.
 
 class RobotStateConstants:
 
@@ -186,6 +214,9 @@ class DrivetrainConstants:
     # for now, the remaining constants are in swerve_constants.py
 
 class IntakeConstants:
+    # SystemCore GPIO port, 0..5 - was DigitalInput(9) on the roboRIO, which is out of
+    # range here and killed robotInit.  CONFIRM 5 AGAINST THE ACTUAL WIRING.
+    k_bumper_switch_port = 5
     k_counter_offset = next(_counter)
 
     k_CANID_dropper = 3  # reserve 4 if we need another

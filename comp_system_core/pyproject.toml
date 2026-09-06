@@ -1,12 +1,12 @@
 #
-# Use this config file to control what RobotPy packages are installed on the RoboRIO
+# Use this config file to control what RobotPy packages are installed on the SystemCore
 #
 
 [tool.robotpy]
 team_number = 2429
 robotpy_version = "2027.0.0a6.post1"
 # note you also have robot_name as an option here, changes the deploy path from default
-# good for multiple robots on one roborio - makes redeploying faster
+# good for multiple robots on one SystemCore - makes redeploying faster
 #
 # ---------------------------------------------------------------------------
 # VERSIONING MODEL (IMPORTANT):
@@ -15,22 +15,28 @@ robotpy_version = "2027.0.0a6.post1"
 #
 # - The *core* packages (robotpy, wpilib, ntcore, wpimath, wpinet, wpiutil,
 #   hal, and all robotpy-native-* wheels) MUST match *exact micro versions*
-#   (e.g. all at 2026.2.1). These define the ABI.
+#   (e.g. all at 2027.0.0a6.post1). These define the ABI.
 #
-# - Component wrappers (navx, pathplannerlib, urcl, vendor libs, etc.) sit
+# - Component wrappers (pathplannerlib, vendor libs, etc.) sit
 #   *on top* of the core and do NOT introduce a new ABI boundary.
 #
-# - Therefore, it is acceptable for component wrappers to have *different
-#   micro versions* (e.g. navx 2026.0.0b1) as long as the underlying WPILib
-#   ABI is unchanged within the season.
+# - Therefore it is acceptable for component wrappers to have *different micro
+#   versions* (e.g. robotpy-rev 2027.0.0a5.post1 against a 2027.0.0a6 core) as
+#   long as the underlying WPILib ABI is unchanged.
 #
-# - Some vendor packages pin older micro versions conservatively
-#   (e.g. wpilib~=2026.1.1). This does NOT imply incompatibility with newer
-#   2026.x cores (such as 2026.2.1); it simply reflects lagging release cadence.
+# PRE-RELEASES - read this before touching a pin.  We are on an alpha core, so
+# nearly everything here is a pre-release, and pip WILL NOT install one unless
+# the specifier itself names a pre-release.  "phoenix6>=26.1" looks harmless and
+# quietly installs 26.3.0, the 2026 build, which calls the
+# SendableRegistry.addLW() that WPILib 2027 deleted - the robot then dies
+# constructing its first TalonFX.  That cost a deploy on 2026-09-06.
+# tests/test_dependency_pins.py now fails if a pin cannot install the version we
+# actually develop against, so run `robotpy test` after editing requires=.
 #
 # Rule of thumb:
 #   * Core ABI: exact match required
 #   * Component wrappers: mixed micro versions are acceptable
+#   * Any pin for a pre-release package must NAME a pre-release
 # ---------------------------------------------------------------------------
 
 components = [
@@ -68,31 +74,35 @@ requires = [
 # ---------------------------------------------------------------------------
 # DEV ENVIRONMENT MIRROR (DOCUMENTATION ONLY)
 #
-# To reproduce the roboRIO dependency layout on a development machine:
+# To build a development environment matching this file.  Python 3.14, and note
+# --pre nearly everywhere: the 2027 season is still in alpha.
 #
-# Core RobotPy / WPILib (exact ABI match for the season):
+#   python -m pip install --pre "robotpy[commands2,apriltag,sim]==2027.0.0a6.post1"
+#   python -m pip install --pre "robotpy-rev==2027.0.0a5.post1" "phoenix6==26.50.0a1"
+#   python -m pip install "protobuf>=6.0,<7"
 #
+# pyfrc gives you `robotpy test` and `robotpy sim`.  It needs --no-deps because
+# pyfrc 2027.0.0a2 still pins robotpy-cli~=2024.0 while the 2027 core wants
+# >=2027.0.1b1 - a stale pin in the alpha, not a real conflict:
 #
-# Vendor / wrapper packages that intentionally override conservative pins:
-#   python -m pip install -U --no-deps "robotpy-navx>=2026,<2027" "robotpy-pathplannerlib>=2026,<2027" \
-#   "robotpy-urcl>=2026,<2027" "robotpy-rev>=2026,<2027" "robotpy-playingwithfusion>=2026,<2027"
+#   python -m pip install --pre --no-deps "pyfrc==2027.0.0a2"
+#   python -m pip install "pint>=0.24.4"
 #
-# pip check may warn about navX pinning wpilib~=2026.1.1; this is expected
-# and acceptable because the WPILib ABI is stable within the 2026 season.
+# `pip check` reports exactly one line, about that pyfrc/robotpy-cli pin.  That
+# one is expected.  Any OTHER line from pip check is worth reading.
+#
+# DELIBERATELY NOT INSTALLED:
+#   robotpy-navx   - gone.  SystemCore has wpilib.OnboardIMU on the board.
+#   robotpy-urcl   - no 2027 build.  See constants.k_enable_urcl.
+#   robotpy-pathplannerlib - no 2027 build.  Vendored into pathplannerlib/, see
+#                    its VENDORED.md.  Keep it UNINSTALLED so there is no
+#                    ambiguity about which copy gets imported.
+#   robotpy-cscore - nothing in this project imports cscore.
 # ---------------------------------------------------------------------------
 
-# shell command to find all stable releases
-# for p in robotpy robotpy-rev robotpy-navx robotpy-pathplannerlib robotpy-urcl wpilib; do echo -e "\n==== $p ===="; python -m pip index versions --pre "$p"; done
-
-# python script to show all pre-releases - execute in a shell
-
-#python - <<'EOF'
-#import requests, sys
-#pkgs = ["robotpy-navx","robotpy","robotpy-pathplannerlib","robotpy-urcl","wpilib"]
-#for p in pkgs:
-#    print(f"==== {p} ====")
-#    data = requests.get(f"https://pypi.org/pypi/{p}/json").json()
-#    for v in sorted(data["releases"], reverse=True):
-#        if any(c.isalpha() for c in v):
-#            print(v)
-#EOF
+# List every version of a package, pre-releases included:
+#   python -m pip index versions --pre phoenix6
+#
+# And to see what a pin would ACTUALLY install before trusting it - this is the
+# check that would have caught the phoenix6 26.3.0 deploy failure:
+#   python -m pip install --dry-run --ignore-installed "phoenix6>=26.1"
