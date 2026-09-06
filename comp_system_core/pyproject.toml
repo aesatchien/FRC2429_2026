@@ -55,7 +55,13 @@ requires = [
     #   Restore this line and delete that directory once a 2027 wheel exists.
     # robotpy-navx - REMOVED.  SystemCore has wpilib.OnboardIMU on the board.
     "robotpy-rev>=2027.0.0a5",
-    "phoenix6>=26.1",          # Kraken X60 / TalonFX - needed by subsystems/motors.py
+    # Kraken X60 / TalonFX - needed by subsystems/motors.py.
+    # The pre-release in this pin is LOAD-BEARING, do not "tidy" it to >=26.1.
+    # pip refuses pre-releases unless the specifier itself names one, so ">=26.1"
+    # silently installs 26.3.0 - the 2026 build - which calls SendableRegistry.addLW(),
+    # removed in WPILib 2027.  That is an AttributeError inside phoenix6 the moment you
+    # construct a TalonFX, and it only shows up on the robot.
+    "phoenix6>=26.50.0a1",
 
 ]
 
