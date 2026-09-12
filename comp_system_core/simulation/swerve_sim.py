@@ -78,8 +78,13 @@ class SwerveSim:
         # not degrees.  Yaw and the accumulating Z angle are separate signals in sim, and
         # swerve.py reads both (get_yaw and get_raw_angle), so drive them together.
         self.imu_yaw_rad += speeds.omega * tm_diff
+        # setAngleX is the one that matters: on this mounting getAngleX() is the yaw axis
+        # (measured on the robot), and that is what Swerve reads through k_imu_yaw_getter.
+        # setYaw is driven too so getYaw()/getRotation2d() stay believable in sim, but
+        # nothing steers by them.  These are independent signals - setting one does not
+        # move the other - so a sim that only set yaw would leave the heading at zero.
+        self.imu_sim.setAngleX(self.imu_yaw_rad)
         self.imu_sim.setYaw(self.imu_yaw_rad)
-        self.imu_sim.setAngleZ(self.imu_yaw_rad)
 
         # --- Live Tag Snapping ---
         if constants.SimConstants.k_use_live_tags_in_sim:

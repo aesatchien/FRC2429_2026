@@ -144,9 +144,30 @@ class DriveConstants:
     # real robot, this is the first thing to flip.
     kGyroReversed = False  # was True through 2026 for the navX; OnboardIMU needs no reversal
 
-    # How the SystemCore is physically bolted in.  FLAT, LANDSCAPE or PORTRAIT.  This decides
-    # which axis get_pitch()/get_roll() actually read, so it has to match reality.
+    # How the SystemCore is physically bolted in.  FLAT, LANDSCAPE or PORTRAIT.
     k_imu_mount_orientation = wpilib.OnboardIMU.MountOrientation.FLAT
+
+    # WHICH EULER AXIS IS WHICH, MEASURED ON THE ROBOT.
+    #
+    # OnboardIMU.getAngleX/Y/Z() are the IMU CHIP's axes after the mount transform, and they
+    # do NOT line up with robot yaw/pitch/roll the way the names suggest.  Determined by
+    # hand: lift the front, lift a side, spin the robot, and watch _imu_anglex/y/z.
+    #
+    #   X -> YAW      measured.  Clean [-180, 180] and rolls over properly.
+    #   Z -> PITCH    measured.  Lifting the front of the robot moves it.
+    #   Y -> ROLL     inferred by elimination, NOT yet confirmed by lifting a side.
+    #
+    # Re-measure these if the SystemCore is ever remounted or k_imu_mount_orientation
+    # changes - they are a property of the mounting, not of the software.
+    #
+    # Yaw comes from an Euler axis rather than getYaw() on purpose.  getYaw() does work, but
+    # it reads over roughly [-85, 275] because resetYaw()'s offset is applied after the wrap,
+    # so the seam lands wherever the robot happened to be pointing at boot.  getAngleX is
+    # clean.  The cost is that resetYaw() does NOT affect the Euler axes, so zeroing at boot
+    # has to be done in software - see Swerve._imu_yaw_deg().
+    k_imu_yaw_getter = 'getAngleX'      # measured
+    k_imu_pitch_getter = 'getAngleZ'    # measured
+    k_imu_roll_getter = 'getAngleY'     # inferred
     # used in the swerve modules themselves to reverse the direction of the analog encoder
     # note turn motors and analog encoders must agree - or you go haywire
     k_reverse_analog_encoders = False  # False for 2024 and probably always.
