@@ -62,9 +62,23 @@ def test_pin_matches_what_is_installed(spec):
 
 def test_robotpy_version_matches_the_installed_core():
     """robotpy_version provisions the robot.  If it disagrees with what we test against,
-    the robot runs a different WPILib than the one these tests passed on."""
+    the robot runs a different WPILib than the one these tests passed on.
+
+    The usual way this ends up wrong is `robotpy sync` asking
+
+        Update robotpy_version in `pyproject.toml` to <newer>? [y/n]
+
+    and someone answering y.  It edits this file for you, and the core packages move in
+    exact-version lockstep while the vendor wrappers lag - so the new core and the REV
+    wrapper end up wanting different wpilibs and sync cannot resolve anything at all.
+    """
     declared = _requires()['robotpy_version']
     installed = md.version('robotpy')
     assert declared == installed, (
         f'pyproject.toml declares robotpy_version = {declared!r} but {installed!r} is '
-        f'installed here.  The robot would run a different core than we tested.')
+        f'installed here.  The robot would run a different core than we tested.\n'
+        f'If `robotpy sync` just offered to upgrade the project and you said yes, this is\n'
+        f'that edit.  Check the vendor wrappers can follow before taking it:\n'
+        f'    python -m pip index versions robotpy-rev --pre\n'
+        f'and see which wpilib the newest one pins.  `robotpy sync --no-upgrade-project`\n'
+        f'stops it asking.')

@@ -4,6 +4,20 @@
 
 [tool.robotpy]
 team_number = 2429
+# DO NOT LET `robotpy sync` BUMP THIS.  It offers:
+#     Update robotpy_version in `pyproject.toml` to 2027.0.0a7? [y/n]
+# Answer n.  We are held at a6.post1 by robotpy-rev, whose newest build
+# (2027.0.0a5.post1) pins wpilib==2027.0.0a6.post1.  Saying y produces:
+#     robotpy 2027.0.0a7 depends on wpilib==2027.0.0a7
+#     robotpy-rev 2027.0.0a5.post1 depends on wpilib==2027.0.0a6.post1
+#     ERROR: ResolutionImpossible
+# and sync cannot download anything at all - so no Sparks, meaning no turn motors,
+# shooter, intake or climber.  Use `robotpy sync --no-upgrade-project` to stop it asking.
+#
+# To move to a7: check that robotpy-rev has a build pinning wpilib==2027.0.0a7
+#     python -m pip index versions robotpy-rev --pre
+# then bump BOTH this and the local dev environment together, and run `robotpy test`
+# (tests/test_dependency_pins.py fails if they disagree).
 robotpy_version = "2027.0.0a6.post1"
 # note you also have robot_name as an option here, changes the deploy path from default
 # good for multiple robots on one SystemCore - makes redeploying faster
