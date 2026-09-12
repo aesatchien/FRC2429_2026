@@ -131,7 +131,7 @@ def _report_canbus_once(bus) -> None:
         if not ok:
             print(f'  *** Phoenix cannot see CAN bus {bus.name!r}.  Valid SystemCore names are')
             print(f'      can_s0..can_s4; Phoenix\'s own default resolves to can_s1.  Set')
-            print(f'      ModuleConstants.k_kraken_canbus / constants.k_can_bus to match. ***')
+            print(f'      ModuleConstants.k_kraken_canbus / constants.k_can_bus_drive to match. ***')
     except Exception as e:      # diagnostics must never be the thing that stops the robot
         print(f'  (could not read Phoenix CAN bus status for {bus.name!r}: {e})')
 
@@ -173,7 +173,8 @@ class RevDriveMotor:
     def __init__(self, can_id: int, controller_cls, config, label: str = '') -> None:
         self.label = label
         self.can_id = can_id
-        self.spark = controller_cls(constants.k_can_bus, can_id, rev.SparkLowLevel.MotorType.kBrushless)
+        # a REV drive motor would sit on the drive bus with the Krakens
+        self.spark = controller_cls(constants.k_can_bus_drive, can_id, rev.SparkLowLevel.MotorType.kBrushless)
 
         error = self.spark.configure(config, rev.ResetMode.kResetSafeParameters, _rev_persist_mode())
         if error != rev.REVLibError.kOk:
@@ -222,7 +223,7 @@ class RevTurnMotor:
     def __init__(self, can_id: int, controller_cls, config, label: str = '') -> None:
         self.label = label
         self.can_id = can_id
-        self.spark = controller_cls(constants.k_can_bus, can_id, rev.SparkLowLevel.MotorType.kBrushless)
+        self.spark = controller_cls(constants.k_can_bus_turn, can_id, rev.SparkLowLevel.MotorType.kBrushless)
 
         error = self.spark.configure(config, rev.ResetMode.kResetSafeParameters, _rev_persist_mode())
         if error != rev.REVLibError.kOk:

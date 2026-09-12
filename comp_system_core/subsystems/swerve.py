@@ -49,6 +49,13 @@ class Swerve (Subsystem):
         lf_drive, lf_turn = self.frontLeft.describe()
         compare_motors(lf_drive, lf_turn, name_a='LF DRIVE', name_b='LF TURN')
 
+        # Say out loud which bus everything is on.  Worth the three lines: when a device does
+        # not answer, the first question is always "is it even on the bus we are asking?",
+        # and the two vendors spell the same bus differently.
+        print(f'  CAN buses: drive(Kraken)={mc.k_kraken_canbus!r}/int{constants.k_can_bus_drive}  '
+              f'turn(REV)={constants.k_can_bus_turn}  '
+              f'other(REV/PDH)={constants.k_can_bus_other}')
+
         # ---------- set up gyro   ----------
         # SystemCore has an IMU on the board, so there is no navX any more.  Two differences
         # that matter and are easy to get wrong:
@@ -212,10 +219,24 @@ class Swerve (Subsystem):
         # counter-clockwise.  Compare it against _navx to see the tags pulling the pose.
         self.imu_raw_angle_pub = self.inst.getDoubleTopic(f"{swerve_prefix}/_imu_raw_angle").publish()
         self.imu_rate_pub = self.inst.getDoubleTopic(f"{swerve_prefix}/_imu_rate_dps").publish()
-        # getAngleZ() is NOT the heading - see get_raw_angle().  Published purely so we can
-        # see on real hardware whether that signal does anything at all; in simulation it
-        # stays at 0 while the robot rotates.  If this tracks the yaw on the real IMU it
-        # might be usable as a continuous (non-wrapping) angle later.
+        # The three Euler angles, published so the axis labels can be mapped to the robot.
+        #
+        # MEASURED ON THE REAL ROBOT, mount orientation FLAT: getAngleZ() reads PITCH -
+        # lifting the front of the robot moves it.  So the X/Y/Z here are the IMU CHIP's
+        # axes after the mount-orientation transform, NOT robot yaw/pitch/roll, and the
+        # names do not line up the way you would guess.  getYaw() is the only call that
+        # reliably means "which way is the robot pointing"; these are for working out what
+        # the other two axes actually are.
+        #
+        # Under the hood these are different native calls, which is why they disagree:
+        #     getYaw()        -> MRC_IMU_GetYaw{Flat,Landscape,Portrait}
+        #     getAngleX/Y/Z() -> MRC_IMU_GetEulerAngles{Flat,Landscape,Portrait}
+        #
+        # To map them: lift the FRONT (pitch), then lift one SIDE (roll), then spin the
+        # robot (yaw), and watch which topic moves each time.  Then fix get_pitch() and
+        # get_roll(), which currently assume Y=pitch and X=roll.
+        self.imu_anglex_pub = self.inst.getDoubleTopic(f"{swerve_prefix}/_imu_anglex").publish()
+        self.imu_angley_pub = self.inst.getDoubleTopic(f"{swerve_prefix}/_imu_angley").publish()
         self.imu_anglez_pub = self.inst.getDoubleTopic(f"{swerve_prefix}/_imu_anglez").publish()
 
         # Debugging publishers - pre-allocate list to avoid f-string creation in loop
@@ -370,16 +391,21 @@ class Swerve (Subsystem):
         # HEADING COMES FROM getYaw(), NOT getAngleZ().
         #
         # This was getAngleZ() at first, chosen because navX's getAngle() accumulated past
-        # 360 and "angle" sounded like the match.  It is not: on OnboardIMU the yaw and the
-        # per-axis angles are SEPARATE signals, and rotating the robot moves yaw while
-        # getAngleZ stays at 0.  Proved with OnboardIMUSim - setYaw(50) gives
-        #     getYaw 50.0    getRotation2d 50.0    getAngleZ 0.0
-        # Everything downstream reads the heading through here, so getAngleZ meant the pose
-        # estimator was handed a constant 0, the pose never rotated, and the heading readout
-        # on the dashboard sat at zero no matter which way the robot pointed.
+        # 360 and "angle" sounded like the match.  MEASURED ON THE ROBOT: getAngleZ() reads
+        # PITCH on a FLAT mount - lift the front and it moves.  The Euler angles are the
+        # chip's axes after the mount transform, and they are not labelled the way you would
+        # expect.  Everything downstream reads the heading through here, so that meant the
+        # pose estimator was being handed a pitch angle instead of a heading.
+        #
+        # getYaw() is the dedicated yaw call (MRC_IMU_GetYaw*, a different native function
+        # from MRC_IMU_GetEulerAngles*) and is the one that means "which way is the robot
+        # pointing".  It is also the one resetYaw() acts on, so boot-time zeroing works.
         #
         # Wrapping is not a problem: every consumer turns this straight back into a
         # Rotation2d, which normalises anyway.  Nothing here needs a continuous angle.
+        # Observed range on the robot is about [-85, 275] rather than [-180, 180] - the
+        # resetYaw() offset is applied after the wrap, so the seam sits wherever the robot
+        # happened to be pointing at boot.  Harmless for the same reason.
         return math.degrees(self.gyro.getYaw()) + self.gyro_angle_adjustment
 
     def get_gyro_angle(self):  # if necessary reverse the heading for swerve math
@@ -395,15 +421,19 @@ class Swerve (Subsystem):
         yaw = math.degrees(self.gyro.getYaw())  # OnboardIMU is radians
         return -yaw if dc.kGyroReversed else yaw
 
+    # THESE TWO AXES ARE NOT YET CONFIRMED.  We know from the robot that getAngleZ() is the
+    # one that moves when the front is lifted, i.e. Z is pitch on a FLAT mount - so the
+    # Y=pitch / X=roll assumption below is very likely wrong.  _imu_anglex / _imu_angley /
+    # _imu_anglez are published so the mapping can be settled: lift the front, lift a side,
+    # then spin, and see which topic moves each time.  Fix these two when you know.
+    # Only the climb readout uses them, so nothing drives on this.
     def get_pitch(self):
-        # Which physical axis is pitch depends on how the SystemCore is mounted - this
-        # assumes k_imu_mount_orientation.  Check it before trusting the number.
         pitch_offset = 0
-        return math.degrees(self.gyro.getAngleY()) - pitch_offset
+        return math.degrees(self.gyro.getAngleY()) - pitch_offset   # UNCONFIRMED axis
 
     def get_roll(self):
         roll_offset = 0
-        return math.degrees(self.gyro.getAngleX()) - roll_offset
+        return math.degrees(self.gyro.getAngleX()) - roll_offset    # UNCONFIRMED axis
 
     def reset_gyro(self, adjustment=None):
         # OnboardIMU has no setAngleAdjustment(), so the offset lives in this class and
@@ -560,7 +590,9 @@ class Swerve (Subsystem):
         # "is the onboard IMU working at all?"
         self.imu_raw_angle_pub.set(self.get_raw_angle())
         self.imu_rate_pub.set(math.degrees(self.gyro.getGyroRateZ()))
-        self.imu_anglez_pub.set(math.degrees(self.gyro.getAngleZ()))
+        self.imu_anglex_pub.set(math.degrees(self.gyro.getAngleX()))
+        self.imu_angley_pub.set(math.degrees(self.gyro.getAngleY()))
+        self.imu_anglez_pub.set(math.degrees(self.gyro.getAngleZ()))  # measured: PITCH on FLAT
 
         # post yaw, pitch, roll so we can see what is going on with the climb
         ypr = [self.get_yaw(), self.get_pitch(), self.get_roll(), self.gyro.getRotation2d().degrees()]

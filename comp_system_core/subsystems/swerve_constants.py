@@ -421,7 +421,7 @@ class ModuleConstants:
     k_kraken_enable_foc = False
     # Phoenix names its CAN bus with a STRING while REV and WPILib take an int, so this is
     # the one place the two conventions have to be reconciled.  Derived from the same
-    # constants.k_can_bus the Sparks use, so both vendors follow one number.
+    # constants.k_can_bus_drive, so the Krakens and the bus map stay in step.
     #
     # 'rio' was the roboRIO name and does NOT exist on SystemCore - Phoenix reports
     #     [phoenix] CANbus Failed to Connect: rio
@@ -432,7 +432,7 @@ class ModuleConstants:
     # Krakens still fail to connect on can_s0, can_s1 is the next thing to try.  Whether
     # REV's integer bus 0 is the same physical bus as Phoenix's can_s0 is not documented
     # anywhere we can find; REV bus 0 is definitely the one the Sparks answer on.
-    k_kraken_canbus = f'can_s{constants.k_can_bus}'   # no CANivore yet
+    k_kraken_canbus = f'can_s{constants.k_can_bus_drive}'   # no CANivore yet
 
     # REV gives one current knob; Phoenix gives two, and they are different quantities.
     #   supply  - protects the breaker and the battery.  This is what brownout mode moves.

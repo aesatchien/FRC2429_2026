@@ -25,11 +25,11 @@ class Intake(Subsystem):
         # --------------- add motors and set intake rpm ----------------
         
         motor_type = rev.SparkMax.MotorType.kBrushless
-        self.intake_motor = rev.SparkMax(constants.k_can_bus, ic.k_CANID_intake_left_leader, motor_type)
-        self.intake_motor_follower = rev.SparkMax(constants.k_can_bus, ic.k_CANID_intake_right_follower, motor_type)
+        self.intake_motor = rev.SparkMax(constants.k_can_bus_other, ic.k_CANID_intake_left_leader, motor_type)
+        self.intake_motor_follower = rev.SparkMax(constants.k_can_bus_other, ic.k_CANID_intake_right_follower, motor_type)
 
         motor_type = rev.SparkFlex.MotorType.kBrushless
-        self.deploy_motor = rev.SparkFlex(constants.k_can_bus, ic.k_CANID_dropper, motor_type)
+        self.deploy_motor = rev.SparkFlex(constants.k_can_bus_other, ic.k_CANID_dropper, motor_type)
 
         # convenient list of motors if we need to query or set all of them
         self.motors = [self.intake_motor, self.intake_motor_follower, self.deploy_motor]

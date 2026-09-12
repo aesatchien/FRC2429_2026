@@ -36,7 +36,7 @@ class RobotState(commands2.Subsystem):
         # try to start all the subsystems on a different count so they don't all do the periodic updates at the same time
         self.counter = constants.RobotStateConstants.k_counter_offset
 
-        self.pdh = PowerDistribution(constants.k_can_bus, 1, PowerDistribution.ModuleType.REV)
+        self.pdh = PowerDistribution(constants.k_can_bus_other, 1, PowerDistribution.ModuleType.REV)
 
         self._init_networktables()
 

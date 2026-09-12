@@ -81,11 +81,37 @@ k_bbox_2_port = 3
 k_ps5_controller_port = 5  # Testing this for now. -Trentan June 2026
 
 
-# SystemCore has multiple CAN buses, so 2027 device constructors take a bus ID as their
-# FIRST argument - rev.SparkMax(busID, deviceID, motorType), PowerDistribution(busID, ...).
-# Everything is on bus 0 for now.  When we split the drivetrain onto its own bus, change it
-# here and nowhere else.  (Phoenix is the exception: TalonFX names its bus with a string.)
-k_can_bus = 0
+# ---------------------------------------------------------------------------
+# CAN BUS ASSIGNMENT
+#
+# SystemCore has several CAN buses instead of the roboRIO's single one, so every 2027
+# device constructor takes a bus as its FIRST argument.  The two vendors spell it
+# differently and this is the only place that difference should appear:
+#
+#   REV      rev.SparkMax(busID, deviceID, motorType)          busID is an INT, 0..4
+#   WPILib   PowerDistribution(busID, module, moduleType)      busID is an INT
+#   Phoenix  TalonFX(device_id, CANBus("can_s0"))              a STRING, "can_s0".."can_s4"
+#            or CANBus.systemcore(0) which builds that string for you
+#
+# Phoenix's default, CANBus(""), resolves to can_s1 - NOT can_s0 - so never rely on it.
+#
+# Splitting the bus is worth doing: the drivetrain is the heaviest CAN traffic on the
+# robot (8 motors at 50Hz plus status frames), and putting it on its own bus keeps a
+# chatty shooter or a failing device from adding latency to the thing that steers.
+#
+#   bus 0   swerve DRIVE motors - the 4 Krakens          (Phoenix, "can_s0")
+#   bus 1   swerve TURN motors  - the 4 SparkFlexes      (REV)
+#   bus 2   everything else - shooter, intake, climber, PDH   (REV + WPILib)
+#
+# UNVERIFIED, and the first thing to check if a bus comes up empty: whether REV's integer
+# bus N is the same physical connector as Phoenix's "can_sN".  REV bus 0 is known good -
+# the Sparks answered on it - and Phoenix's own default landing on can_s1 hints the
+# numbering may not line up.  The Krakens being alone on bus 0 makes this easy to test:
+# if they fail to connect on can_s0, try can_s1 by changing k_can_bus_drive only.
+# ---------------------------------------------------------------------------
+k_can_bus_drive = 0   # Krakens (Phoenix) - see ModuleConstants.k_kraken_canbus
+k_can_bus_turn = 1    # swerve turn SparkFlexes (REV)
+k_can_bus_other = 2   # shooter, intake, climber, PDH (REV + WPILib)
 
 # should be fine to burn on every reboot, but we can turn this off
 k_burn_flash = True

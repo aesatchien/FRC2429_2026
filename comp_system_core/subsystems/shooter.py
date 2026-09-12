@@ -20,14 +20,14 @@ class Shooter(Subsystem):
         
         motor_type = rev.SparkMax.MotorType.kBrushless
 
-        self.hopper = rev.SparkMax(constants.k_can_bus, sc.k_CANID_hopper, motor_type)
-        self.indexer_left_leader = rev.SparkMax(constants.k_can_bus, sc.k_CANID_indexer_left_leader, motor_type)
-        self.indexer_right_follower = rev.SparkMax(constants.k_can_bus, sc.k_CANID_indexer_right_follower, motor_type)
+        self.hopper = rev.SparkMax(constants.k_can_bus_other, sc.k_CANID_hopper, motor_type)
+        self.indexer_left_leader = rev.SparkMax(constants.k_can_bus_other, sc.k_CANID_indexer_left_leader, motor_type)
+        self.indexer_right_follower = rev.SparkMax(constants.k_can_bus_other, sc.k_CANID_indexer_right_follower, motor_type)
 
-        self.flywheel_left_leader = rev.SparkFlex(constants.k_can_bus, sc.k_CANID_flywheel_left_leader, motor_type)
-        self.flywheel_right_follower = rev.SparkFlex(constants.k_can_bus, sc.k_CANID_flywheel_right_follower, motor_type)
+        self.flywheel_left_leader = rev.SparkFlex(constants.k_can_bus_other, sc.k_CANID_flywheel_left_leader, motor_type)
+        self.flywheel_right_follower = rev.SparkFlex(constants.k_can_bus_other, sc.k_CANID_flywheel_right_follower, motor_type)
         # TODO - add rollers here and in list - decide if they are just followers or independent
-        self.roller_motor = rev.SparkFlex(constants.k_can_bus, sc.k_CANID_flywheel_roller, motor_type)
+        self.roller_motor = rev.SparkFlex(constants.k_can_bus_other, sc.k_CANID_flywheel_roller, motor_type)
 
         # convenient list of motors if we need to query or set all of them
         self.motors = [self.hopper,
