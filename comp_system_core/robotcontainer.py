@@ -339,7 +339,8 @@ class RobotContainer:
         js.ps_r1.onFalse(InstantCommand(lambda: self.targeting.stop_tracking()))
 
         # D-Pad: Slow, smooth robot-centric alignment (Nudge)
-        # js.ps_up.onTrue(PrintCommand('you pressed up'))
+        js.ps_up.onTrue(PrintCommand('you pressed up'))
+        js.ps_down.onTrue(PrintCommand('you pressed down'))
         dpad_driving = False
         if dpad_driving:
             dpad_output = 0.15
