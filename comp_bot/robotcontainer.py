@@ -41,6 +41,8 @@ from autonomous.pathing_drawing import DrawingAuto
 from autonomous.pathing_right_bump_cycle import RightBumpCycle
 from autonomous.short_bump import ShortBump
 
+from comp_bot.autonomous.one_meter import OneMeter
+
 # 2429 commands
 from commands.can_status import CANStatus
 from commands.drive_by_velocity_swerve import DriveByVelocitySwerve
@@ -474,6 +476,8 @@ class RobotContainer:
         self.auto_chooser.addOption('4b: Right Bump Cycle *CODE*', RightBumpCycle(self, indent=0))
 
         self.auto_chooser.setDefaultOption('4b: Short Bump Auto *CODE*', ShortBump(self, indent=0))
+
+        self.auto_chooser.addOption('5a: One Meter Auto *CODE*', OneMeter(self, indent=0))
 
         wpilib.SmartDashboard.putData('autonomous routines', self.auto_chooser)  #
 

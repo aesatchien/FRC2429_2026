@@ -18,7 +18,7 @@ from commands.intake_set_rpm import Intake_Set_RPM
 from helpers import joysticks as js
 
 
-class RightBumpCycle(commands2.SequentialCommandGroup):
+class OneMeter(commands2.SequentialCommandGroup):
     def __init__(self, container, indent=0) -> None:
         super().__init__()
         self.setName(f'Right One Meter Auto')
