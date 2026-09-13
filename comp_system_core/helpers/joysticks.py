@@ -1,5 +1,6 @@
 import commands2.button
 import constants
+from wpilib import POVDirection
 
 driver_controller = commands2.button.CommandNiDsXboxController(constants.k_driver_controller_port)
 copilot_controller = commands2.button.CommandNiDsXboxController(constants.k_co_driver_controller_port)
@@ -95,7 +96,8 @@ ps_touchpad = play_station_controller.touchpad()
 # Mic isn't part of WPILib's standard PS5 button map, keeping it a raw button - Trentan
 ps_mic = play_station_controller.button(15)
 
-ps_up = play_station_controller.povUp()
-ps_down = play_station_controller.povDown()
-ps_left = play_station_controller.povLeft()
-ps_right = play_station_controller.povRight()
+ps_up = play_station_controller.pov(POVDirection.UP)
+ps_down = play_station_controller.pov(POVDirection.DOWN)
+ps_left = play_station_controller.pov(POVDirection.LEFT)
+ps_right = play_station_controller.pov(POVDirection.RIGHT)
+
