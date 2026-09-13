@@ -33,7 +33,7 @@ class OneMeter(commands2.SequentialCommandGroup):
             )
         )
 
-        self.addCommands(shoot_cycle(self.container, indent=1))
+        # self.addCommands(shoot_cycle(self.container, indent=1))
 
         self.addCommands(commands2.PrintCommand(f"{'    ' * indent}** Finished {self.getName()} **"))
 
