@@ -144,6 +144,20 @@ class MyRobot(commands2.TimedCommandRobot):
                 self.container.questnav.quest_sync_odometry()
                 self.stationary_counter = 0  # reset so we don't spam if headset isn't fully awake yet
 
+    # ----------------------------- simulation -----------------------------
+    # 2027 moved `robotpy sim` out of pyfrc and into wpilib core, and the core version has
+    # no physics support at all - it never loads physics.py.  These two hooks are the
+    # WPILib-standard place for simulation code and are called by IterativeRobotBase:
+    # simulationInit() once at startup, simulationPeriodic() every loop immediately after
+    # robotPeriodic().  Verified in sim on 2027.0.0a6.post1.  Neither runs on the real
+    # robot, so none of this needs an isSimulation() guard.
+    def simulationInit(self) -> None:
+        from simulation.physics_interface import PhysicsEngineHost
+        self.physics_host = PhysicsEngineHost(self)
+
+    def simulationPeriodic(self) -> None:
+        self.physics_host.update()
+
     def utilityInit(self) -> None:
         # 2027: test mode was renamed to utility mode - testInit/testPeriodic/testExit are
         # now utilityInit/utilityPeriodic/utilityExit.  Same silent failure as robotInit:

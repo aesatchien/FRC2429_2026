@@ -4,7 +4,9 @@ import wpilib
 import wpilib.simulation as simlib  # 2021 name for the simulation library
 from wpimath import Pose2d, Transform2d
 from wpimath.units import inchesToMeters
-from pyfrc.physics.core import PhysicsInterface
+# pyfrc is gone in 2027 and its `robotpy sim` no longer exists - see
+# simulation/physics_interface.py for why this import had to move.
+from simulation.physics_interface import PhysicsInterface
 import ntcore
 
 from constants import mech_prefix
