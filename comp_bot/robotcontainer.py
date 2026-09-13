@@ -41,7 +41,7 @@ from autonomous.pathing_drawing import DrawingAuto
 from autonomous.pathing_right_bump_cycle import RightBumpCycle
 from autonomous.short_bump import ShortBump
 
-from comp_bot.autonomous.one_meter import OneMeter
+from autonomous.one_meter import OneMeter
 
 # 2429 commands
 from commands.can_status import CANStatus
