@@ -57,6 +57,8 @@ from commands.intake_deploy import Intake_Deploy
 from commands.intake_calibrate import CalibrateIntake
 from commands.intake_crunch import Intake_Crunch
 from commands.intake_close import Intake_Close
+from helpers import dashboard
+from tunables import Selectable
 
 
 class RobotContainer:
@@ -86,7 +88,7 @@ class RobotContainer:
         self.bind_bbox_buttons()
         self.bind_ps_buttons()
 
-        self.swerve.setDefaultCommand(DriveByJoystickSubsystemTargeting(
+        self.swerve.set_default_command(DriveByJoystickSubsystemTargeting(
               container=self,
               swerve=self.swerve,
               controller=js.driver_controller,
@@ -112,68 +114,68 @@ class RobotContainer:
         # --- Drive & Navigation ---
 
         # Allow the driver to reset the field in case of emergency
-        js.driver_y.onTrue(ResetFieldCentric(container=self, swerve=self.swerve, angle=0).ignoringDisable(True))
-        js.driver_y.debounce(0.5).onTrue(InstantCommand(lambda: self.questnav.quest_sync_odometry()).ignoringDisable(True))
+        js.driver_y.on_true(ResetFieldCentric(container=self, swerve=self.swerve, angle=0).ignoring_disable(True))
+        js.driver_y.debounce(0.5).on_true(InstantCommand(lambda: self.questnav.quest_sync_odometry()).ignoring_disable(True))
 
         # --- The current shooting cycle
         # slow intake rollers, start the shooting cycle, then raise the intake after a short wait
-        js.driver_a.whileTrue(commands2.ParallelCommandGroup(
+        js.driver_a.while_true(commands2.ParallelCommandGroup(
             ShootingCommand(shooter=self.shooter, targeting=self.targeting),
             commands2.SequentialCommandGroup(commands2.WaitCommand(constants.AutoConstants.k_intake_raise_delay),
                                              Intake_Deploy(intake=self.intake, position='shoot'),
                                              commands2.WaitCommand(constants.AutoConstants.k_intake_raise_delay),
                                              Intake_Deploy(intake=self.intake, position='shoot2')),
-        ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=500, led=self.led)))
+        ).before_starting(Intake_Set_RPM(intake=self.intake, rpm=500, led=self.led)))
         # does not work as an "andThen" for some reason
-        js.driver_a.onFalse(Intake_Deploy(intake=self.intake, position='down').andThen(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
+        js.driver_a.on_false(Intake_Deploy(intake=self.intake, position='down').and_then(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
 
         # manual shooting - identical to the above but with fixed RPM
-        js.driver_x.whileTrue(commands2.ParallelCommandGroup(
+        js.driver_x.while_true(commands2.ParallelCommandGroup(
             ShootingCommand(shooter=self.shooter, targeting=self.targeting, rpm=3300),
             commands2.SequentialCommandGroup(commands2.WaitCommand(constants.AutoConstants.k_intake_raise_delay),
                                              Intake_Deploy(intake=self.intake, position='shoot'),
                                              commands2.WaitCommand(constants.AutoConstants.k_intake_raise_delay),
                                              Intake_Deploy(intake=self.intake, position='shoot2')),
-        ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=500, led=self.led)))
-        js.driver_x.onFalse(Intake_Deploy(intake=self.intake, position='down').andThen(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
+        ).before_starting(Intake_Set_RPM(intake=self.intake, rpm=500, led=self.led)))
+        js.driver_x.on_false(Intake_Deploy(intake=self.intake, position='down').and_then(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
 
-        js.driver_b.onTrue(InstantCommand(lambda: self.shooter.set_shooter_rpm(sc.k_fire_up_speed)))
-        js.driver_b.whileTrue(commands2.ParallelCommandGroup(
+        js.driver_b.on_true(InstantCommand(lambda: self.shooter.set_shooter_rpm(sc.k_fire_up_speed)))
+        js.driver_b.while_true(commands2.ParallelCommandGroup(
             ShootingFeedingCommand(shooter=self.shooter, rpm=sc.k_shooter_max_speed),
             commands2.SequentialCommandGroup(commands2.WaitCommand(constants.AutoConstants.k_intake_raise_delay),
                                              Intake_Deploy(intake=self.intake, position='shoot'),
                                              commands2.WaitCommand(constants.AutoConstants.k_intake_raise_delay),
                                              Intake_Deploy(intake=self.intake, position='shoot2')),
-        ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=500, led=self.led)))
-        js.driver_b.onFalse(Intake_Deploy(intake=self.intake, position='down').andThen(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
+        ).before_starting(Intake_Set_RPM(intake=self.intake, rpm=500, led=self.led)))
+        js.driver_b.on_false(Intake_Deploy(intake=self.intake, position='down').and_then(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
 
 
         # start / stop tracking
-        js.driver_rb.onTrue(InstantCommand(lambda: self.targeting.start_tracking())
-                            .andThen(InstantCommand(lambda: self.shooter.set_shooter_rpm(rpm=sc.k_fire_up_speed))))
-        js.driver_rb.onFalse(InstantCommand(lambda: self.targeting.stop_tracking()))
+        js.driver_rb.on_true(InstantCommand(lambda: self.targeting.start_tracking())
+                            .and_then(InstantCommand(lambda: self.shooter.set_shooter_rpm(rpm=sc.k_fire_up_speed))))
+        js.driver_rb.on_false(InstantCommand(lambda: self.targeting.stop_tracking()))
 
         # D-Pad: Slow, smooth robot-centric alignment (Nudge)
         dpad_driving = True
         if dpad_driving:
             dpad_output = 0.15
-            js.driver_up.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(dpad_output, 0, 0), timeout=10))
-            js.driver_down.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(-dpad_output, 0, 0), timeout=10))
-            js.driver_left.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(0, dpad_output, 0), timeout=10))
-            js.driver_right.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(0, -dpad_output, 0), timeout=10))
+            js.driver_up.while_true(DriveByVelocitySwerve(self, self.swerve, Pose2d(dpad_output, 0, 0), timeout=10))
+            js.driver_down.while_true(DriveByVelocitySwerve(self, self.swerve, Pose2d(-dpad_output, 0, 0), timeout=10))
+            js.driver_left.while_true(DriveByVelocitySwerve(self, self.swerve, Pose2d(0, dpad_output, 0), timeout=10))
+            js.driver_right.while_true(DriveByVelocitySwerve(self, self.swerve, Pose2d(0, -dpad_output, 0), timeout=10))
         else:
             # js.driver_up.whileTrue(CalibrateIntake(intake=self.intake))
-            js.driver_up.onTrue(Intake_Deploy(intake=self.intake, position='up'))
+            js.driver_up.on_true(Intake_Deploy(intake=self.intake, position='up'))
             #js.driver_right.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=1))
             #js.driver_left.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=-1))
-            js.driver_down.onTrue(Intake_Deploy(intake=self.intake, position='down'))
+            js.driver_down.on_true(Intake_Deploy(intake=self.intake, position='down'))
 
         # --- Subsystems ---
         # Giving Jeremy faster and slower fixed speeds
-        js.driver_lb.onTrue(Intake_Set_RPM(intake=self.intake, rpm=ic.k_intake_teleop_rpm, led=self.led))
-        js.driver_l_trigger.whileTrue(SwerveSetX(container=self, swerve=self.swerve))
-        js.driver_back.onTrue(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
-        js.driver_start.whileTrue(Intake_Deploy(self.intake, "down").andThen(Intake_Set_RPM(self.intake, -constants.IntakeConstants.k_intake_default_rpm).alongWith(InstantCommand(lambda: self.shooter.set_hopper_rpm(-constants.ShooterConstants.k_hopper_rpm)))))
+        js.driver_lb.on_true(Intake_Set_RPM(intake=self.intake, rpm=ic.k_intake_teleop_rpm, led=self.led))
+        js.driver_l_trigger.while_true(SwerveSetX(container=self, swerve=self.swerve))
+        js.driver_back.on_true(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
+        js.driver_start.while_true(Intake_Deploy(self.intake, "down").and_then(Intake_Set_RPM(self.intake, -constants.IntakeConstants.k_intake_default_rpm).along_with(InstantCommand(lambda: self.shooter.set_hopper_rpm(-constants.ShooterConstants.k_hopper_rpm)))))
 
 
         # js.driver_l_trigger.whileTrue(Intake_Set(intake=self.intake, rpm=2500))
@@ -211,60 +213,60 @@ class RobotContainer:
         # js.bbox_1_1.onTrue(InstantCommand(lambda: self.shooter.set_shooting_offset(125)))
         # js.bbox_1_1.onFalse(InstantCommand(lambda: self.shooter.set_shooting_offset(0)))
 
-        js.bbox_1_1.onTrue(InstantCommand(lambda: self.intake.zero_intake()).ignoringDisable(True))
-        js.bbox_1_2.onTrue(InstantCommand(lambda: self.intake.set_angle_max()).ignoringDisable(True))
+        js.bbox_1_1.on_true(InstantCommand(lambda: self.intake.zero_intake()).ignoring_disable(True))
+        js.bbox_1_2.on_true(InstantCommand(lambda: self.intake.set_angle_max()).ignoring_disable(True))
 
         #js.bbox_1_3.onTrue(InstantCommand(lambda: self.targeting.stop_tracking()))
-        js.bbox_1_3.whileTrue(commands2.ParallelCommandGroup(
-            Intake_Deploy(intake=self.intake, position='up').andThen(
+        js.bbox_1_3.while_true(commands2.ParallelCommandGroup(
+            Intake_Deploy(intake=self.intake, position='up').and_then(
                 Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)),
             InstantCommand(lambda: self.shooter.set_hopper_rpm(0))
             #Set_Afterburner(afterburner_on=True)
         ))
-        js.bbox_1_3.debounce(.2).whileTrue(SwerveTest(container=self, swerve=self.swerve))
+        js.bbox_1_3.debounce(.2).while_true(SwerveTest(container=self, swerve=self.swerve))
 
         # allow us to react to brownouts by lowering the current limit on the drive motors
-        js.bbox_1_4.onTrue(
+        js.bbox_1_4.on_true(
             commands2.ConditionalCommand(
                 # brownout is ON → turn it OFF, flash green (back to full speed, 60A)
                 InstantCommand(lambda: self.swerve.set_brownout_mode(False))
-                    .andThen(SetLEDs(container=self, led=self.led, indicator=Led.Indicator.kSUCCESS, indicator_timeout=2)),
+                    .and_then(SetLEDs(container=self, led=self.led, indicator=Led.Indicator.kSUCCESS, indicator_timeout=2)),
                 # brownout is OFF → turn it ON, flash red (slow down to 40A max)
                 InstantCommand(lambda: self.swerve.set_brownout_mode(True))
-                    .andThen(SetLEDs(container=self, led=self.led, indicator=Led.Indicator.kFAILURE, indicator_timeout=2)),
+                    .and_then(SetLEDs(container=self, led=self.led, indicator=Led.Indicator.kFAILURE, indicator_timeout=2)),
                 self.swerve.get_brownout_mode
-            ).ignoringDisable(True)
+            ).ignoring_disable(True)
         )
 
         # user should never sync the odometry.  should only be done with a good apriltag, not by the operator
         #js.bbox_1_4.onTrue(InstantCommand(lambda: self.questnav.quest_sync_odometry()).ignoringDisable(True))
-        js.bbox_1_5.onTrue(InstantCommand(lambda: self.questnav.quest_enabled_toggle(force='off')).ignoringDisable(True))
-        js.bbox_1_6.onTrue(InstantCommand(lambda: self.questnav.quest_enabled_toggle(force='on')).ignoringDisable(True))
-        js.bbox_1_7.onTrue(InstantCommand(lambda: self.questnav.quest_unsync_odometry()).ignoringDisable(True))
+        js.bbox_1_5.on_true(InstantCommand(lambda: self.questnav.quest_enabled_toggle(force='off')).ignoring_disable(True))
+        js.bbox_1_6.on_true(InstantCommand(lambda: self.questnav.quest_enabled_toggle(force='on')).ignoring_disable(True))
+        js.bbox_1_7.on_true(InstantCommand(lambda: self.questnav.quest_unsync_odometry()).ignoring_disable(True))
 
 
         #  buttons 8-10 set intake position and speed
-        js.bbox_1_8.onTrue(
-            Intake_Deploy(intake=self.intake, position='up').andThen(
+        js.bbox_1_8.on_true(
+            Intake_Deploy(intake=self.intake, position='up').and_then(
             Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
         )
 
-        js.bbox_1_9.onTrue(
-            (InstantCommand(lambda: self.intake.set_intake_position(ic.k_shooting_angle)).andThen(
+        js.bbox_1_9.on_true(
+            (InstantCommand(lambda: self.intake.set_intake_position(ic.k_shooting_angle)).and_then(
             InstantCommand(lambda: self.intake.set_intake_rpm(500)))
             )
         )
 
-        js.bbox_1_10.onTrue(
-            Intake_Deploy(intake=self.intake, position='down').andThen(
+        js.bbox_1_10.on_true(
+            Intake_Deploy(intake=self.intake, position='down').and_then(
             Intake_Set_RPM(intake=self.intake, rpm=3000, led=self.led))
         )
 
         # buttons 11 and 12 are tied to the joystick switch
-        js.bbox_1_11.onTrue(InstantCommand(lambda: self.shooter.set_shooting_offset(-sc.k_operator_rpm_adjustment)))
-        js.bbox_1_11.onFalse(InstantCommand(lambda: self.shooter.set_shooting_offset(0)))
-        js.bbox_1_12.onTrue(InstantCommand(lambda: self.shooter.set_shooting_offset(sc.k_operator_rpm_adjustment)))
-        js.bbox_1_12.onFalse(InstantCommand(lambda: self.shooter.set_shooting_offset(0)))
+        js.bbox_1_11.on_true(InstantCommand(lambda: self.shooter.set_shooting_offset(-sc.k_operator_rpm_adjustment)))
+        js.bbox_1_11.on_false(InstantCommand(lambda: self.shooter.set_shooting_offset(0)))
+        js.bbox_1_12.on_true(InstantCommand(lambda: self.shooter.set_shooting_offset(sc.k_operator_rpm_adjustment)))
+        js.bbox_1_12.on_false(InstantCommand(lambda: self.shooter.set_shooting_offset(0)))
 
         # test the intake deploy positions on the L1-L4 buttons
         # js.bbox_2_1.whileTrue(CalibrateIntake(intake=self.intake))
@@ -297,77 +299,77 @@ class RobotContainer:
         # --- Drive & Navigation ---
 
         # Allow the driver to reset the field in case of emergency
-        js.ps_triangle.onTrue(ResetFieldCentric(container=self, swerve=self.swerve, angle=0).ignoringDisable(True))
-        js.ps_triangle.debounce(0.5).onTrue(InstantCommand(lambda: self.questnav.quest_sync_odometry()).ignoringDisable(True))
+        js.ps_triangle.on_true(ResetFieldCentric(container=self, swerve=self.swerve, angle=0).ignoring_disable(True))
+        js.ps_triangle.debounce(0.5).on_true(InstantCommand(lambda: self.questnav.quest_sync_odometry()).ignoring_disable(True))
 
         # --- The current shooting cycle
         # slow intake rollers, start the shooting cycle, then raise the intake after a short wait
-        js.ps_cross.whileTrue(commands2.ParallelCommandGroup(
+        js.ps_cross.while_true(commands2.ParallelCommandGroup(
             ShootingCommand(shooter=self.shooter, targeting=self.targeting),
             commands2.SequentialCommandGroup(commands2.WaitCommand(constants.AutoConstants.k_intake_raise_delay),
                                              Intake_Deploy(intake=self.intake, position='shoot'),
                                              commands2.WaitCommand(constants.AutoConstants.k_intake_raise_delay),
                                              Intake_Deploy(intake=self.intake, position='shoot2')),
-        ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=500, led=self.led)))
+        ).before_starting(Intake_Set_RPM(intake=self.intake, rpm=500, led=self.led)))
         # does not work as an "andThen" for some reason
-        js.ps_cross.onFalse(Intake_Deploy(intake=self.intake, position='down').andThen(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
+        js.ps_cross.on_false(Intake_Deploy(intake=self.intake, position='down').and_then(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
 
         # manual shooting - identical to the above but with fixed RPM
-        js.ps_square.whileTrue(commands2.ParallelCommandGroup(
+        js.ps_square.while_true(commands2.ParallelCommandGroup(
             ShootingCommand(shooter=self.shooter, targeting=self.targeting, rpm=3300),
             commands2.SequentialCommandGroup(commands2.WaitCommand(constants.AutoConstants.k_intake_raise_delay),
                                              Intake_Deploy(intake=self.intake, position='shoot'),
                                              commands2.WaitCommand(constants.AutoConstants.k_intake_raise_delay),
                                              Intake_Deploy(intake=self.intake, position='shoot2')),
-        ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=500, led=self.led)))
-        js.ps_square.onFalse(Intake_Deploy(intake=self.intake, position='down').andThen(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
+        ).before_starting(Intake_Set_RPM(intake=self.intake, rpm=500, led=self.led)))
+        js.ps_square.on_false(Intake_Deploy(intake=self.intake, position='down').and_then(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
 
-        js.ps_circle.onTrue(InstantCommand(lambda: self.shooter.set_shooter_rpm(sc.k_fire_up_speed)))
-        js.ps_circle.whileTrue(commands2.ParallelCommandGroup(
+        js.ps_circle.on_true(InstantCommand(lambda: self.shooter.set_shooter_rpm(sc.k_fire_up_speed)))
+        js.ps_circle.while_true(commands2.ParallelCommandGroup(
             ShootingFeedingCommand(shooter=self.shooter, rpm=sc.k_shooter_max_speed),
             commands2.SequentialCommandGroup(commands2.WaitCommand(constants.AutoConstants.k_intake_raise_delay),
                                              Intake_Deploy(intake=self.intake, position='shoot'),
                                              commands2.WaitCommand(constants.AutoConstants.k_intake_raise_delay),
                                              Intake_Deploy(intake=self.intake, position='shoot2')),
-        ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=500, led=self.led)))
-        js.ps_circle.onFalse(Intake_Deploy(intake=self.intake, position='down').andThen(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
+        ).before_starting(Intake_Set_RPM(intake=self.intake, rpm=500, led=self.led)))
+        js.ps_circle.on_false(Intake_Deploy(intake=self.intake, position='down').and_then(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
 
 
         # start / stop tracking
-        js.ps_r1.onTrue(InstantCommand(lambda: self.targeting.start_tracking())
-                            .andThen(InstantCommand(lambda: self.shooter.set_shooter_rpm(rpm=sc.k_fire_up_speed))))
-        js.ps_r1.onFalse(InstantCommand(lambda: self.targeting.stop_tracking()))
+        js.ps_r1.on_true(InstantCommand(lambda: self.targeting.start_tracking())
+                            .and_then(InstantCommand(lambda: self.shooter.set_shooter_rpm(rpm=sc.k_fire_up_speed))))
+        js.ps_r1.on_false(InstantCommand(lambda: self.targeting.stop_tracking()))
 
         # D-Pad: Slow, smooth robot-centric alignment (Nudge)
-        js.ps_up.onTrue(PrintCommand('you pressed up'))
-        js.ps_down.onTrue(PrintCommand('you pressed down'))
+        js.ps_up.on_true(PrintCommand('you pressed up'))
+        js.ps_down.on_true(PrintCommand('you pressed down'))
         dpad_driving = False
         if dpad_driving:
             dpad_output = 0.15
-            js.ps_up.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(dpad_output, 0, 0), timeout=10))
-            js.ps_down.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(-dpad_output, 0, 0), timeout=10))
-            js.ps_left.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(0, dpad_output, 0), timeout=10))
-            js.ps_right.whileTrue(DriveByVelocitySwerve(self, self.swerve, Pose2d(0, -dpad_output, 0), timeout=10))
+            js.ps_up.while_true(DriveByVelocitySwerve(self, self.swerve, Pose2d(dpad_output, 0, 0), timeout=10))
+            js.ps_down.while_true(DriveByVelocitySwerve(self, self.swerve, Pose2d(-dpad_output, 0, 0), timeout=10))
+            js.ps_left.while_true(DriveByVelocitySwerve(self, self.swerve, Pose2d(0, dpad_output, 0), timeout=10))
+            js.ps_right.while_true(DriveByVelocitySwerve(self, self.swerve, Pose2d(0, -dpad_output, 0), timeout=10))
         else:
             # js.ps_up.whileTrue(CalibrateIntake(intake=self.intake))
-            js.ps_up.onTrue(Intake_Deploy(intake=self.intake, position='up'))
+            js.ps_up.on_true(Intake_Deploy(intake=self.intake, position='up'))
             #js.ps_right.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=1))
-            js.ps_left.onTrue(Intake_Crunch(intake=self.intake))
-            js.ps_share.whileTrue(ShootingFeedingCommand(shooter=self.shooter, rpm=sc.k_shooter_test_speed))
-            js.ps_right.onTrue(commands2.ParallelCommandGroup(
+            js.ps_left.on_true(Intake_Crunch(intake=self.intake))
+            js.ps_share.while_true(ShootingFeedingCommand(shooter=self.shooter, rpm=sc.k_shooter_test_speed))
+            js.ps_right.on_true(commands2.ParallelCommandGroup(
                 Intake_Close(intake=self.intake, time=2),
                 ShootingCommand(shooter=self.shooter, targeting=self.targeting)))  # Two seconds to close intake
             #js.ps_left.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=-1))
-            js.ps_down.onTrue(Intake_Deploy(intake=self.intake, position='down'))
+            js.ps_down.on_true(Intake_Deploy(intake=self.intake, position='down'))
 
         # --- Subsystems ---
         # Giving Jeremy faster and slower fixed speeds
-        js.ps_l1.onTrue(
-                Intake_Set_RPM(intake=self.intake, rpm=ic.k_intake_teleop_rpm*.9, led=self.led).andThen(
+        js.ps_l1.on_true(
+                Intake_Set_RPM(intake=self.intake, rpm=ic.k_intake_teleop_rpm*.9, led=self.led).and_then(
                 Intake_Deploy(intake=self.intake, position='down')))
-        js.ps_l2.whileTrue(SwerveSetX(container=self, swerve=self.swerve))
+        js.ps_l2.while_true(SwerveSetX(container=self, swerve=self.swerve))
         # js.ps_share.onTrue(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
-        js.ps_options.whileTrue(Intake_Deploy(self.intake, "down").andThen(Intake_Set_RPM(self.intake, -constants.IntakeConstants.k_intake_default_rpm).alongWith(InstantCommand(lambda: self.shooter.set_hopper_rpm(-constants.ShooterConstants.k_hopper_rpm)))))
+        js.ps_options.while_true(Intake_Deploy(self.intake, "down").and_then(Intake_Set_RPM(self.intake, -constants.IntakeConstants.k_intake_default_rpm).along_with(InstantCommand(lambda: self.shooter.set_hopper_rpm(-constants.ShooterConstants.k_hopper_rpm)))))
 
 
 
@@ -377,47 +379,47 @@ class RobotContainer:
         # --------------   COMMANDS FOR GUI (ROBOT DEBUGGING) - 20250224 CJH
         command_prefix = constants.command_prefix
         # --------------   TESTING LEDS ----------------
-        self.led_mode_chooser = wpilib.SendableChooser()
-        [self.led_mode_chooser.addOption(key, value) for key, value in self.led.modes_dict.items()]  # add all the indicators
-        self.led_mode_chooser.onChange(listener=lambda selected_value: commands2.CommandScheduler.getInstance().schedule(SetLEDs(container=self, led=self.led, mode=selected_value)))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/LED Mode', self.led_mode_chooser)
+        self.led_mode_chooser = Selectable()
+        [self.led_mode_chooser.add(key, value) for key, value in self.led.modes_dict.items()]  # add all the indicators
+        self.led_mode_chooser.on_change(listener=lambda selected_value: commands2.CommandScheduler.get_instance().schedule(SetLEDs(container=self, led=self.led, mode=selected_value)))
+        dashboard.SmartDashboard.put_data(f'{command_prefix}/LED Mode', self.led_mode_chooser)
 
-        self.led_indicator_chooser = wpilib.SendableChooser()
-        [self.led_indicator_chooser.addOption(key, value) for key, value in self.led.indicators_dict.items()]  # add all the indicators
-        self.led_indicator_chooser.onChange(listener=lambda selected_value: commands2.CommandScheduler.getInstance().schedule(
+        self.led_indicator_chooser = Selectable()
+        [self.led_indicator_chooser.add(key, value) for key, value in self.led.indicators_dict.items()]  # add all the indicators
+        self.led_indicator_chooser.on_change(listener=lambda selected_value: commands2.CommandScheduler.get_instance().schedule(
             SetLEDs(container=self, led=self.led, indicator=selected_value)))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/LED Indicator', self.led_indicator_chooser)
+        dashboard.SmartDashboard.put_data(f'{command_prefix}/LED Indicator', self.led_indicator_chooser)
 
         # set all subsystems - used on dash
-        wpilib.SmartDashboard.putData(f'{command_prefix}/SetSuccess', SetLEDs(container=self, led=self.led, indicator=Led.Indicator.kSUCCESS))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeStow', Intake_Deploy(intake=self.intake, position='up'))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeDeploy', Intake_Deploy(intake=self.intake, position='down'))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeShoot', Intake_Deploy(intake=self.intake, position='shoot'))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeOn', Intake_Set_RPM(intake=self.intake, rpm=3000, led=self.led))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeOff', Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeReverse', Intake_Set_RPM(intake=self.intake, rpm=-500, led=self.led))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeBrake', InstantCommand(lambda: self.intake.set_brake_mode(brake_on=True)).ignoringDisable(True))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeIdle', InstantCommand(lambda: self.intake.set_brake_mode(brake_on=False)).ignoringDisable(True))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeCalStow',InstantCommand(lambda: self.intake.set_angle_max()).ignoringDisable(True))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/IntakeCalZero',InstantCommand(lambda: self.intake.zero_intake()).ignoringDisable(True))
+        dashboard.SmartDashboard.put_data(f'{command_prefix}/SetSuccess', SetLEDs(container=self, led=self.led, indicator=Led.Indicator.kSUCCESS))
+        dashboard.SmartDashboard.put_data(f'{command_prefix}/IntakeStow', Intake_Deploy(intake=self.intake, position='up'))
+        dashboard.SmartDashboard.put_data(f'{command_prefix}/IntakeDeploy', Intake_Deploy(intake=self.intake, position='down'))
+        dashboard.SmartDashboard.put_data(f'{command_prefix}/IntakeShoot', Intake_Deploy(intake=self.intake, position='shoot'))
+        dashboard.SmartDashboard.put_data(f'{command_prefix}/IntakeOn', Intake_Set_RPM(intake=self.intake, rpm=3000, led=self.led))
+        dashboard.SmartDashboard.put_data(f'{command_prefix}/IntakeOff', Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
+        dashboard.SmartDashboard.put_data(f'{command_prefix}/IntakeReverse', Intake_Set_RPM(intake=self.intake, rpm=-500, led=self.led))
+        dashboard.SmartDashboard.put_data(f'{command_prefix}/IntakeBrake', InstantCommand(lambda: self.intake.set_brake_mode(brake_on=True)).ignoring_disable(True))
+        dashboard.SmartDashboard.put_data(f'{command_prefix}/IntakeIdle', InstantCommand(lambda: self.intake.set_brake_mode(brake_on=False)).ignoring_disable(True))
+        dashboard.SmartDashboard.put_data(f'{command_prefix}/IntakeCalStow',InstantCommand(lambda: self.intake.set_angle_max()).ignoring_disable(True))
+        dashboard.SmartDashboard.put_data(f'{command_prefix}/IntakeCalZero',InstantCommand(lambda: self.intake.zero_intake()).ignoring_disable(True))
         # ---
-        wpilib.SmartDashboard.putData(f'{command_prefix}/HopperOn', InstantCommand(lambda: self.shooter.set_hopper_rpm(constants.ShooterConstants.k_hopper_rpm)))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/HopperOff',InstantCommand(lambda: self.shooter.stop_hopper()))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/HopperReverse', InstantCommand(lambda: self.shooter.set_hopper_rpm(-500)))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/IndexerOn', InstantCommand(lambda: self.shooter.set_indexer_rpm(constants.ShooterConstants.k_indexer_rpm)))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/IndexerOff', InstantCommand(lambda: self.shooter.stop_indexer()))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/IndexerReverse', InstantCommand(lambda: self.shooter.set_indexer_rpm(-500)))
+        dashboard.SmartDashboard.put_data(f'{command_prefix}/HopperOn', InstantCommand(lambda: self.shooter.set_hopper_rpm(constants.ShooterConstants.k_hopper_rpm)))
+        dashboard.SmartDashboard.put_data(f'{command_prefix}/HopperOff',InstantCommand(lambda: self.shooter.stop_hopper()))
+        dashboard.SmartDashboard.put_data(f'{command_prefix}/HopperReverse', InstantCommand(lambda: self.shooter.set_hopper_rpm(-500)))
+        dashboard.SmartDashboard.put_data(f'{command_prefix}/IndexerOn', InstantCommand(lambda: self.shooter.set_indexer_rpm(constants.ShooterConstants.k_indexer_rpm)))
+        dashboard.SmartDashboard.put_data(f'{command_prefix}/IndexerOff', InstantCommand(lambda: self.shooter.stop_indexer()))
+        dashboard.SmartDashboard.put_data(f'{command_prefix}/IndexerReverse', InstantCommand(lambda: self.shooter.set_indexer_rpm(-500)))
         # ---
-        wpilib.SmartDashboard.putData(f'{command_prefix}/ShooterOn', InstantCommand(lambda: self.shooter.set_shooter_rpm(constants.ShooterConstants.k_shooter_test_speed)))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/ShooterOff', StopShooter(shooter=self.shooter))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/ShooterReverse', InstantCommand(lambda: self.shooter.set_shooter_rpm(-500)))
+        dashboard.SmartDashboard.put_data(f'{command_prefix}/ShooterOn', InstantCommand(lambda: self.shooter.set_shooter_rpm(constants.ShooterConstants.k_shooter_test_speed)))
+        dashboard.SmartDashboard.put_data(f'{command_prefix}/ShooterOff', StopShooter(shooter=self.shooter))
+        dashboard.SmartDashboard.put_data(f'{command_prefix}/ShooterReverse', InstantCommand(lambda: self.shooter.set_shooter_rpm(-500)))
 
         # commands for pyqt dashboard - please do not remove
         COMMAND_LIST = [CANStatus(container=self),
                         ResetFieldCentric(container=self, swerve=self.swerve, angle=0)]
         for cmd in COMMAND_LIST:
-            wpilib.SmartDashboard.putData(f'{command_prefix}/{cmd.getName()}', cmd)
-        #wpilib.SmartDashboard.putData(f'{command_prefix}/CANStatus', CANStatus(container=self))
+            dashboard.SmartDashboard.put_data(f'{command_prefix}/{cmd.get_name()}', cmd)
+        #dashboard.SmartDashboard.putData(f'{command_prefix}/CANStatus', CANStatus(container=self))
 
         # You can and should use the exact same list of commands in the gui to watch for
         # These are left in to demonstrate a complete UI - the real one will be full of Commands (python classes), not strings
@@ -431,77 +433,77 @@ class RobotContainer:
             # because that's what `cmd` is when the loop finishes.
             # By setting `cmd=cmd` as a default argument, we force the lambda to capture
             # the *current* value of `cmd` during each iteration of the loop.
-            wpilib.SmartDashboard.putData(f'{command_prefix}/{cmd}', InstantCommand(lambda cmd=cmd: print(f'Called {cmd} at {wpilib.Timer.getTimestamp():.1f}s'))
-                                          .alongWith(commands2.WaitCommand(2)).ignoringDisable(True))
+            dashboard.SmartDashboard.put_data(f'{command_prefix}/{cmd}', InstantCommand(lambda cmd=cmd: print(f'Called {cmd} at {wpilib.Timer.get_timestamp():.1f}s'))
+                                          .along_with(commands2.WaitCommand(2)).ignoring_disable(True))
 
         # end pyqt dashboard section
 
         # quick way to test all scoring positions from dashboard
-        self.score_test_chooser = wpilib.SendableChooser()
-        [self.score_test_chooser.addOption(key, value) for key, value in self.robot_state.states_dict.items()]  # add all the indicators
-        self.score_test_chooser.onChange(
+        self.score_test_chooser = Selectable()
+        [self.score_test_chooser.add(key, value) for key, value in self.robot_state.states_dict.items()]  # add all the indicators
+        self.score_test_chooser.on_change(
             # `setattr` is the programmatic way to set an attribute. It's equivalent to
             # `self.robot_state.target = selected_value`, but can be used inside a lambda.
-            listener=lambda selected_value: commands2.CommandScheduler.getInstance().schedule(
-                commands2.cmd.runOnce(lambda: setattr(self.robot_state, 'target', selected_value))))
-        wpilib.SmartDashboard.putData(f'{command_prefix}/RobotScoringMode', self.score_test_chooser)
+            listener=lambda selected_value: commands2.CommandScheduler.get_instance().schedule(
+                commands2.cmd.run_once(lambda: setattr(self.robot_state, 'target', selected_value))))
+        dashboard.SmartDashboard.put_data(f'{command_prefix}/RobotScoringMode', self.score_test_chooser)
 
         # ----------  AUTONOMOUS CHOOSER SECTION  ---------------
         # self.auto_chooser = AutoBuilder.buildAutoChooser('')  # this loops through the path planner deploy directory - must exist 
-        self.inst = ntcore.NetworkTableInstance.getDefault()
-        self.auto_delay_entry = self.inst.getDoubleTopic(f"{constants.auto_prefix}/auto_delay").getEntry(0.0)
+        self.inst = ntcore.NetworkTableInstance.get_default()
+        self.auto_delay_entry = self.inst.get_double_topic(f"{constants.auto_prefix}/auto_delay").get_entry(0.0)
         # Publish a default so it shows up on the dashboard immediately
-        self.auto_pub = self.inst.getDoubleTopic(f"{constants.auto_prefix}/auto_delay").publish()
+        self.auto_pub = self.inst.get_double_topic(f"{constants.auto_prefix}/auto_delay").publish()
         self.auto_pub.set(0)  # set an initial value so it shows up on the dashboard
-        self.auto_chooser = wpilib.SendableChooser()  #  use this if you don't have any pathplanner autos defined
-        self.auto_chooser.addOption('1:  Wait *CODE*', PrintCommand("** Running wait auto **").andThen(commands2.WaitCommand(ac.k_auto_duration)))
+        self.auto_chooser = Selectable()  #  use this if you don't have any pathplanner autos defined
+        self.auto_chooser.add('1:  Wait *CODE*', PrintCommand("** Running wait auto **").and_then(commands2.WaitCommand(ac.k_auto_duration)))
         # self.auto_chooser.addOption('2a: Drive 2s Straight *CODE*',
         #                             PrintCommand("** Running drive by velocity swerve leave auto **").
         #                             andThen(DriveByVelocitySwerve(self, self.swerve, Pose2d(0.1, 0, 0), 2)))
         # self.auto_chooser.addOption('2b: Drive 2s To Driver Station *CODE*',
         #                             PrintCommand("** Running drive by velocity swerve leave auto **").
         #                             andThen(DriveByVelocitySwerve(self, self.swerve, Pose2d(0.1, 0, 0), 2.5, field_relative=True)))
-        self.auto_chooser.addOption('2a: Auto Shoot *CODE*', AutoShootingGroup(self, indent=0))
-        self.auto_chooser.addOption('2b: Center Back *CODE*', PathingCenterBack(self, indent=0))
-        self.auto_chooser.addOption('2c: Center to Outpost*CODE*', PathingCenterOutpost(self, indent=0))
+        self.auto_chooser.add('2a: Auto Shoot *CODE*', AutoShootingGroup(self, indent=0))
+        self.auto_chooser.add('2b: Center Back *CODE*', PathingCenterBack(self, indent=0))
+        self.auto_chooser.add('2c: Center to Outpost*CODE*', PathingCenterOutpost(self, indent=0))
         # self.auto_chooser.addOption('3b: Auto Shoot and Move *CODE*', AutoShootAndPickup(self, indent=0))
         # self.auto_chooser.addOption('2d: Two Cycles *CODE*', TwoCycle(self, indent=0))
         # self.auto_chooser.addOption('3a: FSF Bump *CODE*', FillShootFillBump(self, indent=0))
         # self.auto_chooser.setDefaultOption('3b: FSFS Bump *CODE*', FillShootFillShootBump(self, indent=0))
-        self.auto_chooser.addOption('3a: FSFS Bump to Bump *CODE*', PathingFSFSBumptoBump(self, indent=0))
-        self.auto_chooser.addOption('3b: FSFS Trench to Bump *CODE*', PathingFSFSTrenchtoBump(self, indent=0))
-        self.auto_chooser.addOption('3c: FSFS Trench to Trench *CODE*', PathingFSFSTrenchtoTrench(self, indent=0))
+        self.auto_chooser.add('3a: FSFS Bump to Bump *CODE*', PathingFSFSBumptoBump(self, indent=0))
+        self.auto_chooser.add('3b: FSFS Trench to Bump *CODE*', PathingFSFSTrenchtoBump(self, indent=0))
+        self.auto_chooser.add('3c: FSFS Trench to Trench *CODE*', PathingFSFSTrenchtoTrench(self, indent=0))
         # self.auto_chooser.addOption('4a: Intake Depot or Outpost Shoot *CODE*', DepotOrOutpostAndShoot(self, indent=0))
-        self.auto_chooser.addOption('4a: Drawing Auto *CODE*', DrawingAuto(self, indent=0))
-        self.auto_chooser.addOption('4b: Right Bump Cycle *CODE*', RightBumpCycle(self, indent=0))
+        self.auto_chooser.add('4a: Drawing Auto *CODE*', DrawingAuto(self, indent=0))
+        self.auto_chooser.add('4b: Right Bump Cycle *CODE*', RightBumpCycle(self, indent=0))
 
-        self.auto_chooser.setDefaultOption('4b: Short Bump Auto *CODE*', ShortBump(self, indent=0))
+        self.auto_chooser.add_default('4b: Short Bump Auto *CODE*', ShortBump(self, indent=0))
 
-        wpilib.SmartDashboard.putData('autonomous routines', self.auto_chooser)  #
+        dashboard.SmartDashboard.put_data('autonomous routines', self.auto_chooser)  #
 
     def register_commands(self):
         # ----------  PATHPLANNER COMMANDS  ---------------
         # this is for PathPlanner, so it can call our commands.  Note they do not magically show up in pathplanner
         # you have to add them there, and then it remembers your list of commands.  so name them wisely
-        NamedCommands.registerCommand('deploy_and_start_intake', Intake_Deploy(intake=self.intake, position='down').andThen(
+        NamedCommands.registerCommand('deploy_and_start_intake', Intake_Deploy(intake=self.intake, position='down').and_then(
                 Intake_Set_RPM(intake=self.intake, rpm=2500, led=self.led)
             )
         )
         NamedCommands.registerCommand('start_shooter_nothing_else', InstantCommand(lambda: self.shooter.set_shooter_rpm(sc.k_fire_up_speed)))
         NamedCommands.registerCommand('shooting_command', ShootingCommand(shooter=self.shooter, targeting=self.targeting))
         NamedCommands.registerCommand('hello', commands2.PrintCommand("hello!"))
-        NamedCommands.registerCommand("wait_then_intake", commands2.WaitCommand(ac.k_intake_deploy_delay_bump).andThen(
-            Intake_Deploy(intake=self.intake, position='down').andThen(
+        NamedCommands.registerCommand("wait_then_intake", commands2.WaitCommand(ac.k_intake_deploy_delay_bump).and_then(
+            Intake_Deploy(intake=self.intake, position='down').and_then(
                 Intake_Set_RPM(intake=self.intake, rpm=2500, led=self.led)
             )
         ))  # Trentan - Testing a way to get all paths to have a delay before deploying which can be changed with one constant
         NamedCommands.registerCommand("x_mode", SwerveSetX(container=self, swerve=self.swerve))
-        NamedCommands.registerCommand("stow_intake", Intake_Deploy(intake=self.intake, position='up').andThen(
+        NamedCommands.registerCommand("stow_intake", Intake_Deploy(intake=self.intake, position='up').and_then(
             Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)
         ))
         
     def get_autonomous_command(self):
-        cmd = self.auto_chooser.getSelected()
+        cmd = self.auto_chooser.get_selected()
         delay = self.auto_delay_entry.get()
 
         # Remember WHICH command we handed out.  teleopInit has to cancel the auto that actually
@@ -513,9 +515,9 @@ class RobotContainer:
         if delay > 0.0:
             # Schedule the command independently to avoid composition ownership crashes
             # when running Auto multiple times!
-            print(f"** Started {cmd.getName()} with delay of {delay} **")
-            return commands2.WaitCommand(delay).andThen(
+            print(f"** Started {cmd.get_name()} with delay of {delay} **")
+            return commands2.WaitCommand(delay).and_then(
                 InstantCommand(lambda: cmd.schedule())
             )
-        print(f"** Started {cmd.getName()} with no delay**")
+        print(f"** Started {cmd.get_name()} with no delay**")
         return cmd

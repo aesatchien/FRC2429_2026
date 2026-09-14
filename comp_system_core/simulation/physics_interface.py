@@ -44,6 +44,7 @@ import typing
 
 import wpilib
 from wpimath import ChassisVelocities, Pose2d, Transform2d, Twist2d
+from helpers import dashboard
 
 
 class PhysicsInterface:
@@ -52,7 +53,7 @@ class PhysicsInterface:
     def __init__(self, publish: bool = False):
         self.field = wpilib.Field2d()
         if publish:
-            wpilib.SmartDashboard.putData("Field", self.field)
+            dashboard.SmartDashboard.put_data("Field", self.field)
 
     def drive(self, speeds: ChassisVelocities, tm_diff: float) -> Pose2d:
         """Integrate chassis velocities over tm_diff and move the ground truth pose."""
@@ -64,19 +65,19 @@ class PhysicsInterface:
             dy=speeds.vy * tm_diff,
             dtheta=speeds.omega * tm_diff,
         )
-        pose = self.field.getRobotPose().transformBy(twist.exp())
-        self.field.setRobotPose(pose)
+        pose = self.field.get_robot_pose().transform_by(twist.exp())
+        self.field.set_robot_pose(pose)
         return pose
 
     def move_robot(self, transform: Transform2d) -> Pose2d:
         """Move the ground truth pose by a relative transform."""
-        pose = self.field.getRobotPose() + transform
-        self.field.setRobotPose(pose)
+        pose = self.field.get_robot_pose() + transform
+        self.field.set_robot_pose(pose)
         return pose
 
     def get_pose(self) -> Pose2d:
         """The ground truth pose - what the robot is ACTUALLY doing, not what odometry thinks."""
-        return self.field.getRobotPose()
+        return self.field.get_robot_pose()
 
 
 class PhysicsEngineHost:
@@ -93,7 +94,7 @@ class PhysicsEngineHost:
         self.last_tm: typing.Optional[float] = None
 
     def update(self) -> None:
-        now = wpilib.Timer.getTimestamp()
+        now = wpilib.Timer.get_timestamp()
         if self.last_tm is None:
             # Skip the first call: there is no previous timestamp to difference against, and
             # pyfrc skipped it too.  Handing update_sim a tm_diff of 0 divides by zero in

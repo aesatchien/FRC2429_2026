@@ -1,7 +1,7 @@
 import math
 from pathlib import Path
 
-import robotpy_apriltag
+from helpers.apriltag_layout import AprilTagFieldLayout  # 2027a7 removed robotpy's
 import wpilib
 from wpimath import Pose2d, Rotation2d, Translation2d
 
@@ -10,21 +10,21 @@ from constants import FieldConstants as fc, AutoConstants as cac
 
 # This data is initialized once when the module is first imported.
 # TODO -  robotpy_apriltag has no k2026RebuiltWelded field yet, so we ship the layout ourselves - 20260118 CJH
-#layout = robotpy_apriltag.AprilTagFieldLayout.loadField(robotpy_apriltag.AprilTagField.k2026RebuiltWelded)
+#layout = AprilTagFieldLayout.loadField(robotpy_apriltag.AprilTagField.k2026RebuiltWelded)
 # Resolve relative to this file, not the working directory.  The old version hardcoded
 # '2026-rebuilt-welded_json' (sim, CWD-relative) and '/home/lvuser/py/...' (robot); either one
 # going stale is an ImportError at module scope, which takes down the whole robot program.
 k_tag_layout_file = Path(__file__).resolve().parent.parent / '2026-rebuilt-welded_json'
-layout = robotpy_apriltag.AprilTagFieldLayout(str(k_tag_layout_file))
+layout = AprilTagFieldLayout(str(k_tag_layout_file))
 
 
 # Pre-calculate tag positions for plotting or other uses
-tag_positions = {tag_id: layout.getTagPose(tag_id).translation().toTranslation2d()
-                 for tag_id in range(17, 23) if layout.getTagPose(tag_id) is not None}
+tag_positions = {tag_id: layout.get_tag_pose(tag_id).translation().to_translation2d()
+                 for tag_id in range(17, 23) if layout.get_tag_pose(tag_id) is not None}
 
 def get_tag_distance(tag_id, current_pose):
     """ Return the distance from the current pose to the given tag ID """
-    tag_pose = layout.getTagPose(tag_id).toPose2d()
+    tag_pose = layout.get_tag_pose(tag_id).to_pose2d()
     distance = current_pose.translation().distance(tag_pose.translation())
     return distance
 
@@ -33,17 +33,17 @@ def auto_reflect_pose(robot_pose:Pose2d, goal_pose:Pose2d, alliance, is_shooting
     if alliance == wpilib.Alliance.RED:
         # x and theta for lower half red
         theta = math.pi - goal_pose.rotation().radians()
-        x = fc.k_field_length - goal_pose.X()
+        x = fc.k_field_length - goal_pose.x
     else:
         # x and theta for lower half blue
         theta = goal_pose.rotation().radians()
-        x = goal_pose.X()
+        x = goal_pose.x
 
     # reflect y about the center if we're on the top half of the field
-    y = fc.k_field_width - goal_pose.Y() if robot_pose.Y() > fc.k_field_width / 2 else goal_pose.Y()
+    y = fc.k_field_width - goal_pose.y if robot_pose.y > fc.k_field_width / 2 else goal_pose.y
 
     # for a shooting pose, flip theta if we're on the top half of the field, so we face the hub
-    if is_shooting and robot_pose.Y() > fc.k_field_width / 2:
+    if is_shooting and robot_pose.y > fc.k_field_width / 2:
         theta = -theta
 
     # print(f"pose.Y =={pose.Y():.1f}")
@@ -56,8 +56,8 @@ def get_nearest_tag(current_pose: Pose2d, tags: list[int]) -> int:
     Callers pass the tag list explicitly.  The 2025 version took a `destination` string
     and looked the list up internally, which meant every new destination needed an edit here.
     """
-    poses = {tag: layout.getTagPose(tag) for tag in tags}
-    valid = {tag: pose.toPose2d() for tag, pose in poses.items() if pose is not None}
+    poses = {tag: layout.get_tag_pose(tag) for tag in tags}
+    valid = {tag: pose.to_pose2d() for tag, pose in poses.items() if pose is not None}
     if not valid:
         raise ValueError(f'none of the tags {tags} exist in the {k_tag_layout_file.name} layout')
 
@@ -76,9 +76,9 @@ def mirror_for_alliance(pose: Pose2d, alliance=None) -> Pose2d:
     play about the field's horizontal centerline so the same auto works top or bottom.
     """
     if alliance is None:
-        alliance = wpilib.MatchState.getAlliance()
+        alliance = wpilib.MatchState.get_alliance()
     if alliance != wpilib.Alliance.RED:
         return pose
 
     field_center = Translation2d(fc.k_field_length / 2, fc.k_field_width / 2)
-    return pose.rotateAround(point=field_center, rot=Rotation2d(math.pi))
+    return pose.rotate_around(point=field_center, rot=Rotation2d(math.pi))

@@ -2,17 +2,38 @@
 
 import typing
 import wpilib
+
+# MUST come before anything that imports phoenix6 (motors.py -> TalonFX).  phoenix6
+# 26.50.0a1 is still written against the camelCase WPILib API that a7 renamed.
+from helpers import phoenix6_compat  # noqa: F401  (import for side effect)
 import commands2
 import constants
 from constants import IntakeConstants as ic
-from wpimath.units import inchesToMeters
+from wpimath.units import inches_to_meters
 
-from helpers import log_command
+from helpers import dashboard, log_command
 from robotcontainer import RobotContainer
 from subsystems.led import Led  # allows indexing of LED colors
 from simulation.blockhead_mech import BlockheadMech
 
-wpilib.DriverStationBackend.silenceJoystickConnectionWarning(True)
+# 2027a7: register the telemetry/tunable backends BEFORE anything publishes.  Without this
+# every log() goes to a DiscardTelemetryBackend - it does not raise, it just throws the value
+# away after one "no backend for path" warning, and the whole dashboard comes up empty.
+# RobotContainer publishes in its constructor, so this has to happen at import time.
+dashboard.install()
+
+# Kept muted: with controllers unplugged this warns every loop for every input and buries
+# everything else in the console.
+#
+# But know what you are giving up.  This ALSO hides "Joystick POV 0 on port 5 not available"
+# and the Button/Axis equivalents - the only signal WPILib gives that the DS is not reporting
+# an input your code reads.  That is exactly how the dead D-pad went unnoticed.
+# constants.k_debug_gamepads prints the same facts once a second instead (see
+# report_gamepads below), which is the readable way to get them.
+#
+# 2027a7 renamed this warning -> alert: silenceJoystickConnectionWarning is gone and the
+# replacement is silence_joystick_connection_alert.
+wpilib.DriverStationBackend.silence_joystick_connection_alert(True)
 
 
 class MyRobot(commands2.TimedCommandRobot):
@@ -39,18 +60,21 @@ class MyRobot(commands2.TimedCommandRobot):
         self.mech = BlockheadMech()
 
 
-    def disabledInit(self) -> None:
+    def disabled_init(self) -> None:
         """This function is called once each time the robot enters Disabled mode."""
         self.disabled_counter = 1
         # self.container.swerve.use_photoncam = True
 
-    def disabledPeriodic(self) -> None:
+    def disabled_periodic(self) -> None:
         """This function is called periodically when disabled"""
+        if constants.k_debug_gamepads and self.disabled_counter % 50 == 0:
+            self.report_gamepads()
+
         if self.disabled_counter % 100 == 0:
             # set the LEDs
             # if wpilib.RobotState.isFMSAttached():
-            alliance_color = wpilib.MatchState.getAlliance()
-            is_connected = wpilib.RobotState.isFMSAttached() or wpilib.RobotState.isDSAttached()
+            alliance_color = wpilib.MatchState.get_alliance()
+            is_connected = wpilib.RobotState.is_fms_attached() or wpilib.RobotState.is_ds_attached()
             # print(f'color is {alliance_color}, connected is {is_connected}')
             if alliance_color is not None and is_connected:
                 if alliance_color == wpilib.Alliance.RED:
@@ -67,16 +91,16 @@ class MyRobot(commands2.TimedCommandRobot):
             # check on the questnav - auto synch it if we have been up more than 10s and have not synched yet
             # but attempt to see if we have a good starting tag (logitech reef)
             # TODO: make this robust - arducam right is index 0, not 1
-            if ( wpilib.Timer.getTimestamp() > 10 and
+            if ( wpilib.Timer.get_timestamp() > 10 and
                     not self.container.questnav.quest_has_synched and
                     (self.container.swerve.count_subscribers[0]).get() > 0):
                 self.container.swerve.questnav.quest_sync_odometry()  # this will mark that we have synched
-            if wpilib.RobotBase.isReal() or wpilib.RobotBase.isSimulation():  # redundant to show we covered both cases
+            if wpilib.RobotBase.is_real() or wpilib.RobotBase.is_simulation():  # redundant to show we covered both cases
                 pass
                 # print(f"quest sync:{self.container.questnav.quest_has_synched} logitech tag count is:{self.container.swerve.count_subscribers[3].get()} at {self.container.timer.get():.1f}s")
         self.disabled_counter += 1
 
-    def autonomousInit(self) -> None:
+    def autonomous_init(self) -> None:
         """This autonomous runs the autonomous command selected by your RobotContainer class."""
 
         # Reset the timer used by the @log_command decorator.
@@ -88,10 +112,10 @@ class MyRobot(commands2.TimedCommandRobot):
         if self.autonomousCommand:
             self.autonomousCommand.schedule()
 
-    def autonomousPeriodic(self) -> None:
+    def autonomous_periodic(self) -> None:
         """This function is called periodically during autonomous"""
 
-    def teleopInit(self) -> None:
+    def teleop_init(self) -> None:
 
         # Reset the timer used by the @log_command decorator.
         # This ensures that command logs start at 0.0s for the beginning of Teleop.
@@ -118,7 +142,7 @@ class MyRobot(commands2.TimedCommandRobot):
             
         self.stationary_counter = 0
 
-    def teleopPeriodic(self) -> None:
+    def teleop_periodic(self) -> None:
         """This function is called periodically during operator control"""
 
         # Auto-resync QuestNav if it drops during teleop (e.g., from a passthrough bump)
@@ -140,9 +164,45 @@ class MyRobot(commands2.TimedCommandRobot):
                 
             # Wait 0.5 seconds (25 loops) of being stationary with a tag in view to let the pose settle
             if self.stationary_counter > 25:  
-                print(f"*** Auto-resyncing QuestNav in Teleop at {wpilib.Timer.getTimestamp():.1f}s ***")
+                print(f"*** Auto-resyncing QuestNav in Teleop at {wpilib.Timer.get_timestamp():.1f}s ***")
                 self.container.questnav.quest_sync_odometry()
                 self.stationary_counter = 0  # reset so we don't spam if headset isn't fully awake yet
+
+    def report_gamepads(self) -> None:
+        """What the Driver Station ACTUALLY reports for each controller.
+
+        WPILib reads of an input the DS does not report do not raise - they return a falsy
+        default forever (getPOV() -> POVDirection.CENTER, getRawButton() -> False).  So a
+        control that "does nothing" looks identical to a control you never bound.  This
+        prints the DS's own view so you can tell the difference.
+
+        The line that matters for the D-pad is POVs=0: SystemCore reports no POV hat at all,
+        which is why anything built on pov()/povUp() is dead on the robot even though it
+        works in simulation, where the sim has to be told the hat exists.  The D-pad comes
+        in as buttons instead - see the block at the top of helpers/joysticks.py.
+        """
+        from wpilib import DriverStationBackend as dsb
+        from helpers import joysticks as js
+
+        for label, port, pad in (
+                ("driver ", constants.k_driver_controller_port, js.driver_controller.get_hid()),
+                ("copilot", constants.k_co_driver_controller_port, js.copilot_controller.get_hid()),
+                ("ps     ", constants.k_ps5_controller_port, js.play_station_controller.get_hid())):
+            if not dsb.is_joystick_connected(port):
+                print(f"[pads] {label} port {port}: NOT CONNECTED")
+                continue
+            # getStick*Available() return a BITMASK of which indices the DS reports, not a
+            # count - 6 axes reads as 63 (0b111111).  Popcount them or the numbers lie.
+            povs = dsb.get_stick_povs_available(port)
+            buttons = dsb.get_stick_buttons_available(port)
+            axes = dsb.get_stick_axes_available(port)
+            print(f"[pads] {label} port {port}: name={dsb.get_joystick_name(port)!r} "
+                  f"gamepad={dsb.get_joystick_is_gamepad(port)} type={dsb.get_joystick_gamepad_type(port)} "
+                  f"| POVs={bin(povs).count('1')} "
+                  f"buttons={bin(buttons).count('1')} (mask {buttons:#x}) "
+                  f"axes={bin(axes).count('1')} "
+                  f"| dpad U{int(pad.get_dpad_up_button())} D{int(pad.get_dpad_down_button())} "
+                  f"L{int(pad.get_dpad_left_button())} R{int(pad.get_dpad_right_button())}")
 
     # ----------------------------- simulation -----------------------------
     # 2027 moved `robotpy sim` out of pyfrc and into wpilib core, and the core version has
@@ -151,29 +211,34 @@ class MyRobot(commands2.TimedCommandRobot):
     # simulationInit() once at startup, simulationPeriodic() every loop immediately after
     # robotPeriodic().  Verified in sim on 2027.0.0a6.post1.  Neither runs on the real
     # robot, so none of this needs an isSimulation() guard.
-    def simulationInit(self) -> None:
+    def simulation_init(self) -> None:
         from simulation.physics_interface import PhysicsEngineHost
         self.physics_host = PhysicsEngineHost(self)
 
-    def simulationPeriodic(self) -> None:
+    def simulation_periodic(self) -> None:
         self.physics_host.update()
 
-    def utilityInit(self) -> None:
+    def utility_init(self) -> None:
         # 2027: test mode was renamed to utility mode - testInit/testPeriodic/testExit are
         # now utilityInit/utilityPeriodic/utilityExit.  Same silent failure as robotInit:
         # a leftover testInit() is simply never called.
         # Cancels all running commands at the start of utility mode
-        commands2.CommandScheduler.getInstance().cancelAll()
+        commands2.CommandScheduler.get_instance().cancel_all()
 
-    def robotPeriodic(self) -> None:
+    def robot_periodic(self) -> None:
         # commented out 2025 0305 CJH - this should never have been in here
 
-        super().robotPeriodic()
+        super().robot_periodic()
+
+        # 2027a7: pump the tunables.  Without this, values only ever flow OUT to the
+        # dashboard - the auto chooser selection and every dashboard command button would
+        # be written by the driver station and silently never read back by the robot.
+        dashboard.update()
 
         # Update Mechanism2d visualization (works on Real Robot and Sim)
         if self.mech:
             # Intake
-            if wpilib.RobotState.isDisabled() == False:
+            if wpilib.RobotState.is_disabled() == False:
                 self.mech.update_intake(angle=self.container.intake.get_profile_setpoint(),
                                     rpm=self.container.intake.current_rpm if self.container.intake.intake_on else 0)
             else:
@@ -195,8 +260,8 @@ class MyRobot(commands2.TimedCommandRobot):
 
             # Climber & Ball
             if hasattr(self.container, 'climber'):
-                self.mech.update_climber(height_from_ground=inchesToMeters(self.container.climber.get_pos()))
-            self.mech.update_ball(inchesToMeters(45), inchesToMeters(2))
+                self.mech.update_climber(height_from_ground=inches_to_meters(self.container.climber.get_pos()))
+            self.mech.update_ball(inches_to_meters(45), inches_to_meters(2))
 
 
 if __name__ == "__main__":

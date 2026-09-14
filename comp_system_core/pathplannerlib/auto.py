@@ -10,13 +10,14 @@ from .util import FlippingUtil, DriveFeedforwards
 from .controller import PathFollowingController
 from .events import EventTrigger, PointTowardsZoneTrigger
 import os
-from wpilib import getDeployDirectory, reportError, reportWarning, SendableChooser, Timer
+from wpilib import get_deploy_directory, report_error, report_warning, Timer
+from tunables import Selectable  # 2027a7: wpilib.SendableChooser was removed
 import json
 from commands2.command import Command
 from commands2.subsystem import Subsystem
 from commands2.button import Trigger
 from .config import RobotConfig
-from hal import reportUsage
+from hal import report_usage
 
 
 class NamedCommands:
@@ -74,8 +75,8 @@ class CommandUtil:
             lambda: event_command.initialize(),
             lambda: event_command.execute(),
             lambda interupted: event_command.end(interupted),
-            lambda: event_command.isFinished(),
-            *event_command.getRequirements()
+            lambda: event_command.is_finished(),
+            *event_command.get_requirements()
         )
 
     @staticmethod
@@ -113,9 +114,9 @@ class CommandUtil:
         waitJson = data_json['waitTime']
         if waitJson is dict:
             # Choreo expression
-            return cmd.waitSeconds(float(waitJson['val']))
+            return cmd.wait_seconds(float(waitJson['val']))
         else:
-            return cmd.waitSeconds(float(waitJson))
+            return cmd.wait_seconds(float(waitJson))
 
     @staticmethod
     def _namedCommandFromData(data_json: dict) -> Command:
@@ -176,7 +177,7 @@ class PathPlannerAuto(Command):
         if not AutoBuilder.isConfigured():
             raise RuntimeError('AutoBuilder was not configured before attempting to load a PathPlannerAuto from file')
 
-        filePath = os.path.join(getDeployDirectory(), 'pathplanner', 'autos', auto_name + '.auto')
+        filePath = os.path.join(get_deploy_directory(), 'pathplanner', 'autos', auto_name + '.auto')
 
         with open(filePath, 'r') as f:
             auto_json = json.loads(f.read())
@@ -191,14 +192,14 @@ class PathPlannerAuto(Command):
 
             self._initFromJson(auto_json, mirror)
 
-        self.addRequirements(*self._autoCommand.getRequirements())
-        self.setName(auto_name)
+        self.add_requirements(*self._autoCommand.get_requirements())
+        self.set_name(auto_name)
 
         self._autoLoop = EventLoop()
         self.timer = Timer()
 
         PathPlannerAuto._instances += 1
-        reportUsage("PathPlanner/PathPlannerAuto", PathPlannerAuto._instances, "")
+        report_usage("PathPlanner/PathPlannerAuto", PathPlannerAuto._instances, "")
 
     def _initFromJson(self, auto_json: dict, mirror: bool):
         commandJson = auto_json['command']
@@ -211,7 +212,7 @@ class PathPlannerAuto(Command):
             if mirror:
                 path0 = path0.mirrorPath()
             if AutoBuilder.isHolonomic():
-                self._startingPose = Pose2d(path0.getPoint(0).position,
+                self._startingPose = Pose2d(path0.get_point(0).position,
                                             path0.getIdealStartingState().rotation)
             else:
                 self._startingPose = path0.getStartingDifferentialPose()
@@ -249,7 +250,7 @@ class PathPlannerAuto(Command):
         :param auto_name: Name of the auto to get the path group from
         :return: List of paths in the auto
         """
-        filePath = os.path.join(getDeployDirectory(), 'pathplanner', 'autos', auto_name + '.auto')
+        filePath = os.path.join(get_deploy_directory(), 'pathplanner', 'autos', auto_name + '.auto')
 
         with open(filePath, 'r') as f:
             auto_json = json.loads(f.read())
@@ -269,8 +270,8 @@ class PathPlannerAuto(Command):
 
         self._autoLoop.poll()
 
-    def isFinished(self) -> bool:
-        return self._autoCommand.isFinished()
+    def is_finished(self) -> bool:
+        return self._autoCommand.is_finished()
 
     def end(self, interrupted: bool):
         self._autoCommand.end(interrupted)
@@ -289,7 +290,7 @@ class PathPlannerAuto(Command):
         """
         return Trigger(self._autoLoop, condition)
 
-    def isRunning(self) -> Trigger:
+    def is_running(self) -> Trigger:
         """
         Create a trigger that is high when this auto is running, and low when it is not running
 
@@ -650,7 +651,7 @@ class AutoBuilder:
         :param bluePose: The pose to reset to, relative to blue alliance origin
         :return: Command to reset the robot's odometry
         """
-        return cmd.runOnce(lambda: AutoBuilder._resetPose(
+        return cmd.run_once(lambda: AutoBuilder._resetPose(
             FlippingUtil.flipFieldPose(bluePose) if AutoBuilder._shouldFlipPath() else bluePose))
 
     @staticmethod
@@ -664,7 +665,7 @@ class AutoBuilder:
         return PathPlannerAuto(auto_name)
 
     @staticmethod
-    def buildAutoChooser(default_auto_name: str = "") -> SendableChooser:
+    def buildAutoChooser(default_auto_name: str = "") -> Selectable:
         """
         Create and populate a sendable chooser with all PathPlannerAutos in the project and the default auto name selected.
         
@@ -673,21 +674,21 @@ class AutoBuilder:
         """
         if not AutoBuilder.isConfigured():
             raise RuntimeError('AutoBuilder was not configured before attempting to build an auto chooser')
-        auto_folder_path = os.path.join(getDeployDirectory(), 'pathplanner', 'autos')
+        auto_folder_path = os.path.join(get_deploy_directory(), 'pathplanner', 'autos')
         auto_list = os.listdir(auto_folder_path)
 
-        chooser = SendableChooser()
+        chooser = Selectable()
         default_auto_added = False
 
         for auto in auto_list:
             auto = auto.removesuffix(".auto")
             if auto == default_auto_name:
                 default_auto_added = True
-                chooser.setDefaultOption(auto, AutoBuilder.buildAuto(auto))
+                chooser.add_default(auto, AutoBuilder.buildAuto(auto))
             else:
-                chooser.addOption(auto, AutoBuilder.buildAuto(auto))
+                chooser.add(auto, AutoBuilder.buildAuto(auto))
         if not default_auto_added:
-            chooser.setDefaultOption("None", cmd.none())
+            chooser.add_default("None", cmd.none())
         else:
-            chooser.addOption("None", cmd.none())
+            chooser.add("None", cmd.none())
         return chooser

@@ -2,7 +2,8 @@ import commands2
 import commands
 from rev import SparkMax
 import wpilib
-from wpilib import SmartDashboard, Timer
+from wpilib import Timer
+from helpers.dashboard import SmartDashboard  # 2027a7: wpilib's was removed
 
 from subsystems.climber import Climber
 import math
@@ -18,7 +19,7 @@ class RobotClimb(commands2.Command):
     def __init__(self, climber: Climber, move_up=False, indent=0) -> None:
 
         super().__init__()
-        self.setName('Robot_Climb')
+        self.set_name('Robot_Climb')
         self.indent = indent
         self.climber = climber
         self.move_up = move_up  # if false, move down, if true, move up
@@ -37,7 +38,7 @@ class RobotClimb(commands2.Command):
         # calls the move_climber method from climber subsystem
         self.climber.move_climber(increment=self.move_up)
 
-    def isFinished(self) -> bool:
+    def is_finished(self) -> bool:
         return False
 
     def end(self, interrupted) -> None:
