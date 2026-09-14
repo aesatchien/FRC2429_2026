@@ -6,7 +6,7 @@ import rev
 import wpimath.units
 from rev import ClosedLoopSlot, SparkClosedLoopController, SparkFlexConfig, SparkMax, SparkMaxConfig
 from wpimath import Pose2d, Rotation2d, Translation2d, Transform2d
-from wpimath.units import inchesToMeters, lbsToKilograms
+from wpimath.units import inches_to_meters, lbs_to_kilograms
 from typing import Union, List
 
 from helpers.utilities import set_config_defaults
@@ -80,6 +80,15 @@ k_bbox_1_port = 2
 k_bbox_2_port = 3
 k_ps5_controller_port = 5  # Testing this for now. -Trentan June 2026
 
+# Print what the Driver Station actually reports for each controller once a second while
+# disabled: connected, name, gamepad type, and how many POVs / buttons / axes it exposes.
+# Turn this on whenever a control "does nothing" - WPILib fails silently on an input the DS
+# is not reporting, returning a falsy default forever rather than raising.
+# This is the readable substitute for the per-loop "not available" warnings, which robot.py
+# keeps muted because they bury the console when a controller is unplugged.
+# Set False for competition - it is still a line of console spam per second.
+k_debug_gamepads = True
+
 
 # ---------------------------------------------------------------------------
 # CAN BUS ASSIGNMENT
@@ -103,15 +112,16 @@ k_ps5_controller_port = 5  # Testing this for now. -Trentan June 2026
 #   bus 1   swerve TURN motors  - the 4 SparkFlexes      (REV)
 #   bus 2   everything else - shooter, intake, climber, PDH   (REV + WPILib)
 #
-# UNVERIFIED, and the first thing to check if a bus comes up empty: whether REV's integer
-# bus N is the same physical connector as Phoenix's "can_sN".  REV bus 0 is known good -
-# the Sparks answered on it - and Phoenix's own default landing on can_s1 hints the
-# numbering may not line up.  The Krakens being alone on bus 0 makes this easy to test:
-# if they fail to connect on can_s0, try can_s1 by changing k_can_bus_drive only.
+# ANSWERED IN 2027a7 - this used to say UNVERIFIED.  a7 replaced REV's bare integer busID
+# with wpilib.CANPort, a single enum shared across vendors, and CANPort(0) is CANPort.CAN_S0.
+# So REV's integer bus N and Phoenix's "can_sN" ARE the same physical connector; the two
+# vendors were always talking about the same thing.  Spelling them as CANPort here instead
+# of 0/1/2 makes that unambiguous at the call site.
+#   (CANPort also has CAN_D0..CAN_D19 starting at value 5, so do not assume int == port.)
 # ---------------------------------------------------------------------------
-k_can_bus_drive = 0   # Krakens (Phoenix) - see ModuleConstants.k_kraken_canbus
-k_can_bus_turn = 1    # swerve turn SparkFlexes (REV)
-k_can_bus_other = 2   # shooter, intake, climber, PDH (REV + WPILib)
+k_can_bus_drive = wpilib.CANPort.CAN_S0   # Krakens (Phoenix) - see ModuleConstants.k_kraken_canbus
+k_can_bus_turn = wpilib.CANPort.CAN_S1    # swerve turn SparkFlexes (REV)
+k_can_bus_other = wpilib.CANPort.CAN_S2   # shooter, intake, climber, PDH (REV + WPILib)
 
 # should be fine to burn on every reboot, but we can turn this off
 k_burn_flash = True
@@ -185,7 +195,7 @@ class CameraConstants:
     k_cameras = k_comp_cameras
 
     # add local_tester.py's sim camera if in sim - allows for testing without pis
-    if wpilib.RobotBase.isSimulation():
+    if wpilib.RobotBase.is_simulation():
         k_cameras = k_sim_cameras
         k_cameras.update({'front_sim': {'topic_name': 'LocalTest', 'type': 'tags', 'rotation': 0, 'fov': fov},})
 
@@ -217,7 +227,7 @@ class VisionConstants:
 
 class QuestConstants:
     k_counter_offset = next(_counter)
-    quest_to_robot = Transform2d(inchesToMeters(-14), inchesToMeters(-8), Rotation2d().fromDegrees(270))
+    quest_to_robot = Transform2d(inches_to_meters(-14), inches_to_meters(-8), Rotation2d().from_degrees(270))
 
     k_max_disconnected_count = 14  # number of cycles of lost quest before we call passthru
     k_allow_quest_auto_resync = True  # teleop tries to resync if certain conditions are met
@@ -276,23 +286,32 @@ class IntakeConstants:
     gear_ratio = 1/5 * 20/26 * 18/50 * 16/48  # one motor turn goes .018 turns on the outer axle for a stepdown of ~54
     deploy_degrees_per_motor_rotation = 360 * gear_ratio
     k_deploy_config = SparkFlexConfig()
-    k_deploy_config.encoder.positionConversionFactor(deploy_degrees_per_motor_rotation)  # about 8 degrees per turn
-    k_deploy_config.encoder.velocityConversionFactor(deploy_degrees_per_motor_rotation / 60)  # rpm to degrees per second, about 0.13
+    # 2027a7 DELETED positionConversionFactor / velocityConversionFactor from rev's
+    # EncoderConfig with no replacement, so the deploy Spark now reports raw motor rotations
+    # and RPM.  intake.py scales with these two factors instead.
+    #
+    # *** THIS CHANGES THE CLOSED LOOP AND NEEDS A BENCH TEST. ***  The deploy PID used to see
+    # error in DEGREES and now sees it in motor ROTATIONS, which are ~8x bigger per unit, so
+    # kP has to be multiplied by k_deploy_position_factor to produce the same output for the
+    # same physical error.  k_deploy_kp_raw below does that.  Verify on the bench before
+    # trusting the deploy to hold position.
+    k_deploy_position_factor = deploy_degrees_per_motor_rotation          # degrees per motor rot
+    k_deploy_velocity_factor = deploy_degrees_per_motor_rotation / 60     # deg/s per motor RPM
     vortex_max_rpm = 6784  # Vortex rpm at 12 V
     crank_max_dps = vortex_max_rpm * deploy_degrees_per_motor_rotation / 60  # max degrees per second of the deploy motor at 12V ~
 
     k_deploy_config.inverted(True)
-    k_deploy_config.closedLoop.outputRange(-.6, .6, slot=rev.ClosedLoopSlot.kSlot0)
-    k_deploy_config.softLimit.forwardSoftLimitEnabled(False)
-    k_deploy_config.softLimit.reverseSoftLimitEnabled(False)
+    k_deploy_config.closed_loop.output_range(-.6, .6, slot=rev.ClosedLoopSlot.SLOT0)
+    k_deploy_config.soft_limit.forward_soft_limit_enabled(False)
+    k_deploy_config.soft_limit.reverse_soft_limit_enabled(False)
 
 
     #  --- GETTING RID OF THIS AS WELL - TRYING A WPILIB PROFILED PID SO IT'S SMOOTH ---
     # this is the setting for kPosition control - slot0 - WE USE THIS NOW
     # 143 degrees * kp of 1e-2 is .14 % output
-    k_deploy_config.closedLoop.pid(p=1e-2, i=1e-5, d=1e0, slot=rev.ClosedLoopSlot.kSlot0)
-    k_deploy_config.closedLoop.IMaxAccum(0.04, slot=rev.ClosedLoopSlot.kSlot0)
-    k_deploy_config.closedLoop.IZone(5, slot=rev.ClosedLoopSlot.kSlot0) # degrees less than which no I is applied
+    k_deploy_config.closed_loop.pid(p=1e-2, i=1e-5, d=1e0, slot=rev.ClosedLoopSlot.SLOT0)
+    k_deploy_config.closed_loop.i_max_accum(0.04, slot=rev.ClosedLoopSlot.SLOT0)
+    k_deploy_config.closed_loop.i_zone(5, slot=rev.ClosedLoopSlot.SLOT0) # degrees less than which no I is applied
 
     # --- MAX MOTION IS A WASTE OF TIME ---
     # this is the setting for kMaxMotionPosition control - slot1, TODO - make this work
@@ -300,15 +319,15 @@ class IntakeConstants:
     # 143 degrees * kp of 1e-2 is .14 % output
     #k_deploy_config.closedLoop.pid(p=1e-5, i=0, d=0, slot=rev.ClosedLoopSlot.kSlot1)
     #k_deploy_config.closedLoop.feedForward.kV(12.0/crank_max_dps, slot=rev.ClosedLoopSlot.kSlot1)
-    k_deploy_config.closedLoop.pid(p=1e-4, i=0, d=0, slot=rev.ClosedLoopSlot.kSlot1)
+    k_deploy_config.closed_loop.pid(p=1e-4, i=0, d=0, slot=rev.ClosedLoopSlot.SLOT1)
     # 2027: REV removed pidf()'s ff term.  kV is in VOLTS per unit, the old ff was duty
     # cycle per unit, so the same gain is ff * 12.  See the note at the top of this file.
-    k_deploy_config.closedLoop.feedForward.kV(12.0 / vortex_max_rpm, slot=rev.ClosedLoopSlot.kSlot1)
-    k_deploy_config.closedLoop.IMaxAccum(0.01, slot=rev.ClosedLoopSlot.kSlot1)
+    k_deploy_config.closed_loop.feed_forward.v(12.0 / vortex_max_rpm, slot=rev.ClosedLoopSlot.SLOT1)
+    k_deploy_config.closed_loop.i_max_accum(0.01, slot=rev.ClosedLoopSlot.SLOT1)
     # somehow i think these are in base units of rpm, but apparently not!
-    k_deploy_config.closedLoop.maxMotion.cruiseVelocity(8 * vortex_max_rpm, slot=rev.ClosedLoopSlot.kSlot1)
-    k_deploy_config.closedLoop.maxMotion.maxAcceleration(15 * vortex_max_rpm, slot=rev.ClosedLoopSlot.kSlot1)
-    k_deploy_config.closedLoop.maxMotion.allowedProfileError(0, slot=rev.ClosedLoopSlot.kSlot1)
+    k_deploy_config.closed_loop.max_motion.cruise_velocity(8 * vortex_max_rpm, slot=rev.ClosedLoopSlot.SLOT1)
+    k_deploy_config.closed_loop.max_motion.max_acceleration(15 * vortex_max_rpm, slot=rev.ClosedLoopSlot.SLOT1)
+    k_deploy_config.closed_loop.max_motion.allowed_profile_error(0, slot=rev.ClosedLoopSlot.SLOT1)
     ks_volts = 0.5
 
     k_intake_crank_voltage = .5  # volts for now
@@ -335,7 +354,7 @@ class IntakeConstants:
     k_intake_right_follower_config.follow(k_CANID_intake_left_leader, invert=True)  # depends on motor placement
 
     set_config_defaults(k_intake_configs)
-    k_deploy_config.smartCurrentLimit(40)  # can't lift the new one with 40A
+    k_deploy_config.smart_current_limit(40)  # can't lift the new one with 40A
 
     # in case we do a profiled subsystem - just using a cheap PID on the sparkmax bangs a bit too much
     k_max_velocity_rad_per_second = math.pi * 5.0  # 36 degrees/second
@@ -391,23 +410,23 @@ class ShooterConstants:
     # if we want, we could put the feed forward here instead of in the subsystem
     # maxmotion - allows us to set mav velocity, acceleration and jerk, letting us crank proportional response]
     vortex_max_rpm = 6784  # Vortex
-    k_flywheel_left_leader_config.closedLoop.pid(p=1e-4, i=0, d=0, slot=rev.ClosedLoopSlot.kSlot0)
-    k_flywheel_left_leader_config.closedLoop.feedForward.kV(12.0 / vortex_max_rpm, slot=rev.ClosedLoopSlot.kSlot0)
+    k_flywheel_left_leader_config.closed_loop.pid(p=1e-4, i=0, d=0, slot=rev.ClosedLoopSlot.SLOT0)
+    k_flywheel_left_leader_config.closed_loop.feed_forward.v(12.0 / vortex_max_rpm, slot=rev.ClosedLoopSlot.SLOT0)
 
     # Configure MAXMotion (The "Modern" Smart Motion) - Note: "maxMotion" object instead of "smartMotion"
-    k_flywheel_left_leader_config.closedLoop.maxMotion.cruiseVelocity(6000, slot=rev.ClosedLoopSlot.kSlot0)
-    k_flywheel_left_leader_config.closedLoop.maxMotion.maxAcceleration(10000, slot=rev.ClosedLoopSlot.kSlot0)
-    k_flywheel_left_leader_config.closedLoop.maxMotion.allowedProfileError(0, slot=rev.ClosedLoopSlot.kSlot0)
+    k_flywheel_left_leader_config.closed_loop.max_motion.cruise_velocity(6000, slot=rev.ClosedLoopSlot.SLOT0)
+    k_flywheel_left_leader_config.closed_loop.max_motion.max_acceleration(10000, slot=rev.ClosedLoopSlot.SLOT0)
+    k_flywheel_left_leader_config.closed_loop.max_motion.allowed_profile_error(0, slot=rev.ClosedLoopSlot.SLOT0)
     ks_volts = 0.5
-    k_flywheel_left_leader_config.encoder.quadratureMeasurementPeriod(20)
+    k_flywheel_left_leader_config.encoder.quadrature_measurement_period(20)
 
     # Configure Roller to match Flywheel (MaxMotion)
-    k_flywheel_roller_config.closedLoop.pid(p=1e-4, i=0, d=0, slot=rev.ClosedLoopSlot.kSlot0)
-    k_flywheel_roller_config.closedLoop.feedForward.kV(12.0 / vortex_max_rpm, slot=rev.ClosedLoopSlot.kSlot0)
-    k_flywheel_roller_config.closedLoop.maxMotion.cruiseVelocity(6000, slot=rev.ClosedLoopSlot.kSlot0)
-    k_flywheel_roller_config.closedLoop.maxMotion.maxAcceleration(8000, slot=rev.ClosedLoopSlot.kSlot0)
-    k_flywheel_roller_config.closedLoop.maxMotion.allowedProfileError(0, slot=rev.ClosedLoopSlot.kSlot0)
-    k_flywheel_roller_config.encoder.quadratureMeasurementPeriod(20)
+    k_flywheel_roller_config.closed_loop.pid(p=1e-4, i=0, d=0, slot=rev.ClosedLoopSlot.SLOT0)
+    k_flywheel_roller_config.closed_loop.feed_forward.v(12.0 / vortex_max_rpm, slot=rev.ClosedLoopSlot.SLOT0)
+    k_flywheel_roller_config.closed_loop.max_motion.cruise_velocity(6000, slot=rev.ClosedLoopSlot.SLOT0)
+    k_flywheel_roller_config.closed_loop.max_motion.max_acceleration(8000, slot=rev.ClosedLoopSlot.SLOT0)
+    k_flywheel_roller_config.closed_loop.max_motion.allowed_profile_error(0, slot=rev.ClosedLoopSlot.SLOT0)
+    k_flywheel_roller_config.encoder.quadrature_measurement_period(20)
     # k_flywheel_roller_config.encoder.quadratureAverageDepth(20)
 
 
@@ -422,11 +441,11 @@ class ShooterConstants:
 
     set_config_defaults(k_shooter_configs)
     # problem - having the indexers at 40 made us brown out at WK1
-    k_indexer_left_leader_config.smartCurrentLimit(30)
-    k_indexer_right_follower_config.smartCurrentLimit(30)
-    k_flywheel_left_leader_config.smartCurrentLimit(45)
-    k_flywheel_right_follower_config.smartCurrentLimit(45)
-    k_flywheel_roller_config.smartCurrentLimit(50)
+    k_indexer_left_leader_config.smart_current_limit(30)
+    k_indexer_right_follower_config.smart_current_limit(30)
+    k_flywheel_left_leader_config.smart_current_limit(45)
+    k_flywheel_right_follower_config.smart_current_limit(45)
+    k_flywheel_roller_config.smart_current_limit(50)
 
 
     # Lookup Tables: Distance (meters) -> Value

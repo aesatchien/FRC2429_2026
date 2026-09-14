@@ -40,9 +40,9 @@ class SwerveModule:
         # automatically always in radians and the turnover offset is built in, so the PID is easier
         # TODO: double check that the scale factor is the same on the new thrifty potentiometers
         self.absolute_encoder = AnalogPotentiometer(channel=encoder_analog_port,
-                                fullRange=dc.k_analog_encoder_scale_factor, offset= -turning_encoder_offset)
-        self.turning_PID_controller = PIDController(Kp=ModuleConstants.kTurningP, Ki=ModuleConstants.kTurningI, Kd=ModuleConstants.kTurningD)
-        self.turning_PID_controller.enableContinuousInput(minimumInput=-math.pi, maximumInput=math.pi)
+                                full_range=dc.k_analog_encoder_scale_factor, offset= -turning_encoder_offset)
+        self.turning_PID_controller = PIDController(kp=ModuleConstants.kTurningP, ki=ModuleConstants.kTurningI, kd=ModuleConstants.kTurningD)
+        self.turning_PID_controller.enable_continuous_input(minimum_input=-math.pi, maximum_input=math.pi)
 
         # TODO: use the absolute encoder to set this - need to check the math carefully
         # (the drive motor zeroes itself in its own constructor)
@@ -72,7 +72,7 @@ class SwerveModule:
         return SwerveModuleVelocity(self.drive_motor.get_velocity_mps(),
             Rotation2d(self.get_turn_encoder()),)
 
-    def getPosition(self) -> SwerveModulePosition:
+    def get_position(self) -> SwerveModulePosition:
         """Returns the current position of the module.
         :returns: The current position of the module.
         """

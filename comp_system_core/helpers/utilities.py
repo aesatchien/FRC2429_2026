@@ -27,15 +27,15 @@ def configure_sparks(pairs: Sequence[Tuple[object, SparkConfig]], subsystem_name
     just a flywheel running on the roller's current limit.  Pairing them at the call site
     makes that mistake impossible to make silently.
     """
-    resets = rev.ResetMode.kResetSafeParameters       # always start from a clean slate
-    persists = rev.PersistMode.kPersistParameters if constants.k_burn_flash else rev.PersistMode.kNoPersistParameters
+    resets = rev.ResetMode.RESET_SAFE_PARAMETERS       # always start from a clean slate
+    persists = rev.PersistMode.PERSIST_PARAMETERS if constants.k_burn_flash else rev.PersistMode.NO_PERSIST_PARAMETERS
 
     all_ok = True
     for motor, config in pairs:
         error = motor.configure(config, resets, persists)
-        if error != REVLibError.kOk:
+        if error != REVLibError.OK:
             all_ok = False
-            print(f'*** CONFIG FAILED: {subsystem_name} CAN id {motor.getDeviceId()} returned {error} ***')
+            print(f'*** CONFIG FAILED: {subsystem_name} CAN id {motor.get_device_id()} returned {error} ***')
 
     if all_ok:
         print(f'  configured {len(pairs)} {subsystem_name} sparks (burn_flash={constants.k_burn_flash})')
@@ -53,37 +53,39 @@ def set_config_defaults(configs: Union[SparkConfig, List[SparkConfig]]) -> None:
     else:
         config_list = [configs]  # If it's a single item, wrap it in a list for the loop
     for config in config_list:
-        config.voltageCompensation(12)
-        config.setIdleMode(config.IdleMode.kBrake)
-        config.smartCurrentLimit(40)
+        config.voltage_compensation(12)
+        config.set_idle_mode(config.IdleMode.BRAKE)
+        config.smart_current_limit(40)
 
 def _get_motor_state(motor):
     """
     Extracts key configuration and state data from a REV Spark motor.
     Uses the 2025 configAccessor API to retrieve values.
     """
-    ca = motor.configAccessor
-    s0 = ClosedLoopSlot.kSlot0
+    ca = motor.config_accessor
+    s0 = ClosedLoopSlot.SLOT0
 
     # Follower logic: Return ID or 'None'
-    leader_id = ca.getFollowerModeLeaderId()
+    leader_id = ca.get_follower_mode_leader_id()
     follower_status = f"ID {leader_id}" if leader_id > 0 else "None"
 
     # Using descriptive, snake_case keys (Pythonic)
     return {
-        "device_id": motor.getDeviceId(),
-        "is_inverted": ca.getInverted(),
-        "idle_mode": str(ca.getIdleMode()).split('.')[-1],
+        "device_id": motor.get_device_id(),
+        "is_inverted": ca.get_inverted(),
+        "idle_mode": str(ca.get_idle_mode()).split('.')[-1],
         "follower_leader_id": follower_status,
-        "smart_current_limit_amps": ca.getSmartCurrentLimit(),
-        "position_conversion": ca.encoder.getPositionConversionFactor(),
-        "velocity_conversion": ca.encoder.getVelocityConversionFactor(),
-        "pid_p_gain_slot_0": ca.closedLoop.getP(s0),
-        "pid_i_gain_slot_0": ca.closedLoop.getI(s0),
-        "pid_d_gain_slot_0": ca.closedLoop.getD(s0),
-        "pid_ff_gain_slot_0": ca.closedLoop.feedForward.getkV(s0),  # 2027: getFF() -> feedForward.getkV(), now in volts
-        "max_output_slot_0": ca.closedLoop.getMaxOutput(s0),
-        "min_output_slot_0": ca.closedLoop.getMinOutput(s0),
+        "smart_current_limit_amps": ca.get_smart_current_limit(),
+        # 2027a7: rev removed the controller-side conversion factors entirely, so there is
+        # nothing to read back here.  motors.py holds the factors now - see its describe().
+        "position_conversion": None,
+        "velocity_conversion": None,
+        "pid_p_gain_slot_0": ca.closed_loop.get_p(s0),
+        "pid_i_gain_slot_0": ca.closed_loop.get_i(s0),
+        "pid_d_gain_slot_0": ca.closed_loop.get_d(s0),
+        "pid_ff_gain_slot_0": ca.closed_loop.feed_forward.getk_v(s0),  # 2027: getFF() -> feedForward.getkV(), now in volts
+        "max_output_slot_0": ca.closed_loop.get_max_output(s0),
+        "min_output_slot_0": ca.closed_loop.get_min_output(s0),
     }
 
 def _format_value(value):
