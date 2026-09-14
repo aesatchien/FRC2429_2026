@@ -11,7 +11,7 @@ class SetLEDs(commands2.Command):
     def __init__(self, container, led: Led, indicator: typing.Union[None, Led.Indicator] = None,
                  mode: typing.Union[None, Led.Mode] = None, indicator_timeout=3) -> None:
         super().__init__()
-        self.setName('Set Leds')
+        self.set_name('Set Leds')
         self.container = container
         self.led = led
         self.mode = mode
@@ -19,7 +19,7 @@ class SetLEDs(commands2.Command):
         self.indicator_timeout = indicator_timeout
         self.extra_log_info = None  # for logging
 
-    def runsWhenDisabled(self) -> bool:
+    def runs_when_disabled(self) -> bool:
         return True
 
     def initialize(self) -> None:
@@ -29,7 +29,7 @@ class SetLEDs(commands2.Command):
         msg_indicator = 'None'
         if self.indicator is not None:
             if self.indicator_timeout is not None:
-                commands2.CommandScheduler.getInstance().schedule(
+                commands2.CommandScheduler.get_instance().schedule(
                     self.led.set_indicator_with_timeout(self.indicator, self.indicator_timeout))
             else:
                 self.led.set_indicator(self.indicator)
@@ -45,7 +45,7 @@ class SetLEDs(commands2.Command):
     def execute(self) -> None:
         pass
 
-    def isFinished(self) -> bool:
+    def is_finished(self) -> bool:
         return True
     
     def end(self, interrupted: bool) -> None:        

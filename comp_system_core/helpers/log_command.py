@@ -3,7 +3,7 @@ import ntcore
 import wpilib
 
 # Global publisher for alerts
-_alert_pub = ntcore.NetworkTableInstance.getDefault().getStringTopic("/SmartDashboard/alert").publish()
+_alert_pub = ntcore.NetworkTableInstance.get_default().get_string_topic("/SmartDashboard/alert").publish()
 
 class _LogTimer:
     """
@@ -17,11 +17,11 @@ class _LogTimer:
 
     def reset(self):
         """Resets the timer to 0.0 relative to the current FPGA timestamp."""
-        self._start_offset = wpilib.Timer.getTimestamp()
+        self._start_offset = wpilib.Timer.get_timestamp()
 
     def get(self):
         """Returns the time in seconds since the last reset."""
-        return wpilib.Timer.getTimestamp() - self._start_offset
+        return wpilib.Timer.get_timestamp() - self._start_offset
 
 # Internal global instance
 _log_timer = _LogTimer()
@@ -79,7 +79,7 @@ def log_command(cls=None, *, console=True, nt=False, print_init=True, print_end=
             if print_init:
                 # Get attributes with defaults
                 indent = getattr(self, "indent", 0)
-                name = self.getName()
+                name = self.get_name()
                 
                 # Check if the user wants to print extra info (e.g. target position)
                 extra_info = getattr(self, "extra_log_info", "")
@@ -110,7 +110,7 @@ def log_command(cls=None, *, console=True, nt=False, print_init=True, print_end=
                 
                 message = 'Interrupted' if interrupted else 'Ended'
                 indent = getattr(self, "indent", 0)
-                name = self.getName()
+                name = self.get_name()
                 
                 msg = f"{'    ' * indent}** {message} {name} at {end_time:.1f} s after {duration:.1f} s **"
                 

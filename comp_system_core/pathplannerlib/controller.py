@@ -68,19 +68,19 @@ class PPHolonomicDriveController(PathFollowingController):
         """
         self._xController = PIDController(translation_constants.kP, translation_constants.kI, translation_constants.kD,
                                           period)
-        self._xController.setIntegratorRange(-translation_constants.iZone, translation_constants.iZone)
+        self._xController.set_integrator_range(-translation_constants.iZone, translation_constants.iZone)
 
         self._yController = PIDController(translation_constants.kP, translation_constants.kI, translation_constants.kD,
                                           period)
-        self._yController.setIntegratorRange(-translation_constants.iZone, translation_constants.iZone)
+        self._yController.set_integrator_range(-translation_constants.iZone, translation_constants.iZone)
 
         # Temp rate limit of 0, will be changed in calculate
         self._rotationController = PIDController(rotation_constants.kP, rotation_constants.kI, rotation_constants.kD,
                                                  period)
-        self._rotationController.setIntegratorRange(-rotation_constants.iZone, rotation_constants.iZone)
-        self._rotationController.enableContinuousInput(-math.pi, math.pi)
+        self._rotationController.set_integrator_range(-rotation_constants.iZone, rotation_constants.iZone)
+        self._rotationController.enable_continuous_input(-math.pi, math.pi)
 
-    def setEnabled(self, enabled: bool) -> None:
+    def set_enabled(self, enabled: bool) -> None:
         """
         Enables and disables the controller for troubleshooting. When calculate() is called on a disabled controller, only feedforward values are returned.
 
@@ -103,10 +103,10 @@ class PPHolonomicDriveController(PathFollowingController):
         self._translationError = current_pose.translation() - target_state.pose.translation()
 
         if not self._isEnabled:
-            return ChassisVelocities(xFF, yFF, 0).toRobotRelative(current_pose.rotation())
+            return ChassisVelocities(xFF, yFF, 0).to_robot_relative(current_pose.rotation())
 
-        xFeedback = self._xController.calculate(current_pose.X(), target_state.pose.x)
-        yFeedback = self._yController.calculate(current_pose.Y(), target_state.pose.y)
+        xFeedback = self._xController.calculate(current_pose.x, target_state.pose.x)
+        yFeedback = self._yController.calculate(current_pose.y, target_state.pose.y)
 
         targetRotation = target_state.pose.rotation()
         if PPHolonomicDriveController._rotationTargetOverride is not None:
@@ -127,7 +127,7 @@ class PPHolonomicDriveController(PathFollowingController):
         if PPHolonomicDriveController._rotationFeedbackOverride is not None:
             rotationFeedback = PPHolonomicDriveController._rotationFeedbackOverride()
 
-        return ChassisVelocities(xFF + xFeedback, yFF + yFeedback, rotationFF + rotationFeedback).toRobotRelative(current_pose.rotation())
+        return ChassisVelocities(xFF + xFeedback, yFF + yFeedback, rotationFF + rotationFeedback).to_robot_relative(current_pose.rotation())
 
     def reset(self, current_pose: Pose2d, current_speeds: ChassisVelocities) -> None:
         """

@@ -12,7 +12,7 @@ class GamepieceSim:
         self.gamepiece_locations = [(x/10, y/10) for x in range(75, 95, 5) for y in range(20, 63, 5) ]  # rebuild
         self.gamepieces = [{'pos': Translation2d(gl), 'active': True} for gl in self.gamepiece_locations]
         
-        self.gamepiece_obj = self.field.getObject("Gamepieces")
+        self.gamepiece_obj = self.field.get_object("Gamepieces")
         self.update_field()
 
     def update(self, robot_pose: Pose2d):
@@ -41,7 +41,7 @@ class GamepieceSim:
 
     def update_field(self):
         active_poses = [Pose2d(gp['pos'], Rotation2d()) for gp in self.gamepieces if gp['active']]
-        self.gamepiece_obj.setPoses(active_poses)
+        self.gamepiece_obj.set_poses(active_poses)
 
     def get_active_gamepieces(self):
         return self.gamepieces

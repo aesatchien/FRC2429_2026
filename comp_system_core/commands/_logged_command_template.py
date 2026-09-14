@@ -7,7 +7,7 @@ class LoggedCommandTemplate(commands2.Command):  # change the name for your comm
 
     def __init__(self, container, indent=0) -> None:
         super().__init__()
-        self.setName('LoggedCommandTemplate')  # change this to whatever you named it above
+        self.set_name('LoggedCommandTemplate')  # change this to whatever you named it above
         self.indent = indent  # this is read by log_command to indent the console message
         self.container = container
         self.extra_log_info = None
@@ -24,7 +24,7 @@ class LoggedCommandTemplate(commands2.Command):  # change the name for your comm
         # runs 50x per second, so be careful about messages and timing
         pass
 
-    def isFinished(self) -> bool:
+    def is_finished(self) -> bool:
         # True: fire once and end; False: run forever until interrupted; logic has it end when code returns True
         return True
 

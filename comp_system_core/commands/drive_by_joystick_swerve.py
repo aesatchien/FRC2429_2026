@@ -16,14 +16,14 @@ from helpers.log_command import log_command
 class DriveByJoystickSwerve(commands2.Command):
     def __init__(self, container, swerve: Swerve, controller: CommandNiDsXboxController, rate_limited=False, afterburn=False) -> None:
         super().__init__()
-        self.setName('drive_by_joystick_swerve')
+        self.set_name('drive_by_joystick_swerve')
 
         # -----------------------------------------------------------
         # 1. Subsystems & Dependencies
         # -----------------------------------------------------------
         self.container = container
         self.swerve = swerve
-        self.addRequirements(self.swerve)
+        self.add_requirements(self.swerve)
         self.controller: CommandNiDsXboxController = controller
 
         # -----------------------------------------------------------
@@ -36,7 +36,7 @@ class DriveByJoystickSwerve(commands2.Command):
         # -----------------------------------------------------------
         # 3. Input Processing (Debouncers, Limiters)
         # -----------------------------------------------------------
-        self.robot_oriented_debouncer = Debouncer(0.1, Debouncer.DebounceType.kBoth)
+        self.robot_oriented_debouncer = Debouncer(0.1, Debouncer.DebounceType.BOTH)
 
         self.drive_limiter = SlewRateLimiter(rl.driver_translation_slew_rate)
         self.strafe_limiter = SlewRateLimiter(rl.driver_translation_slew_rate)
@@ -52,14 +52,14 @@ class DriveByJoystickSwerve(commands2.Command):
         self._init_networktables()
 
     def _init_networktables(self):
-        self.inst = ntcore.NetworkTableInstance.getDefault()
+        self.inst = ntcore.NetworkTableInstance.get_default()
         status_prefix = constants.status_prefix
         # Simulation Debugging Publishers
-        self.js_dv1_x_pub = self.inst.getDoubleTopic(f"{status_prefix}/_joystick_dv1_x").publish()
-        self.js_dv1_y_pub = self.inst.getDoubleTopic(f"{status_prefix}/_joystick_dv1_y").publish()
-        self.js_dv_norm_x_pub = self.inst.getDoubleTopic(f"{status_prefix}/_joystick_dv_norm_x").publish()
-        self.js_dv_norm_y_pub = self.inst.getDoubleTopic(f"{status_prefix}/_joystick_dv_norm_y").publish()
-        self.commanded_values_pub = self.inst.getDoubleArrayTopic(
+        self.js_dv1_x_pub = self.inst.get_double_topic(f"{status_prefix}/_joystick_dv1_x").publish()
+        self.js_dv1_y_pub = self.inst.get_double_topic(f"{status_prefix}/_joystick_dv1_y").publish()
+        self.js_dv_norm_x_pub = self.inst.get_double_topic(f"{status_prefix}/_joystick_dv_norm_x").publish()
+        self.js_dv_norm_y_pub = self.inst.get_double_topic(f"{status_prefix}/_joystick_dv_norm_y").publish()
+        self.commanded_values_pub = self.inst.get_double_array_topic(
             f"{status_prefix}/_joystick_commanded_values").publish()
 
     def initialize(self) -> None:
@@ -72,15 +72,15 @@ class DriveByJoystickSwerve(commands2.Command):
         # -----------------------------------------------------------
 
         # Joystick Inputs (using getHID to avoid overruns)
-        hid = self.controller.getHID()
-        right_trigger_value = hid.getRightTriggerAxis()
-        robot_oriented_value = hid.getLeftBumperButton()
-        left_y = hid.getLeftY()
-        left_x = hid.getLeftX()
-        right_x = hid.getRightX()
+        hid = self.controller.get_hid()
+        right_trigger_value = hid.get_right_trigger_axis()
+        robot_oriented_value = hid.get_left_bumper_button()
+        left_y = hid.get_left_y()
+        left_x = hid.get_left_x()
+        right_x = hid.get_right_x()
 
         # Alliance Color
-        alliance = wpilib.MatchState.getAlliance()
+        alliance = wpilib.MatchState.get_alliance()
 
         # -----------------------------------------------------------
         # 2. CALCULATE
@@ -132,8 +132,8 @@ class DriveByJoystickSwerve(commands2.Command):
         desired_rot = joystick_rot * angular_slowmode_multiplier
 
         # --- 2f. Rate Limiting ---
-        desired_fwd = self.drive_limiter.calculate(processing_vector.X())
-        desired_strafe = self.strafe_limiter.calculate(processing_vector.Y())
+        desired_fwd = self.drive_limiter.calculate(processing_vector.x)
+        desired_strafe = self.strafe_limiter.calculate(processing_vector.y)
 
         # --- 2g. Alliance Adjustment ---
         if alliance == wpilib.Alliance.RED and self.field_oriented:
@@ -155,10 +155,10 @@ class DriveByJoystickSwerve(commands2.Command):
         # -----------------------------------------------------------
         # 4. REPORT
         # -----------------------------------------------------------
-        if wpilib.RobotBase.isSimulation():
+        if wpilib.RobotBase.is_simulation():
             # Report Raw Input
-            self.js_dv1_x_pub.set(math.fabs(raw_vector.X()))
-            self.js_dv1_y_pub.set(math.fabs(raw_vector.Y()))
+            self.js_dv1_x_pub.set(math.fabs(raw_vector.x))
+            self.js_dv1_y_pub.set(math.fabs(raw_vector.y))
 
             # Report Final Processed Input
             self.js_dv_norm_x_pub.set(math.fabs(desired_fwd))

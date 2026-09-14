@@ -12,9 +12,9 @@ import constants
 class Vision(Subsystem):
     def __init__(self) -> None:
         super().__init__()
-        self.setName('Vision')
+        self.set_name('Vision')
         self.counter = constants.VisionConstants.k_counter_offset  # was SimConstants' by copy-paste
-        self.ntinst = NetworkTableInstance.getDefault()
+        self.ntinst = NetworkTableInstance.get_default()
 
         # Initialize dictionary with logical keys from constants
         # set up a dictionary of cams to go through
@@ -33,24 +33,24 @@ class Vision(Subsystem):
         self._init_networktables()
 
     def _init_networktables(self):
-        self.inst = NetworkTableInstance.getDefault()
+        self.inst = NetworkTableInstance.get_default()
         vision_prefix = constants.vision_prefix
 
         # ------------- Publishers (Efficiency) -------------
-        self.match_time_pub = self.inst.getDoubleTopic(f"/SmartDashboard/match_time").publish()
+        self.match_time_pub = self.inst.get_double_topic(f"/SmartDashboard/match_time").publish()
 
         # Training Box Entry - allows read/write from dashboard and robot
-        self.training_box_entry = self.inst.getDoubleArrayTopic(f"{constants.camera_prefix}/_training_box").getEntry([0]*2)
+        self.training_box_entry = self.inst.get_double_array_topic(f"{constants.camera_prefix}/_training_box").get_entry([0]*2)
 
         # Status Publishers - Map internal keys to dashboard names for all the allowed cameras
         self.status_pubs = {}
         for ix, key in enumerate(constants.CameraConstants.k_cameras.keys()):
-            self.status_pubs[key] = self.inst.getBooleanTopic(f"{vision_prefix}/{key}_targets_exist").publish()
+            self.status_pubs[key] = self.inst.get_boolean_topic(f"{vision_prefix}/{key}_targets_exist").publish()
             if constants.VisionConstants.k_print_config:
                 print(f"vision's status pubs {ix}: {key}: {self.status_pubs[key]}")
 
         # in case we're messing around with photonvision
-        self.status_pubs['photoncam'] = self.inst.getBooleanTopic(
+        self.status_pubs['photoncam'] = self.inst.get_boolean_topic(
             f"{vision_prefix}/photoncam_targets_exist").publish()  # Used in sim
 
         # ------------- Subscribers -------------
@@ -63,15 +63,15 @@ class Vision(Subsystem):
 
             # Timestamp is the camera heartbeat returned by the pi, located at the camera root (deprecated, now using NT only)
             # other topics fall under a /tags or /orange subfolder.
-            self.camera_dict[key]['id_entry'] = self.inst.getDoubleTopic(f"{base_topic}/id").subscribe(0)
-            self.camera_dict[key]['targets_entry'] = self.inst.getDoubleTopic(f"{base_topic}/targets").subscribe(0)
-            self.camera_dict[key]['distance_entry'] = self.inst.getDoubleTopic(f"{base_topic}/distance").subscribe(0)
-            self.camera_dict[key]['strafe_entry'] = self.inst.getDoubleTopic(f"{base_topic}/strafe").subscribe(0)
-            self.camera_dict[key]['rotation_entry'] = self.inst.getDoubleTopic(f"{base_topic}/rotation").subscribe(0)
-            self.camera_dict[key]['frames_entry'] = self.inst.getDoubleTopic(f"{table_path}/_frames").subscribe(0)
+            self.camera_dict[key]['id_entry'] = self.inst.get_double_topic(f"{base_topic}/id").subscribe(0)
+            self.camera_dict[key]['targets_entry'] = self.inst.get_double_topic(f"{base_topic}/targets").subscribe(0)
+            self.camera_dict[key]['distance_entry'] = self.inst.get_double_topic(f"{base_topic}/distance").subscribe(0)
+            self.camera_dict[key]['strafe_entry'] = self.inst.get_double_topic(f"{base_topic}/strafe").subscribe(0)
+            self.camera_dict[key]['rotation_entry'] = self.inst.get_double_topic(f"{base_topic}/rotation").subscribe(0)
+            self.camera_dict[key]['frames_entry'] = self.inst.get_double_topic(f"{table_path}/_frames").subscribe(0)
 
         # Subscribe to Swerve drive_y for simulation logic
-        self.drive_y_sub = self.inst.getDoubleTopic(f"{constants.swerve_prefix}/drive_y").subscribe(0)
+        self.drive_y_sub = self.inst.get_double_topic(f"{constants.swerve_prefix}/drive_y").subscribe(0)
 
         if constants.VisionConstants.k_print_config:
             print('\n*** VISION.PY CAMERA DICT ***')
@@ -81,7 +81,7 @@ class Vision(Subsystem):
 
     def target_available(self, camera_key: str):  # no default - 'arducam_high' was not a real key and KeyError'd
         # Use getAtomic to get the value and the timestamp of the last update
-        atomic_targets = self.camera_dict[camera_key]['targets_entry'].getAtomic()
+        atomic_targets = self.camera_dict[camera_key]['targets_entry'].get_atomic()
         target_exists = atomic_targets.value > 0
 
         # Check latency (in microseconds). 1,000,000 us = 1 second.
@@ -89,7 +89,7 @@ class Vision(Subsystem):
         time_stamp_good = latency_us < 1000000
         
         # Check if the camera application has stalled (frames not increasing)
-        time_since_last_frame = wpilib.Timer.getTimestamp() - self.last_valid_frame_time.get(camera_key, 0)
+        time_since_last_frame = wpilib.Timer.get_timestamp() - self.last_valid_frame_time.get(camera_key, 0)
         frames_good = time_since_last_frame < 2.0  # no frames in the past 2s?
 
         if target_exists and (not time_stamp_good or not frames_good):
@@ -100,7 +100,7 @@ class Vision(Subsystem):
         return target_exists and time_stamp_good and frames_good
 
     def get_strafe(self, camera_key: str) -> float:
-        if wpilib.RobotBase.isSimulation() and constants.CameraConstants.k_cameras[camera_key]['type'] == 'tags':  # trick the sim into thinking we are on tag 18
+        if wpilib.RobotBase.is_simulation() and constants.CameraConstants.k_cameras[camera_key]['type'] == 'tags':  # trick the sim into thinking we are on tag 18
             drive_y = self.drive_y_sub.get()
             y_dist = drive_y - 4.025900  # will be positive if we are left of tag,right if center
             # pretend that we get 100% change over a meter
@@ -150,16 +150,16 @@ class Vision(Subsystem):
 
         # 1. Define where the camera is relative to the robot center
         # TODO: Add x/y offsets to CameraConstants.k_cameras so this is accurate!
-        camera_to_robot = Transform2d(Translation2d(0, 0), Rotation2d.fromDegrees(cam_rot_deg))
+        camera_to_robot = Transform2d(Translation2d(0, 0), Rotation2d.from_degrees(cam_rot_deg))
 
         # 2. Define where the target is relative to the camera
         # We assume the camera sees the target at 'dist' distance and 'nt_rot' angle
-        target_translation = Translation2d(dist, 0).rotateBy(Rotation2d.fromDegrees(nt_rot))
-        target_to_camera = Transform2d(target_translation, Rotation2d.fromDegrees(nt_rot))
+        target_translation = Translation2d(dist, 0).rotate_by(Rotation2d.from_degrees(nt_rot))
+        target_to_camera = Transform2d(target_translation, Rotation2d.from_degrees(nt_rot))
 
         # 3. Combine them: Robot -> Camera -> Target
         # This creates a Pose2d representing the target in the Robot's coordinate frame
-        pose = Pose2d().transformBy(camera_to_robot).transformBy(target_to_camera)
+        pose = Pose2d().transform_by(camera_to_robot).transform_by(target_to_camera)
 
         # print(f"Vision's nearest_to_cam returned {pose}")
 
@@ -189,13 +189,13 @@ class Vision(Subsystem):
         
         if relative_pose is not None:
             if offset is not None:
-                rx = relative_pose.X() + offset.X()
-                ry = relative_pose.Y() + offset.Y()
+                rx = relative_pose.x + offset.x
+                ry = relative_pose.y + offset.y
                 rrot = relative_pose.rotation() + offset.rotation()
                 relative_pose = Pose2d(rx, ry, rrot)
                 
             rel_tf = Transform2d(relative_pose.translation(), relative_pose.rotation())
-            return current_pose.transformBy(rel_tf)  # Vision is relative to robot, no field mirroring needed
+            return current_pose.transform_by(rel_tf)  # Vision is relative to robot, no field mirroring needed
             
         return None
 
@@ -207,7 +207,7 @@ class Vision(Subsystem):
         self.counter += 1
 
         # Update frame counts for stall detection
-        current_time = wpilib.Timer.getTimestamp()
+        current_time = wpilib.Timer.get_timestamp()
         for key in self.camera_dict.keys():
             current_frames = self.camera_dict[key]['frames_entry'].get()
             if current_frames != self.last_frame_count[key]:
@@ -216,10 +216,10 @@ class Vision(Subsystem):
 
         # update x times a second
         if self.counter % 10 == 0:
-            if wpilib.RobotBase.isSimulation():
-                self.match_time_pub.set(wpilib.Timer.getTimestamp())
+            if wpilib.RobotBase.is_simulation():
+                self.match_time_pub.set(wpilib.Timer.get_timestamp())
             else:
-                self.match_time_pub.set(MatchState.getMatchTime())
+                self.match_time_pub.set(MatchState.get_match_time())
 
             for ix, key in enumerate(self.camera_dict.keys()):
                 self.camera_values[key]['targets'] = self.camera_dict[key]['targets_entry'].get()

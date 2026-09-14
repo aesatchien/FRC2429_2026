@@ -60,7 +60,7 @@ def test_modules_report_metres_not_rotations(container):
     vendor.  A module that has not moved reads ~0, and the values must be finite."""
     import math
     for module in container.swerve.swerve_modules:
-        position = module.getPosition().distance
+        position = module.get_position().distance
         speed = module.getState().velocity
         assert math.isfinite(position) and abs(position) < 1.0, \
             f'{module.label} position {position} - zeroed at construction, so should be ~0 m'
@@ -96,7 +96,7 @@ def test_autonomous_chooser_has_a_default(container):
     """Autos are constructed eagerly and handed to the chooser, so a broken one is a boot
     failure, not a run-time surprise.  Building the container already proved they all
     construct; this checks the chooser is actually wired."""
-    assert container.auto_chooser.getSelected() is not None, \
+    assert container.auto_chooser.get_selected() is not None, \
         'no default auto - setDefaultOption was never called'
     assert container.get_autonomous_command() is not None
 
@@ -116,7 +116,7 @@ def test_pathplanner_config_matches_our_constants():
         'settings.json driveWheelRadius does not match kWheelDiameterMeters'
     assert abs(module.driveCurrentLimit - mc.kDrivingMotorCurrentLimit) < 0.5, \
         'settings.json driveCurrentLimit does not match kDrivingMotorCurrentLimit'
-    assert abs(module.driveMotor.freeSpeed - expected_free_rad_s) < 0.5, \
+    assert abs(module.driveMotor.free_speed - expected_free_rad_s) < 0.5, \
         'settings.json driveMotorType/driveGearing does not match the active drive motor'
 
 

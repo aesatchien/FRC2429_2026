@@ -10,10 +10,10 @@ class Intake_Close(commands2.Command):  # change the name for your command
 
     def __init__(self, intake: Intake,  on_start=False, time=2, indent=0) -> None:
         super().__init__()
-        self.setName('Intake_Close')  # change this to something appropriate for this command
+        self.set_name('Intake_Close')  # change this to something appropriate for this command
         self.intake = intake
         self.indent = indent
-        self.addRequirements(self.intake)  # commandsv2 version of requirements
+        self.add_requirements(self.intake)  # commandsv2 version of requirements
         self.counter = 0
         self.time = time
 
@@ -31,7 +31,7 @@ class Intake_Close(commands2.Command):  # change the name for your command
             self.intake.set_intake_position(angle=self.counter * (3 / self.time))
 
 
-    def isFinished(self) -> bool:
+    def is_finished(self) -> bool:
         return self.counter >= ic.k_top_angle
     
         

@@ -10,10 +10,10 @@ class ShootingCommand(commands2.Command):  # change the name for your command
 
     def __init__(self, shooter: Shooter, indent=0) -> None:
         super().__init__()
-        self.setName('Shooting') # change this to something appropriate for this command
+        self.set_name('Shooting') # change this to something appropriate for this command
         self.indent = indent
         self.shooter = shooter
-        self.addRequirements(self.shooter)  # commandsv2 version of requirements
+        self.add_requirements(self.shooter)  # commandsv2 version of requirements
         self.extra_log_info = None
         self.counter = 0  # add a counter if you need to track iterations, remember to initialize in below
         # we want indexer and hopper to start after .1 seconds or 1/10 seconds. 
@@ -40,7 +40,7 @@ class ShootingCommand(commands2.Command):  # change the name for your command
         #     self.shooter.set_hopper_rpm(sc.k_hopper_rpm)
         # runs 50x per second, so be careful about messages and timing
 
-    def isFinished(self) -> bool:
+    def is_finished(self) -> bool:
         # True: fire once and end; False: run forever until interrupted; logic has it end when code returns True
         return False
         

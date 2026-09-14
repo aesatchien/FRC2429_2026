@@ -9,13 +9,13 @@ class SwerveTest(commands2.Command):  # change the name for your command
 
     def __init__(self, container, swerve:Swerve, indent=0) -> None:
         super().__init__()
-        self.setName('SwerveTest')  # change this to something appropriate for this command
+        self.set_name('SwerveTest')  # change this to something appropriate for this command
         self.indent = indent
         self.container = container
         self.swerve = swerve
         self.extra_log_info = None
         self.counter = 0
-        self.addRequirements(self.swerve)  # commands2 version of requirements - add the subsystems you need
+        self.add_requirements(self.swerve)  # commands2 version of requirements - add the subsystems you need
 
     def initialize(self) -> None:
         # Called just before each time this Command runs
@@ -50,12 +50,12 @@ class SwerveTest(commands2.Command):  # change the name for your command
 
         # rotate thru the modules
         for angle, velocity, swerve_module in zip(angles, velocities, self.swerve.swerve_modules):
-            swerve_module.setDesiredState(SwerveModuleVelocity(velocity, Rotation2d.fromDegrees(angle)))
+            swerve_module.setDesiredState(SwerveModuleVelocity(velocity, Rotation2d.from_degrees(angle)))
 
         # runs 50x per second, so be careful about messages and timing
         pass
 
-    def isFinished(self) -> bool:
+    def is_finished(self) -> bool:
         # True: fire once and end; False: run forever until interrupted; logic has it end when code returns True
         return False
 

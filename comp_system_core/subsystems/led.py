@@ -52,7 +52,7 @@ class Led(commands2.Subsystem):
 
     def __init__(self, robot_state: RobotState):
         super().__init__()
-        self.setName('Led')
+        self.set_name('Led')
         self.robot_state = robot_state
 
         # Register LED to listen for RobotState updates
@@ -64,7 +64,7 @@ class Led(commands2.Subsystem):
         # this should auto-update the lists for the dashboard.  you can iterate over enums
         self.indicators_dict = {indicator.value["name"]: indicator for indicator in self.Indicator}
         self.modes_dict = {mode.value["name"]: mode for mode in self.Mode}
-        self.last_toggle_time = Timer.getTimestamp()  # Tracks the last toggle time
+        self.last_toggle_time = Timer.get_timestamp()  # Tracks the last toggle time
         self.toggle_state = False  # Keeps track of the current on/off state
 
         # necessary initialization for the LED strip
@@ -74,8 +74,8 @@ class Led(commands2.Subsystem):
 
         self.set_leds((0, 0, 0))  # our own custom function
 
-        self.led_strip.setLength(self.led_count)
-        self.led_strip.setData(self.led_data)
+        self.led_strip.set_length(self.led_count)
+        self.led_strip.set_data(self.led_data)
         # 2027: AddressableLED lost start()/stop().  The strip outputs as soon as it is
         # configured, so there is nothing to start - setData() alone drives it.
 
@@ -90,10 +90,10 @@ class Led(commands2.Subsystem):
         self.set_indicator(self.Indicator.kNONE)
 
     def _init_networktables(self):
-        self.inst = ntcore.NetworkTableInstance.getDefault()
-        self.led_mode_pub = self.inst.getStringTopic(f"{constants.status_prefix}/_led_mode").publish()
-        self.led_indicator_pub = self.inst.getStringTopic(f"{constants.status_prefix}/_led_indicator").publish()
-        self.dtap_sub = self.inst.getBooleanTopic(f"{constants.quest_prefix}/quest_in_passthrough").subscribe(False)
+        self.inst = ntcore.NetworkTableInstance.get_default()
+        self.led_mode_pub = self.inst.get_string_topic(f"{constants.status_prefix}/_led_mode").publish()
+        self.led_indicator_pub = self.inst.get_string_topic(f"{constants.status_prefix}/_led_indicator").publish()
+        self.dtap_sub = self.inst.get_boolean_topic(f"{constants.quest_prefix}/quest_in_passthrough").subscribe(False)
 
     def update_from_robot_state(self, state):
         """ Update LED mode based on RobotState changes. """
@@ -129,7 +129,7 @@ class Led(commands2.Subsystem):
         return commands2.StartEndCommand(
             lambda: self.set_indicator(indicator),
             lambda: self.set_indicator(Led.Indicator.kNONE),
-        ).withTimeout(timeout).ignoringDisable(True)
+        ).with_timeout(timeout).ignoring_disable(True)
 
     def set_leds(self, color_or_data, start_index=0, end_index=None, is_hsv=False):
         """
@@ -162,9 +162,9 @@ class Led(commands2.Subsystem):
             # Set the same color for all LEDs in the specified range.
             for i in range(start_index, end_index):
                 if is_hsv:
-                    self.led_data[i].setHSV(c1, c2, c3)
+                    self.led_data[i].set_hsv(c1, c2, c3)
                 else:
-                    self.led_data[i].setRGB(c1, c2, c3)
+                    self.led_data[i].set_rgb(c1, c2, c3)
         else:
             # This branch handles a list of colors (e.g., an animation frame).
             data_len = len(color_or_data)
@@ -176,9 +176,9 @@ class Led(commands2.Subsystem):
                 if i - start_index < data_len:
                     color = color_or_data[i - start_index]
                     if is_hsv:
-                        self.led_data[i].setHSV(*color)
+                        self.led_data[i].set_hsv(*color)
                     else:
-                        self.led_data[i].setRGB(*color)
+                        self.led_data[i].set_rgb(*color)
 
     def periodic(self):
         self.counter += 1  # Increment the main counter
@@ -191,7 +191,7 @@ class Led(commands2.Subsystem):
             elif not is_dtap and self.mode == self.Mode.kDTAP:
                 self.set_mode(self.Mode.kNONE)
                 
-            current_time = Timer.getTimestamp()
+            current_time = Timer.get_timestamp()
             time_since_toggle = current_time - self.last_toggle_time
 
             if self.indicator != self.Indicator.kNONE:
@@ -248,7 +248,7 @@ class Led(commands2.Subsystem):
                     # turn on the other section
                     self.set_leds(self.mode.value["on_color"], start_index=self.led_count - lit_leds)
 
-            self.led_strip.setData(self.led_data)  # Send LED updates
+            self.led_strip.set_data(self.led_data)  # Send LED updates
 
             if constants.LedConstants.k_nt_debugging:  # extra debugging info for NT
                 pass

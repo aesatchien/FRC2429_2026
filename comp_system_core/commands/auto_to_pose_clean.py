@@ -39,13 +39,13 @@ class AutoToPoseClean(commands2.Command):  #
                  mode=None, control_type='not_pathplanner', indent=0,
                  offset: Transform2d = None, tolerance_type='exact') -> None:
         super().__init__()
-        self.setName('AutoToPoseClean')  # using the pathplanner controller instead
+        self.set_name('AutoToPoseClean')  # using the pathplanner controller instead
         
         # --- Dependencies ---
         self.indent = indent
         self.container = container
         self.swerve = swerve
-        self.addRequirements(self.swerve)
+        self.add_requirements(self.swerve)
 
         # --- Configuration ---
         self.control_type = control_type
@@ -94,32 +94,32 @@ class AutoToPoseClean(commands2.Command):  #
             # trying to get it to slow down but still make it to final position
             # after 1s at 1 error the integral contribution will be Ki - so 1s at 0.1 error will output 0.1 * Ki
             self.x_pid = PIDController(tc.kAutoTranslationPID.kP, tc.kAutoTranslationPID.kI, tc.kAutoTranslationPID.kD)
-            self.x_pid.setIntegratorRange(-0.1, 0.1)  # clamp Ki * Tot Error min(negative) and max output
-            self.x_pid.setIZone(0.25)  # do not allow integral unless we are within 0.25m (prevents windup)
+            self.x_pid.set_integrator_range(-0.1, 0.1)  # clamp Ki * Tot Error min(negative) and max output
+            self.x_pid.set_i_zone(0.25)  # do not allow integral unless we are within 0.25m (prevents windup)
 
             self.y_pid = PIDController(tc.kAutoTranslationPID.kP, tc.kAutoTranslationPID.kI, tc.kAutoTranslationPID.kD)
-            self.y_pid.setIntegratorRange(-0.1, 0.1)  # clamp min(negative) and max output of the integral term
-            self.y_pid.setIZone(0.25)  # do not allow integral unless we are within 0.25m (prevents windup)
+            self.y_pid.set_integrator_range(-0.1, 0.1)  # clamp min(negative) and max output of the integral term
+            self.y_pid.set_i_zone(0.25)  # do not allow integral unless we are within 0.25m (prevents windup)
 
             self.rot_pid = PIDController(tc.kAutoRotationPID.kP, tc.kAutoRotationPID.kI, tc.kAutoRotationPID.kD)
-            self.rot_pid.enableContinuousInput(radians(-180), radians(180))
+            self.rot_pid.enable_continuous_input(radians(-180), radians(180))
 
     def _init_networktables(self):
-        self.inst = ntcore.NetworkTableInstance.getDefault()
+        self.inst = ntcore.NetworkTableInstance.get_default()
         prefix = constants.auto_prefix
 
-        self.x_setpoint_pub = self.inst.getDoubleTopic(f"{prefix}/x_setpoint").publish()
-        self.y_setpoint_pub = self.inst.getDoubleTopic(f"{prefix}/y_setpoint").publish()
-        self.rot_setpoint_pub = self.inst.getDoubleTopic(f"{prefix}/rot_setpoint").publish()
-        self.x_measured_pub = self.inst.getDoubleTopic(f"{prefix}/x_measured").publish()
-        self.y_measured_pub = self.inst.getDoubleTopic(f"{prefix}/y_measured").publish()
-        self.rot_measured_pub = self.inst.getDoubleTopic(f"{prefix}/rot_measured").publish()
-        self.x_commanded_pub = self.inst.getDoubleTopic(f"{prefix}/x_commanded").publish()
-        self.y_commanded_pub = self.inst.getDoubleTopic(f"{prefix}/y_commanded").publish()
-        self.rot_commanded_pub = self.inst.getDoubleTopic(f"{prefix}/rot_commanded").publish()
+        self.x_setpoint_pub = self.inst.get_double_topic(f"{prefix}/x_setpoint").publish()
+        self.y_setpoint_pub = self.inst.get_double_topic(f"{prefix}/y_setpoint").publish()
+        self.rot_setpoint_pub = self.inst.get_double_topic(f"{prefix}/rot_setpoint").publish()
+        self.x_measured_pub = self.inst.get_double_topic(f"{prefix}/x_measured").publish()
+        self.y_measured_pub = self.inst.get_double_topic(f"{prefix}/y_measured").publish()
+        self.rot_measured_pub = self.inst.get_double_topic(f"{prefix}/rot_measured").publish()
+        self.x_commanded_pub = self.inst.get_double_topic(f"{prefix}/x_commanded").publish()
+        self.y_commanded_pub = self.inst.get_double_topic(f"{prefix}/y_commanded").publish()
+        self.rot_commanded_pub = self.inst.get_double_topic(f"{prefix}/rot_commanded").publish()
 
-        self.auto_active_pub = self.inst.getBooleanTopic(f"{prefix}/robot_in_auto").publish()
-        self.goal_pose_pub = self.inst.getStructTopic(f"{prefix}/goal_pose", Pose2d).publish()
+        self.auto_active_pub = self.inst.get_boolean_topic(f"{prefix}/robot_in_auto").publish()
+        self.goal_pose_pub = self.inst.get_struct_topic(f"{prefix}/goal_pose", Pose2d).publish()
         self.auto_active_pub.set(False)
 
     def reset_controllers(self):
@@ -138,9 +138,9 @@ class AutoToPoseClean(commands2.Command):  #
 
         else:  # custom
             # Update PID Setpoints
-            self.x_pid.setSetpoint(self.target_pose.X())
-            self.y_pid.setSetpoint(self.target_pose.Y())
-            self.rot_pid.setSetpoint(self.target_pose.rotation().radians())
+            self.x_pid.set_setpoint(self.target_pose.x)
+            self.y_pid.set_setpoint(self.target_pose.y)
+            self.rot_pid.set_setpoint(self.target_pose.rotation().radians())
 
             # reset overshoot
             self.x_overshot = False
@@ -161,8 +161,8 @@ class AutoToPoseClean(commands2.Command):  #
             self.y_pid.reset()
             self.rot_pid.reset()
 
-            self.x_commanded_pub.set(self.target_pose.X())
-            self.y_commanded_pub.set(self.target_pose.Y())
+            self.x_commanded_pub.set(self.target_pose.x)
+            self.y_commanded_pub.set(self.target_pose.y)
             self.rot_commanded_pub.set(self.target_pose.rotation().degrees())
 
             # Update the goal pose for the ghost robot
@@ -178,13 +178,13 @@ class AutoToPoseClean(commands2.Command):  #
         # Removed; if we want a nearest-tag mode again, build it on helpers.apriltag_utils.get_nearest_tag.
 
         if self.mode == "ball_pickup":
-            return auto_reflect_pose(robot_pose=current_pose, goal_pose=cac.k_first_ball_pickup_pose, alliance=wpilib.MatchState.getAlliance(), is_shooting=False)
+            return auto_reflect_pose(robot_pose=current_pose, goal_pose=cac.k_first_ball_pickup_pose, alliance=wpilib.MatchState.get_alliance(), is_shooting=False)
 
         elif self.mode == "ball_pickup++":
-            return auto_reflect_pose(robot_pose=current_pose, goal_pose=cac.k_second_ball_pickup_pose, alliance=wpilib.MatchState.getAlliance(), is_shooting=False)
+            return auto_reflect_pose(robot_pose=current_pose, goal_pose=cac.k_second_ball_pickup_pose, alliance=wpilib.MatchState.get_alliance(), is_shooting=False)
 
         elif self.mode == "shooting":
-            return auto_reflect_pose(robot_pose=current_pose, goal_pose=cac.k_shooting_pose, alliance=wpilib.MatchState.getAlliance(), is_shooting=True)
+            return auto_reflect_pose(robot_pose=current_pose, goal_pose=cac.k_shooting_pose, alliance=wpilib.MatchState.get_alliance(), is_shooting=True)
 
         elif self.use_vision:
             # 3. Vision Mode
@@ -194,14 +194,14 @@ class AutoToPoseClean(commands2.Command):  #
             if relative_pose is not None:
                 # Apply offset in robot frame if provided
                 if self.offset is not None:
-                    rx = relative_pose.X() + self.offset.X()
-                    ry = relative_pose.Y() + self.offset.Y()
+                    rx = relative_pose.x + self.offset.x
+                    ry = relative_pose.y + self.offset.y
                     rrot = relative_pose.rotation() + self.offset.rotation()
                     relative_pose = Pose2d(rx, ry, rrot)
 
                 rel_tf = Transform2d(relative_pose.translation(), relative_pose.rotation())
-                target = current_pose.transformBy(rel_tf)
-                print(f"AutoToPose Vision: Robot Rel Move -> X: {relative_pose.X():.2f}m, Y: {relative_pose.Y():.2f}m, Rot: {relative_pose.rotation().degrees():.1f}°")
+                target = current_pose.transform_by(rel_tf)
+                print(f"AutoToPose Vision: Robot Rel Move -> X: {relative_pose.x:.2f}m, Y: {relative_pose.y:.2f}m, Rot: {relative_pose.rotation().degrees():.1f}°")
                 return target
             else:
                 self.abort = True
@@ -230,7 +230,7 @@ class AutoToPoseClean(commands2.Command):  #
 
     def execute(self) -> None:
         # moved here because of the auto-logger
-        if self.counter == 0 and (wpilib.RobotBase.isSimulation() or self.print_debug):
+        if self.counter == 0 and (wpilib.RobotBase.is_simulation() or self.print_debug):
             msg = f'CNT  DX     XT?   Xo   |   DY    YT?   Yo   |   DR     RT?   Ro   | TC'
             print(msg)
 
@@ -250,14 +250,14 @@ class AutoToPoseClean(commands2.Command):  #
 
     def _execute_custom_control(self, robot_pose):
         # 1. Calculate PID Outputs
-        x_output = self.x_pid.calculate(robot_pose.X())
-        y_output = self.y_pid.calculate(robot_pose.Y())
+        x_output = self.x_pid.calculate(robot_pose.x)
+        y_output = self.y_pid.calculate(robot_pose.y)
         rot_output = self.rot_pid.calculate(robot_pose.rotation().radians())
 
         # 2. Calculate Errors (for overshoot detection and tolerance)
         error_vector = self.target_pose.translation() - robot_pose.translation()
-        diff_x = error_vector.X()
-        diff_y = error_vector.Y()
+        diff_x = error_vector.x
+        diff_y = error_vector.y
         diff_radians = (self.target_pose.rotation() - robot_pose.rotation()).radians()
 
         # 3. Check for Overshoot
@@ -308,20 +308,20 @@ class AutoToPoseClean(commands2.Command):  #
             self.tolerance_counter = 0
 
         # 9. Logging
-        if self.counter % 10 == 0 and (wpilib.RobotBase.isSimulation() or self.print_debug):
+        if self.counter % 10 == 0 and (wpilib.RobotBase.is_simulation() or self.print_debug):
             msg = f'{self.counter:3d}  {diff_x:+.2f} {str(self.x_overshot):>5} {x_output:+.2f} | {diff_y:+.2f}  {str(self.y_overshot):>5} {y_output:+.2f} '
             msg += f'| {math.degrees(diff_radians):>+6.1f}° {str(self.rot_overshot):>5} {rot_output:+.2f} | {self.tolerance_counter} '
             print(msg)
 
-            if wpilib.RobotBase.isSimulation():
-                self.x_setpoint_pub.set(self.x_pid.getSetpoint())
-                self.y_setpoint_pub.set(self.y_pid.getSetpoint())
-                self.rot_setpoint_pub.set(math.degrees(self.rot_pid.getSetpoint()))
+            if wpilib.RobotBase.is_simulation():
+                self.x_setpoint_pub.set(self.x_pid.get_setpoint())
+                self.y_setpoint_pub.set(self.y_pid.get_setpoint())
+                self.rot_setpoint_pub.set(math.degrees(self.rot_pid.get_setpoint()))
                 self.x_measured_pub.set(robot_pose.x)
                 self.y_measured_pub.set(robot_pose.y)
                 self.rot_measured_pub.set(robot_pose.rotation().degrees())
 
-    def isFinished(self) -> bool:
+    def is_finished(self) -> bool:
         if self.abort:
             return True
             
@@ -337,12 +337,12 @@ class AutoToPoseClean(commands2.Command):  #
         return self.tolerance_counter > 10
 
     def end(self, interrupted: bool) -> None:
-        if wpilib.RobotBase.isSimulation():  # Cancel the Ghost Robot
+        if wpilib.RobotBase.is_simulation():  # Cancel the Ghost Robot
             self.auto_active_pub.set(False)
 
         if interrupted or self.abort:  # we killed ourself, so we want this case to also to be red
-            commands2.CommandScheduler.getInstance().schedule(
+            commands2.CommandScheduler.get_instance().schedule(
                 self.container.led.set_indicator_with_timeout(Led.Indicator.kFAILUREFLASH, 2))
         else:
-            commands2.CommandScheduler.getInstance().schedule(
+            commands2.CommandScheduler.get_instance().schedule(
                 self.container.led.set_indicator_with_timeout(Led.Indicator.kSUCCESSFLASH, 2))

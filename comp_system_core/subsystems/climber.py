@@ -44,7 +44,7 @@ from rev import SparkBase, SparkLowLevel
 class Climber(Subsystem):
     def __init__(self) -> None:
         super().__init__()
-        self.setName('Climber')
+        self.set_name('Climber')
         self.climber = Climber
         self.position_index = 0
         self.current_position = 10
@@ -53,15 +53,15 @@ class Climber(Subsystem):
 
         # --------------- add motors and set motor rpm ----------------
 
-        motor_type = rev.SparkMax.MotorType.kBrushless
+        motor_type = rev.SparkMax.MotorType.BRUSHLESS
         self.motor = rev.SparkMax(constants.k_can_bus_other, cc.k_CANID_motor, motor_type)
 
         # convenient list of motors if we need to query or set all of them
         self.motors = [self.motor]
 
         # you need a controller to set velocity
-        self.climber_controller = self.motor.getClosedLoopController()
-        self.climber_encoder = self.motor.getEncoder()
+        self.climber_controller = self.motor.get_closed_loop_controller()
+        self.climber_encoder = self.motor.get_encoder()
 
         configure_sparks([(self.motor, cc.k_climber_config)], subsystem_name='climber')
 
@@ -72,12 +72,12 @@ class Climber(Subsystem):
         self._init_networktables()
 
     def _init_networktables(self):
-        self.inst = ntcore.NetworkTableInstance.getDefault()
+        self.inst = ntcore.NetworkTableInstance.get_default()
 
         self.nt_prefix = constants.climber_prefix
-        self.motor_on_pub = self.inst.getBooleanTopic(f"{self.nt_prefix}/motor_on").publish()
-        self.motor_rpm_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/motor_rpm").publish()
-        self.inches_from_ground_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/inches_from_ground").publish()
+        self.motor_on_pub = self.inst.get_boolean_topic(f"{self.nt_prefix}/motor_on").publish()
+        self.motor_rpm_pub = self.inst.get_double_topic(f"{self.nt_prefix}/motor_rpm").publish()
+        self.inches_from_ground_pub = self.inst.get_double_topic(f"{self.nt_prefix}/inches_from_ground").publish()
 
         self.motor_on_pub.set(self.motor_on)
         self.motor_rpm_pub.set(self.current_rpm)
@@ -111,8 +111,8 @@ class Climber(Subsystem):
 
         if cc.k_control_type == 'max_motion':
             #ks = 0 if rpm < 1 else cc.ks_volts  # othrwise it still just turns at 0
-            self.climber_controller.setSetpoint(setpoint=target_number_of_encoder_ticks, ctrl=SparkLowLevel.ControlType.kMAXMotionPositionControl,
-                                                 slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=0)
+            self.climber_controller.set_setpoint(setpoint=target_number_of_encoder_ticks, ctrl=SparkLowLevel.ControlType.MAX_MOTION_POSITION_CONTROL,
+                                                 slot=rev.ClosedLoopSlot.SLOT0, arb_feedforward=0)
             self.current_position = self.climber_heights[self.position_index]
 
         else:

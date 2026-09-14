@@ -24,13 +24,13 @@ class DriveToPosePathPlanner(commands2.Command):
     def __init__(self, container, swerve: Swerve, target_pose_supplier: typing.Callable[[], typing.Optional[Pose2d]], 
                  indent=0, tolerance_type='exact') -> None:
         super().__init__()
-        self.setName('DriveToPosePathPlanner')
+        self.set_name('DriveToPosePathPlanner')
         
         # --- Dependencies ---
         self.indent = indent
         self.container = container
         self.swerve = swerve
-        self.addRequirements(self.swerve)
+        self.add_requirements(self.swerve)
 
         # --- Configuration ---
         self.target_pose_supplier = target_pose_supplier
@@ -63,18 +63,18 @@ class DriveToPosePathPlanner(commands2.Command):
         self._init_networktables()
 
     def _init_networktables(self):
-        self.inst = ntcore.NetworkTableInstance.getDefault()
+        self.inst = ntcore.NetworkTableInstance.get_default()
         prefix = constants.auto_prefix
 
-        self.x_setpoint_pub = self.inst.getDoubleTopic(f"{prefix}/x_setpoint").publish()
-        self.y_setpoint_pub = self.inst.getDoubleTopic(f"{prefix}/y_setpoint").publish()
-        self.rot_setpoint_pub = self.inst.getDoubleTopic(f"{prefix}/rot_setpoint").publish()
-        self.x_measured_pub = self.inst.getDoubleTopic(f"{prefix}/x_measured").publish()
-        self.y_measured_pub = self.inst.getDoubleTopic(f"{prefix}/y_measured").publish()
-        self.rot_measured_pub = self.inst.getDoubleTopic(f"{prefix}/rot_measured").publish()
+        self.x_setpoint_pub = self.inst.get_double_topic(f"{prefix}/x_setpoint").publish()
+        self.y_setpoint_pub = self.inst.get_double_topic(f"{prefix}/y_setpoint").publish()
+        self.rot_setpoint_pub = self.inst.get_double_topic(f"{prefix}/rot_setpoint").publish()
+        self.x_measured_pub = self.inst.get_double_topic(f"{prefix}/x_measured").publish()
+        self.y_measured_pub = self.inst.get_double_topic(f"{prefix}/y_measured").publish()
+        self.rot_measured_pub = self.inst.get_double_topic(f"{prefix}/rot_measured").publish()
 
-        self.auto_active_pub = self.inst.getBooleanTopic(f"{prefix}/robot_in_auto").publish()
-        self.goal_pose_pub = self.inst.getStructTopic(f"{prefix}/goal_pose", Pose2d).publish()
+        self.auto_active_pub = self.inst.get_boolean_topic(f"{prefix}/robot_in_auto").publish()
+        self.goal_pose_pub = self.inst.get_struct_topic(f"{prefix}/goal_pose", Pose2d).publish()
         self.auto_active_pub.set(False)
 
     def reset_controllers(self):
@@ -138,7 +138,7 @@ class DriveToPosePathPlanner(commands2.Command):
 
         self.counter += 1
 
-    def isFinished(self) -> bool:
+    def is_finished(self) -> bool:
         if self.abort: return True
         # condition where we want to be fast - sloppy is ok
         if self.tolerance_type == 'fast':
@@ -147,6 +147,6 @@ class DriveToPosePathPlanner(commands2.Command):
         return self.tolerance_counter > 10
 
     def end(self, interrupted: bool) -> None:
-        if wpilib.RobotBase.isSimulation(): self.auto_active_pub.set(False)
+        if wpilib.RobotBase.is_simulation(): self.auto_active_pub.set(False)
         indicator = Led.Indicator.kFAILUREFLASH if (interrupted or self.abort) else Led.Indicator.kSUCCESSFLASH
-        commands2.CommandScheduler.getInstance().schedule(self.container.led.set_indicator_with_timeout(indicator, 2))
+        commands2.CommandScheduler.get_instance().schedule(self.container.led.set_indicator_with_timeout(indicator, 2))

@@ -11,14 +11,14 @@ from helpers.utilities import configure_sparks
 class Shooter(Subsystem):
     def __init__(self) -> None:
         super().__init__()
-        self.setName('Shooter')
+        self.set_name('Shooter')
         self.counter = sc.k_counter_offset  # note this should be an offset in constants
         self.default_rpm = sc.k_shooter_test_speed
         self.default_indexer_rpm = sc.k_indexer_rpm
         self.default_hopper_rpm = sc.k_hopper_rpm
         # --------------- add motors and shooter rpm ----------------
         
-        motor_type = rev.SparkMax.MotorType.kBrushless
+        motor_type = rev.SparkMax.MotorType.BRUSHLESS
 
         self.hopper = rev.SparkMax(constants.k_can_bus_other, sc.k_CANID_hopper, motor_type)
         self.indexer_left_leader = rev.SparkMax(constants.k_can_bus_other, sc.k_CANID_indexer_left_leader, motor_type)
@@ -36,17 +36,17 @@ class Shooter(Subsystem):
                        self.roller_motor,]
 
         # you need a controller to set velocity
-        self.flywheel_controller = self.flywheel_left_leader.getClosedLoopController()
-        self.flywheel_encoder = self.flywheel_left_leader.getEncoder()
+        self.flywheel_controller = self.flywheel_left_leader.get_closed_loop_controller()
+        self.flywheel_encoder = self.flywheel_left_leader.get_encoder()
 
-        self.roller_controller = self.roller_motor.getClosedLoopController()
-        self.roller_encoder = self.roller_motor.getEncoder()
+        self.roller_controller = self.roller_motor.get_closed_loop_controller()
+        self.roller_encoder = self.roller_motor.get_encoder()
 
-        self.indexer_controller = self.indexer_left_leader.getClosedLoopController()
-        self.indexer_encoder = self.indexer_left_leader.getEncoder()
+        self.indexer_controller = self.indexer_left_leader.get_closed_loop_controller()
+        self.indexer_encoder = self.indexer_left_leader.get_encoder()
 
-        self.hopper_controller = self.hopper.getClosedLoopController()
-        self.hopper_encoder = self.hopper.getEncoder()
+        self.hopper_controller = self.hopper.get_closed_loop_controller()
+        self.hopper_encoder = self.hopper.get_encoder()
 
         # Each motor is paired with its own named config, so you cannot silently mis-order them.
         configure_sparks([
@@ -77,19 +77,19 @@ class Shooter(Subsystem):
         print(f'Shooting rpm offset set to: {self.shooting_offset}')
 
     def _init_networktables(self):
-        self.inst = ntcore.NetworkTableInstance.getDefault()
+        self.inst = ntcore.NetworkTableInstance.get_default()
         self.nt_prefix = "/SmartDashboard/Shooter"  # TODO = move to constants
-        self.shooter_on_pub = self.inst.getBooleanTopic(f"{self.nt_prefix}/shooter_on").publish()
-        self.shooter_at_speed_pub = self.inst.getBooleanTopic(f"{self.nt_prefix}/shooter_at_speed").publish()
-        self.shooter_rpm_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/shooter_rpm").publish()
-        self.measured_shooter_rpm_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/measured_shooter_rpm").publish()
-        self.indexer_on_pub = self.inst.getBooleanTopic(f"{self.nt_prefix}/indexer_on").publish()
-        self.indexer_rpm_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/indexer_rpm").publish()
-        self.hopper_on_pub = self.inst.getBooleanTopic(f"{self.nt_prefix}/hopper_on").publish()
-        self.hopper_rpm_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/hopper_rpm").publish()
-        self.roller_on_pub = self.inst.getBooleanTopic(f"{self.nt_prefix}/roller_on").publish()
-        self.roller_rpm_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/roller_rpm").publish()
-        self.flywheel_encoder_rm_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/flywheel_encoder_rpm").publish()
+        self.shooter_on_pub = self.inst.get_boolean_topic(f"{self.nt_prefix}/shooter_on").publish()
+        self.shooter_at_speed_pub = self.inst.get_boolean_topic(f"{self.nt_prefix}/shooter_at_speed").publish()
+        self.shooter_rpm_pub = self.inst.get_double_topic(f"{self.nt_prefix}/shooter_rpm").publish()
+        self.measured_shooter_rpm_pub = self.inst.get_double_topic(f"{self.nt_prefix}/measured_shooter_rpm").publish()
+        self.indexer_on_pub = self.inst.get_boolean_topic(f"{self.nt_prefix}/indexer_on").publish()
+        self.indexer_rpm_pub = self.inst.get_double_topic(f"{self.nt_prefix}/indexer_rpm").publish()
+        self.hopper_on_pub = self.inst.get_boolean_topic(f"{self.nt_prefix}/hopper_on").publish()
+        self.hopper_rpm_pub = self.inst.get_double_topic(f"{self.nt_prefix}/hopper_rpm").publish()
+        self.roller_on_pub = self.inst.get_boolean_topic(f"{self.nt_prefix}/roller_on").publish()
+        self.roller_rpm_pub = self.inst.get_double_topic(f"{self.nt_prefix}/roller_rpm").publish()
+        self.flywheel_encoder_rm_pub = self.inst.get_double_topic(f"{self.nt_prefix}/flywheel_encoder_rpm").publish()
 
     def update_nt(self):
         self.shooter_on_pub.set(self.shooter_on)
@@ -100,7 +100,7 @@ class Shooter(Subsystem):
         self.hopper_rpm_pub.set(self.current_hopper_rpm)
         self.roller_on_pub.set(self.roller_on)
         self.roller_rpm_pub.set(self.current_roller_rpm)
-        self.measured_shooter_rpm_pub.set(self.flywheel_encoder.getVelocity().get())
+        self.measured_shooter_rpm_pub.set(self.flywheel_encoder.get_velocity().get())
         self.shooter_at_speed_pub.set(self.is_at_speed())  # don't like how there are two calls to getVelocity here
 
 
@@ -110,8 +110,8 @@ class Shooter(Subsystem):
         # self.roller_motor.setThrottle(0)
 
         # Use MaxMotion to ramp down smoothly instead of hard stopping with set(0)
-        self.flywheel_controller.setSetpoint(setpoint=0, ctrl=SparkLowLevel.ControlType.kMAXMotionVelocityControl, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=0)
-        self.roller_controller.setSetpoint(setpoint=0, ctrl=SparkLowLevel.ControlType.kMAXMotionVelocityControl, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=0)
+        self.flywheel_controller.set_setpoint(setpoint=0, ctrl=SparkLowLevel.ControlType.MAX_MOTION_VELOCITY_CONTROL, slot=rev.ClosedLoopSlot.SLOT0, arb_feedforward=0)
+        self.roller_controller.set_setpoint(setpoint=0, ctrl=SparkLowLevel.ControlType.MAX_MOTION_VELOCITY_CONTROL, slot=rev.ClosedLoopSlot.SLOT0, arb_feedforward=0)
 
         print("Setting shooter rpm to 0")
 
@@ -127,7 +127,7 @@ class Shooter(Subsystem):
 
     def stop_indexer(self):
         # setting everything off, then updating
-        self.indexer_controller.setSetpoint(setpoint=0, ctrl=SparkLowLevel.ControlType.kMAXMotionVelocityControl, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=0)
+        self.indexer_controller.set_setpoint(setpoint=0, ctrl=SparkLowLevel.ControlType.MAX_MOTION_VELOCITY_CONTROL, slot=rev.ClosedLoopSlot.SLOT0, arb_feedforward=0)
         print("  setting indexer rpm to 0")
         self.indexer_on = False
         self.current_indexer_rpm = 0
@@ -136,7 +136,7 @@ class Shooter(Subsystem):
     
     def stop_hopper(self):
         # setting everything off, then updating
-        self.hopper_controller.setSetpoint(setpoint=0, ctrl=SparkLowLevel.ControlType.kMAXMotionVelocityControl, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=0)
+        self.hopper_controller.set_setpoint(setpoint=0, ctrl=SparkLowLevel.ControlType.MAX_MOTION_VELOCITY_CONTROL, slot=rev.ClosedLoopSlot.SLOT0, arb_feedforward=0)
         print("  setting hopper rpm to 0")
         self.hopper_on = False
         self.current_hopper_rpm = 0
@@ -153,7 +153,7 @@ class Shooter(Subsystem):
     
     def set_indexer_rpm(self, rpm=1000):
         feed_forward = min(12, 12 * rpm / 5600)
-        self.indexer_controller.setSetpoint(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
+        self.indexer_controller.set_setpoint(setpoint=rpm, ctrl=SparkLowLevel.ControlType.VELOCITY, slot=rev.ClosedLoopSlot.SLOT0, arb_feedforward=feed_forward)
         # print(f"  setting indexer rpm to {rpm:.0f}")
         self.current_indexer_rpm = rpm
         self.indexer_on = True
@@ -164,7 +164,7 @@ class Shooter(Subsystem):
 
     def set_hopper_rpm(self, rpm=1000):
         feed_forward = max(-12, min(12, 12 * rpm / 5600))
-        self.hopper_controller.setSetpoint(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
+        self.hopper_controller.set_setpoint(setpoint=rpm, ctrl=SparkLowLevel.ControlType.VELOCITY, slot=rev.ClosedLoopSlot.SLOT0, arb_feedforward=feed_forward)
         # print(f"  setting hopper rpm to {rpm:.0f}")
         self.current_hopper_rpm = rpm
         self.hopper_on = True
@@ -180,10 +180,10 @@ class Shooter(Subsystem):
         # self.roller_controller.setSetpoint(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=roller_feed_forward)
 
         ks = 0 if rpm < 1 else sc.ks_volts  # otherwise it still just turns at 0
-        self.roller_controller.setSetpoint(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kMAXMotionVelocityControl,
-                                             slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=ks)
-        self.flywheel_controller.setSetpoint(setpoint=rpm + self.shooting_offset, ctrl=SparkLowLevel.ControlType.kMAXMotionVelocityControl,
-                                             slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=ks)
+        self.roller_controller.set_setpoint(setpoint=rpm, ctrl=SparkLowLevel.ControlType.MAX_MOTION_VELOCITY_CONTROL,
+                                             slot=rev.ClosedLoopSlot.SLOT0, arb_feedforward=ks)
+        self.flywheel_controller.set_setpoint(setpoint=rpm + self.shooting_offset, ctrl=SparkLowLevel.ControlType.MAX_MOTION_VELOCITY_CONTROL,
+                                             slot=rev.ClosedLoopSlot.SLOT0, arb_feedforward=ks)
 
         #print(f'  -- setflywheel rpm to {rpm:.0f}')  # want to say what time it is, but can't import the container's timer easily
         self.current_rpm = rpm + self.shooting_offset
@@ -194,7 +194,7 @@ class Shooter(Subsystem):
         self.update_nt()
 
     def get_velocity(self):
-        return self.flywheel_encoder.getVelocity().get()
+        return self.flywheel_encoder.get_velocity().get()
 
     def is_at_speed(self) -> bool:
         """Returns True if the shooter is within tolerance RPM of the target speed."""

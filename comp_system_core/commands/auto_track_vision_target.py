@@ -9,7 +9,7 @@ from helpers.log_command import log_command
 class AutoTrackVisionTarget(commands2.Command):
     def __init__(self, container, camera_key='logi_front_hsv', target_distance=0.0, indent=0) -> None:
         super().__init__()
-        self.setName('AutoTrackVisionTarget')
+        self.set_name('AutoTrackVisionTarget')
         self.container = container
         self.swerve: Swerve = container.swerve
         self.vision: Vision = container.vision
@@ -17,7 +17,7 @@ class AutoTrackVisionTarget(commands2.Command):
         self.target_distance = target_distance
         self.indent = indent
 
-        self.addRequirements(self.swerve)
+        self.add_requirements(self.swerve)
 
         # Use a ProfiledPIDController to control acceleration and velocity.
         # This is smoother and more robust than a simple PID + SlewRateLimiter.
@@ -30,15 +30,15 @@ class AutoTrackVisionTarget(commands2.Command):
         self.forward_pid = ProfiledPIDController(1.0, 0, 0, forward_constraints)
 
         # The tolerance is on the goal, not the profile.
-        self.forward_pid.setTolerance(0.1) # Tolerance in meters
+        self.forward_pid.set_tolerance(0.1) # Tolerance in meters
 
         # Rotation PID: Input is rotation (deg), Output is rotSpeed (rad/s)
         # We want to turn left (positive rot) when target is left (positive angle).
         # calculate(angle, 0) -> error = -angle. (Negative)
         # So we need negative output from calculate to get positive rot.
         self.rotation_pid = PIDController(0.05, 0, 0)
-        self.rotation_pid.enableContinuousInput(-180, 180)
-        self.rotation_pid.setTolerance(2)
+        self.rotation_pid.enable_continuous_input(-180, 180)
+        self.rotation_pid.set_tolerance(2)
 
         # State variable to track if we were seeing a target on the last loop
         self.was_tracking = False
@@ -101,7 +101,7 @@ class AutoTrackVisionTarget(commands2.Command):
         # keep_angle=True should be fine - we want to maintain heading when in rotation deadband
         self.swerve.drive(forward_speed, 0, rotation_speed, fieldRelative=False, rate_limited=True, keep_angle=True)
 
-    def isFinished(self):
+    def is_finished(self):
         # This command is designed to run continuously until interrupted (e.g., button release)
         return False
 

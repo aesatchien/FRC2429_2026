@@ -7,14 +7,14 @@ class MoveTrainingBox(commands2.Command):  # change the name for your command
 
     def __init__(self, container, indent=0) -> None:
         super().__init__()
-        self.setName('MoveTrainingBox')  # change this to whatever you named it above
+        self.set_name('MoveTrainingBox')  # change this to whatever you named it above
         self.indent = indent
         self.container = container
         self.extra_log_info = None
         # self.counter = 0  # add a counter if you need to track iterations, remember to initialize in below
-        self.addRequirements(self.container.vision)  # commands2 version of requirements - add the subsystems you need
+        self.add_requirements(self.container.vision)  # commands2 version of requirements - add the subsystems you need
 
-    def runsWhenDisabled(self) -> bool:
+    def runs_when_disabled(self) -> bool:
         return True
 
     def initialize(self) -> None:
@@ -41,7 +41,7 @@ class MoveTrainingBox(commands2.Command):  # change the name for your command
         # runs 50x per second, so be careful about messages and timing
         pass
 
-    def isFinished(self) -> bool:
+    def is_finished(self) -> bool:
         # True: fire once and end; False: run forever until interrupted; logic has it end when code returns True
         return True
 

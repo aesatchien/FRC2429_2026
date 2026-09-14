@@ -12,25 +12,25 @@ from wpimath import Pose2d
 class AutoShootingGroup(commands2.SequentialCommandGroup):
     def __init__(self, container, indent=0) -> None:
         super().__init__()
-        self.setName(f'AutoShootingGroup')
+        self.set_name(f'AutoShootingGroup')
         self.container = container
 
 
-        self.addCommands(Intake_Deploy(intake=container.intake, position='shoot', indent=1))
+        self.add_commands(Intake_Deploy(intake=container.intake, position='shoot', indent=1))
 
-        self.addCommands(commands2.WaitCommand(0.5))
+        self.add_commands(commands2.WaitCommand(0.5))
 
         # because the drive by velocity needs swerve, we have to actively use the swerve to auto target
-        self.addCommands(shoot_cycle(self.container, timeout=5, delay_cycles=50, intake='none', indent=1))
+        self.add_commands(shoot_cycle(self.container, timeout=5, delay_cycles=50, intake='none', indent=1))
 
         # self.addCommands(ShootingCommand(shooter=container.shooter, targeting=container.targeting, indent=1, auto_timeout=5))
 
 
-        self.addCommands(Intake_Deploy(intake=container.intake, position='down', indent=1))
+        self.add_commands(Intake_Deploy(intake=container.intake, position='down', indent=1))
 
         # flight simulator rules - y axis is reversed, so negative numbers go forward on field relative
         #self.addCommands(DriveByVelocitySwerve(self.container, self.container.swerve, Pose2d(-0.25, 0, 0), field_relative=True, indent=1, timeout=2))
         # self.addCommands(AutoToPoseClean(self, self.swerve, target_pose=None, nearest=True, from_robot_state=True,control_type='not_pathplanner'))
 
-        self.addCommands(commands2.PrintCommand(f"{'    ' * indent}** Finished {self.getName()} **"))
+        self.add_commands(commands2.PrintCommand(f"{'    ' * indent}** Finished {self.get_name()} **"))
 

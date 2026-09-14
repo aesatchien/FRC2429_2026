@@ -21,11 +21,11 @@ from helpers import joysticks as js
 class RightBumpCycle(commands2.SequentialCommandGroup):
     def __init__(self, container, indent=0) -> None:
         super().__init__()
-        self.setName(f'Right Bump Cycle Auto')
+        self.set_name(f'Right Bump Cycle Auto')
         self.container = container
-        self.addCommands(commands2.PrintCommand(f"{'    ' * indent}** Started {self.getName()} **"))
+        self.add_commands(commands2.PrintCommand(f"{'    ' * indent}** Started {self.get_name()} **"))
 
-        self.addCommands(
+        self.add_commands(
             ConditionalCommand(
                 AutoBuilder.followPath(PathPlannerPath.fromPathFile('Right_Bump_Cycle')),
                 AutoBuilder.followPath(PathPlannerPath.fromPathFile('Left_Bump_Cycle')),
@@ -33,11 +33,11 @@ class RightBumpCycle(commands2.SequentialCommandGroup):
             )
         )
 
-        self.addCommands(shoot_cycle(self.container, indent=1))
+        self.add_commands(shoot_cycle(self.container, indent=1))
 
-        self.addCommands(commands2.PrintCommand(f"{'    ' * indent}** Finished {self.getName()} **"))
+        self.add_commands(commands2.PrintCommand(f"{'    ' * indent}** Finished {self.get_name()} **"))
 
     def get_is_right(self):
-        alliance_color = wpilib.MatchState.getAlliance() == wpilib.Alliance.BLUE
-        is_left = self.container.swerve.get_pose().Y() > fc.k_field_width / 2
+        alliance_color = wpilib.MatchState.get_alliance() == wpilib.Alliance.BLUE
+        is_left = self.container.swerve.get_pose().y > fc.k_field_width / 2
         return alliance_color ^ is_left

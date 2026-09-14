@@ -14,7 +14,7 @@ class ResetFieldCentric(commands2.Command):
     def __init__(self, container, swerve: Swerve, angle: float=0, indent=0) -> None:
         super().__init__()
         self.indent = indent
-        self.setName('Reset field centric')  # change this to something appropriate for this command
+        self.set_name('Reset field centric')  # change this to something appropriate for this command
         self.container = container
         self.swerve = swerve
         
@@ -24,7 +24,7 @@ class ResetFieldCentric(commands2.Command):
     def initialize(self) -> None:
         """Called just before this Command runs the first time."""
 
-        alliance = wpilib.MatchState.getAlliance()
+        alliance = wpilib.MatchState.get_alliance()
         x_offset= 3.2
         self.angle = self.angle_dict['Red'] if alliance == wpilib.Alliance.RED else self.angle_dict['Blue']
         if alliance == wpilib.Alliance.RED:
@@ -38,9 +38,9 @@ class ResetFieldCentric(commands2.Command):
 
     def execute(self) -> None:
         # because it fires once and the auto-log is a one-liner
-        print(f"setting x to {self.swerve.get_pose().X():.2f}; y to {self.swerve.get_pose().Y():.2f}; theta to {self.angle:.0f}")
+        print(f"setting x to {self.swerve.get_pose().x:.2f}; y to {self.swerve.get_pose().y:.2f}; theta to {self.angle:.0f}")
 
-    def isFinished(self) -> bool:
+    def is_finished(self) -> bool:
         return True
 
     def end(self, interrupted: bool) -> None:

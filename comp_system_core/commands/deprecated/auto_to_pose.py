@@ -28,7 +28,7 @@ class AutoToPose(commands2.Command):  #
         if nearest, it overrides target_pose
         """
         super().__init__()
-        self.setName('AutoToPose')  # using the pathplanner controller instead
+        self.set_name('AutoToPose')  # using the pathplanner controller instead
         self.indent = indent
         self.container = container
         self.swerve = swerve
@@ -58,7 +58,7 @@ class AutoToPose(commands2.Command):  #
         self.last_diff_y = 999
         self.last_diff_radians = 1
 
-        self.addRequirements(self.swerve)
+        self.add_requirements(self.swerve)
         self.reset_controllers()  # i know it looks like you don't need this, but 1st use fails w/o it  TODO - fix this
 
     def reset_controllers(self):
@@ -77,15 +77,15 @@ class AutoToPose(commands2.Command):  #
             relative_pose = self.container.vision.nearest_to_cam('logitech_reef_hsv')
             if relative_pose is not None:
                 rel_tf = Transform2d(relative_pose.translation(), relative_pose.rotation())
-                self.target_pose = current_pose.transformBy(rel_tf)
+                self.target_pose = current_pose.transform_by(rel_tf)
 
         else:
             self.target_pose = self.original_target_pose
 
-        if wpilib.MatchState.getAlliance()  == wpilib.Alliance.RED and not self.use_vision:
+        if wpilib.MatchState.get_alliance()  == wpilib.Alliance.RED and not self.use_vision:
             mid_x = constants.FieldConstants.k_field_length / 2
             mid_y = constants.FieldConstants.k_field_width / 2
-            self.target_pose = self.target_pose.rotateAround(point=Translation2d(mid_x, mid_y), rot=Rotation2d(math.pi))
+            self.target_pose = self.target_pose.rotate_around(point=Translation2d(mid_x, mid_y), rot=Rotation2d(math.pi))
 
         if self.control_type == 'pathplanner':
             self.target_state = PathPlannerTrajectoryState()
@@ -96,27 +96,27 @@ class AutoToPose(commands2.Command):  #
 
         else:  # custom
             if self.trapezoid:  # use a trapezoidal profile
-                xy_constraints = TrapezoidProfile.Constraints(maxVelocity=2, maxAcceleration=1.0)
+                xy_constraints = TrapezoidProfile.Constraints(max_velocity=2, max_acceleration=1.0)
                 self.x_pid = ProfiledPIDController(0.25, 0, 0.05, constraints=xy_constraints)
                 self.y_pid = ProfiledPIDController(0.25, 0, 0.05, constraints=xy_constraints)
-                self.x_pid.setGoal(self.target_pose.X())
-                self.y_pid.setGoal(self.target_pose.Y())
+                self.x_pid.set_goal(self.target_pose.x)
+                self.y_pid.set_goal(self.target_pose.y)
             else:
                 # trying to get it to slow down but still make it to final position
                 # after 1s at 1 error the integral contribution will be Ki - so 1s at 0.1 error will output 0.1 * Ki
                 self.x_pid = PIDController(0.8, 0.1, 0.0)  # can allow for a higher Ki because of clamping below
-                self.x_pid.setIntegratorRange(-0.1,0.1)  # clamp Ki * Tot Error min(negative) and max output
-                self.x_pid.setIZone(0.25)  # do not allow integral unless we are within 0.25m (prevents windup)
-                self.x_pid.setSetpoint(self.target_pose.X())
+                self.x_pid.set_integrator_range(-0.1,0.1)  # clamp Ki * Tot Error min(negative) and max output
+                self.x_pid.set_i_zone(0.25)  # do not allow integral unless we are within 0.25m (prevents windup)
+                self.x_pid.set_setpoint(self.target_pose.x)
 
                 self.y_pid = PIDController(0.8, 0.1, 0.0)
-                self.y_pid.setIntegratorRange(-0.1,0.1)  # clamp min(negative) and max output of the integral term
-                self.y_pid.setIZone(0.25)  # do not allow integral unless we are within 0.25m (prevents windup)
-                self.y_pid.setSetpoint(self.target_pose.Y())
+                self.y_pid.set_integrator_range(-0.1,0.1)  # clamp min(negative) and max output of the integral term
+                self.y_pid.set_i_zone(0.25)  # do not allow integral unless we are within 0.25m (prevents windup)
+                self.y_pid.set_setpoint(self.target_pose.y)
 
             self.rot_pid = PIDController(0.7, 0.0, 0,)  # 0.5
-            self.rot_pid.enableContinuousInput(radians(-180), radians(180))
-            self.rot_pid.setSetpoint(self.target_pose.rotation().radians())
+            self.rot_pid.enable_continuous_input(radians(-180), radians(180))
+            self.rot_pid.set_setpoint(self.target_pose.rotation().radians())
 
             # reset overshoot
             self.x_overshot = False
@@ -140,8 +140,8 @@ class AutoToPose(commands2.Command):  #
             else:
                 if self.trapezoid:
                     robot_pose = self.swerve.get_pose()
-                    self.x_pid.reset(robot_pose.X())
-                    self.y_pid.reset(robot_pose.Y())
+                    self.x_pid.reset(robot_pose.x)
+                    self.y_pid.reset(robot_pose.y)
                 else:
                     self.x_pid.reset()
                     self.y_pid.reset()
@@ -164,7 +164,7 @@ class AutoToPose(commands2.Command):  #
 
     def execute(self) -> None:
         # moved here because of the auto-logger
-        if self.counter == 0 and (wpilib.RobotBase.isSimulation() or self.print_debug):
+        if self.counter == 0 and (wpilib.RobotBase.is_simulation() or self.print_debug):
             msg = f'CNT  DX     XT?   Xo   |   DY    YT?   Yo   |   DR     RT?   Ro   | TC'
             print(msg)
 
@@ -177,23 +177,23 @@ class AutoToPose(commands2.Command):  #
             self.swerve.drive_robot_relative(target_chassis_speeds, "we don't use feedforwards")
 
         else:
-            x_output = self.x_pid.calculate(robot_pose.X())  # setpoint is the target pose X
-            y_output = self.y_pid.calculate(robot_pose.Y())  # setpoint is the target pose Y
+            x_output = self.x_pid.calculate(robot_pose.x)  # setpoint is the target pose X
+            y_output = self.y_pid.calculate(robot_pose.y)  # setpoint is the target pose Y
             rot_output = self.rot_pid.calculate(robot_pose.rotation().radians())  # setpoint is the target pose radians
 
             # TODO optimize the last mile and have it gracefully not oscillate
             rot_max, rot_min = 0.5, 0.1
             trans_max, trans_min = 0.3, 0.1  # it browns out when you start if this is too high
-            diff_pose = robot_pose.relativeTo(self.target_pose)  # this is pretty much useless for x and y, only rotation
+            diff_pose = robot_pose.relative_to(self.target_pose)  # this is pretty much useless for x and y, only rotation
             # this rotateby is important - otherwise you have x and y mixed up when pointed 90 degrees and using robot centric
-            diff_xy = diff_pose.rotateBy(-self.target_pose.rotation())  # now dX and dY should be correct if you use .X and .Y
+            diff_xy = diff_pose.rotate_by(-self.target_pose.rotation())  # now dX and dY should be correct if you use .X and .Y
             diff_rot = diff_pose
             # enforce minimum values , but try to stop oscillations  i.e. try to get us to overshoot but very gently
-            diff_x = self.target_pose.X() - robot_pose.X()  # x error
+            diff_x = self.target_pose.x - robot_pose.x  # x error
             if abs(diff_x) > abs(self.last_diff_x) and self.counter > 0:
                 self.x_overshot = True
             self.last_diff_x = diff_x
-            diff_y = self.target_pose.Y() - robot_pose.Y()  # y error
+            diff_y = self.target_pose.y - robot_pose.y  # y error
             if abs(diff_y) > abs(self.last_diff_y) and self.counter > 0:
                 self.y_overshot = True
             self.last_diff_y = diff_y
@@ -228,7 +228,7 @@ class AutoToPose(commands2.Command):  #
             else:
                 self.tolerance_counter = 0
 
-            if self.counter % 10 == 0 and (wpilib.RobotBase.isSimulation() or self.print_debug):
+            if self.counter % 10 == 0 and (wpilib.RobotBase.is_simulation() or self.print_debug):
                 msg = f'{self.counter:3d}  {diff_x:+.2f} {str(self.x_overshot):>5} {x_output:+.2f} | {diff_y:+.2f}  {str(self.y_overshot):>5} {y_output:+.2f} '
                 msg += f'| {diff_rot.rotation().degrees():>+6.1f}° {str(self.rot_overshot):>5} {rot_output:+.2f} | {self.tolerance_counter} '  # {diff_pose} {diff_xy}'
                 print(msg)
@@ -244,13 +244,13 @@ class AutoToPose(commands2.Command):  #
 
         self.counter += 1
 
-    def isFinished(self) -> bool:
+    def is_finished(self) -> bool:
         return self.tolerance_counter > 10
 
     def end(self, interrupted: bool) -> None:
         if interrupted:
-            commands2.CommandScheduler.getInstance().schedule(
+            commands2.CommandScheduler.get_instance().schedule(
                 self.container.led.set_indicator_with_timeout(Led.Indicator.kFAILUREFLASH, 2))
         else:
-            commands2.CommandScheduler.getInstance().schedule(
+            commands2.CommandScheduler.get_instance().schedule(
                 self.container.led.set_indicator_with_timeout(Led.Indicator.kSUCCESSFLASH, 2))

@@ -16,7 +16,7 @@ class DriveByVelocitySwerve(commands2.Command):  # change the name for your comm
         emergency command in case we can't get pathplanner working by the scrim
         """
         super().__init__()
-        self.setName('Drive by velocity swerve')  # change this to something appropriate for this command
+        self.set_name('Drive by velocity swerve')  # change this to something appropriate for this command
         self.indent = indent
         self.container = container
         self.swerve = swerve
@@ -24,7 +24,7 @@ class DriveByVelocitySwerve(commands2.Command):  # change the name for your comm
         self.timeout = timeout
         self.field_relative = field_relative
         self.timer = Timer()
-        self.addRequirements(self.swerve)
+        self.add_requirements(self.swerve)
 
         # CJH added this so AJ's DPAD is not so shaky - may need to take out for auto stuff  20250331
         stick_max_units_per_second = 2  # can't be too low or you get lag
@@ -53,15 +53,15 @@ class DriveByVelocitySwerve(commands2.Command):  # change the name for your comm
             #                      and Pose2d(0.1, 0, 0) is labelled "Drive 2s To Driver Station".
             # Blue: -0.25 -> +0.25 -> +X, away from the blue wall.  Red: -0.25 stays -X, away
             # from the red wall.  Consistent, just inverted relative to the stick.
-            if MatchState.getAlliance() == Alliance.BLUE:
+            if MatchState.get_alliance() == Alliance.BLUE:
                 x_out *= -1
                 y_out *= -1
             self.swerve.drive(x_out, y_out, self.velocity.rotation().radians(), fieldRelative=True, keep_angle=True, rate_limited=True)
         else:
             self.swerve.drive(x_out, y_out, self.velocity.rotation().radians(), fieldRelative=False, keep_angle=False, rate_limited=True)
 
-    def isFinished(self) -> bool:
-        return self.timer.hasElapsed(self.timeout)
+    def is_finished(self) -> bool:
+        return self.timer.has_elapsed(self.timeout)
 
     def end(self, interrupted: bool) -> None:
         self.swerve.drive(0, 0, 0, True, False)

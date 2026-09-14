@@ -64,8 +64,8 @@ def get_closest_gamepiece(robot_pose: Pose2d, active_gamepieces: list[Translatio
     dist, rot = distance_to_gamepiece(robot_pose, closest)
 
     # Calculate strafe (Y component in robot frame)
-    vec_robot_frame = (closest - robot_translation).rotateBy(-robot_pose.rotation())
-    strafe = vec_robot_frame.Y()
+    vec_robot_frame = (closest - robot_translation).rotate_by(-robot_pose.rotation())
+    strafe = vec_robot_frame.y
 
     # Target Pose: Location of gamepiece, rotated to face the robot
     target_rotation = (closest - robot_translation).angle()

@@ -16,7 +16,7 @@ from typing import Callable
 from .config import RobotConfig
 from .pathfinding import Pathfinding
 from .events import EventScheduler
-from hal import reportUsage
+from hal import report_usage
 
 
 class FollowPathCommand(Command):
@@ -69,14 +69,14 @@ class FollowPathCommand(Command):
         self._shouldFlipPath = should_flip_path
         self._eventScheduler = EventScheduler()
 
-        self.addRequirements(*requirements)
+        self.add_requirements(*requirements)
 
         eventReqs = EventScheduler.getSchedulerRequirements(self._originalPath)
         for req in requirements:
             if req in eventReqs:
                 raise RuntimeError(
                     'Events that are triggered during path following cannot require the drive subsystem')
-        self.addRequirements(*eventReqs)
+        self.add_requirements(*eventReqs)
 
         self._path = self._originalPath
         # Ensure the ideal trajectory is generated
@@ -125,7 +125,7 @@ class FollowPathCommand(Command):
     def execute(self):
         currentTime = self._timer.get()
         targetState = self._trajectory.sample(currentTime)
-        if not self._controller.isHolonomic() and self._path.isReversed():
+        if not self._controller.isHolonomic() and self._path.is_reversed():
             targetState = targetState.reverse()
 
         currentPose = self._poseSupplier()
@@ -147,9 +147,9 @@ class FollowPathCommand(Command):
 
         self._eventScheduler.execute(currentTime)
 
-    def isFinished(self) -> bool:
+    def is_finished(self) -> bool:
         totalTime = self._trajectory.getTotalTimeSeconds()
-        return self._timer.hasElapsed(totalTime) or not math.isfinite(totalTime)
+        return self._timer.has_elapsed(totalTime) or not math.isfinite(totalTime)
 
     def end(self, interrupted: bool):
         self._timer.stop()
@@ -218,7 +218,7 @@ class PathfindingCommand(Command):
         if target_path is None and target_pose is None:
             raise ValueError('Either target_path or target_pose must be specified for PathfindingCommand')
 
-        self.addRequirements(*requirements)
+        self.add_requirements(*requirements)
 
         Pathfinding.ensureInitialized()
 
@@ -244,8 +244,8 @@ class PathfindingCommand(Command):
                         targetRotation = p.rotationTarget.target
                         break
             self._targetPath = target_path
-            self._targetPose = Pose2d(target_path.getPoint(0).position, targetRotation)
-            self._originalTargetPose = Pose2d(target_path.getPoint(0).position, targetRotation)
+            self._targetPose = Pose2d(target_path.get_point(0).position, targetRotation)
+            self._originalTargetPose = Pose2d(target_path.get_point(0).position, targetRotation)
             self._goalEndState = GoalEndState(goalEndVel, targetRotation)
         else:
             self._targetPath = None
@@ -254,7 +254,7 @@ class PathfindingCommand(Command):
             self._goalEndState = GoalEndState(goal_end_vel, target_pose.rotation())
 
         PathfindingCommand._instances += 1
-        reportUsage("PathPlanner/PathFindingCommand", PathfindingCommand._instances, "")
+        report_usage("PathPlanner/PathFindingCommand", PathfindingCommand._instances, "")
 
     def initialize(self):
         self._currentTrajectory = None
@@ -266,7 +266,7 @@ class PathfindingCommand(Command):
         self._controller.reset(currentPose, self._speedsSupplier())
 
         if self._targetPath is not None:
-            self._originalTargetPose = Pose2d(self._targetPath.getPoint(0).position,
+            self._originalTargetPose = Pose2d(self._targetPath.get_point(0).position,
                                               self._originalTargetPose.rotation())
             if self._shouldFlipPath():
                 self._targetPose = FlippingUtil.flipFieldPose(self._originalTargetPose)
@@ -361,7 +361,7 @@ class PathfindingCommand(Command):
 
             self._output(targetSpeeds, targetState.feedforwards)
 
-    def isFinished(self) -> bool:
+    def is_finished(self) -> bool:
         if self._finish:
             return True
 
@@ -375,7 +375,7 @@ class PathfindingCommand(Command):
             return currentPose.translation().distance(self._targetPose.translation()) <= stoppingDistance
 
         if self._currentTrajectory is not None:
-            return self._timer.hasElapsed(self._currentTrajectory.getTotalTimeSeconds() - self._timeOffset)
+            return self._timer.has_elapsed(self._currentTrajectory.getTotalTimeSeconds() - self._timeOffset)
 
         return False
 
@@ -422,11 +422,11 @@ class PathfindThenFollowPath(SequentialCommandGroup):
 
             startPose = pose_supplier()
             startSpeeds = speeds_supplier()
-            startFieldSpeeds = startSpeeds.toFieldRelative(startPose.rotation())
+            startFieldSpeeds = startSpeeds.to_field_relative(startPose.rotation())
 
             startHeading = Rotation2d(startFieldSpeeds.vx, startFieldSpeeds.vy)
 
-            endWaypoint = Pose2d(goal_path.getPoint(0).position, goal_path.getInitialHeading())
+            endWaypoint = Pose2d(goal_path.get_point(0).position, goal_path.getInitialHeading())
             shouldFlip = should_flip_path() and not goal_path.preventFlipping
             if shouldFlip:
                 endWaypoint = FlippingUtil.flipFieldPose(endWaypoint)
@@ -457,7 +457,7 @@ class PathfindThenFollowPath(SequentialCommandGroup):
                 *requirements
             )
 
-        self.addCommands(
+        self.add_commands(
             PathfindingCommand(
                 pathfinding_constraints,
                 pose_supplier,

@@ -14,13 +14,13 @@ class ShootingCommand(commands2.Command):  # change the name for your command
 
     def __init__(self, shooter: Shooter, targeting: Targeting, indent=0, auto_timeout=None, rpm=0, delay_cycles=50) -> None:
         super().__init__()
-        self.setName('Shooting') # change this to something appropriate for this command
+        self.set_name('Shooting') # change this to something appropriate for this command
         self.indent = indent
         self.shooter = shooter
         # targeting is REQUIRED even when rpm is fixed: end() asks it whether we are still tracking.
         # It used to default to None, which ran fine and then raised AttributeError on button release.
         self.targeting = targeting
-        self.addRequirements(self.shooter)  # commandsv2 version of requirements
+        self.add_requirements(self.shooter)  # commandsv2 version of requirements
         self.extra_log_info = None
         self.counter = 0  # add a counter if you need to track iterations, remember to initialize in below
         # we want indexer and hopper to start after .1 seconds or 1/10 seconds. 
@@ -86,7 +86,7 @@ class ShootingCommand(commands2.Command):  # change the name for your command
             pass
 
 
-    def isFinished(self) -> bool:
+    def is_finished(self) -> bool:
         # True: fire once and end; False: run forever until interrupted; logic has it end when code returns True
         if self.auto_timeout is None:
             return False
@@ -97,5 +97,5 @@ class ShootingCommand(commands2.Command):  # change the name for your command
         # put your safe cleanup code here - turn off motors, set LEDs, etc
         self.shooter.stop_shooter()
         # there is a problem with stopping here - we may want to keep shooting right away, so kill that delay
-        if self.targeting.get_tracking_state() and wpilib.RobotState.isTeleop():
+        if self.targeting.get_tracking_state() and wpilib.RobotState.is_teleop():
             self.shooter.set_shooter_rpm(rpm=sc.k_shooter_test_speed)

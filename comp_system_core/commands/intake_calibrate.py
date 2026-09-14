@@ -13,24 +13,24 @@ class CalibrateIntake(commands2.Command):  # change the name for your command
 
     def __init__(self, intake: Intake, on_start=False, indent=0) -> None:
         super().__init__()
-        self.setName('Calibrate Intake')  # change this to something appropriate for this command
+        self.set_name('Calibrate Intake')  # change this to something appropriate for this command
         self.intake = intake
         self.indent = indent
-        self.addRequirements(self.intake)  # commandsv2 version of requirements
+        self.add_requirements(self.intake)  # commandsv2 version of requirements
         self.on_start = on_start
 
     def initialize(self) -> None:
-        self.intake.deploy_motor.setThrottle(0.1)
+        self.intake.deploy_motor.set_throttle(0.1)
 
     def execute(self) -> None:
         pass
 
-    def isFinished(self) -> bool:
+    def is_finished(self) -> bool:
         return self.intake.get_average_current() > ic.k_deploy_current_peak
         
     def end(self, interrupted: bool) -> None:
         # put your safe cleanup code here - turn off motors, set LEDs, etc
-        self.intake.deploy_motor.setThrottle(0) # stop the dropper crank when the command ends
+        self.intake.deploy_motor.set_throttle(0) # stop the dropper crank when the command ends
         if interrupted:
             self.intake.is_calibrated = False
         else:

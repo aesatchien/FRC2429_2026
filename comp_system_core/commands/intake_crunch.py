@@ -10,10 +10,10 @@ class Intake_Crunch(commands2.Command):  # change the name for your command
 
     def __init__(self, intake: Intake,  on_start=False, indent=0) -> None:
         super().__init__()
-        self.setName('Intake_Crunch')  # change this to something appropriate for this command
+        self.set_name('Intake_Crunch')  # change this to something appropriate for this command
         self.intake = intake
         self.indent = indent
-        self.addRequirements(self.intake)  # commandsv2 version of requirements
+        self.add_requirements(self.intake)  # commandsv2 version of requirements
         self.counter = 0
         self.state = "crunch"  # used to switch back and forth
 
@@ -42,7 +42,7 @@ class Intake_Crunch(commands2.Command):  # change the name for your command
                 self.state = "second_shooting"
 
 
-    def isFinished(self) -> bool:
+    def is_finished(self) -> bool:
         return self.counter >= 200
     
         

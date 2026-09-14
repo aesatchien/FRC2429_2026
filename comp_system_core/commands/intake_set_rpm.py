@@ -11,7 +11,7 @@ class Intake_Set_RPM(commands2.Command):  # change the name for your command
 
     def __init__(self, intake: Intake, rpm=1000, on_start=False, indent=0, led:Led=None,) -> None:
         super().__init__()
-        self.setName('Intake_Set')  # change this to something appropriate for this command
+        self.set_name('Intake_Set')  # change this to something appropriate for this command
         self.rpm = rpm
         self.intake = intake
         self.indent = indent
@@ -19,7 +19,7 @@ class Intake_Set_RPM(commands2.Command):  # change the name for your command
         self.led = led
         self.previous_rpm = 0
         # self.previous_rpm = 1000  # assume we were on
-        self.addRequirements(self.intake)  # commandsv2 version of requirements
+        self.add_requirements(self.intake)  # commandsv2 version of requirements
 
     def initialize(self) -> None:
         # Called just before each time this Command runs
@@ -34,7 +34,7 @@ class Intake_Set_RPM(commands2.Command):  # change the name for your command
     def execute(self) -> None:
         pass
 
-    def isFinished(self) -> bool:
+    def is_finished(self) -> bool:
         return True
         
     def end(self, interrupted: bool) -> None:
@@ -44,7 +44,7 @@ class Intake_Set_RPM(commands2.Command):  # change the name for your command
             if abs(self.rpm) > 1:
                 self.led.set_indicator(Led.Indicator.kINTAKEON)
             elif abs(self.previous_rpm) > 1:  # flash only if we weren't already moving
-                commands2.CommandScheduler.getInstance().schedule(
+                commands2.CommandScheduler.get_instance().schedule(
                     self.led.set_indicator_with_timeout(Led.Indicator.kINTAKEOFF, timeout=1.5))
             else:
                 pass  # do nothing if we are now off and were already off

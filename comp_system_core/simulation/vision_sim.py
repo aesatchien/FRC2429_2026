@@ -9,7 +9,7 @@ from helpers import apriltag_utils
 class VisionSim:
     def __init__(self, field: wpilib.Field2d):
         self.field = field
-        self.inst = ntcore.NetworkTableInstance.getDefault()
+        self.inst = ntcore.NetworkTableInstance.get_default()
         
         # Configuration
         self.cam_list = list(constants.CameraConstants.k_cameras.keys())
@@ -25,7 +25,7 @@ class VisionSim:
         
         # FOV Show/Hide Subscribers
         self.show_fov_subs = {
-            key: self.inst.getBooleanTopic(f"{sim_prefix}/FOV/{key}_show_fov").subscribe(False)
+            key: self.inst.get_boolean_topic(f"{sim_prefix}/FOV/{key}_show_fov").subscribe(False)
             for key in self.cam_list
         }
 
@@ -42,36 +42,36 @@ class VisionSim:
             self.camera_dict[key] = {
                 'offset': ix,
                 'frames': 0,
-                'frames_pub': self.inst.getIntegerTopic(f"/Cameras/{cam_topic}/_frames").publish(),
-                'targets_pub': self.inst.getDoubleTopic(f"{base}/targets").publish(PubSubOptions(keepDuplicates=True)),  # otherwise targets get stale
-                'distance_pub': self.inst.getDoubleTopic(f"{base}/distance").publish(),
-                'strafe_pub': self.inst.getDoubleTopic(f"{base}/strafe").publish(),
-                'rotation_pub': self.inst.getDoubleTopic(f"{base}/rotation").publish()
+                'frames_pub': self.inst.get_integer_topic(f"/Cameras/{cam_topic}/_frames").publish(),
+                'targets_pub': self.inst.get_double_topic(f"{base}/targets").publish(PubSubOptions(keep_duplicates=True)),  # otherwise targets get stale
+                'distance_pub': self.inst.get_double_topic(f"{base}/distance").publish(),
+                'strafe_pub': self.inst.get_double_topic(f"{base}/strafe").publish(),
+                'rotation_pub': self.inst.get_double_topic(f"{base}/rotation").publish()
             }
 
     def _init_field_objects(self):
         # Pre-fetch Field2d objects for FOV visualization
         self.fov_objects = {}
         for idx, key in enumerate(self.cam_list):
-            self.fov_objects[key] = self.field.getObject(f"FOV_{idx}")
+            self.fov_objects[key] = self.field.get_object(f"FOV_{idx}")
 
     def _init_apriltags(self):
         self.tag_translations = []
         self.tag_poses = []
         
         # Load tags from the layout utility
-        for tag in apriltag_utils.layout.getTags():
-            pose3d = apriltag_utils.layout.getTagPose(tag.ID)
+        for tag in apriltag_utils.layout.get_tags():
+            pose3d = apriltag_utils.layout.get_tag_pose(tag.ID)
             if pose3d is not None:
-                pose2d = pose3d.toPose2d()
+                pose2d = pose3d.to_pose2d()
                 self.tag_poses.append(pose2d)
                 self.tag_translations.append(pose2d.translation())
         
-        self.field.getObject("AprilTags").setPoses(self.tag_poses)
+        self.field.get_object("AprilTags").set_poses(self.tag_poses)
 
 
     def update(self, robot_pose: Pose2d, gamepieces: list[dict]):
-        now = wpilib.Timer.getTimestamp()
+        now = wpilib.Timer.get_timestamp()
 
         # 1. Manual Override: Use External Cameras
         # If True: Do not simulate targets, do not blink test. Just draw FOV.
@@ -164,7 +164,7 @@ class VisionSim:
 
     def _update_fov_visualization(self, key, robot_pose, config, show_fov):
         if not constants.SimConstants.k_draw_camera_fovs or not show_fov:
-            self.fov_objects[key].setPoses([])
+            self.fov_objects[key].set_poses([])
             return
 
         robot_pos = robot_pose.translation()
@@ -181,7 +181,7 @@ class VisionSim:
         p2 = robot_pos + Translation2d(fov_dist * math.cos(left_edge_angle), fov_dist * math.sin(left_edge_angle))
         p3 = robot_pos + Translation2d(fov_dist * math.cos(right_edge_angle), fov_dist * math.sin(right_edge_angle))
 
-        self.fov_objects[key].setPoses([Pose2d(p1, Rotation2d()), Pose2d(p2, Rotation2d()), Pose2d(p3, Rotation2d())])
+        self.fov_objects[key].set_poses([Pose2d(p1, Rotation2d()), Pose2d(p2, Rotation2d()), Pose2d(p3, Rotation2d())])
 
     def _run_blink_test(self, now):
         # 60s cycle for camera disconnection

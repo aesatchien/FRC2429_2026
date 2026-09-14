@@ -13,19 +13,19 @@ class SwerveSim:
         self.robot = robot
         self.kinematics = dc.kDriveKinematics
         
-        self.inst = ntcore.NetworkTableInstance.getDefault()
+        self.inst = ntcore.NetworkTableInstance.get_default()
         
         # Swerve Debugging
-        self.target_angles_pub = self.inst.getDoubleArrayTopic(f"{constants.sim_prefix}/swerve_target_angles").publish()
+        self.target_angles_pub = self.inst.get_double_array_topic(f"{constants.sim_prefix}/swerve_target_angles").publish()
         
         # Swerve Target Subscribers
         dash_values = ['lf_target_vel_angle', 'rf_target_vel_angle', 'lb_target_vel_angle', 'rb_target_vel_angle']
-        self.swerve_target_subs = [self.inst.getDoubleArrayTopic(f"/SmartDashboard/{v}").subscribe([0, 0]) for v in dash_values]
+        self.swerve_target_subs = [self.inst.get_double_array_topic(f"/SmartDashboard/{v}").subscribe([0, 0]) for v in dash_values]
 
         # Live Tag Subscribers (for snapping sim to reality)
         self.camera_names = [config['topic_name'] for config in constants.CameraConstants.k_cameras.values() if config['type'] == 'tags']
-        self.pose_subscribers = [self.inst.getDoubleArrayTopic(f"/Cameras/{cam}/poses/tag1").subscribe([0] * 7) for cam in self.camera_names]
-        self.count_subscribers = [self.inst.getDoubleTopic(f"/Cameras/{cam}/tags/targets").subscribe(0) for cam in self.camera_names]
+        self.pose_subscribers = [self.inst.get_double_array_topic(f"/Cameras/{cam}/poses/tag1").subscribe([0] * 7) for cam in self.camera_names]
+        self.count_subscribers = [self.inst.get_double_topic(f"/Cameras/{cam}/tags/targets").subscribe(0) for cam in self.camera_names]
 
         self._initialize_sim_devices()
 
@@ -46,9 +46,9 @@ class SwerveSim:
 
         for spark_name, can_id in zip(self.spark_turns, self.spark_turn_ids):
             spark = simlib.SimDeviceSim(f'SPARK MAX [{can_id}]')
-            position = spark.getDouble('Position')
-            velocity = spark.getDouble('Velocity')
-            output = spark.getDouble('Applied Output')
+            position = spark.get_double('Position')
+            velocity = spark.get_double('Velocity')
+            output = spark.get_double('Applied Output')
             self.spark_dict.update({spark_name: {'controller': spark, 'position': position,
                                                  'velocity': velocity, 'output': output}})
 
@@ -63,14 +63,14 @@ class SwerveSim:
 
         # Get desired states from robot code (for kinematics)
         module_states = self.robot.container.swerve.get_desired_swerve_module_states()
-        speeds = self.kinematics.toChassisVelocities(tuple(module_states))
+        speeds = self.kinematics.to_chassis_velocities(tuple(module_states))
 
         # Update physics controller
         self.physics_controller.drive(speeds, tm_diff)
         
         # Update Robot Odometry (Perfect Odometry for Sim)
         pose = self.physics_controller.get_pose()
-        self.robot.container.swerve.pose_estimator.resetPosition(gyroAngle=pose.rotation(), wheelPositions=[SwerveModulePosition()] * 4, pose=pose)
+        self.robot.container.swerve.pose_estimator.reset_position(gyro_angle=pose.rotation(), wheel_positions=[SwerveModulePosition()] * 4, pose=pose)
 
         # Update the onboard IMU.  Note the sign flip against the old navX line: navX was
         # clockwise-positive so a CCW chassis rotation had to be SUBTRACTED, while OnboardIMU
@@ -83,8 +83,8 @@ class SwerveSim:
         # setYaw is driven too so getYaw()/getRotation2d() stay believable in sim, but
         # nothing steers by them.  These are independent signals - setting one does not
         # move the other - so a sim that only set yaw would leave the heading at zero.
-        self.imu_sim.setAngleX(self.imu_yaw_rad)
-        self.imu_sim.setYaw(self.imu_yaw_rad)
+        self.imu_sim.set_angle_x(self.imu_yaw_rad)
+        self.imu_sim.set_yaw(self.imu_yaw_rad)
 
         # --- Live Tag Snapping ---
         if constants.SimConstants.k_use_live_tags_in_sim:
@@ -102,7 +102,7 @@ class SwerveSim:
         """
         for count_sub, pose_sub in zip(self.count_subscribers, self.pose_subscribers):
             if count_sub.get() > 0:
-                atomic_data = pose_sub.getAtomic()
+                atomic_data = pose_sub.get_atomic()
                 tag_data = atomic_data.value
                 timestamp_us = atomic_data.time
 
@@ -112,14 +112,14 @@ class SwerveSim:
                 # Therefore, simulated tags will have stale timestamps here and be ignored.
                 if ntcore._now() - timestamp_us < 100000: 
                     # make sure it's not a training tag not intended for odometry (returns None if not in layout)
-                    if helpers.apriltag_utils.layout.getTagPose(int(tag_data[0])) is None and int(tag_data[0]) != -1:
+                    if helpers.apriltag_utils.layout.get_tag_pose(int(tag_data[0])) is None and int(tag_data[0]) != -1:
                         return
 
                     tx, ty, tz = tag_data[1], tag_data[2], tag_data[3]
                     rx, ry, rz = tag_data[4], tag_data[5], tag_data[6]
                     
                     # Calculate the robot's field pose from the tag data
-                    vision_pose = Pose3d(Translation3d(tx, ty, tz), Rotation3d(rx, ry, rz)).toPose2d()
+                    vision_pose = Pose3d(Translation3d(tx, ty, tz), Rotation3d(rx, ry, rz)).to_pose2d()
                     
                     # Move the physics controller to this pose
                     current_sim_pose = self.physics_controller.get_pose()

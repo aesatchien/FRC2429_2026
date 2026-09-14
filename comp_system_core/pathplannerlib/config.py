@@ -6,7 +6,7 @@ from wpimath import DifferentialDriveKinematics, SwerveDrive4Kinematics, SwerveM
 from wpimath import DCMotor
 import os
 import json
-from wpilib import getDeployDirectory
+from wpilib import get_deploy_directory
 import numpy as np
 from numpy.typing import NDArray
 
@@ -124,10 +124,10 @@ class RobotConfig:
         self._forceKinematics = np.zeros((self.numModules * 2, 3))
         for i in range(self.numModules):
             modPosReciprocal = Translation2d(1.0 / self.moduleLocations[i].norm(), self.moduleLocations[i].angle())
-            self._forceKinematics[i * 2] = [1.0, 0.0, -modPosReciprocal.Y()]
-            self._forceKinematics[i * 2 + 1] = [0.0, 1.0, modPosReciprocal.X()]
+            self._forceKinematics[i * 2] = [1.0, 0.0, -modPosReciprocal.y]
+            self._forceKinematics[i * 2 + 1] = [0.0, 1.0, modPosReciprocal.x]
 
-    def toSwerveModuleVelocities(self, speeds: ChassisVelocities) -> List[SwerveModuleVelocity]:
+    def to_swerve_module_velocities(self, speeds: ChassisVelocities) -> List[SwerveModuleVelocity]:
         """
         Convert robot-relative chassis speeds to a list of swerve module states. This will use
         differential kinematics for diff drive robots, then convert the wheel speeds to module states.
@@ -136,7 +136,7 @@ class RobotConfig:
         :return: List of swerve module states
         """
         if self.isHolonomic:
-            return self._swerveKinematics.toSwerveModuleVelocities(speeds)
+            return self._swerveKinematics.to_swerve_module_velocities(speeds)
         else:
             wheelSpeeds = self._diffKinematics.toWheelSpeeds(speeds)
             return [
@@ -144,7 +144,7 @@ class RobotConfig:
                 SwerveModuleVelocity(wheelSpeeds.right, Rotation2d())
             ]
 
-    def toChassisVelocities(self, states: List[SwerveModuleVelocity]) -> ChassisVelocities:
+    def to_chassis_velocities(self, states: List[SwerveModuleVelocity]) -> ChassisVelocities:
         """
         Convert a list of swerve module states to robot-relative chassis speeds. This will use
         differential kinematics for diff drive robots.
@@ -153,10 +153,10 @@ class RobotConfig:
         :return: Robot-relative chassis speeds
         """
         if self.isHolonomic:
-            return self._swerveKinematics.toChassisVelocities(states)
+            return self._swerveKinematics.to_chassis_velocities(states)
         else:
             wheelSpeeds = DifferentialDriveWheelVelocities(states[0].velocity, states[1].velocity)
-            return self._diffKinematics.toChassisVelocities(wheelSpeeds)
+            return self._diffKinematics.to_chassis_velocities(wheelSpeeds)
 
     def chassisForcesToWheelForceVectors(self, chassisForces: ChassisVelocities) -> List[Translation2d]:
         """
@@ -187,7 +187,7 @@ class RobotConfig:
 
         :return: RobotConfig matching the robot settings in the GUI
         """
-        filePath = os.path.join(getDeployDirectory(), 'pathplanner', 'settings.json')
+        filePath = os.path.join(get_deploy_directory(), 'pathplanner', 'settings.json')
 
         with open(filePath, 'r') as f:
             settingsJson = json.loads(f.read())
@@ -205,24 +205,24 @@ class RobotConfig:
             numMotors = 1 if isHolonomic else 2
             gearbox = None
             if driveMotor == 'krakenX60':
-                gearbox = DCMotor.krakenX60(numMotors)
+                gearbox = DCMotor.kraken_x60(numMotors)
             elif driveMotor == 'krakenX60FOC':
-                gearbox = DCMotor.krakenX60FOC(numMotors)
+                gearbox = DCMotor.kraken_x60_foc(numMotors)
             elif driveMotor == 'falcon500':
                 gearbox = DCMotor.falcon500(numMotors)
             elif driveMotor == 'falcon500FOC':
                 gearbox = DCMotor.falcon500FOC(numMotors)
             elif driveMotor == 'vortex':
-                gearbox = DCMotor.neoVortex(numMotors)
+                gearbox = DCMotor.neo_vortex(numMotors)
             elif driveMotor == 'NEO':
                 gearbox = DCMotor.NEO(numMotors)
             elif driveMotor == 'CIM':
                 gearbox = DCMotor.CIM(numMotors)
             elif driveMotor == 'miniCIM':
-                gearbox = DCMotor.miniCIM(numMotors)
+                gearbox = DCMotor.mini_cim(numMotors)
             else:
                 raise ValueError(f'Unknown motor type: {driveMotor}')
-            gearbox = gearbox.withReduction(gearing)
+            gearbox = gearbox.with_reduction(gearing)
 
             moduleConfig = ModuleConfig(
                 wheelRadius,

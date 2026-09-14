@@ -9,7 +9,7 @@ from .path import PathConstraints, GoalEndState, PathPlannerPath, Waypoint
 import math
 from threading import Thread, RLock
 import os
-from wpilib import getDeployDirectory
+from wpilib import get_deploy_directory
 import json
 
 
@@ -132,7 +132,7 @@ class LocalADStar(Pathfinder):
         self._dynamicObstacles.clear()
 
         try:
-            filePath = os.path.join(getDeployDirectory(), 'pathplanner', 'navgrid.json')
+            filePath = os.path.join(get_deploy_directory(), 'pathplanner', 'navgrid.json')
 
             with open(filePath, 'r') as f:
                 navgrid_json = json.loads(f.read())
@@ -604,8 +604,8 @@ class LocalADStar(Pathfinder):
             return -1 if a[0] < b[0] else 1
 
     def _getGridPos(self, pos: Translation2d) -> GridPosition:
-        x = math.floor(pos.X() / self._nodeSize)
-        y = math.floor(pos.Y() / self._nodeSize)
+        x = math.floor(pos.x / self._nodeSize)
+        y = math.floor(pos.y / self._nodeSize)
 
         return GridPosition(x, y)
 

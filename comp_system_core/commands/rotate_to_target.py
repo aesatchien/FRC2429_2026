@@ -22,19 +22,19 @@ class RotateToTarget(commands2.Command):
 
     def __init__(self, container, swerve: Swerve, targeting: Targeting, indent=0) -> None:
         super().__init__()
-        self.setName('RotateToTarget')
+        self.set_name('RotateToTarget')
         self.indent = indent
         self.container = container
         self.swerve = swerve
         self.targeting = targeting
-        self.addRequirements(self.swerve)  # this is the point - we own swerve so the default command can't drive
+        self.add_requirements(self.swerve)  # this is the point - we own swerve so the default command can't drive
 
     def execute(self) -> None:
         # Targeting.periodic() already recomputed rotation_output this loop; just apply it.
         self.swerve.drive(0, 0, self.targeting.get_rotation_output(),
                           fieldRelative=False, rate_limited=False, keep_angle=False)
 
-    def isFinished(self) -> bool:
+    def is_finished(self) -> bool:
         return False  # runs until the race group's shooter finishes
 
     def end(self, interrupted: bool) -> None:
