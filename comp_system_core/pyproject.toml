@@ -4,21 +4,29 @@
 
 [tool.robotpy]
 team_number = 2429
-# DO NOT LET `robotpy sync` BUMP THIS.  It offers:
-#     Update robotpy_version in `pyproject.toml` to 2027.0.0a7? [y/n]
-# Answer n.  We are held at a6.post1 by robotpy-rev, whose newest build
-# (2027.0.0a5.post1) pins wpilib==2027.0.0a6.post1.  Saying y produces:
-#     robotpy 2027.0.0a7 depends on wpilib==2027.0.0a7
-#     robotpy-rev 2027.0.0a5.post1 depends on wpilib==2027.0.0a6.post1
-#     ERROR: ResolutionImpossible
-# and sync cannot download anything at all - so no Sparks, meaning no turn motors,
-# shooter, intake or climber.  Use `robotpy sync --no-upgrade-project` to stop it asking.
+# WE ARE ON a7.  Migrated 2026-09-13 - see docs/a7_migration.md for the whole story.
+# `robotpy sync` will offer to bump to a8; treat that as a project, not a click.  Every
+# alpha this season has renamed or deleted something.  Use
+#     robotpy sync --no-upgrade-project
+# to stop it asking, and read the migration doc before saying yes.
 #
-# To move to a7: check that robotpy-rev has a build pinning wpilib==2027.0.0a7
-#     python -m pip index versions robotpy-rev --pre
-# then bump BOTH this and the local dev environment together, and run `robotpy test`
-# (tests/test_dependency_pins.py fails if they disagree).
-robotpy_version = "2027.0.0a6.post1"
+# WHAT a7 COST, so nobody assumes the next one is free:
+#   * ~1850 call sites renamed to snake_case.  wpilib, ntcore, commands2 AND robotpy-rev
+#     all converted at once, with no compatibility aliases anywhere.
+#   * Sendable is GONE - no Sendable, SendableRegistry, SmartDashboard or SendableChooser.
+#     Replaced by robotpy-telemetry + robotpy-tunables.  See helpers/dashboard.py.
+#   * robotpy_apriltag lost AprilTagFieldLayout - we ship our own, helpers/apriltag_layout.py.
+#   * rev DELETED positionConversionFactor / velocityConversionFactor.  Unit scaling moved
+#     into subsystems/motors.py, and the closed-loop gains had to be rescaled with it.
+#
+# TWO THINGS ARE STILL DEGRADED ON a7 - check both on every new alpha:
+#   1. phoenix6 26.50.0a1 is built against the camelCase API and CANNOT construct a TalonFX
+#      on a7 without helpers/phoenix6_compat.py.  There is no newer phoenix6.  pip resolves
+#      it happily - phoenix6 declares no wpilib bound - so resolution proves nothing.
+#   2. Field2d and Mechanism2d cannot be published from Python at all: their log_to() wants
+#      a _NativeTelemetryTable and nothing hands Python one.  Field2d is written to NT by
+#      hand in helpers/dashboard.py; the Mechanism2d view is DARK.
+robotpy_version = "2027.0.0a7"
 # note you also have robot_name as an option here, changes the deploy path from default
 # good for multiple robots on one SystemCore - makes redeploying faster
 #
@@ -74,7 +82,7 @@ requires = [
     # robotpy-pathplannerlib - VENDORED into pathplannerlib/, see its VENDORED.md.
     #   Restore this line and delete that directory once a 2027 wheel exists.
     # robotpy-navx - REMOVED.  SystemCore has wpilib.OnboardIMU on the board.
-    "robotpy-rev>=2027.0.0a5",
+    "robotpy-rev>=2027.0.0a7",
     # Kraken X60 / TalonFX - needed by subsystems/motors.py.
     # The pre-release in this pin is LOAD-BEARING, do not "tidy" it to >=26.1.
     # pip refuses pre-releases unless the specifier itself names one, so ">=26.1"
@@ -88,22 +96,21 @@ requires = [
 # ---------------------------------------------------------------------------
 # DEV ENVIRONMENT MIRROR (DOCUMENTATION ONLY)
 #
-# To build a development environment matching this file.  Python 3.14, and note
-# --pre nearly everywhere: the 2027 season is still in alpha.
+# To build a development environment matching this file.  Python 3.13, and note --pre
+# nearly everywhere: the 2027 season is still in alpha.
 #
-#   python -m pip install --pre "robotpy[commands2,apriltag,sim]==2027.0.0a6.post1"
-#   python -m pip install --pre "robotpy-rev==2027.0.0a5.post1" "phoenix6==26.50.0a1"
-#   python -m pip install "protobuf>=6.0,<7"
+#   python -m pip install --pre "robotpy[commands2,apriltag,sim]==2027.0.0a7"
+#   python -m pip install --pre "robotpy-rev==2027.0.0a7" "phoenix6==26.50.0a1"
+#   python -m pip install "protobuf>=6.0,<7" numpy pint
 #
-# pyfrc gives you `robotpy test` and `robotpy sim`.  It needs --no-deps because
-# pyfrc 2027.0.0a2 still pins robotpy-cli~=2024.0 while the 2027 core wants
-# >=2027.0.1b1 - a stale pin in the alpha, not a real conflict:
+# pyfrc IS NOT USED ANY MORE.  `robotpy sim` and `robotpy test` moved into wpilib core in
+# 2027 (wpilib._impl.cli_sim / cli_test).  pyfrc 2027.0.0a2 still registers its commands
+# under the old [robotpy] entry-point group, which robotpy-cli 2027 does not scan, so
+# installing it does nothing at all.  Do not add it back.
 #
-#   python -m pip install --pre --no-deps "pyfrc==2027.0.0a2"
-#   python -m pip install "pint>=0.24.4"
-#
-# `pip check` reports exactly one line, about that pyfrc/robotpy-cli pin.  That
-# one is expected.  Any OTHER line from pip check is worth reading.
+# The a7 dev environment lives in a venv at C:/FRC/2026/venv_a7 so the a6 mamba env
+# (robo2027_alpha) stays intact and deployable while a7 is being shaken out.  Delete the
+# venv and rebuild the mamba env once a7 is trusted.
 #
 # DELIBERATELY NOT INSTALLED:
 #   robotpy-navx   - gone.  SystemCore has wpilib.OnboardIMU on the board.
