@@ -18,7 +18,7 @@ from helpers.log_command import log_command
 class DriveByJoystickSubsystemTargeting(commands2.Command):
     def __init__(self, container, swerve: Swerve, targeting: Targeting, controller: CommandNiDsXboxController=None, ps5controller: CommandNiDsPS4Controller=None, button_box: CommandJoystick=None) -> None:
         super().__init__()
-        self.setName('drive_by_joystick_subsystem_targeting')
+        self.set_name('drive_by_joystick_subsystem_targeting')
         
         # -----------------------------------------------------------
         # 1. Subsystems & Dependencies
@@ -26,7 +26,7 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
         self.container = container
         self.swerve = swerve
         self.targeting = targeting
-        self.addRequirements(self.swerve)
+        self.add_requirements(self.swerve)
 
         self.xbox_controller: CommandNiDsXboxController = controller
         self.ps5_controller: CommandNiDsPS4Controller = ps5controller
@@ -41,7 +41,7 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
         # -----------------------------------------------------------
         # 3. Input Processing (Debouncers, Limiters)
         # -----------------------------------------------------------
-        self.robot_oriented_debouncer = Debouncer(0.1, Debouncer.DebounceType.kBoth)
+        self.robot_oriented_debouncer = Debouncer(0.1, Debouncer.DebounceType.BOTH)
         
         # Use constants for slew rates to ensure tuning consistency
         self.drive_limiter = SlewRateLimiter(rl.driver_translation_slew_rate)
@@ -58,14 +58,14 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
         self._init_networktables()
 
     def _init_networktables(self):
-        self.inst = ntcore.NetworkTableInstance.getDefault()
+        self.inst = ntcore.NetworkTableInstance.get_default()
         status_prefix = constants.status_prefix
         # Simulation Debugging Publishers
-        self.js_dv1_x_pub = self.inst.getDoubleTopic(f"{status_prefix}/_joystick_dv1_x").publish()
-        self.js_dv1_y_pub = self.inst.getDoubleTopic(f"{status_prefix}/_joystick_dv1_y").publish()
-        self.js_dv_norm_x_pub = self.inst.getDoubleTopic(f"{status_prefix}/_joystick_dv_norm_x").publish()
-        self.js_dv_norm_y_pub = self.inst.getDoubleTopic(f"{status_prefix}/_joystick_dv_norm_y").publish()
-        self.commanded_values_pub = self.inst.getDoubleArrayTopic(f"{status_prefix}/_joystick_commanded_values").publish()
+        self.js_dv1_x_pub = self.inst.get_double_topic(f"{status_prefix}/_joystick_dv1_x").publish()
+        self.js_dv1_y_pub = self.inst.get_double_topic(f"{status_prefix}/_joystick_dv1_y").publish()
+        self.js_dv_norm_x_pub = self.inst.get_double_topic(f"{status_prefix}/_joystick_dv_norm_x").publish()
+        self.js_dv_norm_y_pub = self.inst.get_double_topic(f"{status_prefix}/_joystick_dv_norm_y").publish()
+        self.commanded_values_pub = self.inst.get_double_array_topic(f"{status_prefix}/_joystick_commanded_values").publish()
 
     def initialize(self) -> None:
         """Called just before this Command runs the first time."""
@@ -74,43 +74,45 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
     def read_xbox(self, hid):
         """Returns (left_y, left_x, right_x, right trigger, robot_oriented) from the Xbox HID"""
         return (
-            hid.getLeftY(),
-            hid.getLeftX(),
-            hid.getRightX(),
-            hid.getRightTriggerAxis(),
-            hid.getLeftBumperButton()
+            hid.get_left_y(),
+            hid.get_left_x(),
+            hid.get_right_x(),
+            hid.get_right_trigger(),   # a7 dropped the _axis suffix
+            hid.get_left_bumper_button()
         )
 
     def read_ps5(self, hid):
         """Returns (left_y, left_x, right_x, right trigger, robot_oriented) from the PS5 HID"""
-        # This was from gemini, but it is helpful to test the controller mapping in sim.
-        # axis_count = hid.getAxisCount()
-        # values = [round(hid.getRawAxis(i), 3) for i in range(axis_count)]
-        # print(f"DEBUGGING: port={hid.getPort()} axis_count={axis_count} values={values}")
+        # The hardcoded get_raw_axis(2) / get_raw_axis(4)+1 that used to be here were
+        # patching around the NiDs class having the WRONG axis map for SystemCore.  a7's
+        # DualSenseController names the axes correctly, so the workaround is gone - and with
+        # it the +1 fudge, because get_r2() is already 0..1 rather than -1..1.
         return (
-            hid.getLeftY(),
-            hid.getLeftX(),
-            hid.getRawAxis(2),  # Right X is axis 2 on PS5 controller
-            hid.getRawAxis(4) + 1,  # Right Trigger is axis 4 on PS5 controller, and is -1 by default, so we add 1 to make it 0
-            hid.getL1Button()
+            hid.get_left_y(),
+            hid.get_left_x(),
+            hid.get_right_x(),
+            hid.get_r2(),
+            hid.get_l1_button()
         )
 
     def execute(self) -> None:
         # -----------------------------------------------------------
         # 1. READ INPUTS
         # -----------------------------------------------------------
-        xbox_connected = self.xbox_controller is not None and wpilib.DriverStationBackend.isJoystickConnected(0)
-        ps5_connected = self.ps5_controller is not None and wpilib.DriverStationBackend.isJoystickConnected(5)
+        xbox_connected = self.xbox_controller is not None and wpilib.DriverStationBackend.is_joystick_connected(0)
+        ps5_connected = self.ps5_controller is not None and wpilib.DriverStationBackend.is_joystick_connected(5)
         
         if xbox_connected:
-            left_y, left_x, right_x, right_trigger, robot_oriented = self.read_xbox(self.xbox_controller.getHID())
+            left_y, left_x, right_x, right_trigger, robot_oriented = self.read_xbox(self.xbox_controller.get_hid())
         elif ps5_connected:
-            left_y, left_x, right_x, right_trigger, robot_oriented = self.read_ps5(self.ps5_controller.getHID())
+            left_y, left_x, right_x, right_trigger, robot_oriented = self.read_ps5(self.ps5_controller.get_hid())
         else:
             left_y, left_x, right_x, right_trigger, robot_oriented = 0.0, 0.0, 0.0, 0.0, False  # cooked??? IDK - Trentan
 
         if self.button_box is not None:
-            after_burner = self.button_box.getHID().getRawButton(3)
+            # CommandJoystick.get_hid() returns a CommandGenericHID in a7; get_joystick()
+            # is the one that hands back the real wpilib.Joystick.
+            after_burner = self.button_box.get_joystick().get_raw_button(3)
         else:
             after_burner = False
 
@@ -123,7 +125,7 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
             'after_burner' : after_burner,
             'robot_oriented': robot_oriented,
             'tracking_on': self.container.targeting.get_tracking_state(),
-            'alliance': wpilib.MatchState.getAlliance()
+            'alliance': wpilib.MatchState.get_alliance()
         }
 
         # -----------------------------------------------------------
@@ -187,9 +189,9 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
         # -----------------------------------------------------------
         # 4. REPORT
         # -----------------------------------------------------------
-        if wpilib.RobotBase.isSimulation():
-            self.js_dv1_x_pub.set(math.fabs(raw_vector.X()))
-            self.js_dv1_y_pub.set(math.fabs(raw_vector.Y()))
+        if wpilib.RobotBase.is_simulation():
+            self.js_dv1_x_pub.set(math.fabs(raw_vector.x))
+            self.js_dv1_y_pub.set(math.fabs(raw_vector.y))
             self.js_dv_norm_x_pub.set(math.fabs(desired_fwd))
             self.js_dv_norm_y_pub.set(math.fabs(desired_strafe))
             self.commanded_values_pub.set([desired_fwd, desired_strafe, desired_rot])
@@ -217,8 +219,8 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
         processing_vector *= multiplier
 
         # Rate Limiting
-        desired_fwd = self.drive_limiter.calculate(processing_vector.X())
-        desired_strafe = self.strafe_limiter.calculate(processing_vector.Y())
+        desired_fwd = self.drive_limiter.calculate(processing_vector.x)
+        desired_strafe = self.strafe_limiter.calculate(processing_vector.y)
 
         # Alliance Adjustment
         if inputs['alliance'] == wpilib.Alliance.RED and self.field_oriented:
