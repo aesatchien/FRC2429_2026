@@ -1,5 +1,5 @@
 import math
-from wpimath import Pose2d, Translation2d
+from wpimath import Pose2d, Rotation2d, Translation2d
 
 
 def get_distance(pos1: Translation2d, pos2: Translation2d) -> float:
@@ -25,7 +25,10 @@ def distance_to_gamepiece(robot_pose: Pose2d, gamepiece_position: Translation2d)
     distance = get_distance(robot_pose.translation(), gamepiece_position)
 
     to_target = gamepiece_position - robot_pose.translation()
-    rotation_needed = to_target.angle() - robot_pose.rotation()
+    # 2027: Translation2d.angle() returns None for the zero vector instead of a 0 rotation,
+    # so standing exactly on a piece used to be a TypeError here (found by the sim test).
+    angle = to_target.angle() if to_target.norm() > 1e-9 else Rotation2d()
+    rotation_needed = angle - robot_pose.rotation()
 
     return distance, rotation_needed.degrees()
 
@@ -68,7 +71,8 @@ def get_closest_gamepiece(robot_pose: Pose2d, active_gamepieces: list[Translatio
     strafe = vec_robot_frame.y
 
     # Target Pose: Location of gamepiece, rotated to face the robot
-    target_rotation = (closest - robot_translation).angle()
+    offset = closest - robot_translation
+    target_rotation = offset.angle() if offset.norm() > 1e-9 else robot_pose.rotation()   # angle() is None at zero
     target_pose = Pose2d(closest, target_rotation)
 
     return dist, rot, strafe, target_pose
