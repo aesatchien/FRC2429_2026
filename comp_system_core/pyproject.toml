@@ -23,9 +23,11 @@ team_number = 2429
 #   1. phoenix6 26.50.0a1 is built against the camelCase API and CANNOT construct a TalonFX
 #      on a7 without helpers/phoenix6_compat.py.  There is no newer phoenix6.  pip resolves
 #      it happily - phoenix6 declares no wpilib bound - so resolution proves nothing.
-#   2. Field2d and Mechanism2d cannot be published from Python at all: their log_to() wants
-#      a _NativeTelemetryTable and nothing hands Python one.  Field2d is written to NT by
-#      hand in helpers/dashboard.py; the Mechanism2d view is DARK.
+#   2. Field2d and Mechanism2d cannot be published through the telemetry registry at all:
+#      their log_to() wants a _NativeTelemetryTable and nothing hands Python one.  Both are
+#      reproduced by hand instead - Field2d in helpers/dashboard.py, Mechanism2d in
+#      helpers/mechanism_publisher.py - so both views work, but delete both when the
+#      binding is fixed rather than carrying them forever.
 robotpy_version = "2027.0.0a7"
 # note you also have robot_name as an option here, changes the deploy path from default
 # good for multiple robots on one SystemCore - makes redeploying faster

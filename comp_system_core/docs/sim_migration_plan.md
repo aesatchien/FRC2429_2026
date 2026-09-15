@@ -195,8 +195,8 @@ obvious way.**
 
 `Field2d` and `Mechanism2d` cannot be published through the telemetry registry from Python at
 all: both expose `log_to(_NativeTelemetryTable)` and nothing hands Python one. See
-`_NATIVE_GAP` in `helpers/dashboard.py`. Field2d is currently written to NetworkTables by
-hand there and works; **Mechanism2d is dark**.
+`_NATIVE_GAP` in `helpers/dashboard.py`. Both are written to NetworkTables by hand instead
+and both work — Field2d in `dashboard.py`, Mechanism2d in `helpers/mechanism_publisher.py`.
 
 So when Swerve takes ownership of the field:
 - publish it via `helpers.dashboard`, not `SmartDashboard` (which no longer exists) and not

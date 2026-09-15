@@ -70,6 +70,7 @@ camelCase form is not a parameter of one of our own functions.
 | `helpers/dashboard.py` | SmartDashboard replacement over `TelemetryRegistry` / `TunableRegistry` |
 | `helpers/apriltag_layout.py` | our own `AprilTagFieldLayout` — a7 deleted robotpy's |
 | `helpers/phoenix6_compat.py` | aliases the camelCase symbols phoenix6 still calls |
+| `helpers/mechanism_publisher.py` | writes Mechanism2d to NT by hand — a7 cannot publish one |
 
 ### Two non-obvious requirements in `dashboard.py`
 
@@ -97,9 +98,16 @@ is untested because we have no such devices.
 `log_to(_NativeTelemetryTable)` and nothing hands Python one:
 `TelemetryRegistry.get_table()` returns the Python `TelemetryTable`, and
 `_NativeTelemetryTable` reports "No constructor defined!". This is an alpha binding gap.
-Field2d's NT form is simple so `dashboard.py` writes it by hand; **the Mechanism2d view
-(`blockhead_mech`) is dark on a7.** When `log_to()` stops raising `TypeError`, delete the
-`_NATIVE_GAP` section.
+
+Both are reproduced by hand instead, so both views work: Field2d directly in `dashboard.py`,
+Mechanism2d in `helpers/mechanism_publisher.py`. The Mechanism2d one needs more machinery
+because a7 cannot *walk* a mechanism — `Mechanism2d` has only `get_root()` and
+`MechanismRoot2d` only `get_name()`, so neither can list its children — so the tree is
+recorded as it is built by wrapping the four builder methods. The wire format was captured
+from a6 rather than guessed.
+
+When `log_to()` stops raising `TypeError`, delete the `_NATIVE_GAP` section **and**
+`helpers/mechanism_publisher.py`.
 
 ## 6. NEEDS A BENCH TEST BEFORE DRIVING
 
