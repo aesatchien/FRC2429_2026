@@ -214,6 +214,25 @@ class SimConstants:
     k_use_live_tags_in_sim = True  # Set to True to snap the robot's swerve sim to live AprilTag data
     k_mock_questnav = False  # Set to False to test real QuestNav hardware in Sim
 
+    # ---- plant models for the per-subsystem simulation (see docs/sim_migration_plan.md) ----
+    # These are ROUGH.  They set how fast things spin up and how much current they draw in
+    # sim, nothing more; no gain is derived from them.  The robot mass matches
+    # deploy/pathplanner/settings.json so the two models of the same robot agree.
+    k_robot_mass_kg = 74.0
+    k_wheel_diameter_m = 4 * 0.0254   # duplicated from ModuleConstants to avoid a circular import
+    # the share of the robot each drive wheel accelerates, as inertia at the wheel: m/4 * r^2
+    k_drive_wheel_moi = (k_robot_mass_kg / 4) * (k_wheel_diameter_m / 2) ** 2   # ~0.048 kg m^2
+    k_azimuth_moi = 0.004         # MK4i wheel + fork about the steering axis
+    k_flywheel_moi = 0.0025       # 4in wheels plus the hub, two of them
+    k_roller_moi = 0.0005         # one small shooter roller
+    k_indexer_moi = 0.0005        # two indexer wheels on NEOs
+    k_hopper_moi = 0.001          # belt plus rollers
+    k_intake_roller_moi = 0.0008  # the roller bar and its NEO
+    k_intake_arm_length_m = 11 * 0.0254   # COM distance the kG constant was derived from
+    k_intake_arm_mass_kg = 10 * 0.4536     # "10lbs at 11in COM", from the kG note
+    k_climber_carriage_kg = 2.0
+    k_climber_drum_radius_m = 0.02
+
 
 class VisionConstants:
 

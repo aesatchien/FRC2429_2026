@@ -153,7 +153,38 @@ class SmartDashboard:
 # ligament tree, so the tree is recorded as it is built).
 # ---------------------------------------------------------------------------
 _field2ds: dict[str, "wpilib.Field2d"] = {}
+# (field key, object name) -> FieldObject2d.  a7's Field2d cannot enumerate its objects
+# (get_object() is create-or-get and there is no listing call), so the hand publisher only
+# knows about objects that were handed out through field_object() below.  Anything fetched
+# with field.get_object() directly is invisible on the dashboard.
+_field_objects: dict[tuple[str, str], "wpilib.FieldObject2d"] = {}
 _warned: set[str] = set()
+
+
+def field(key: str = "Field") -> "wpilib.Field2d":
+    """The one Field2d published under `key`, created and published on first use.
+
+    Several subsystems draw on the same field - Swerve owns the robot pose, RobotState's
+    gamepiece sim and Vision's camera sim add their own objects - and none of them should
+    have to know which one was constructed first.  Whoever asks first creates it.
+    """
+    key = key if key.startswith("/") else f"/SmartDashboard/{key}"
+    fld = _field2ds.get(key)
+    if fld is None:
+        fld = wpilib.Field2d()
+        SmartDashboard.put_data(key, fld)
+        fld = _field2ds.get(key, fld)   # put_data registers it when it hits the native gap
+    return fld
+
+
+def field_object(name: str, key: str = "Field") -> "wpilib.FieldObject2d":
+    """field(key).get_object(name), registered so the hand publisher includes it."""
+    key = key if key.startswith("/") else f"/SmartDashboard/{key}"
+    obj = _field_objects.get((key, name))
+    if obj is None:
+        obj = field(key).get_object(name)
+        _field_objects[(key, name)] = obj
+    return obj
 
 
 def _warn_native_gap(key: str, obj) -> None:
@@ -169,10 +200,23 @@ def _pose_array(pose) -> list[float]:
 
 
 def _publish_field2d(key: str, field: "wpilib.Field2d") -> None:
-    """Write a Field2d's NT representation by hand: .type plus one double[] per object."""
+    """Write a Field2d's NT representation by hand: .type plus one double[] per object.
+
+    Objects (Target, Gamepieces, AprilTags, the camera FOVs...) are a flat [x, y, deg, ...]
+    array under the object's name, which is the same wire format the real Sendable used and
+    what Glass / AdvantageScope / our GUI read.  An empty object publishes an empty array so
+    the dashboard clears it rather than leaving the last poses on screen.
+    """
     table = ntcore.NetworkTableInstance.get_default().get_table(key.lstrip("/"))
     table.put_string(".type", "Field2d")
     table.put_number_array("Robot", _pose_array(field.get_robot_pose()))
+    for (obj_key, name), obj in _field_objects.items():
+        if obj_key != key:
+            continue
+        flat: list[float] = []
+        for pose in obj.get_poses():
+            flat.extend(_pose_array(pose))
+        table.put_number_array(name, flat)
 
 
 def publish_fields() -> None:
