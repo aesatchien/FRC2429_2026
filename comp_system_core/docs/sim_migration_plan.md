@@ -1,238 +1,134 @@
-# Simulation Migration Plan — pyfrc `physics.py` → the WPILib/Java model
+# Simulation Migration — pyfrc `physics.py` → the WPILib/Java model
 
-Moving simulation off pyfrc's `physics.py` and onto per-subsystem `simulation_periodic()`.
-
-Rewritten 2026-09-14 against **robotpy 2027.0.0a7** (`C:/FRC/2026/venv_a7`). Every API name
-below was checked against that environment — a7 renamed the entire Python surface, so an
-older copy of this plan would send you looking for methods that no longer exist.
+**Status: DONE on 2026-09-14, on branch `migrate-2027a7`, against robotpy 2027.0.0a7
+(mamba env `robo2027_a7`).** `physics.py`, `simulation/physics_interface.py` and
+`simulation/swerve_sim.py` are gone. Sections 0–5 describe what was built and where it lives;
+section 6 is what is still open; section 7 is what the migration turned up that was not
+about simulation at all.
 
 ---
 
-## 0. Where we are right now
+## 0. What changed, in one table
 
-`robotpy sim` moved out of pyfrc and into wpilib core in 2027 (`wpilib._impl.cli_sim`), and
-the core version has **no physics support at all** — it never loads `physics.py`. We bridged
-that with `simulation/physics_interface.py`, which reimplements the three `PhysicsInterface`
-methods this project uses and pumps `PhysicsEngine.update_sim()` from
-`MyRobot.simulation_init()` / `simulation_periodic()`.
-
-**That bridge works and is not the destination.** This document is the destination.
-
-Do not reinstall pyfrc to "fix" this. pyfrc 2027.0.0a2 registers its commands under the old
-`[robotpy]` entry-point group, which robotpy-cli 2027 does not scan, so installing it does
-literally nothing.
-
-## 1. Why bother
-
-`physics.py` was never WPILib. It is a robotpy-only framework from ~2015, built when WPILib
-had no simulation of its own. Java and C++ teams never had a `physics.py`, a `PhysicsEngine`
-or a `physics_controller` — so there is nothing they migrated *to*. They were always doing it
-the other way, using machinery this robot already has and has never used.
-
-The cost of staying put is one line, `simulation/swerve_sim.py:73`:
-
-```python
-# Update Robot Odometry (Perfect Odometry for Sim)
-self.robot.container.swerve.pose_estimator.reset_position(
-    gyro_angle=pose.rotation(), wheel_positions=[SwerveModulePosition()] * 4, pose=pose)
-```
-
-Every loop, sim force-resets the pose estimator to ground truth. So in simulation odometry
-cannot drift, cannot skid and cannot disagree with vision — which means **the sim can never
-reproduce an odometry or vision-fusion bug**, and those are most of the pose bugs we actually
-get at competition.
-
-## 2. The model we are moving to
-
-Three pieces, all of which already exist in this robot and are verified present on a7:
-
-1. **`simulation_init()` / `simulation_periodic()` on the robot class.** Standard
-   `IterativeRobotBase`. `simulation_init()` fires once, `simulation_periodic()` at 50 Hz
-   immediately after `robot_periodic()`. Neither runs on the real robot, so nothing inside
-   them needs an `is_simulation()` guard.
-
-2. **`Subsystem.simulation_periodic()`.** `CommandScheduler.run()` already calls it on every
-   registered subsystem under `if RobotBase.is_simulation():` — confirmed in the a7 source.
-   **All nine of our subsystems already inherit `commands2.Subsystem`**, so the hook is free
-   everywhere; we have simply never overridden it.
-
-3. **Plant models that write back into the controllers' sim state.** `wpilib.simulation`
-   provides `DCMotorSim`, `FlywheelSim`, `ElevatorSim`, `SingleJointedArmSim`,
-   `DifferentialDrivetrainSim`. The vendors provide the other half:
-   `rev.SparkSim(spark, motor)` with `.iterate(velocity, vbus, dt)` and
-   `.get_relative_encoder_sim()`, and phoenix6's `.sim_state` on each TalonFX.
-
-| | pyfrc `physics.py` | WPILib |
+| | pyfrc `physics.py` (before) | WPILib model (now) |
 |---|---|---|
-| Where sim lives | one god-object outside the robot | inside each subsystem |
-| How it reaches the robot | `self.robot.container.<anything>` | writes to its own sensors |
-| Ground truth pose | held by the simulator, robot cannot see it | none needed |
-| Robot code path in sim | different (odometry is overwritten) | **identical to the real robot** |
+| Where sim lives | one god-object outside the robot | `simulation_periodic()` on each subsystem |
+| How it reaches the robot | `self.robot.container.<anything>` | writes into its own controllers' sim state and its own sensors |
+| Ground truth pose | held by the simulator, robot could not see it | integrated by `Swerve`, published on `/SmartDashboard/Sim/ground_truth`, drawn as `GroundTruth` |
+| Odometry in sim | **force-reset to ground truth every loop** | runs for real; can drift, skid and disagree with vision |
+| Robot code path in sim | different (`is_real()` guard around odometry) | **identical to the real robot** |
+| Field2d | created by `physics.py`, sim only | owned by `Swerve`, published on the real robot too |
 
-## 3. Step 0 — `subsystems/motors.py` (do this first)
+Why it mattered: the old `reset_position(...)` cheat meant the sim could never reproduce an
+odometry or vision-fusion bug, which are most of the pose bugs we actually get.
 
-Not a subsystem, but the highest-leverage change; everything else shrinks once it exists.
+## 1. The seam: `subsystems/motors.py`
 
-`motors.py` already defines `DriveMotor` and `TurnMotor` Protocols with four implementations
-(`RevDriveMotor`, `RevTurnMotor`, `TalonDriveMotor`, `TalonTurnMotor`), and since the a7
-migration it already owns unit conversion for both vendors. Simulation belongs in exactly the
-same seam.
+`DriveMotor` and `TurnMotor` gained `sim_update(dt, vbus) -> amps` (and `TurnMotor` gained
+`sim_azimuth_rad()`), implemented four times like everything else in that file:
 
-- Add `sim_update(dt)` to both Protocols; implement four times, mirroring how `describe()` is
-  already done per vendor.
-- Rev side: `rev.SparkSim` / `SparkFlexSim`, `.iterate(velocity, vbus, dt)`.
-- Talon side: `talon.sim_state` (`set_supply_voltage`, `set_raw_rotor_position`,
-  `set_rotor_velocity`).
-- Behind each, a `DCMotorSim` or `FlywheelSim` with the real gearing and inertia.
+- `_RevPlant`: a `DCMotorSim` behind `rev.SparkFlexSim` / `SparkMaxSim`. The plant's motor
+  RPM is handed to `SparkSim.iterate()`, which closes the Spark's own velocity loop (kP, kV,
+  MAXMotion) and moves its encoder, so the encoder reads motor rotations exactly as the real
+  one does and `motors.py`'s unit factors apply unchanged.
+- `_TalonPlant`: a `DCMotorSim` behind `TalonFXSimState`. Reads `motor_voltage`, writes rotor
+  position/velocity; `sensor_to_mechanism_ratio` in the device config divides them back down.
+  Works through `helpers/phoenix6_compat.py` like everything else Phoenix.
 
-**This also kills a live bug class.** `simulation/swerve_sim.py:48` reaches for
-`SimDeviceSim(f'SPARK MAX [{can_id}]')` by CAN-ID string. That silently finds nothing the
-moment a module changes vendor; its own comment already admits the drive sparks "would not
-exist anyway" under `comp_kraken`.
+Plants are built lazily on the first `sim_update()`, so nothing runs on the real robot.
+Inertias and masses live in `constants.SimConstants` and are rough by design — they set
+spin-up times and current draw, and no gain is derived from them.
 
-## 4. Per subsystem
+**REV sim gotcha (measured on robotpy-rev 2027.0.0a7.post1):** `SparkSim.iterate()`
+overwrites the encoder with the sim's own integrated position, and neither
+`RelativeEncoder.set_position()` nor `SparkRelativeEncoderSim.set_position()` moves that
+internal position — only `SparkSim.set_position()` does. So any `set_position()` the robot
+code makes is silently undone next loop unless it is mirrored into the `SparkSim`.
+`_RevPlant.seed()` does that for the swerve adapters, and `Intake._set_deploy_angle_deg()`
+does it for the deploy arm. Anything new that re-zeroes a Spark encoder in sim needs the same.
 
-### Climber — smallest, do it first to prove the pattern
-1 SparkMax, position controlled.
-- `Climber.simulation_periodic()`: an `ElevatorSim`, then `motor.sim_update(dt)`.
-- `get_pos()` becomes honest.
+## 2. Per subsystem — where each piece went
 
-### Shooter — easiest win, highest visual payoff
-3 SparkMax + 3 SparkFlex.
-- One `FlywheelSim` per independent group (flywheel, hopper, indexer, roller).
-- Flywheels are the simplest thing in WPILib to simulate.
-- `current_rpm` / `shooter_on` feeding `blockhead_mech` become honest, spin-up time included.
+| Subsystem | `simulation_periodic()` does |
+|---|---|
+| **SwerveModule** | `sim_update()` both motors; write the turn plant's azimuth back through `AnalogInputSim` so `get_turn_encoder()` — and therefore both `get_position()` and `getState()` — read it. The analog rail is **3.3 V** in sim (re-verified: 3.3 V reads exactly one turn), and the inverse respects `k_reverse_analog_encoders` and each module's offset. |
+| **Swerve** | pump the modules; `OnboardIMUSim.set_angle_x/set_yaw/set_gyro_rate_z` from the chassis velocities the **measured** module states imply (CCW-positive — the sign flip the navX needed is gone); integrate ground truth as a pose exponential; `BatterySim` from the summed amps. The `is_real()` guard around `pose_estimator.update_with_time()` is deleted. Also owns and publishes the Field2d, on the real robot too. |
+| **Shooter** | one `FlywheelSim` per group (flywheel ×2 Vortex, roller, indexer ×2 NEO, hopper) behind the leader Spark's sim; followers get the leader's speed so their encoders read. `is_at_speed()` is now honest, spin-up included. |
+| **Intake** | `SingleJointedArmSim` for the deploy (gravity with 0° = horizontal, the same assumption the `ArmFeedforward` makes) and a `FlywheelSim` for the rollers. Drives the bumper switch through `DIOSim` from the simulated arm angle when the switch is enabled — it is an at-the-bottom switch, which is what auto-calibration uses it for, not a game-piece sensor as the old plan guessed. |
+| **Climber** | `ElevatorSim` behind a `SparkMaxSim`. Pattern only — the subsystem is still half written and not constructed by `RobotContainer`. |
+| **Vision** | owns `simulation/vision_sim.py`, fed ground truth from NT. Reads the game pieces back off the field's `Gamepieces` object, so it depends on nothing but the shared Field2d. |
+| **RobotState** | owns `simulation/gamepiece_sim.py` (field state, not a mechanism), fed ground truth from NT. |
+| **Quest** | untouched; already self-contained behind `k_mock_questnav`. |
+| **LED / Targeting** | nothing to model. |
 
-### Intake
-2 SparkMax + 1 SparkFlex + a `DigitalInput` bumper switch.
-- `SingleJointedArmSim` for the deploy arm, `FlywheelSim` for the rollers.
-- Drive the switch with `DIOSim(port).set_value(...)` off the gamepiece sim. **Nothing
-  simulates that switch today.**
-- Retires the hack at `robot.py:248`, which fakes the deploy angle by nudging
-  `set_profile_setpoint()` by ±1 per loop while disabled.
+`robot.py`'s `simulation_periodic()` pumps the two things that are not mechanisms:
+`simulation/hil_snap.py` (`HardwareInTheLoop`: snap **ground truth** to a real camera's tag or a
+real Quest — the estimator is deliberately not touched, it learns from the vision measurements
+like on the robot) and `simulation/ghost_robot.py` (draws the auto goal pose and shot line).
+`BlockheadMech` was left alone, except that the intake ligament now draws the **measured** arm
+angle; the disabled-mode hack that nudged the profile setpoint a degree a loop is gone.
 
-### Swerve + SwerveModule — the big one
+## 3. Field2d on a7
 
-Today `swerve_sim.py` integrates **commanded** module states into a ground-truth pose and
-force-resets the estimator to it. Drive motors are never simulated. And the
-`AnalogPotentiometer` — which is what actually closes the turn loop, and what **both**
-`get_state()` and `get_position()` read — is never touched at all.
+a7 cannot publish a `Field2d` natively (see `_NATIVE_GAP` in `helpers/dashboard.py`), and it
+cannot enumerate a field's objects either. So `dashboard.field("Field")` hands out the one
+shared field and `dashboard.field_object("Gamepieces")` hands out objects **and registers
+them** so the hand publisher includes them each loop. An object fetched with a bare
+`field.get_object()` is invisible on the dashboard — use `field_object()`.
 
-**`SwerveModule.simulation_periodic(dt)`:**
-- Drive: `self.drive_motor.sim_update(dt)`.
-- Turn: integrate the commanded duty cycle through a `DCMotorSim` for the azimuth, then write
-  the resulting angle **back through `AnalogInputSim(encoder_analog_port).set_voltage(...)`**
-  so `get_turn_encoder()` reads it.
+## 4. Design decision: ground truth survives
 
-> **MEASURED GOTCHA — the analog rail is 3.3 V, not 5 V.** Re-verified on a7: with
-> `AnalogPotentiometer(3, 2*pi, -1.0)`, feeding 1.25 V reads 1.3800 rad, which back-solves to
-> exactly 3.30 V full scale. The TODO at `subsystems/swervemodule_2429.py:43` asks this
-> question — that is the answer, at least in simulation. Invert
-> `k_analog_encoder_scale_factor` against **3.3 V** or every wheel reads ~1.5× its true angle.
-> The inverse must also respect `k_reverse_analog_encoders` and each module's
-> `turning_encoder_offset`.
+Option 2 from the original plan. Ground truth exists only as the source for the camera and
+gamepiece sims and as a second robot on the field, so estimator error is something you can
+watch. Nothing in the robot reads it for control (`Swerve.sim_get_ground_truth()` is prefixed
+`sim_` for that reason).
 
-**`Swerve.simulation_periodic()`:**
-- Pump the modules, then drive `OnboardIMUSim` from the **actual** module states via
-  `kinematics.to_chassis_velocities(...)` — from `get_state()`, **not**
-  `get_desired_swerve_module_states()`.
-- Keep the existing `set_angle_x` + `set_yaw` pair and its sign comment. That part of
-  `swerve_sim` is correct and hard-won: `set_angle_x` is the axis `Swerve` actually reads
-  through `dc.k_imu_yaw_getter`, the two signals are independent, and OnboardIMU is
-  CCW-positive where the old navX was CW-positive.
-- **Delete the `reset_position` cheat.** `Swerve.periodic()` already calls
-  `pose_estimator.update_with_time(...)` with `get_module_positions()`. Once the modules
-  report simulated positions, odometry runs for real.
+## 5. How it is verified
 
-### Vision
-`simulation/vision_sim.py` is **already the right shape** — it fakes the `/Cameras/...`
-topics that `vision.py` subscribes to, which is exactly what this model wants. It only needs
-an owner.
-- Move it into `Vision.simulation_periodic()`.
-- The `is_simulation()` branches at `vision.py:103` and `vision.py:219` can probably collapse
-  once `vision_sim` owns the fakery.
+`tests/test_simulation.py` runs the whole robot through WPILib's test harness with a simulated
+Xbox controller and asserts on what the **robot reads back**: drive encoders and odometry move
+under full stick and ground truth agrees; the IMU heading turns CCW under right stick and the
+estimator follows; `set_x()` shows up on all four absolute encoders; the flywheel spins up
+visibly and `is_at_speed()` goes True; the deploy arm reaches its setpoint in degrees; a
+teleported ground truth consumes a game piece. It is one test on purpose — REV's sim registry
+survives the harness's robot teardown, so a second robot in one process fails on duplicate
+CAN ids. `robotpy test` → 13/13.
 
-### Quest
-Already self-contained behind `k_mock_questnav` and `is_simulation()`. Nothing to move.
+The headless run (`robotpy sim --nogui`) is clean: zero `Traceback` lines. (Killing it with
+`timeout` prints a faulthandler dump that looks like an access violation in
+`mechanism_publisher`; that is the kill, not a crash — the same dump appears on the
+pre-migration commit and never appears while the program is running.)
 
-### LED / Targeting / RobotState
-No hardware to model. `AddressableLEDSim` exists if we ever want it. Nothing to do.
+## 6. Still open
 
-### BlockheadMech
-Already driven from `robot_periodic()` and already works on the real robot. **Leave it** — it
-is the one piece already doing it the WPILib way. (Note it is currently invisible on a7 for
-an unrelated reason; see §7.)
+- **`vision.py` sim branches.** `get_strafe()` still fakes "we are on tag 18" under
+  `is_simulation()`, and `periodic()` publishes the FPGA time as match time in sim. Both
+  predate the vision sim and are independent of it; with `k_disable_vision_sim = True` by
+  default the camera sim publishes no targets, so the `get_strafe()` hack is the only thing
+  keeping strafe-based commands alive in sim. Decide whether to flip the default and delete it.
+- **Plant numbers are guesses.** `SimConstants.k_*_moi` etc. Tune when something looks
+  wrong on screen; nothing on the robot depends on them.
+- **Intake gravity model.** 0° = horizontal, so the stowed arm (148°) leans past vertical and
+  settles on the 153° hard stop when unpowered. That is what the code's own feedforward
+  assumes; if the real zero is not horizontal, fix the `ArmFeedforward` offset and this
+  together.
+- **Delete `helpers/mechanism_publisher.py` and the `_NATIVE_GAP` section** once `log_to()`
+  stops raising on a newer alpha — unchanged from the a7 migration notes.
 
-## 5. Two things that have no subsystem
+## 7. Bugs the migration turned up that were not about simulation
 
-**Gamepiece sim** (`simulation/gamepiece_sim.py`) is field state, not a mechanism. Put it on
-`RobotState` — already a `Subsystem` with a callback bus, and Intake needs to ask it "am I on
-a piece?" to drive that DIO switch.
+All fixed on this branch; all would have failed on the **real robot**:
 
-**`_snap_to_live_tags()` and `_snap_to_quest()`** teleport ground truth from *real hardware*
-for hardware-in-the-loop testing. These genuinely do not fit the per-subsystem model. Give
-them an explicit `HardwareInTheLoop` helper pumped from `MyRobot.simulation_periodic()`.
-**Do not lose these** — they are the least replaceable thing in the current sim.
-
-## 6. The one real design decision
-
-Does ground truth survive?
-
-1. **No ground truth at all.** Encoders and IMU are simulated, odometry drifts, vision
-   corrects. Most faithful.
-2. **Keep it, but only as the source for the vision and gamepiece sims** — a camera should
-   see where the robot *is*, not where it thinks it is — and publish it as a separate Field2d
-   object so estimator error is visible on screen.
-
-**Recommendation: (2).** It is what the `/Sim/ground_truth` topic already does, and it turns
-estimator error from invisible into something you can watch drift.
-
-## 7. Interaction with the a7 Field2d gap — read before starting
-
-The old version of this plan said "publish `Field2d` from `Swerve`, unconditionally, on the
-real robot too". That is still the right destination, **but on a7 it does not work the
-obvious way.**
-
-`Field2d` and `Mechanism2d` cannot be published through the telemetry registry from Python at
-all: both expose `log_to(_NativeTelemetryTable)` and nothing hands Python one. See
-`_NATIVE_GAP` in `helpers/dashboard.py`. Both are written to NetworkTables by hand instead
-and both work — Field2d in `dashboard.py`, Mechanism2d in `helpers/mechanism_publisher.py`.
-
-So when Swerve takes ownership of the field:
-- publish it via `helpers.dashboard`, not `SmartDashboard` (which no longer exists) and not
-  `log_to`;
-- register it once so `dashboard.update()` re-publishes it each loop — unlike a real Sendable
-  it does not update itself;
-- re-test `log_to()` on each new alpha. When it stops raising `TypeError`, the hand-written
-  publisher can go.
-
-## 8. Order of work
-
-| # | Step | Rough size |
-|---|------|-----------|
-| 1 | `motors.py` sim seam | an evening |
-| 2 | Climber | an evening |
-| 3 | Shooter | an evening |
-| 4 | Intake (arm + DIO switch) | an evening |
-| 5 | Swerve + SwerveModule; delete the odometry cheat | a weekend |
-| 6 | Vision + gamepiece rehoming, HIL snap helper | an evening |
-| 7 | Delete `physics.py`, `simulation/physics_interface.py`, `simulation/swerve_sim.py` | — |
-
-**This is incremental, not a big bang.** `physics.py` keeps handling whatever has not been
-migrated, as long as each piece is removed from `update_sim()` as its subsystem takes over.
-The sim stays working at every step.
-
-## 9. How to verify each step
-
-There is no substitute for actually running it, and a7 fails silently in several places:
-
-- `robotpy test` — 12/12 today; keep it there.
-- Run the robot headless in sim and **count tracebacks, not just exit code**. Subsystem
-  `periodic()` and phoenix6's background threads raise onto a *thread*, so the program keeps
-  running and the failure scrolls past. A clean run means zero `Traceback` lines.
-- After each subsystem moves, drive it in sim and confirm the value the robot *reads back*
-  changes — not just that the plant model ran.
-
-For step 5 specifically: once the odometry cheat is gone, the estimator should visibly
-disagree with ground truth over a long drive. **That disagreement is the feature.** If pose
-still tracks perfectly, the module sims are not actually feeding the estimator.
+1. **`Intake` read the deploy encoder as degrees.** a7's rev deleted
+   `positionConversionFactor`, and `constants.py` said intake.py applied
+   `k_deploy_position_factor` instead — it never did. One motor rotation looked like one
+   degree, so the arm would have moved ~6.6× too far per degree of setpoint. Now funnelled
+   through `get_angle_deg()` / `_set_deploy_angle_deg()`.
+2. **`Command*Controller.get_hid()` is the `CommandGenericHID` wrapper on a7**, which has
+   none of the named getters. `robot.py`'s `report_gamepads()` (`k_debug_gamepads` is True)
+   would have raised in `disabled_periodic` the moment a pad was plugged in, and the default
+   drive command would have raised on the first teleop loop. Both invisible with no DS
+   attached, because the connected check skips the line. Now `get_controller()`.
+   `drive_by_joystick_swerve.py` had the same plus the removed `_axis` suffix.
+3. **`Translation2d.angle()` returns `None` for the zero vector on a7.** `sim_utils` did
+   arithmetic on it; standing exactly on a game piece was a `TypeError`.

@@ -62,8 +62,8 @@ class AprilTagFieldLayout:
     def get_tag_pose(self, tag_id: int) -> Pose3d | None:
         """Pose of `tag_id`, or None if this layout does not contain it.
 
-        Returning None rather than raising is load-bearing: swerve.py and swerve_sim.py both
-        use `get_tag_pose(id) is None` to reject a training tag that is not part of the field.
+        Returning None rather than raising is load-bearing: swerve.py and simulation/hil_snap.py
+        both use `get_tag_pose(id) is None` to reject a training tag that is not part of the field.
         """
         tag = self._tags.get(int(tag_id))
         return tag.pose if tag is not None else None

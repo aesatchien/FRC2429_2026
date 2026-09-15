@@ -121,16 +121,18 @@ the same physical error:
 
 - `swerve_constants.k_drive_kp_rev_raw` — only live when `drive_vendor == 'rev'`; the comp
   bot is `'ctre'`, so this is unexercised.
-- **`constants.IntakeConstants` deploy loop — this one IS live.** Error went from degrees to
-  motor rotations, roughly 8× per unit. Verify the deploy holds position on the bench before
-  trusting it.
+- **`constants.IntakeConstants` deploy loop — this one IS live.** The on-Spark slot gains
+  (`k_deploy_config.closed_loop.pid`) now see error in motor rotations, roughly 8× per unit.
+  The WPILib `ProfiledPIDController` that actually runs the arm still sees degrees: the sim
+  migration found that `intake.py` never applied `k_deploy_position_factor` at all, and now
+  funnels every encoder read/write through `Intake.get_angle_deg()` /
+  `_set_deploy_angle_deg()`. Verify the deploy holds position on the bench before trusting it.
 
 ## 7. Environments
 
-- `C:\FRC\2026\venv_a7` — a7 (this branch). `robotpy test` → 12/12.
+- `robo2027_a7` mamba env — a7 (this branch); it began as the venv `C:\FRC\2026\venv_a7`.
+  `robotpy test` → 13/13 (12 plus the end-to-end simulation test added with the sim migration).
 - `robo2027_alpha` mamba env — still a6, untouched, so `main` stays deployable.
-
-Fold the venv back into a mamba env once a7 is trusted on hardware.
 
 ## 8. What is verified, and what is not
 

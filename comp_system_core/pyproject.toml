@@ -110,9 +110,9 @@ requires = [
 # under the old [robotpy] entry-point group, which robotpy-cli 2027 does not scan, so
 # installing it does nothing at all.  Do not add it back.
 #
-# The a7 dev environment lives in a venv at C:/FRC/2026/venv_a7 so the a6 mamba env
-# (robo2027_alpha) stays intact and deployable while a7 is being shaken out.  Delete the
-# venv and rebuild the mamba env once a7 is trusted.
+# The a7 dev environment is the mamba env `robo2027_a7` (it started life as a venv at
+# C:/FRC/2026/venv_a7 while a7 was being shaken out).  The a6 env (robo2027_alpha) is
+# kept so `main` stays deployable.
 #
 # DELIBERATELY NOT INSTALLED:
 #   robotpy-navx   - gone.  SystemCore has wpilib.OnboardIMU on the board.

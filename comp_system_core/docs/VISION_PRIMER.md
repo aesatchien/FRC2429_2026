@@ -4,12 +4,16 @@ This document explains how the robot simulates gamepieces and vision cameras, an
 
 ## 1. The Architecture Overview
 
-The simulation is designed to be **transparent** to the robot code. The `Vision` subsystem doesn't know if it's reading data from a real Raspberry Pi or from our physics engine.
+The simulation is designed to be **transparent** to the robot code. The `Vision` subsystem doesn't know if it's reading data from a real Raspberry Pi or from the simulator.
+
+Since 2027 there is no separate physics engine: each simulator is owned by a subsystem and
+runs from that subsystem's `simulation_periodic()`, which the command scheduler calls
+whenever the code is running in simulation (see `docs/sim_migration_plan.md`).
 
 **Data Flow:**
-1. **Physics Engine (`physics.py`)**: The main loop that runs the simulation.
-2. **Gamepiece Sim (`simulation/gamepiece_sim.py`)**: Tracks where gamepieces are on the field.
-3. **Vision Sim (`simulation/vision_sim.py`)**: Calculates what the cameras "see" based on the robot's position.
+1. **Ground truth (`Swerve.simulation_periodic()`)**: where the robot *really* is, published on `/SmartDashboard/Sim/ground_truth`.  Both simulators below subscribe to it - a camera sees where the robot is, not where odometry thinks it is.
+2. **Gamepiece Sim (`simulation/gamepiece_sim.py`, owned by `RobotState`)**: Tracks where gamepieces are on the field.
+3. **Vision Sim (`simulation/vision_sim.py`, owned by `Vision`)**: Calculates what the cameras "see" based on the robot's position.  It reads the game pieces back off the shared Field2d's `Gamepieces` object, so the two simulators never reference each other.
 4. **NetworkTables**: The communication bridge. The Sim *publishes* data here, just like a real camera would.
 5. **Vision Subsystem (`subsystems/vision.py`)**: *Subscribes* to NetworkTables to read the data.
 
@@ -33,7 +37,9 @@ Located in `simulation/gamepiece_sim.py`.
 Located in `simulation/vision_sim.py`. This is the "Virtual Coprocessor".
 
 ### How it works
-It takes the **Robot's Truth Pose** (from the physics engine) and the list of **Active Gamepieces**.
+It takes the **Robot's Truth Pose** (from `/SmartDashboard/Sim/ground_truth`) and the list of **Active Gamepieces** (read off the field).
+
+Note `constants.SimConstants.k_disable_vision_sim`: while it is True (the default, for running real coprocessors against the sim) no camera targets are published at all - only the camera FOV triangles are drawn.
 
 For each camera defined in `constants.CameraConstants.k_cameras`:
 1. **Geometry Check**: It calculates the vector from the robot to every gamepiece.
