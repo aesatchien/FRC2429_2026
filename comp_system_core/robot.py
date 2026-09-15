@@ -184,10 +184,15 @@ class MyRobot(commands2.TimedCommandRobot):
         from wpilib import DriverStationBackend as dsb
         from helpers import joysticks as js
 
+        # a7: Command*Controller.get_hid() returns the CommandGenericHID wrapper, which has no
+        # get_dpad_*_button().  get_controller() is the wpilib XboxController/DualSenseController.
+        # This raised AttributeError in disabled_periodic as soon as a pad was plugged in -
+        # only found by the simulation test, because with no DS attached the connected check
+        # above skips the line that blows up.
         for label, port, pad in (
-                ("driver ", constants.k_driver_controller_port, js.driver_controller.get_hid()),
-                ("copilot", constants.k_co_driver_controller_port, js.copilot_controller.get_hid()),
-                ("ps     ", constants.k_ps5_controller_port, js.play_station_controller.get_hid())):
+                ("driver ", constants.k_driver_controller_port, js.driver_controller.get_controller()),
+                ("copilot", constants.k_co_driver_controller_port, js.copilot_controller.get_controller()),
+                ("ps     ", constants.k_ps5_controller_port, js.play_station_controller.get_controller())):
             if not dsb.is_joystick_connected(port):
                 print(f"[pads] {label} port {port}: NOT CONNECTED")
                 continue

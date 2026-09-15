@@ -71,9 +71,11 @@ class DriveByJoystickSwerve(commands2.Command):
         # 1. READ INPUTS
         # -----------------------------------------------------------
 
-        # Joystick Inputs (using getHID to avoid overruns)
-        hid = self.controller.get_hid()
-        right_trigger_value = hid.get_right_trigger_axis()
+        # Joystick Inputs.  a7: get_controller() is the wpilib XboxController (get_hid() is
+        # the CommandGenericHID wrapper without these getters), and the trigger getter lost
+        # its _axis suffix.
+        hid = self.controller.get_controller()
+        right_trigger_value = hid.get_right_trigger()
         robot_oriented_value = hid.get_left_bumper_button()
         left_y = hid.get_left_y()
         left_x = hid.get_left_x()

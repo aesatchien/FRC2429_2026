@@ -102,10 +102,14 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
         xbox_connected = self.xbox_controller is not None and wpilib.DriverStationBackend.is_joystick_connected(0)
         ps5_connected = self.ps5_controller is not None and wpilib.DriverStationBackend.is_joystick_connected(5)
         
+        # a7: get_hid() hands back the CommandGenericHID wrapper (buttons/axes by index only);
+        # get_controller() is the wpilib XboxController / DualSenseController with the named
+        # getters read_xbox()/read_ps5() use.  With get_hid() this was an AttributeError on the
+        # first teleop loop with a pad connected - the simulation test is what caught it.
         if xbox_connected:
-            left_y, left_x, right_x, right_trigger, robot_oriented = self.read_xbox(self.xbox_controller.get_hid())
+            left_y, left_x, right_x, right_trigger, robot_oriented = self.read_xbox(self.xbox_controller.get_controller())
         elif ps5_connected:
-            left_y, left_x, right_x, right_trigger, robot_oriented = self.read_ps5(self.ps5_controller.get_hid())
+            left_y, left_x, right_x, right_trigger, robot_oriented = self.read_ps5(self.ps5_controller.get_controller())
         else:
             left_y, left_x, right_x, right_trigger, robot_oriented = 0.0, 0.0, 0.0, 0.0, False  # cooked??? IDK - Trentan
 
