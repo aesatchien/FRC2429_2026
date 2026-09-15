@@ -37,6 +37,8 @@ the a7 codebase.
 
 import ntcore
 import wpilib
+
+from helpers import mechanism_publisher
 from telemetry import TelemetryRegistry
 from tunables import TunableRegistry
 
@@ -51,6 +53,9 @@ def install(prefix: str = "") -> None:
     inst = ntcore.NetworkTableInstance.get_default()
     TelemetryRegistry.register_backend("/", wpilib.NetworkTablesTelemetryBackend(inst, prefix))
     TunableRegistry.register_backend("/", wpilib.NetworkTablesTunableBackend(inst, prefix))
+    # Must happen before any Mechanism2d is constructed - it records the tree as it is
+    # built, because a7 cannot walk one afterwards.
+    mechanism_publisher.install()
     _installed = True
 
 
@@ -59,6 +64,7 @@ def update() -> None:
     are hand-publishing because of the a7 binding gap.  Call every loop."""
     TunableRegistry.update()
     publish_fields()
+    mechanism_publisher.update()
 
 
 def _split(key: str) -> tuple[str, str]:
@@ -115,6 +121,14 @@ class SmartDashboard:
                     _publish_field2d(key, obj)
                     _field2ds[key] = obj
                     return
+                if isinstance(obj, wpilib.Mechanism2d):
+                    if mechanism_publisher.publish(key, obj):
+                        return
+                    # Only happens if the mechanism was built before install() ran.
+                    print(f"*** dashboard: Mechanism2d at {key} was constructed before "
+                          f"dashboard.install() - its tree was never recorded, so it cannot "
+                          f"be published.  See helpers/mechanism_publisher.py ***")
+                    return
                 _warn_native_gap(key, obj)
                 return
         raise TypeError(
@@ -134,8 +148,9 @@ class SmartDashboard:
 # This is an alpha binding gap, not something our code is doing wrong.  Re-test it on each
 # new alpha; when log_to() stops raising TypeError, everything below can be deleted.
 #
-# Field2d has a simple, stable NT representation so we write it directly.  Mechanism2d is a
-# nested ligament tree and is NOT reproduced - the mech view is dark on a7.
+# Both are reproduced by hand instead: Field2d directly below, Mechanism2d in
+# helpers/mechanism_publisher.py (it needs more machinery because a7 cannot walk the
+# ligament tree, so the tree is recorded as it is built).
 # ---------------------------------------------------------------------------
 _field2ds: dict[str, "wpilib.Field2d"] = {}
 _warned: set[str] = set()
