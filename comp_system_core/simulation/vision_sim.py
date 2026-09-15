@@ -1,14 +1,24 @@
+"""
+The "virtual coprocessor": works out what each camera would see from where the robot REALLY
+is, and publishes it on the same /Cameras/... topics the real Raspberry Pis use.  vision.py
+subscribes to those and cannot tell the difference - which is the whole point.
+
+Owned by Vision.simulation_periodic().  Takes ground truth (not the pose estimate - a camera
+sees where the robot is, not where it thinks it is) and reads the game pieces back off the
+shared Field2d's "Gamepieces" object, so it depends on nothing but the field.
+"""
+
 import math
 import wpilib
 import ntcore
 from ntcore import PubSubOptions
 from wpimath import Pose2d, Rotation2d, Translation2d
 import constants
-from helpers import apriltag_utils
+from helpers import apriltag_utils, dashboard
+from simulation.gamepiece_sim import GamepieceSim
 
 class VisionSim:
-    def __init__(self, field: wpilib.Field2d):
-        self.field = field
+    def __init__(self):
         self.inst = ntcore.NetworkTableInstance.get_default()
         
         # Configuration
@@ -53,7 +63,7 @@ class VisionSim:
         # Pre-fetch Field2d objects for FOV visualization
         self.fov_objects = {}
         for idx, key in enumerate(self.cam_list):
-            self.fov_objects[key] = self.field.get_object(f"FOV_{idx}")
+            self.fov_objects[key] = dashboard.field_object(f"FOV_{idx}")
 
     def _init_apriltags(self):
         self.tag_translations = []
@@ -67,11 +77,13 @@ class VisionSim:
                 self.tag_poses.append(pose2d)
                 self.tag_translations.append(pose2d.translation())
         
-        self.field.get_object("AprilTags").set_poses(self.tag_poses)
+        dashboard.field_object("AprilTags").set_poses(self.tag_poses)
 
 
-    def update(self, robot_pose: Pose2d, gamepieces: list[dict]):
+    def update(self, robot_pose: Pose2d):
         now = wpilib.Timer.get_timestamp()
+        # whatever is still on the floor, as drawn by RobotState's gamepiece sim
+        gamepieces = [{'pos': pos, 'active': True} for pos in GamepieceSim.active_positions_from_field()]
 
         # 1. Manual Override: Use External Cameras
         # If True: Do not simulate targets, do not blink test. Just draw FOV.
@@ -156,8 +168,9 @@ class VisionSim:
                 cam_data['rotation_pub'].set(rot)
 
                 # NOTE: We do NOT publish to the 'poses' topic here with the other data.
-                # This ensures that swerve_sim.py (which listens for live tags) doesn't
-                # get confused and try to snap the robot to these simulated targets.
+                # Two consumers listen for live tags on 'poses' - Swerve's vision measurements
+                # and simulation/hil_snap.py - and neither should mistake a simulated target
+                # for a real camera seeing a real tag.
 
             # 3. Update FOV Visualization
             self._update_fov_visualization(key, robot_pose, config, self.show_fov_subs[key].get())

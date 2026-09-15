@@ -1,10 +1,15 @@
+import math
+
 import ntcore
+import wpilib
+import wpilib.simulation
+from wpimath import DCMotor, Models
 from commands2 import Subsystem
 import rev
 from rev import SparkBase, SparkLowLevel  # trying to save some typing
 
 import constants
-from constants import ShooterConstants as sc
+from constants import ShooterConstants as sc, SimConstants as simc
 from helpers.utilities import configure_sparks
 
 
@@ -71,6 +76,7 @@ class Shooter(Subsystem):
         self.shooting_offset = 0
 
         self._init_networktables()
+        self._sims = None   # simulation only, built on the first simulation_periodic()
 
     def set_shooting_offset(self, value):
         self.shooting_offset = value
@@ -219,3 +225,43 @@ class Shooter(Subsystem):
                 # self.flywheel_encoder_rm_pub.set(self.flywheel_encoder.getVelocity())
             # else:
             #     self.shooter_rpm_pub.set(0)
+
+    # -------------- simulation --------------
+    # One FlywheelSim per independent group, each behind the leader Spark's own sim object,
+    # so the Spark's velocity loop (MAXMotion, kV) runs against a real spin-up curve and
+    # get_velocity() / is_at_speed() become honest - including the time it takes to get there.
+    # Followers get the leader's speed written into them so their encoders read sensibly;
+    # REV's sim does not propagate follower mode on its own.
+    def simulation_periodic(self) -> None:
+        if self._sims is None:
+            self._sims = self._build_sims()
+        vbus = wpilib.RobotController.get_battery_voltage()
+        dt = 0.02
+        amps = 0.0
+        for leader_sim, followers, plant, gearbox_count in self._sims:
+            plant.set_input_voltage(leader_sim.get_applied_output() * vbus)
+            plant.update(dt)
+            rpm = plant.get_angular_velocity() * 60 / math.tau   # 1:1 gearing on every group
+            leader_sim.iterate(rpm, vbus, dt)
+            for follower in followers:
+                follower.iterate(rpm, vbus, dt)
+            amps += abs(plant.get_current_draw())
+        self._sim_amps = amps
+
+    def _build_sims(self):
+        def flywheel(gearbox, moi):
+            return wpilib.simulation.FlywheelSim(Models.flywheel_from_physical_constants(gearbox, moi, 1.0), gearbox)
+        vortex, neo = DCMotor.neo_vortex, DCMotor.neo
+        return [
+            # (leader sim, follower sims, plant, motors in the gearbox)
+            (rev.SparkFlexSim(self.flywheel_left_leader, vortex(1)),
+             [rev.SparkFlexSim(self.flywheel_right_follower, vortex(1))],
+             flywheel(vortex(2), simc.k_flywheel_moi), 2),
+            (rev.SparkFlexSim(self.roller_motor, vortex(1)), [],
+             flywheel(vortex(1), simc.k_roller_moi), 1),
+            (rev.SparkMaxSim(self.indexer_left_leader, neo(1)),
+             [rev.SparkMaxSim(self.indexer_right_follower, neo(1))],
+             flywheel(neo(2), simc.k_indexer_moi), 2),
+            (rev.SparkMaxSim(self.hopper, neo(1)), [],
+             flywheel(neo(1), simc.k_hopper_moi), 1),
+        ]

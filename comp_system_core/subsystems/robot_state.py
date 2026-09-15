@@ -7,6 +7,7 @@ from wpimath import LinearFilter, MedianFilter
 import ntcore
 import constants
 from constants import LedConstants
+from wpimath import Pose2d
 
 
 # TODO - do something better than putting a callback in LED but no polling
@@ -70,6 +71,8 @@ class RobotState(commands2.Subsystem):
         # Cleared the first time the power reads raise, so a HAL call this hardware does not
         # implement costs one console line instead of the whole robot program.
         self._power_telemetry_ok = constants.k_enable_power_telemetry
+
+        self._gamepiece_sim = None   # simulation only, built on the first simulation_periodic()
 
     def _init_networktables(self):
         self.inst = ntcore.NetworkTableInstance.get_default()
@@ -167,3 +170,19 @@ class RobotState(commands2.Subsystem):
                 self.fms_pub.set(False)
 
             self._last_fms = fms
+
+    # -------------- simulation --------------
+    # Game pieces are field state, not a mechanism, so they live here.  Called by the
+    # scheduler after periodic() whenever RobotBase.is_simulation().
+    def simulation_periodic(self):
+        if self._gamepiece_sim is None:
+            from simulation.gamepiece_sim import GamepieceSim
+            self._gamepiece_sim = GamepieceSim()
+            # where the robot REALLY is, published by Swerve.simulation_periodic()
+            self._ground_truth_sub = self.inst.get_struct_topic(
+                f"{constants.sim_prefix}/ground_truth", Pose2d).subscribe(Pose2d())
+        self._gamepiece_sim.update(self._ground_truth_sub.get())
+
+    def sim_on_gamepiece(self) -> bool:
+        """Did the simulated robot just drive over a piece?  Simulation only."""
+        return self._gamepiece_sim is not None and self._gamepiece_sim.on_gamepiece

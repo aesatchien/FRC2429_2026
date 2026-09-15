@@ -2,6 +2,8 @@ import math
 
 import ntcore
 import wpilib
+import wpilib.simulation
+from wpimath import DCMotor, Models
 from wpimath import MedianFilter
 from wpimath import ProfiledPIDController, ArmFeedforward
 from wpimath import TrapezoidProfile
@@ -10,7 +12,7 @@ import rev
 from rev import SparkBase, SparkLowLevel  # trying to save some typing
 
 import constants
-from constants import IntakeConstants as ic
+from constants import IntakeConstants as ic, SimConstants as simc
 from helpers.utilities import _get_motor_state, compare_motors, configure_sparks
 
 
@@ -81,9 +83,35 @@ class Intake(Subsystem):
         # the functions below this may need to use networktables
         self._init_networktables()
 
+        self._sim = None   # simulation only, built on the first simulation_periodic()
+
         # tell encoder where we are - TODO - try the absolute encoder - may not work because of the gearing
-        self.deploy_encoder.set_position(self.setpoint)   # this sets the current value of the encoder, not the setpoint
+        self._set_deploy_angle_deg(self.setpoint)   # this sets the current value of the encoder, not the setpoint
         self.set_intake_position(self.setpoint)  # this should maintain the current position
+
+    # ---------------------------------------------------------------------------------
+    # DEPLOY ENCODER UNITS.  rev 2027a7 deleted positionConversionFactor, so the Spark reports
+    # raw MOTOR ROTATIONS and RPM.  The profile, the feedforward and every setpoint in this
+    # file are in DEGREES of arm angle, so the conversion happens in exactly two places - here -
+    # with the factors constants.py defines for the purpose.  Before this the encoder was
+    # written and read as if it were still degrees, which made one motor rotation look like
+    # one degree: the arm would have moved ~6.6x too far for every degree of setpoint change.
+    # ---------------------------------------------------------------------------------
+    def get_angle_deg(self) -> float:
+        """Measured arm angle, degrees.  This is what the mechanism view should show."""
+        return self.deploy_encoder.get_position().get() * ic.k_deploy_position_factor
+
+    def get_angle_velocity_dps(self) -> float:
+        return self.deploy_encoder.get_velocity().get() * ic.k_deploy_velocity_factor
+
+    def _set_deploy_angle_deg(self, degrees: float) -> None:
+        """Re-seed the encoder so it reads `degrees` of arm angle from here on."""
+        self.deploy_encoder.set_position(degrees / ic.k_deploy_position_factor)
+        if self._sim is not None:
+            # REV's sim overwrites the encoder from its own position every iterate(), so the
+            # robot code's re-zero has to be mirrored into it or it is undone next loop.
+            # (Measured on rev 2027.0.0a7.post1 - see the note in subsystems/motors.py.)
+            self._sim[0].set_position(degrees / ic.k_deploy_position_factor)
 
 
     def _init_networktables(self):
@@ -104,7 +132,7 @@ class Intake(Subsystem):
         self.intake_on_pub.set(self.intake_on)
         self.intake_rpm_pub.set(self.current_rpm)
         self.deployed_pub.set(self.deployed)
-        self.deployer_angle_pub.set(self.deploy_encoder.get_position().get())
+        self.deployer_angle_pub.set(self.get_angle_deg())
         self.deployer_average_current_pub.set(0)
         self.intake_calibration_pub.set(self.is_calibrated)
 
@@ -137,7 +165,7 @@ class Intake(Subsystem):
         self.deployed_angle = ic.k_bottom_angle
         self.deployed = True
         self.setpoint = ic.k_bottom_angle
-        self.deploy_encoder.set_position(ic.k_bottom_angle)
+        self._set_deploy_angle_deg(ic.k_bottom_angle)
         self.arm_profile.reset(ic.k_bottom_angle)
         self.arm_profile.set_goal(ic.k_bottom_angle)
         self.update_nt()
@@ -148,7 +176,7 @@ class Intake(Subsystem):
         self.deployed_angle = ic.k_top_angle
         self.deployed = False
         self.setpoint = ic.k_top_angle
-        self.deploy_encoder.set_position(self.deployed_angle)
+        self._set_deploy_angle_deg(self.deployed_angle)
         self.arm_profile.reset(ic.k_top_angle)
         self.arm_profile.set_goal(ic.k_top_angle)
         self.update_nt()
@@ -176,7 +204,7 @@ class Intake(Subsystem):
         self.update_nt()
 
     def reset_encoder(self, angle):
-        self.deploy_encoder.set_position(angle)
+        self._set_deploy_angle_deg(angle)
         self.arm_profile.reset(angle)
         self.set_intake_position(angle)  # now tell it to maintain the current position
 
@@ -200,7 +228,7 @@ class Intake(Subsystem):
         # return sum(self.last_currents) / len(self.last_currents)
 
     def deploy_stop(self):
-        current_pos = self.deploy_encoder.get_position().get()
+        current_pos = self.get_angle_deg()
         self.arm_profile.reset(current_pos)
         self.arm_profile.set_goal(current_pos)
         self.deploy_motor.set_voltage(0)
@@ -245,7 +273,7 @@ class Intake(Subsystem):
                 self.is_calibrated = False
 
         # --- Run WPILib Profiled PID and Gravity Feedforward ---
-        current_pos = self.deploy_encoder.get_position().get()
+        current_pos = self.get_angle_deg()
 
         # While disabled the arm cannot move, but the profile's internal setpoint marches to the
         # goal anyway - so on enable the PID sees the full error at once and steps.  Worst case:
@@ -278,12 +306,58 @@ class Intake(Subsystem):
 
         if self.counter % 20 == 0:
              self.intake_rpm_pub.set(self.intake_encoder.get_velocity().get())
-             self.deployer_angle_pub.set(self.deploy_encoder.get_position().get())
+             self.deployer_angle_pub.set(self.get_angle_deg())
              self.deployer_output_pub.set(self.deploy_motor.get_applied_output().get())
-             self.deployer_velocity_pub.set(self.deploy_encoder.get_velocity().get())
+             self.deployer_velocity_pub.set(self.get_angle_velocity_dps())
              self.intake_calibration_pub.set(self.is_calibrated)
+             # (the is_simulation() override that used to sit here is gone - the encoders are
+             # simulated now, so the measured values above are the right ones to publish)
 
-             # this is not right in the simulation
-             if wpilib.RobotBase.is_simulation():
-                 self.intake_rpm_pub.set(self.current_rpm)
-                 self.deployer_angle_pub.set(self.setpoint)
+    # -------------- simulation --------------
+    # SingleJointedArmSim for the deploy arm and a FlywheelSim for the rollers, each behind
+    # its Spark's own sim object, so periodic() above closes its profiled loop on a real
+    # (if rough) plant and the encoder reads simulated motor rotations.  The bumper switch,
+    # when it is enabled, is driven from the simulated arm angle - it is a "the intake is at
+    # the bottom" switch, which is what auto-calibration uses it for.
+    #
+    # Gravity is simulated with 0 deg = horizontal because that is what the ArmFeedforward in
+    # periodic() assumes (see the NOTE there).  If the real zero is not horizontal, both the
+    # feedforward and this model are wrong together, which is the honest thing for a sim.
+    def simulation_periodic(self) -> None:
+        if self._sim is None:
+            self._sim = self._build_sims()
+        deploy_sim, arm, roller_sim, follower_sim, roller = self._sim
+        vbus = wpilib.RobotController.get_battery_voltage()
+        dt = 0.02
+
+        arm.set_input_voltage(deploy_sim.get_applied_output() * vbus)
+        arm.update(dt)
+        # arm deg/s -> motor RPM through the same factor periodic() reads with
+        deploy_sim.iterate(math.degrees(arm.get_velocity()) / ic.k_deploy_velocity_factor, vbus, dt)
+
+        roller.set_input_voltage(roller_sim.get_applied_output() * vbus)
+        roller.update(dt)
+        rpm = roller.get_angular_velocity() * 60 / math.tau
+        roller_sim.iterate(rpm, vbus, dt)
+        follower_sim.iterate(rpm, vbus, dt)
+
+        if self.bumper_switch is not None:
+            at_bottom = math.degrees(arm.get_angle()) < ic.k_bottom_angle + 3
+            wpilib.simulation.DIOSim(self.bumper_switch).set_value(not at_bottom)   # active low
+
+    def _build_sims(self):
+        vortex, neo = DCMotor.neo_vortex(1), DCMotor.neo(2)
+        gearing = 1 / ic.gear_ratio                          # ~54 motor turns per arm turn
+        moi = wpilib.simulation.SingleJointedArmSim.estimate_moi(simc.k_intake_arm_length_m, simc.k_intake_arm_mass_kg)
+        arm = wpilib.simulation.SingleJointedArmSim(
+            Models.single_jointed_arm_from_physical_constants(vortex, moi, gearing), vortex, gearing,
+            simc.k_intake_arm_length_m,
+            math.radians(ic.k_bottom_angle - 5), math.radians(ic.k_top_angle + 5),   # hard stops
+            True, math.radians(self.get_angle_deg()))
+        roller = wpilib.simulation.FlywheelSim(
+            Models.flywheel_from_physical_constants(neo, simc.k_intake_roller_moi, 1.0), neo)
+        deploy_sim = rev.SparkFlexSim(self.deploy_motor, vortex)
+        deploy_sim.set_position(self.deploy_encoder.get_position().get())   # keep the boot seed
+        return (deploy_sim, arm,
+                rev.SparkMaxSim(self.intake_motor, DCMotor.neo(1)),
+                rev.SparkMaxSim(self.intake_motor_follower, DCMotor.neo(1)), roller)

@@ -210,18 +210,25 @@ class MyRobot(commands2.TimedCommandRobot):
                   f"L{int(pad.get_dpad_left_button())} R{int(pad.get_dpad_right_button())}")
 
     # ----------------------------- simulation -----------------------------
-    # 2027 moved `robotpy sim` out of pyfrc and into wpilib core, and the core version has
-    # no physics support at all - it never loads physics.py.  These two hooks are the
-    # WPILib-standard place for simulation code and are called by IterativeRobotBase:
-    # simulationInit() once at startup, simulationPeriodic() every loop immediately after
-    # robotPeriodic().  Verified in sim on 2027.0.0a6.post1.  Neither runs on the real
-    # robot, so none of this needs an isSimulation() guard.
+    # Simulation lives INSIDE the subsystems - the WPILib / Java model.  Each subsystem
+    # overrides Subsystem.simulation_periodic(), which CommandScheduler.run() calls right
+    # after periodic() whenever RobotBase.is_simulation(); it advances a plant model and
+    # writes the result into its own motor controllers' and sensors' sim state, so the
+    # robot code reads simulated motion through exactly the calls it uses on the real
+    # robot.  See docs/sim_migration_plan.md for the whole story and where each piece went.
+    #
+    # The two things that are not mechanisms live here.  Both hooks are called by
+    # IterativeRobotBase - simulation_init() once at startup, simulation_periodic() every
+    # loop after robot_periodic() - and neither runs on the real robot, so no guard needed.
     def simulation_init(self) -> None:
-        from simulation.physics_interface import PhysicsEngineHost
-        self.physics_host = PhysicsEngineHost(self)
+        from simulation.hil_snap import HardwareInTheLoop
+        from simulation.ghost_robot import GhostRobot
+        self.hil = HardwareInTheLoop(self.container)   # snap ground truth to real cameras / Quest
+        self.ghost = GhostRobot()                      # draw the auto goal pose and shot line
 
     def simulation_periodic(self) -> None:
-        self.physics_host.update()
+        self.hil.update()
+        self.ghost.update()
 
     def utility_init(self) -> None:
         # 2027: test mode was renamed to utility mode - testInit/testPeriodic/testExit are
@@ -242,19 +249,12 @@ class MyRobot(commands2.TimedCommandRobot):
 
         # Update Mechanism2d visualization (works on Real Robot and Sim)
         if self.mech:
-            # Intake
-            if wpilib.RobotState.is_disabled() == False:
-                self.mech.update_intake(angle=self.container.intake.get_profile_setpoint(),
+            # Intake - the MEASURED arm angle.  This used to draw the profile setpoint, and
+            # while disabled it nudged that setpoint by a degree a loop toward 90 so the
+            # picture would move in sim; the deploy encoder is simulated now, so the same
+            # measurement the real robot reads is the right thing to draw in both places.
+            self.mech.update_intake(angle=self.container.intake.get_angle_deg(),
                                     rpm=self.container.intake.current_rpm if self.container.intake.intake_on else 0)
-            else:
-                if self.container.intake.get_profile_setpoint() < 90 and self.container.intake.get_profile_setpoint() > ic.k_bottom_angle:
-                    self.mech.update_intake(angle=self.container.intake.get_profile_setpoint() - 1,
-                                    rpm=self.container.intake.current_rpm if self.container.intake.intake_on else 0)
-                    self.container.intake.set_profile_setpoint(self.container.intake.get_profile_setpoint() - 1)
-                elif self.container.intake.get_profile_setpoint() > 90 and self.container.intake.get_profile_setpoint() < ic.k_top_angle:
-                    self.mech.update_intake(angle=self.container.intake.get_profile_setpoint() + 1,
-                                        rpm=self.container.intake.current_rpm if self.container.intake.intake_on else 0)
-                    self.container.intake.set_profile_setpoint(self.container.intake.get_profile_setpoint() + 1)
 
             # Shooter
             self.mech.update_hopper(self.container.shooter.current_hopper_rpm / 6000)

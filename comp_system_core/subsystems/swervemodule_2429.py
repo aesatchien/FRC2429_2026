@@ -1,5 +1,6 @@
 import math
 
+import wpilib.simulation
 from wpilib import AnalogPotentiometer
 from wpimath import Rotation2d
 from wpimath import SwerveModuleVelocity, SwerveModulePosition
@@ -50,6 +51,11 @@ class SwerveModule:
 
         # self.chassisAngularOffset = chassisAngularOffset  # not yet
         self.desiredState.angle = Rotation2d(self.get_turn_encoder())
+
+        # simulation only - built on the first simulation_periodic(), see below
+        self._encoder_analog_port = encoder_analog_port
+        self._turning_encoder_offset = turning_encoder_offset
+        self._analog_sim = None
 
     def get_turn_encoder(self):
         # how we invert the absolute encoder if necessary (which it probably isn't in the standard mk4i config)
@@ -121,3 +127,35 @@ class SwerveModule:
 
     def stop(self):
         pass
+
+    # ---------------------------------------------------------------------------------
+    #  SIMULATION
+    # ---------------------------------------------------------------------------------
+    # The analog rail is 3.3 V in simulation: AnalogPotentiometer(port, tau, 0) reads exactly
+    # one turn at 3.3 V (re-verified on a7), so the inverse below scales against 3.3, not 5.
+    # Get this wrong and every wheel reads ~1.5x its true angle and the turn loop hunts.
+    k_analog_rail_volts = 3.3
+
+    def simulation_periodic(self, dt: float, vbus: float) -> float:
+        """Advance both motor plants and write the azimuth back into the absolute encoder.
+
+        Returns the module's current draw in amps.  After this the drive encoder, the turn
+        motor's relative encoder and the AnalogPotentiometer all read simulated motion, so
+        getState() / get_position() - and therefore odometry - run exactly the real code path.
+        """
+        amps = self.drive_motor.sim_update(dt, vbus)
+        amps += self.turn_motor.sim_update(dt, vbus)
+
+        if self._analog_sim is None:
+            self._analog_sim = wpilib.simulation.AnalogInputSim(self._encoder_analog_port)
+            self._analog_sim.set_initialized(True)
+
+        # get_turn_encoder() = mult * (voltage / 3.3 * full_range - offset), so invert that:
+        # the pot must read the plant's azimuth after the module's own reverse flag and
+        # per-module offset are applied to it.
+        azimuth = self.turn_motor.sim_azimuth_rad()
+        mult = -1 if dc.k_reverse_analog_encoders else 1
+        pot_reading = mult * azimuth + self._turning_encoder_offset           # radians the pot must report
+        volts = (pot_reading % dc.k_analog_encoder_scale_factor) / dc.k_analog_encoder_scale_factor * self.k_analog_rail_volts
+        self._analog_sim.set_voltage(volts)
+        return amps

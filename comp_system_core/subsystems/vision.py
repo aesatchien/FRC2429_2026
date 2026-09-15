@@ -31,6 +31,7 @@ class Vision(Subsystem):
         self.last_stale_warning_time = {key: 0 for key in constants.CameraConstants.k_cameras.keys()}
 
         self._init_networktables()
+        self._sim = None   # simulation only, built on the first simulation_periodic()
 
     def _init_networktables(self):
         self.inst = NetworkTableInstance.get_default()
@@ -228,10 +229,25 @@ class Vision(Subsystem):
                 self.camera_values[key]['strafe'] = self.camera_dict[key]['strafe_entry'].get()
 
             # Update publishers based on target availability - this is for the GUI
-            # Works for both Real (actual data) and Sim (physics.py data)
+            # Works for both Real (actual data) and Sim (simulation/vision_sim.py data)
             for key, pub in self.status_pubs.items():
                 if key in self.camera_dict:
                     pub.set(self.target_available(key))
 
             if constants.VisionConstants.k_nt_debugging:  # extra debugging info for NT
                 pass
+
+    # -------------- simulation --------------
+    # The camera sim fakes the /Cameras/... topics this subsystem subscribes to, from where
+    # the robot REALLY is (ground truth, published by Swerve.simulation_periodic()).  The
+    # code above never knows whether a Pi or the sim wrote them.  Note
+    # constants.SimConstants.k_disable_vision_sim - when True (the default while real
+    # coprocessors are being used against the sim) this only draws camera FOVs and publishes
+    # no targets at all.
+    def simulation_periodic(self) -> None:
+        if self._sim is None:
+            from simulation.vision_sim import VisionSim
+            self._sim = VisionSim()
+            self._ground_truth_sub = self.inst.get_struct_topic(
+                f"{constants.sim_prefix}/ground_truth", Pose2d).subscribe(Pose2d())
+        self._sim.update(self._ground_truth_sub.get())

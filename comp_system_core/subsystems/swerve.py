@@ -4,12 +4,14 @@ import time
 
 import ntcore
 import wpilib
+import wpilib.simulation
 from commands2 import Subsystem
 
 from wpilib import Alliance, DataLogManager, DriverStation, MatchState, RobotBase, Timer
+from helpers import dashboard
 from helpers.dashboard import SmartDashboard  # 2027a7: wpilib's was removed
 from wpimath import SlewRateLimiter
-from wpimath import Pose2d, Rotation2d, Translation2d, Pose3d, Rotation3d, Translation3d
+from wpimath import Pose2d, Rotation2d, Translation2d, Pose3d, Rotation3d, Translation3d, Twist2d
 from wpimath import (ChassisVelocities, SwerveModuleVelocity, SwerveDrive4Kinematics)
 from wpimath import SwerveDrive4PoseEstimator
 from wpimath import PIDController
@@ -110,6 +112,14 @@ class Swerve (Subsystem):
                                  Rotation2d.from_degrees(self.get_gyro_angle()),                                                        self.get_module_positions(),
                                     initial_pose=Pose2d(constants.k_start_x, constants.k_start_y,
                                     Rotation2d.from_degrees(self.get_gyro_angle())))
+
+        # ---------- Field2d ----------
+        # The drive subsystem owns the field, on the real robot too - that is why Java teams
+        # get a field view without any simulation code.  Shared through helpers.dashboard so
+        # the gamepiece and camera sims can draw on the same one without knowing about us.
+        # On a7 it is hand-published by dashboard.update() each loop (see _NATIVE_GAP there).
+        self.field = dashboard.field("Field")
+        self.field.set_robot_pose(self.get_pose())
 
         # ---------- Vision / NT  ----------
         self.inst = ntcore.NetworkTableInstance.get_default()
@@ -456,15 +466,6 @@ class Swerve (Subsystem):
         self.gyro_angle_adjustment = adjustment if adjustment is not None else 0.0
         self.reset_keep_angle()
 
-    #  -------------  simulation helpers  ----------
-    def get_desired_swerve_module_states(self) -> list[SwerveModuleVelocity]:
-        """
-        what it says on the wrapper; it's for physics.py because I don't like relying on an NT entry
-        to communicate between them (it's less clear what the NT entry is there for, I think) LHACK 1/12/25
-        """
-        return [module.getDesiredState() for module in self.swerve_modules]
-
-
     #  -------------  METHODS PATHPLANNER NEEDS  ----------
     def get_relative_speeds(self):
         return dc.kDriveKinematics.to_chassis_velocities(self.get_module_states())
@@ -563,9 +564,12 @@ class Swerve (Subsystem):
                             print(f"*** AprilTag {tag_id} update REJECTED: {tag_pose.x:.2f}, {tag_pose.y:.2f} is outside field limits! ***")
 
     def _update_odometry(self, ts):
-        if RobotBase.is_real():
-            self.pose_estimator.update_with_time(ts, Rotation2d.from_degrees(self.get_gyro_angle()), self.get_module_positions(),)
-            
+        # This used to be guarded by RobotBase.is_real() because the pyfrc physics engine
+        # force-reset the estimator to ground truth every loop.  The modules and the IMU are
+        # simulated now (simulation_periodic below), so odometry runs the same code path in
+        # both places - and in sim it is ALLOWED to drift from ground truth.  That is the point.
+        self.pose_estimator.update_with_time(ts, Rotation2d.from_degrees(self.get_gyro_angle()), self.get_module_positions(),)
+
         # Clamp the pose estimator to the physical field boundaries to prevent wheel-slip creep
         pose = self.get_pose()
         hw = constants.FieldConstants.k_robot_width / 2.0
@@ -582,6 +586,7 @@ class Swerve (Subsystem):
 
         # Send the struct (replaces the arrays). AdvantageScope detects this automatically.
         self.pose_pub.set(pose)
+        self.field.set_robot_pose(pose)   # published by dashboard.update() from robot_periodic
         # self.pose_pub.set([pose.X(), pose.Y(), pose.rotation().degrees()])  # legacy version
 
         # allow averaging to AprilTags on coprocessors when disabled OR when we are sitting still
@@ -624,3 +629,71 @@ class Swerve (Subsystem):
                 pub.set(val)
             
             self.angles_pub.set(angles)
+
+    # -------------- simulation --------------
+    # Called by CommandScheduler.run() on every registered subsystem when RobotBase.is_simulation().
+    # Nothing here reaches outside the drivetrain: the modules simulate their own motors and
+    # write their own sensors, the IMU sim is driven from what the wheels ACTUALLY did, and the
+    # pose estimator above never sees ground truth.  Ground truth exists only so the camera and
+    # gamepiece sims have something to look at, and so the dashboard can show the drift.
+    k_sim_nominal_dt = 0.02
+
+    def simulation_periodic(self) -> None:
+        now = Timer.get_timestamp()
+        if not hasattr(self, '_sim_last_time'):
+            self._sim_init()
+            self._sim_last_time = now
+            return
+        dt = now - self._sim_last_time
+        self._sim_last_time = now
+        if dt <= 0:
+            return
+        dt = min(dt, 5 * self.k_sim_nominal_dt)   # a paused sim must not integrate a huge step
+
+        vbus = wpilib.RobotController.get_battery_voltage()
+        amps = [module.simulation_periodic(dt, vbus) for module in self.swerve_modules]
+
+        # What the chassis actually did this step, from the MEASURED module states - the same
+        # states odometry consumes - not from the commanded ones.
+        speeds = dc.kDriveKinematics.to_chassis_velocities(self.get_module_states())
+
+        # The onboard IMU.  OnboardIMU is counter-clockwise-positive like the rest of WPILib
+        # (the navX was not, which is the only reason the old sim subtracted here).  Radians.
+        # set_angle_x is the axis this subsystem actually reads (k_imu_yaw_getter, measured on
+        # the robot); set_yaw is driven too so get_yaw()/get_rotation2d() stay believable.
+        # They are independent signals in sim - setting one does not move the other.
+        self._sim_yaw_rad += speeds.omega * dt
+        self._imu_sim.set_angle_x(self._sim_yaw_rad)
+        self._imu_sim.set_yaw(self._sim_yaw_rad)
+        self._imu_sim.set_gyro_rate_z(speeds.omega)
+
+        # Ground truth: integrate the same speeds as a pose exponential.  2027 removed
+        # Pose2d.exp(twist); Twist2d.exp() now returns the Transform2d.  Arc integration, not a
+        # straight line - do not "simplify" it.
+        twist = Twist2d(dx=speeds.vx * dt, dy=speeds.vy * dt, dtheta=speeds.omega * dt)
+        self._sim_ground_truth = self._sim_ground_truth.transform_by(twist.exp())
+        self._sim_ground_truth_pub.set(self._sim_ground_truth)
+        self._sim_truth_object.set_pose(self._sim_ground_truth)
+
+        wpilib.simulation.RoboRioSim.set_vin_voltage(wpilib.simulation.BatterySim.calculate(amps))
+
+    def _sim_init(self) -> None:
+        self._imu_sim = wpilib.simulation.OnboardIMUSim()
+        self._sim_yaw_rad = 0.0
+        self._sim_ground_truth = Pose2d(constants.k_start_x, constants.k_start_y, Rotation2d())
+        self._sim_ground_truth_pub = self.inst.get_struct_topic(f"{constants.sim_prefix}/ground_truth", Pose2d).publish()
+        self._sim_ground_truth_pub.set(self._sim_ground_truth)
+        # A second robot on the field so estimator error is something you can SEE.
+        self._sim_truth_object = dashboard.field_object("GroundTruth")
+        self._sim_truth_object.set_pose(self._sim_ground_truth)
+
+    def sim_get_ground_truth(self) -> Pose2d:
+        """Where the simulated robot really is.  Simulation only; never read this for control."""
+        return getattr(self, '_sim_ground_truth', Pose2d(constants.k_start_x, constants.k_start_y, Rotation2d()))
+
+    def sim_set_ground_truth(self, pose: Pose2d) -> None:
+        """Teleport ground truth - used by hardware-in-the-loop snapping (simulation/hil_snap.py).
+        Deliberately does NOT touch the pose estimator: if a real camera says we are somewhere
+        else, the estimator finds out the same way it would on the robot, through its vision
+        measurements.  That is the whole reason to keep the two apart."""
+        self._sim_ground_truth = pose

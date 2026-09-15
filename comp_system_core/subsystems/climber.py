@@ -34,6 +34,8 @@ from commands2.subsystem import Subsystem
 import math
 import ntcore
 import wpilib
+import wpilib.simulation
+from wpimath import DCMotor, Models
 from rev import ClosedLoopSlot, SparkMax
 from commands2 import Subsystem
 import constants
@@ -70,6 +72,7 @@ class Climber(Subsystem):
         self.current_rpm = 0
         self.climber_heights = [10, 18, 30]
         self._init_networktables()
+        self._sim = None   # simulation only, built on the first simulation_periodic()
 
     def _init_networktables(self):
         self.inst = ntcore.NetworkTableInstance.get_default()
@@ -125,3 +128,25 @@ class Climber(Subsystem):
             #self.flywheel_controller.setSetpoint(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
             #self.voltage = feed_forward  # 12 * rpm / max rpm  # Guess
     #def get_distance(self):
+
+    # -------------- simulation --------------
+    # An ElevatorSim behind the Spark's sim object.  The subsystem is still half written and
+    # not constructed by RobotContainer, so this is the pattern rather than a tuned model:
+    # the encoder reads motor rotations derived from the simulated carriage height.
+    def simulation_periodic(self) -> None:
+        if self._sim is None:
+            gearbox = DCMotor.neo(1)
+            gearing = 10.0   # motor rotations per drum rotation - a placeholder until the gearbox is known
+            plant = Models.elevator_from_physical_constants(
+                gearbox, constants.SimConstants.k_climber_carriage_kg,
+                constants.SimConstants.k_climber_drum_radius_m, gearing)
+            self._sim = (rev.SparkMaxSim(self.motor, gearbox),
+                         wpilib.simulation.ElevatorSim(plant, gearbox, 0.0, 1.5, True, 0.0),
+                         gearing)
+        spark_sim, elevator, gearing = self._sim
+        vbus = wpilib.RobotController.get_battery_voltage()
+        elevator.set_input_voltage(spark_sim.get_applied_output() * vbus)
+        elevator.update(0.02)
+        drum_circumference = 2 * math.pi * constants.SimConstants.k_climber_drum_radius_m
+        motor_rpm = elevator.get_velocity() / drum_circumference * 60 * gearing
+        spark_sim.iterate(motor_rpm, vbus, 0.02)
