@@ -83,13 +83,14 @@ k_co_driver_controller_port = 1
 k_bbox_1_port = 2
 k_bbox_2_port = 3
 
-# Print what the Driver Station actually reports for each controller once a second while
-# disabled: connected, name, gamepad type, and how many POVs / buttons / axes it exposes.
+# While disabled, print what the Driver Station actually reports for each controller -
+# connected, name, gamepad type, how many POVs / buttons / axes, and the D-pad state -
+# but ONLY WHEN IT CHANGES: plug in, unplug, press or release a D-pad button.
 # Turn this on whenever a control "does nothing" - WPILib fails silently on an input the DS
 # is not reporting, returning a falsy default forever rather than raising.
 # This is the readable substitute for the per-loop "not available" warnings, which robot.py
 # keeps muted because they bury the console when a controller is unplugged.
-# Set False for competition - it is still a line of console spam per second.
+# Change-driven, so a quiet robot prints nothing and this is safe to leave on.
 k_debug_gamepads = True
 
 

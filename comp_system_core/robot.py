@@ -28,8 +28,8 @@ dashboard.install()
 # But know what you are giving up.  This ALSO hides "Joystick POV 0 on port 5 not available"
 # and the Button/Axis equivalents - the only signal WPILib gives that the DS is not reporting
 # an input your code reads.  That is exactly how the dead D-pad went unnoticed.
-# constants.k_debug_gamepads prints the same facts once a second instead (see
-# report_gamepads below), which is the readable way to get them.
+# constants.k_debug_gamepads prints the same facts instead, once per change rather than
+# every loop (see report_gamepads below), which is the readable way to get them.
 #
 # 2027a7 renamed this warning -> alert: silenceJoystickConnectionWarning is gone and the
 # replacement is silence_joystick_connection_alert.
@@ -58,7 +58,7 @@ class MyRobot(commands2.TimedCommandRobot):
         self.container = RobotContainer()
         self.alliance_zone = None
         self.mech = BlockheadMech()
-        self._pads_connected = {}   # port -> last connection state seen by report_gamepads()
+        self._pads_last_line = {}   # port -> last line report_gamepads() printed; print on change only
 
 
     def disabled_init(self) -> None:
@@ -194,27 +194,28 @@ class MyRobot(commands2.TimedCommandRobot):
                 ("driver ", constants.k_driver_controller_port, js.driver_controller.get_controller()),
                 # no separate PS5 line: the PS5, when used, IS the driver pad (k_controller_type)
                 ("copilot", constants.k_co_driver_controller_port, js.copilot_controller.get_controller())):
-            connected = dsb.is_joystick_connected(port)
-            was_connected = self._pads_connected.get(port)   # None the first time round
-            self._pads_connected[port] = connected
-            if not connected:
-                # Say it once, then only again if it changes.  An unplugged pad is not news
-                # every second, and it buried the lines for the pads that ARE plugged in.
-                if was_connected is not False:
-                    print(f"[pads] {label} port {port}: NOT CONNECTED")
-                continue
-            # getStick*Available() return a BITMASK of which indices the DS reports, not a
-            # count - 6 axes reads as 63 (0b111111).  Popcount them or the numbers lie.
-            povs = dsb.get_stick_povs_available(port)
-            buttons = dsb.get_stick_buttons_available(port)
-            axes = dsb.get_stick_axes_available(port)
-            print(f"[pads] {label} port {port}: name={dsb.get_joystick_name(port)!r} "
-                  f"gamepad={dsb.get_joystick_is_gamepad(port)} type={dsb.get_joystick_gamepad_type(port)} "
-                  f"| POVs={bin(povs).count('1')} "
-                  f"buttons={bin(buttons).count('1')} (mask {buttons:#x}) "
-                  f"axes={bin(axes).count('1')} "
-                  f"| dpad U{int(pad.get_dpad_up_button())} D{int(pad.get_dpad_down_button())} "
-                  f"L{int(pad.get_dpad_left_button())} R{int(pad.get_dpad_right_button())}")
+            if not dsb.is_joystick_connected(port):
+                line = f"[pads] {label} port {port}: NOT CONNECTED"
+            else:
+                # getStick*Available() return a BITMASK of which indices the DS reports, not a
+                # count - 6 axes reads as 63 (0b111111).  Popcount them or the numbers lie.
+                povs = dsb.get_stick_povs_available(port)
+                buttons = dsb.get_stick_buttons_available(port)
+                axes = dsb.get_stick_axes_available(port)
+                line = (f"[pads] {label} port {port}: name={dsb.get_joystick_name(port)!r} "
+                        f"gamepad={dsb.get_joystick_is_gamepad(port)} type={dsb.get_joystick_gamepad_type(port)} "
+                        f"| POVs={bin(povs).count('1')} "
+                        f"buttons={bin(buttons).count('1')} (mask {buttons:#x}) "
+                        f"axes={bin(axes).count('1')} "
+                        f"| dpad U{int(pad.get_dpad_up_button())} D{int(pad.get_dpad_down_button())} "
+                        f"L{int(pad.get_dpad_left_button())} R{int(pad.get_dpad_right_button())}")
+            # EVENTS, NOT A HEARTBEAT.  Print only when this pad's line differs from last time:
+            # plugged in, unplugged, or a D-pad button pressed/released.  A line repeated every
+            # second is noise that buries the one line that changed.  Live values belong on
+            # the dashboard, not the console.
+            if line != self._pads_last_line.get(port):
+                print(line)
+                self._pads_last_line[port] = line
 
     # ----------------------------- simulation -----------------------------
     # Simulation lives INSIDE the subsystems - the WPILib / Java model.  Each subsystem
