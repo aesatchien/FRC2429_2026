@@ -1,26 +1,56 @@
-import commands2.button
+import commands2
 import constants
 from wpilib import POVDirection
 
-driver_controller = commands2.button.CommandNiDsXboxController(constants.k_driver_controller_port)
+# Driver Buttons for PS5 + XBOX -trentan
+axis_trigger_threshold = 0.5
+
+if constants.k_controller_type == "PS5":
+    driver_controller = commands2.button.CommandDualSenseController(constants.k_driver_controller_port)
+    driver_a = driver_controller.cross()
+    driver_b = driver_controller.circle()
+    driver_x = driver_controller.square()
+    driver_y = driver_controller.triangle()
+    driver_l_bumper = driver_controller.l1()
+    driver_r_bumper = driver_controller.r1()
+    driver_l_stick = driver_controller.l3()
+    driver_r_stick = driver_controller.r3()
+    driver_l_trigger = driver_controller.l2()
+    driver_r_trigger = driver_controller.r2()
+    driver_start = driver_controller.create() # left side, small button
+    driver_back = driver_controller.options() # right side, small button
+
+    # not touching these -trentan sept 2026
+    # ps_ps_logo = driver_controller.ps()
+    # ps_touchpad = driver_controller.touchpad()
+    # ps_mic = driver_controller.microphone() not on xbox don't include
+
+else:
+    driver_controller = commands2.button.CommandXboxController(constants.k_driver_controller_port)
+    driver_a = driver_controller.a()
+    driver_b = driver_controller.b()
+    driver_x = driver_controller.x()
+    driver_y = driver_controller.y()
+    driver_l_bumper = driver_controller.left_bumper()
+    driver_r_bumper = driver_controller.right_bumper()
+    driver_l_stick = driver_controller.left_stick()
+    driver_r_stick = driver_controller.right_stick()
+    driver_l_trigger = driver_controller.left_trigger(axis_trigger_threshold)
+    driver_r_trigger = driver_controller.right_trigger(axis_trigger_threshold)
+    driver_start = driver_controller.view() # left side, small button
+    driver_back = driver_controller.menu() # right side, small button
+
+    # not touching this
+    # driver_logo = driver_controller.xbox()
+
+# PS5 and XBOX share these
+driver_up = driver_controller.dpad_up()
+driver_down = driver_controller.dpad_down()
+driver_left = driver_controller.dpad_left()
+driver_right = driver_controller.dpad_right()
+
 copilot_controller = commands2.button.CommandNiDsXboxController(constants.k_co_driver_controller_port)
 
-axis_trigger_threshold = 0.5
-# Driver Buttons
-driver_a = driver_controller.a()
-driver_b = driver_controller.b()
-driver_x = driver_controller.x()
-driver_y = driver_controller.y()
-driver_lb = driver_controller.leftBumper()
-driver_rb = driver_controller.rightBumper()
-driver_back = driver_controller.back()
-driver_start = driver_controller.start()
-driver_up = driver_controller.povUp()
-driver_down = driver_controller.povDown()
-driver_left = driver_controller.povLeft()
-driver_right = driver_controller.povRight()
-driver_l_trigger = driver_controller.leftTrigger(axis_trigger_threshold)
-driver_r_trigger = driver_controller.rightTrigger(axis_trigger_threshold)
 
 # Co-Driver Buttons
 copilot_a = copilot_controller.a()
@@ -75,29 +105,3 @@ bbox_1_12 = bbox_1.button(12)
 # copilot_r_stick_negative_x = copilot_controller.axisLessThan(4, -0.5)
 # copilot_r_stick_positive_y = copilot_controller.axisGreaterThan(5, 0.5)
 # copilot_r_stick_negative_y = copilot_controller.axisLessThan(5, -0.5)
-
-play_station_controller = commands2.button.CommandNiDsPS4Controller(constants.k_ps5_controller_port)
-
-ps_square = play_station_controller.square()
-ps_cross = play_station_controller.cross()
-ps_circle = play_station_controller.circle()
-ps_triangle = play_station_controller.triangle()
-ps_l1 = play_station_controller.L1()
-ps_r1 = play_station_controller.R1()
-ps_l2 = play_station_controller.L2()
-ps_r2 = play_station_controller.R2()
-ps_share = play_station_controller.share()
-ps_options = play_station_controller.options()
-ps_l_stick = play_station_controller.L3()
-ps_r_stick = play_station_controller.R3()
-ps_ps_logo = play_station_controller.PS()
-ps_touchpad = play_station_controller.touchpad()
-
-# Mic isn't part of WPILib's standard PS5 button map, keeping it a raw button - Trentan
-ps_mic = play_station_controller.button(15)
-
-ps_up = play_station_controller.pov(POVDirection.UP)
-ps_down = play_station_controller.pov(POVDirection.DOWN)
-ps_left = play_station_controller.pov(POVDirection.LEFT)
-ps_right = play_station_controller.pov(POVDirection.RIGHT)
-

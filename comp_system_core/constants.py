@@ -6,7 +6,7 @@ import rev
 import wpimath.units
 from rev import ClosedLoopSlot, SparkClosedLoopController, SparkFlexConfig, SparkMax, SparkMaxConfig
 from wpimath import Pose2d, Rotation2d, Translation2d, Transform2d
-from wpimath.units import inchesToMeters, lbsToKilograms
+from wpimath.units import inches_to_meters, lbs_to_kilograms
 from typing import Union, List
 
 from helpers.utilities import set_config_defaults
@@ -74,11 +74,11 @@ k_enable_power_telemetry = True
 k_start_x, k_start_y = 2.79, 2.20
 
 # ------------  joysticks and other input ------------
+k_controller_type = "PS5"
 k_driver_controller_port = 0
 k_co_driver_controller_port = 1
 k_bbox_1_port = 2
 k_bbox_2_port = 3
-k_ps5_controller_port = 5  # Testing this for now. -Trentan June 2026
 
 
 # ---------------------------------------------------------------------------
@@ -185,7 +185,7 @@ class CameraConstants:
     k_cameras = k_comp_cameras
 
     # add local_tester.py's sim camera if in sim - allows for testing without pis
-    if wpilib.RobotBase.isSimulation():
+    if wpilib.RobotBase.is_simulation():
         k_cameras = k_sim_cameras
         k_cameras.update({'front_sim': {'topic_name': 'LocalTest', 'type': 'tags', 'rotation': 0, 'fov': fov},})
 
@@ -217,7 +217,7 @@ class VisionConstants:
 
 class QuestConstants:
     k_counter_offset = next(_counter)
-    quest_to_robot = Transform2d(inchesToMeters(-14), inchesToMeters(-8), Rotation2d().fromDegrees(270))
+    quest_to_robot = Transform2d(inches_to_meters(-14), inches_to_meters(-8), Rotation2d().from_degrees(270))
 
     k_max_disconnected_count = 14  # number of cycles of lost quest before we call passthru
     k_allow_quest_auto_resync = True  # teleop tries to resync if certain conditions are met
