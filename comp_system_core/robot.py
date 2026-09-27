@@ -58,6 +58,7 @@ class MyRobot(commands2.TimedCommandRobot):
         self.container = RobotContainer()
         self.alliance_zone = None
         self.mech = BlockheadMech()
+        self._pads_connected = {}   # port -> last connection state seen by report_gamepads()
 
 
     def disabled_init(self) -> None:
@@ -193,8 +194,14 @@ class MyRobot(commands2.TimedCommandRobot):
                 ("driver ", constants.k_driver_controller_port, js.driver_controller.get_controller()),
                 # no separate PS5 line: the PS5, when used, IS the driver pad (k_controller_type)
                 ("copilot", constants.k_co_driver_controller_port, js.copilot_controller.get_controller())):
-            if not dsb.is_joystick_connected(port):
-                print(f"[pads] {label} port {port}: NOT CONNECTED")
+            connected = dsb.is_joystick_connected(port)
+            was_connected = self._pads_connected.get(port)   # None the first time round
+            self._pads_connected[port] = connected
+            if not connected:
+                # Say it once, then only again if it changes.  An unplugged pad is not news
+                # every second, and it buried the lines for the pads that ARE plugged in.
+                if was_connected is not False:
+                    print(f"[pads] {label} port {port}: NOT CONNECTED")
                 continue
             # getStick*Available() return a BITMASK of which indices the DS reports, not a
             # count - 6 axes reads as 63 (0b111111).  Popcount them or the numbers lie.
