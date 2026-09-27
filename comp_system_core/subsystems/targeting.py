@@ -47,7 +47,7 @@ class Targeting(Subsystem):
     
     def __init__(self, swerve: 'Swerve') -> None:
         super().__init__()
-        self.setName('Targeting')
+        self.set_name('Targeting')
         self.swerve = swerve
 
         # Targets (Blue and Red Hubs)  Updated 20260320 because it was 12 to 20 cm off
@@ -58,7 +58,7 @@ class Targeting(Subsystem):
 
         # PID for rotation tracking
         self.rot_pid = PIDController(tc.kTeleopRotationPID.kP, tc.kTeleopRotationPID.kI, tc.kTeleopRotationPID.kD)
-        self.rot_pid.enableContinuousInput(-math.pi, math.pi)
+        self.rot_pid.enable_continuous_input(-math.pi, math.pi)
 
         # Turning on from outside
         self.robot_is_tracking = False
@@ -93,20 +93,20 @@ class Targeting(Subsystem):
         self._init_networktables()
 
     def _init_networktables(self):
-        self.inst = ntcore.NetworkTableInstance.getDefault()
+        self.inst = ntcore.NetworkTableInstance.get_default()
         status_prefix = constants.status_prefix
         auto_prefix = constants.auto_prefix
 
-        self.targeting_debug_pub = self.inst.getDoubleArrayTopic(f"{status_prefix}/targeting_debug").publish()
+        self.targeting_debug_pub = self.inst.get_double_array_topic(f"{status_prefix}/targeting_debug").publish()
         
         # Match AutoToPoseClean publishing for Physics/Sim visualization
-        self.auto_active_pub = self.inst.getBooleanTopic(f"{auto_prefix}/robot_in_auto").publish()
-        self.goal_pose_pub = self.inst.getStructTopic(f"{auto_prefix}/goal_pose", Pose2d).publish()
-        self.shot_line_pub = self.inst.getStructArrayTopic(f"{auto_prefix}/shot_line", Pose2d).publish()
-        self.is_ok_to_shoot_pub = self.inst.getBooleanTopic(f"{auto_prefix}/is_ok_to_shoot").publish()
-        self.shot_error_pub = self.inst.getDoubleTopic(f"{auto_prefix}/shot_error").publish()
-        self.goal_rpm_pub = self.inst.getDoubleTopic(f"{auto_prefix}/goal_rpm").publish()
-        self.shot_distance_pub = self.inst.getDoubleTopic(f"{auto_prefix}/shot_distance").publish()
+        self.auto_active_pub = self.inst.get_boolean_topic(f"{auto_prefix}/robot_in_auto").publish()
+        self.goal_pose_pub = self.inst.get_struct_topic(f"{auto_prefix}/goal_pose", Pose2d).publish()
+        self.shot_line_pub = self.inst.get_struct_array_topic(f"{auto_prefix}/shot_line", Pose2d).publish()
+        self.is_ok_to_shoot_pub = self.inst.get_boolean_topic(f"{auto_prefix}/is_ok_to_shoot").publish()
+        self.shot_error_pub = self.inst.get_double_topic(f"{auto_prefix}/shot_error").publish()
+        self.goal_rpm_pub = self.inst.get_double_topic(f"{auto_prefix}/goal_rpm").publish()
+        self.shot_distance_pub = self.inst.get_double_topic(f"{auto_prefix}/shot_distance").publish()
 
     def reset_state(self):
         """Resets the PID controller and tracking state. Call this when tracking starts."""
@@ -149,7 +149,7 @@ class Targeting(Subsystem):
         robot_vel = self.swerve.get_relative_speeds()
 
         self.counter += 1
-        self.last_calc_time = wpilib.Timer.getTimestamp()
+        self.last_calc_time = wpilib.Timer.get_timestamp()
         self.last_robot_pose = robot_pose
         
         # Deadband velocity to prevent jitter at start/stop
@@ -160,7 +160,7 @@ class Targeting(Subsystem):
         
         # 1. Calculate robot velocity vector (Field Relative)
         v_robot = Translation2d(robot_vel.vx, robot_vel.vy)
-        v_field = v_robot.rotateBy(robot_pose.rotation()) 
+        v_field = v_robot.rotate_by(robot_pose.rotation()) 
 
         # 2. Determine target (closest hub based on current position)
         # We do this early to calculate distance for Time of Flight
@@ -194,7 +194,7 @@ class Targeting(Subsystem):
         # --- Calculate Shot Line for Visualization ---
         # Shot vector direction is toward the hub, not along robot heading
         robot_to_hub_angle = (target_location - future_robot_location).angle()
-        shot_vector = Translation2d(self.effective_distance, 0).rotateBy(robot_to_hub_angle)
+        shot_vector = Translation2d(self.effective_distance, 0).rotate_by(robot_to_hub_angle)
         robot_motion_vector = v_field * lookahead_time
         
         end_point_translation = robot_pose.translation() + robot_motion_vector + shot_vector
@@ -222,7 +222,7 @@ class Targeting(Subsystem):
         ff_output = 0
         if dist_sq > tc.kMinTargetDistance**2: # Avoid division by zero
             # 2D Cross product: vx*ry - vy*rx gives tangential velocity * r
-            omega_rad_s = (v_field.X() * current_hub_vector.Y() - v_field.Y() * current_hub_vector.X()) / dist_sq
+            omega_rad_s = (v_field.x * current_hub_vector.y - v_field.y * current_hub_vector.x) / dist_sq
             
             # Add Feedforward (normalized) to PID output
             ff_output = (omega_rad_s / dc.kMaxAngularSpeed) * tc.k_teleop_rotation_kf
@@ -231,7 +231,7 @@ class Targeting(Subsystem):
         rot_output += ff_output
 
         # 8. Error analysis for fine-tuning (Overshoot detection)
-        diff_radians = self.rot_pid.getError()
+        diff_radians = self.rot_pid.get_error()
         self.debug_error_deg = math.degrees(diff_radians)
         if abs(diff_radians) > abs(self.last_diff_radians):
             self.rot_overshot = True
@@ -274,9 +274,9 @@ class Targeting(Subsystem):
         # Publish debug data periodically
         if self.counter % 10 == 0:
             self.targeting_debug_pub.set([
-                self.last_robot_pose.X(), self.last_robot_pose.Y(),
-                self.debug_v_field.X(), self.debug_v_field.Y(),
-                self.debug_future_pose.X(), self.debug_future_pose.Y(),
+                self.last_robot_pose.x, self.last_robot_pose.y,
+                self.debug_v_field.x, self.debug_v_field.y,
+                self.debug_future_pose.x, self.debug_future_pose.y,
                 self.debug_error_deg,
                 self.debug_pid, self.debug_ff, self.debug_ks, self.last_rot_output,
                 self.effective_distance, self.target_rpm,

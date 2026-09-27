@@ -10,11 +10,11 @@ class Intake_Deploy(commands2.Command):  # change the name for your command
 
     def __init__(self, intake: Intake, position="down", on_start=False, indent=0) -> None:
         super().__init__()
-        self.setName('Intake_Deploy')  # change this to something appropriate for this command
+        self.set_name('Intake_Deploy')  # change this to something appropriate for this command
         self.intake = intake
         self.position = position
         self.indent = indent
-        self.addRequirements(self.intake)  # commandsv2 version of requirements
+        self.add_requirements(self.intake)  # commandsv2 version of requirements
 
     def initialize(self) -> None:
         self.extra_log_info = f"Target={self.position}"  # (for example)
@@ -31,7 +31,7 @@ class Intake_Deploy(commands2.Command):  # change the name for your command
     def execute(self) -> None:
         pass
 
-    def isFinished(self) -> bool:
+    def is_finished(self) -> bool:
         return True
     
         

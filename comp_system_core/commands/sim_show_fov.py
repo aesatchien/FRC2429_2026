@@ -10,7 +10,7 @@ class SimShowFOV(commands2.Command):  # change the name for your command
 
     def __init__(self, container, cameras=None, indent=0) -> None:
         super().__init__()
-        self.setName('SimShowFOV')
+        self.set_name('SimShowFOV')
         self.indent = indent
         self.container = container
         self.extra_log_info = None
@@ -20,21 +20,21 @@ class SimShowFOV(commands2.Command):  # change the name for your command
         else:
             self.cameras = cameras
 
-        self.inst = ntcore.NetworkTableInstance.getDefault()
+        self.inst = ntcore.NetworkTableInstance.get_default()
         sim_prefix = constants.sim_prefix
         auto_prefix = constants.auto_prefix
 
         self.fov_pubs = {
-            key: self.inst.getBooleanTopic(f"{sim_prefix}/FOV/{key}_show_fov").publish()
+            key: self.inst.get_boolean_topic(f"{sim_prefix}/FOV/{key}_show_fov").publish()
             for key in self.cameras
         }
         
         # Publishers for vision targets
-        self.targets_pub = self.inst.getStructArrayTopic(f"{auto_prefix}/_vision_target_poses", Pose2d).publish()
-        self.show_targets_pub = self.inst.getBooleanTopic(f"{auto_prefix}/_show_vision_targets").publish()
+        self.targets_pub = self.inst.get_struct_array_topic(f"{auto_prefix}/_vision_target_poses", Pose2d).publish()
+        self.show_targets_pub = self.inst.get_boolean_topic(f"{auto_prefix}/_show_vision_targets").publish()
         self.show_targets_pub.set(False)
 
-    def runsWhenDisabled(self) -> bool:
+    def runs_when_disabled(self) -> bool:
         return True
 
     def initialize(self) -> None:
@@ -54,12 +54,12 @@ class SimShowFOV(commands2.Command):  # change the name for your command
             if relative_pose is not None:
                 # Transform to field pose
                 rel_tf = Transform2d(relative_pose.translation(), relative_pose.rotation())
-                field_pose = current_pose.transformBy(rel_tf)
+                field_pose = current_pose.transform_by(rel_tf)
                 target_poses.append(field_pose)
         
         self.targets_pub.set(target_poses)
 
-    def isFinished(self) -> bool:
+    def is_finished(self) -> bool:
         # This command should run until interrupted
         return False
 

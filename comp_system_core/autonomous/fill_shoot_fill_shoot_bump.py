@@ -18,7 +18,7 @@ from wpimath import Pose2d
 class FillShootFillShootBump(commands2.SequentialCommandGroup):
     def __init__(self, container, indent=0) -> None:
         super().__init__()
-        self.setName(f'FillShootFillShootBump')
+        self.set_name(f'FillShootFillShootBump')
         self.container = container
 
 
@@ -32,14 +32,14 @@ class FillShootFillShootBump(commands2.SequentialCommandGroup):
         # self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=ac.k_intake_roller_rpm))
 
         # moves to the neutral zone to intake fuel --> come back to shoot
-        self.addCommands(
+        self.add_commands(
             ParallelCommandGroup(
                 DriveToPoseCustomControl(container=self.container, swerve=self.container.swerve,
-                            target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_first_ball_pickup_pose, wpilib.MatchState.getAlliance(), is_shooting=False),
-                                                  tolerance_type='fast').withTimeout(5),
+                            target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_first_ball_pickup_pose, wpilib.MatchState.get_alliance(), is_shooting=False),
+                                                  tolerance_type='fast').with_timeout(5),
                 SequentialCommandGroup(
                     WaitCommand(1),
-                        Intake_Deploy(intake=container.intake, position='down', indent=1).andThen(
+                        Intake_Deploy(intake=container.intake, position='down', indent=1).and_then(
                             Intake_Set_RPM(intake=self.container.intake, rpm=ac.k_intake_roller_rpm)
                     )
                 )
@@ -47,12 +47,12 @@ class FillShootFillShootBump(commands2.SequentialCommandGroup):
         )
 
         # start the shooter on the way back so we don't waste a second letting it spin up
-        self.addCommands(
+        self.add_commands(
             ParallelCommandGroup(
             DriveToPoseCustomControl(container=self.container, swerve=self.container.swerve,
                                      target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_shooting_pose,
-                                                                                    wpilib.MatchState.getAlliance(), is_shooting=True),
-                                     tolerance_type='fast').withTimeout(5),
+                                                                                    wpilib.MatchState.get_alliance(), is_shooting=True),
+                                     tolerance_type='fast').with_timeout(5),
             SequentialCommandGroup(
                 WaitCommand(1), InstantCommand(lambda: self.container.shooter.set_shooter_rpm(ac.k_shooter_startup_rpm)))
         ))
@@ -65,35 +65,35 @@ class FillShootFillShootBump(commands2.SequentialCommandGroup):
 
         # Starts the shooting cycle and then raises the intake after a delay to prevent compression and jams
         # forces it to die when the first command finishes
-        self.addCommands(shoot_cycle(self.container, indent=1))
+        self.add_commands(shoot_cycle(self.container, indent=1))
         # stops tracking
 
         # -----  PHASE III:  FILL HOPPER AGAIN -----
         # Moves the intake down
-        self.addCommands(Intake_Deploy(intake=container.intake, position='down', indent=1))
-        self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=ac.k_intake_roller_rpm))
+        self.add_commands(Intake_Deploy(intake=container.intake, position='down', indent=1))
+        self.add_commands(Intake_Set_RPM(intake=self.container.intake, rpm=ac.k_intake_roller_rpm))
 
         # Repeat what happened above
-        self.addCommands(DriveToPoseCustomControl(container=self.container, swerve=self.container.swerve,
-                            target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_second_ball_pickup_pose, wpilib.MatchState.getAlliance(), is_shooting=False),
-                                                  tolerance_type='fast').withTimeout(4.5)
+        self.add_commands(DriveToPoseCustomControl(container=self.container, swerve=self.container.swerve,
+                            target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_second_ball_pickup_pose, wpilib.MatchState.get_alliance(), is_shooting=False),
+                                                  tolerance_type='fast').with_timeout(4.5)
         )
 
         # start the shooter on the way back so we don't waste a second letting it spin up
-        self.addCommands(
+        self.add_commands(
             ParallelCommandGroup(
             DriveToPoseCustomControl(container=self.container, swerve=self.container.swerve,
                                      target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_shooting_pose,
-                                                                                    wpilib.MatchState.getAlliance(), is_shooting=True),
-                                     tolerance_type='fast').withTimeout(4),
+                                                                                    wpilib.MatchState.get_alliance(), is_shooting=True),
+                                     tolerance_type='fast').with_timeout(4),
             SequentialCommandGroup(
                 WaitCommand(.5), InstantCommand(lambda: self.container.shooter.set_shooter_rpm(ac.k_shooter_startup_rpm)))
         ))
 
 
         # -----  PHASE IV:  EMPTY THE HOPPER (as above) -----
-        self.addCommands(shoot_cycle(self.container, indent=1))
+        self.add_commands(shoot_cycle(self.container, indent=1))
 
-        self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=0))
+        self.add_commands(Intake_Set_RPM(intake=self.container.intake, rpm=0))
 
-        self.addCommands(commands2.PrintCommand(f"{'    ' * indent}** Finished {self.getName()} **"))
+        self.add_commands(commands2.PrintCommand(f"{'    ' * indent}** Finished {self.get_name()} **"))

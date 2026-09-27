@@ -82,10 +82,10 @@ class QuestNav:
         with the Quest headset.
         """
         # Get NetworkTables instance (default instance used by robot)
-        self.nt_instance = ntcore.NetworkTableInstance.getDefault()
+        self.nt_instance = ntcore.NetworkTableInstance.get_default()
         
         # Get QuestNav table
-        self.quest_nav_table = self.nt_instance.getTable("QuestNav")
+        self.quest_nav_table = self.nt_instance.get_table("QuestNav")
         
         # Use MultiSubscriber to receive all QuestNav topics
         # Include both /QuestNav/ and QuestNav/ to handle different topic naming
@@ -93,7 +93,7 @@ class QuestNav:
         
         # Set up listener for all QuestNav data
         self.data_listener = ntcore.NetworkTableListenerPoller(self.nt_instance)
-        self.data_listener.addListener(
+        self.data_listener.add_listener(
             self.multi_sub,
             ntcore.EventFlags.VALUE_ALL
         )
@@ -101,7 +101,7 @@ class QuestNav:
         # Publishers for commands (must match Quest's subscriber topic)
         # Quest subscribes to /QuestNav/request as protobuf type
         # We need to publish with the correct protobuf type string
-        self.command_topic = self.nt_instance.getRawTopic("/QuestNav/request")
+        self.command_topic = self.nt_instance.get_raw_topic("/QuestNav/request")
         self.command_pub = self.command_topic.publish("proto:questnav.protos.commands.ProtobufQuestNavCommand")
         
         # State
@@ -143,12 +143,12 @@ class QuestNav:
                     )
         """
         # Process all new events
-        events = self.data_listener.readQueue()
+        events = self.data_listener.read_queue()
         current_time = time.time()
         
         for event in events:
             try:
-                topic_name = event.data.topic.getName()
+                topic_name = event.data.topic.get_name()
                 value = event.data.value
                 # Get timestamp - check which attribute exists
                 if hasattr(event.data, 'time'):
@@ -160,7 +160,7 @@ class QuestNav:
                 
                 # Parse frameData
                 if "frameData" in topic_name:
-                    raw_data = value.getRaw() if hasattr(value, 'getRaw') else bytes()
+                    raw_data = value.get_raw() if hasattr(value, 'getRaw') else bytes()
                     
                     if raw_data:
                         frame_data = data_pb2.ProtobufQuestNavFrameData()
@@ -192,7 +192,7 @@ class QuestNav:
                 
                 # Parse deviceData
                 elif "deviceData" in topic_name:
-                    raw_data = value.getRaw() if hasattr(value, 'getRaw') else bytes()
+                    raw_data = value.get_raw() if hasattr(value, 'getRaw') else bytes()
                     
                     if raw_data:
                         device_data = data_pb2.ProtobufQuestNavDeviceData()
@@ -204,7 +204,7 @@ class QuestNav:
                 
                 # Parse command responses
                 elif "response" in topic_name:
-                    raw_data = value.getRaw() if hasattr(value, 'getRaw') else bytes()
+                    raw_data = value.get_raw() if hasattr(value, 'getRaw') else bytes()
                     
                     if raw_data:
                         response = commands_pb2.ProtobufQuestNavCommandResponse()
@@ -263,15 +263,15 @@ class QuestNav:
             
             # Set target pose
             pose_proto = geometry3d_pb2.ProtobufPose3d()
-            pose_proto.translation.x = pose.translation().X()
-            pose_proto.translation.y = pose.translation().Y()
-            pose_proto.translation.z = pose.translation().Z()
+            pose_proto.translation.x = pose.translation().x
+            pose_proto.translation.y = pose.translation().y
+            pose_proto.translation.z = pose.translation().z
             
-            quat = pose.rotation().getQuaternion()
+            quat = pose.rotation().get_quaternion()
             pose_proto.rotation.q.w = quat.W()
-            pose_proto.rotation.q.x = quat.X()
-            pose_proto.rotation.q.y = quat.Y()
-            pose_proto.rotation.q.z = quat.Z()
+            pose_proto.rotation.q.x = quat.x
+            pose_proto.rotation.q.y = quat.y
+            pose_proto.rotation.q.z = quat.z
             
             payload.target_pose.CopyFrom(pose_proto)
             command.pose_reset_payload.CopyFrom(payload)

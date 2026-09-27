@@ -10,11 +10,11 @@ class IncrementIntake(commands2.Command):  # change the name for your command
 
     def __init__(self, intake: Intake, indent=0, speed_change=0) -> None:
         super().__init__()
-        self.setName('Increment Intake')
+        self.set_name('Increment Intake')
         self.indent = indent
         self.intake = intake
         self.speed_change = speed_change
-        self.addRequirements(self.intake)  # commandsv2 version of requirements
+        self.add_requirements(self.intake)  # commandsv2 version of requirements
         self.extra_log_info = None
 
     def initialize(self) -> None:
@@ -28,7 +28,7 @@ class IncrementIntake(commands2.Command):  # change the name for your command
         # runs 50x per second, so be careful about messages and timing
         pass
 
-    def isFinished(self) -> bool:
+    def is_finished(self) -> bool:
         # True: fire once and end; False: run forever until interrupted; logic has it end when code returns True
         return True
 

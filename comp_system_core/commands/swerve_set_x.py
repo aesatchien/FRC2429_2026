@@ -7,12 +7,12 @@ class SwerveSetX(commands2.Command):  # change the name for your command
 
     def __init__(self, container, swerve:Swerve, indent=0) -> None:
         super().__init__()
-        self.setName('Swerve Set X')  # change this to something appropriate for this command
+        self.set_name('Swerve Set X')  # change this to something appropriate for this command
         self.indent = indent
         self.swerve = swerve
         self.extra_log_info = None
         self.counter = 0
-        self.addRequirements(self.swerve)  # commands2 version of requirements - add the subsystems you need
+        self.add_requirements(self.swerve)  # commands2 version of requirements - add the subsystems you need
 
     def initialize(self) -> None:
         # Called just before each time this Command runs
@@ -21,9 +21,9 @@ class SwerveSetX(commands2.Command):  # change the name for your command
         pass
 
     def execute(self) -> None:
-        self.swerve.setX()
+        self.swerve.set_x()
 
-    def isFinished(self) -> bool:
+    def is_finished(self) -> bool:
         # True: fire once and end; False: run forever until interrupted; logic has it end when code returns True
         return False
 

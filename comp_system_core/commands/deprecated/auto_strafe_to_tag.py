@@ -1,7 +1,7 @@
 from math import radians
 import math
 import commands2
-from wpilib import SmartDashboard
+from helpers.dashboard import SmartDashboard  # 2027a7: wpilib's was removed
 import wpilib
 from wpimath import PIDController
 from wpimath import Translation2d, Rotation2d
@@ -25,7 +25,7 @@ class AutoStrafeToTag(commands2.Command):  #
         and use them
         """
         super().__init__()
-        self.setName('AutoStrafeToTag')  # using the pathplanner controller instead
+        self.set_name('AutoStrafeToTag')  # using the pathplanner controller instead
         self.indent = indent
         self.container = container
         self.swerve = swerve
@@ -49,7 +49,7 @@ class AutoStrafeToTag(commands2.Command):  #
         self.rot_overshot = False
         self.last_diff_x = 999  # needs to start bigly
 
-        self.addRequirements(self.swerve)
+        self.add_requirements(self.swerve)
         self.reset_controllers()
 
     def reset_controllers(self):
@@ -73,21 +73,21 @@ class AutoStrafeToTag(commands2.Command):  #
         nearest_tag = get_nearest_tag(current_pose=current_pose, destination='reef')
         self.container.robot_state.set_reef_goal_by_tag(nearest_tag)
         self.target_pose = self.container.robot_state.get_reef_goal_pose()
-        if wpilib.MatchState.getAlliance() == wpilib.Alliance.RED:
-            self.target_pose = self.target_pose.rotateAround(point=Translation2d(17.548 / 2, 8.062 / 2),
+        if wpilib.MatchState.get_alliance() == wpilib.Alliance.RED:
+            self.target_pose = self.target_pose.rotate_around(point=Translation2d(17.548 / 2, 8.062 / 2),
                                                              rot=Rotation2d(math.pi))
 
         # this is a hybid - X goes to the tag center but y and rotation are based on pose
         # trying to get it to slow down but still make it to final position
         self.x_pid = PIDController(0.5, 0.00, 0.0)
-        self.x_pid.setSetpoint(self.camera_setpoint)
+        self.x_pid.set_setpoint(self.camera_setpoint)
 
         self.y_pid = PIDController(0.3, 0.00, 0.0)
-        self.y_pid.setSetpoint(self.target_pose.Y())
+        self.y_pid.set_setpoint(self.target_pose.y)
 
         self.rot_pid = PIDController(0.5, 0, 0,)  # 0.5
-        self.rot_pid.enableContinuousInput(radians(-180), radians(180))
-        self.rot_pid.setSetpoint(self.target_pose.rotation().radians())
+        self.rot_pid.enable_continuous_input(radians(-180), radians(180))
+        self.rot_pid.set_setpoint(self.target_pose.rotation().radians())
 
 
         self.x_pid.reset()
@@ -97,9 +97,9 @@ class AutoStrafeToTag(commands2.Command):  #
     def initialize(self) -> None:
         """Called just before this Command runs the first time."""
         self.start_time = round(self.container.timer.get(), 2)
-        msg = f"{self.indent * '    '}** Started {self.getName()} to {self.location} at {self.start_time} s **"
+        msg = f"{self.indent * '    '}** Started {self.get_name()} to {self.location} at {self.start_time} s **"
         print(msg, flush=True)
-        SmartDashboard.putString("alert", msg)
+        SmartDashboard.put_string("alert", msg)
 
         self.reset_controllers()  # this is supposed to get us a new pose
 
@@ -113,7 +113,7 @@ class AutoStrafeToTag(commands2.Command):  #
         self.y_overshot = False
         self.rot_overshot = False
 
-        if wpilib.RobotBase.isSimulation():
+        if wpilib.RobotBase.is_simulation():
             msg = f'CNT  CSP STRAFE DIFF OUT '
             print(msg)
 
@@ -181,14 +181,14 @@ class AutoStrafeToTag(commands2.Command):  #
                 y_output = -0.04
                 rot_output = 0
             else:
-                y_output = self.y_pid.calculate(robot_pose.Y())
+                y_output = self.y_pid.calculate(robot_pose.y)
                 rot_output = self.rot_pid.calculate(robot_pose.rotation().radians())
 
 
             # robot battery is front and on the left when scoring, so + x takes you left
             self.swerve.drive(x_output, y_output, rot_output, fieldRelative=False, rate_limited=False, keep_angle=False)
 
-            if self.counter % 5 == 0 and wpilib.RobotBase.isSimulation():
+            if self.counter % 5 == 0 and wpilib.RobotBase.is_simulation():
                 msg = f'{self.counter}  {self.camera_setpoint:.2f} {current_strafe:.2f} {diff_x:.2f}  {x_output:.2f}  '
                 print(msg)
                 #SmartDashboard.putNumber("x setpoint", self.x_pid.getSetpoint())
@@ -201,7 +201,7 @@ class AutoStrafeToTag(commands2.Command):  #
                 #SmartDashboard.putNumber("y commanded", y_setpoint)
                 #SmartDashboard.putNumber("rot commanded", rot_setpoint)
 
-    def isFinished(self) -> bool:
+    def is_finished(self) -> bool:
         diff_x = self.camera_setpoint - self.vision.get_tag_strafe(target='genius_low_tags')  # this is the error, as a fraction of the x FoV
         translation_achieved = math.fabs(diff_x) < self.tolerance  # get to within an inch
         return self.tolerance_counter > 10 or self.lost_tag_counter > 4  # give it 0.2s to be in tolerance four missing tags and we quit
@@ -210,15 +210,15 @@ class AutoStrafeToTag(commands2.Command):  #
         end_time = self.container.timer.get()
         end_message = 'Interrupted' if interrupted else 'Ended'
         if interrupted or self.lost_tag_counter > 4:  # TOD0) - use a different indicator for a lost tags
-            commands2.CommandScheduler.getInstance().schedule(
+            commands2.CommandScheduler.get_instance().schedule(
                 self.container.led.set_indicator_with_timeout(Led.Indicator.kFAILUREFLASH, 2))
         else:
-            commands2.CommandScheduler.getInstance().schedule(
+            commands2.CommandScheduler.get_instance().schedule(
                 self.container.led.set_indicator_with_timeout(Led.Indicator.kSUCCESSFLASH, 2))
 
         print_end_message = True
-        msg = f"{self.indent * '    '}** {end_message} {self.getName()} at {end_time:.1f} s after {end_time - self.start_time:.1f} s **"
+        msg = f"{self.indent * '    '}** {end_message} {self.get_name()} at {end_time:.1f} s after {end_time - self.start_time:.1f} s **"
         if print_end_message:
             print(msg)
-            SmartDashboard.putString(f"alert", msg)
+            SmartDashboard.put_string(f"alert", msg)
 

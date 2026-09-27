@@ -103,13 +103,27 @@ Runs every 20ms.
 
 ## 5. Simulation Architecture
 
-The swerve drive is fully simulated to allow testing without a robot.
+The swerve drive is fully simulated to allow testing without a robot, and since 2027 the
+simulation lives INSIDE the subsystem, the way Java and C++ teams have always done it
+(see `docs/sim_migration_plan.md`).
 
--   **`simulation/swerve_sim.py`**: This file mimics the physical drivetrain.
--   **Inputs:** It listens to the `SwerveModuleState` targets set by the robot code.
--   **Physics:** It uses `physics_controller.drive()` to calculate how the robot *would* move based on those states.
--   **Feedback:** It updates the simulated Gyro (NavX) and Encoders so the robot code "thinks" it is moving.
--   **Live Tag Snapping:** If `k_use_live_tags_in_sim` is True, the simulation can snap the robot's position to match real-world AprilTag data, allowing for "Hardware-in-the-Loop" testing of vision algorithms.
+-   **`SwerveModule.simulation_periodic()`**: each module advances a plant model for its drive
+    and turn motor (`subsystems/motors.py`, `sim_update()`), writes the result into the
+    controller's own sim state (`rev.SparkSim` / `TalonFXSimState`) and writes the azimuth
+    back into the `AnalogPotentiometer` through `AnalogInputSim`.  So `get_position()` and
+    `getState()` read simulated motion through the same calls the real robot uses.
+-   **`Swerve.simulation_periodic()`**: pumps the modules, drives `OnboardIMUSim` from the
+    chassis velocities the *measured* module states imply, sags the simulated battery, and
+    integrates a **ground truth** pose.  Ground truth is published on
+    `/SmartDashboard/Sim/ground_truth` and drawn as the `GroundTruth` field object.
+-   **Odometry is real.** The pose estimator is never reset to ground truth, so in sim it can
+    drift, skid and disagree with vision exactly as it does at competition.  Watching the
+    `Robot` and `GroundTruth` objects separate is the feature.
+-   **Live Tag / Quest Snapping:** `simulation/hil_snap.py`, pumped from
+    `MyRobot.simulation_periodic()`.  If `k_use_live_tags_in_sim` is True (or a real Quest is
+    connected with `k_mock_questnav = False`) it teleports *ground truth* to what the real
+    hardware reports.  It does not touch the estimator - the estimator learns about it from
+    the vision measurements, as on the robot.
 
 ---
 

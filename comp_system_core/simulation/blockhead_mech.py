@@ -1,9 +1,10 @@
 import math
 import wpilib
 from wpiutil import Color, Color8Bit
-from wpimath.units import inchesToMeters
+from wpimath.units import inches_to_meters
 import constants
 from constants import IntakeConstants as ic
+from helpers import dashboard
 
 class BlockheadMech:
     """
@@ -17,12 +18,12 @@ class BlockheadMech:
         Initialize the Mechanism2d objects and publish them to SmartDashboard.
         """
         # Dimensions
-        self.width = inchesToMeters(40)  # inches (approx robot length + intake)
-        self.height = inchesToMeters(30) # inches (approx max height)
+        self.width = inches_to_meters(40)  # inches (approx robot length + intake)
+        self.height = inches_to_meters(30) # inches (approx max height)
         
         # ----------------- Mechanism2d Views -----------------
         # Side view is best for Intake, Elevator, Shooter, Climber
-        self.mech_side = wpilib.Mechanism2d(self.width + inchesToMeters(10), self.height + inchesToMeters(10))
+        self.mech_side = wpilib.Mechanism2d(self.width + inches_to_meters(10), self.height + inches_to_meters(10))
 
         # ----------------- Visual Constants -----------------
         self.color_chassis = Color8Bit(Color.GRAY)
@@ -48,7 +49,7 @@ class BlockheadMech:
 
         # Put to dashboard
         # mech_prefix = constants.mech_prefix
-        wpilib.SmartDashboard.putData("Mech Side View", self.mech_side)
+        dashboard.SmartDashboard.put_data("Mech Side View", self.mech_side)
 
     def _get_rel_angle(self, target_abs, parent_abs):
         """
@@ -61,118 +62,118 @@ class BlockheadMech:
         # Drivetrain
         """Stub: Base chassis line."""
         # Robot starting X offset
-        self.start_x = inchesToMeters(5)
+        self.start_x = inches_to_meters(5)
         
         # Chassis: 2" bar, 27" long. Top at 4.5".
         # Center of bar is at 3.5" (since it's 2" thick, 2.5" to 4.5")
-        self.root_chassis = self.mech_side.getRoot("chassis_root", self.start_x, inchesToMeters(3.5))
-        self.chassis_ligament = self.root_chassis.appendLigament(
-            "chassis", inchesToMeters(27), 0, 20, self.color_chassis
+        self.root_chassis = self.mech_side.get_root("chassis_root", self.start_x, inches_to_meters(3.5))
+        self.chassis_ligament = self.root_chassis.append_ligament(
+            "chassis", inches_to_meters(27), 0, 20, self.color_chassis
         )
 
         # Wheels: 4" diameter (2" radius). Center at Y=2.
         # 5" in from edges (0 and 27). So at 5" and 22".
         
         # Rear Wheel
-        self.root_rear_wheel = self.mech_side.getRoot("rear_wheel", self.start_x + inchesToMeters(5), inchesToMeters(2))
-        self.rear_wheel_ligament = self.root_rear_wheel.appendLigament(
-            "rear_spoke", inchesToMeters(2), 0, 6, self.color_wheel
+        self.root_rear_wheel = self.mech_side.get_root("rear_wheel", self.start_x + inches_to_meters(5), inches_to_meters(2))
+        self.rear_wheel_ligament = self.root_rear_wheel.append_ligament(
+            "rear_spoke", inches_to_meters(2), 0, 6, self.color_wheel
         )
-        self.rear_wheel_ligament_2 = self.root_rear_wheel.appendLigament(
-            "rear_spoke_2", inchesToMeters(2), 180, 6, self.color_wheel
+        self.rear_wheel_ligament_2 = self.root_rear_wheel.append_ligament(
+            "rear_spoke_2", inches_to_meters(2), 180, 6, self.color_wheel
         )
         
         # Front Wheel
-        self.root_front_wheel = self.mech_side.getRoot("front_wheel", self.start_x + inchesToMeters(22), inchesToMeters(2))
-        self.front_wheel_ligament = self.root_front_wheel.appendLigament(
-            "front_spoke", inchesToMeters(2), 0, 6, self.color_wheel
+        self.root_front_wheel = self.mech_side.get_root("front_wheel", self.start_x + inches_to_meters(22), inches_to_meters(2))
+        self.front_wheel_ligament = self.root_front_wheel.append_ligament(
+            "front_spoke", inches_to_meters(2), 0, 6, self.color_wheel
         )
-        self.front_wheel_ligament_2 = self.root_front_wheel.appendLigament(
-            "front_spoke_2", inchesToMeters(2), 180, 6, self.color_wheel
+        self.front_wheel_ligament_2 = self.root_front_wheel.append_ligament(
+            "front_spoke_2", inches_to_meters(2), 180, 6, self.color_wheel
         )
 
         # Hood
         '''Stub: Vertical bar at the rear'''
         # Starting X offset, against the chassis start
-        self.hood_offset = inchesToMeters(.5)
+        self.hood_offset = inches_to_meters(.5)
         # Starts with a vertical section, ~10 in height
-        self.root_hood = self.mech_side.getRoot("hood_root", self.start_x + self.hood_offset, inchesToMeters(4.5))
-        self.hood_back_ligament = self.root_hood.appendLigament(
-            "hood", inchesToMeters(10), 90, self.hood_line_weight, self.color_chassis
+        self.root_hood = self.mech_side.get_root("hood_root", self.start_x + self.hood_offset, inches_to_meters(4.5))
+        self.hood_back_ligament = self.root_hood.append_ligament(
+            "hood", inches_to_meters(10), 90, self.hood_line_weight, self.color_chassis
         )
         # then a ~8 inch curve
-        self.hood_back_curve = self.hood_back_ligament.appendLigament(
-            "hood_back_curve", inchesToMeters(8), 330, self.hood_line_weight, self.color_chassis
+        self.hood_back_curve = self.hood_back_ligament.append_ligament(
+            "hood_back_curve", inches_to_meters(8), 330, self.hood_line_weight, self.color_chassis
         )
         # then a ~8 inch flat section
-        self.hood_front_curve = self.hood_back_curve.appendLigament(  
-            "hood_front_curve", inchesToMeters(8), 280, self.hood_line_weight, self.color_chassis
+        self.hood_front_curve = self.hood_back_curve.append_ligament(  
+            "hood_front_curve", inches_to_meters(8), 280, self.hood_line_weight, self.color_chassis
         )
         # follwed by a ~14.5 in vertical line
-        self.hood_front_ligament = self.hood_front_curve.appendLigament(
-            "hood_front", inchesToMeters(14.5), 285, self.hood_line_weight, self.color_chassis
+        self.hood_front_ligament = self.hood_front_curve.append_ligament(
+            "hood_front", inches_to_meters(14.5), 285, self.hood_line_weight, self.color_chassis
         )
 
     def _init_intake(self):
         """Stub: Intake pivot and rollers."""
         # Mounting bar: Sticks up 6" from top of drivetrain (Y=4.5).
         # We place it at the front of the chassis (X = start + 27).
-        self.intake_offset = inchesToMeters(9)
-        self.root_intake_mount = self.mech_side.getRoot("intake_mount", self.start_x + inchesToMeters(27) - self.intake_offset, inchesToMeters(4.5))
+        self.intake_offset = inches_to_meters(9)
+        self.root_intake_mount = self.mech_side.get_root("intake_mount", self.start_x + inches_to_meters(27) - self.intake_offset, inches_to_meters(4.5))
         
         self.intake_mount_angle = 30  # Onshape: ~ Angle between the chassis and Inner Plate
-        self.intake_angle_post = self.root_intake_mount.appendLigament(
-            "intake_angle_post", inchesToMeters(10.5), self.intake_mount_angle, 6, self.color_intake
+        self.intake_angle_post = self.root_intake_mount.append_ligament(
+            "intake_angle_post", inches_to_meters(10.5), self.intake_mount_angle, 6, self.color_intake
         )
-        self.intake_post = self.intake_angle_post.appendLigament(
-            "intake_post", inchesToMeters(9), 360 - self.intake_mount_angle, 6, self.color_intake
+        self.intake_post = self.intake_angle_post.append_ligament(
+            "intake_post", inches_to_meters(9), 360 - self.intake_mount_angle, 6, self.color_intake
         )
-        self.front_angle_post = self.intake_post.appendLigament(
-            "front_angle_post", inchesToMeters(5), 286, 6, self.color_intake
+        self.front_angle_post = self.intake_post.append_ligament(
+            "front_angle_post", inches_to_meters(5), 286, 6, self.color_intake
         )
-        self.bottom_angle_post = self.front_angle_post.appendLigament(
-            "bottom_angle_post", inchesToMeters(7), 285, 6, self.color_intake
+        self.bottom_angle_post = self.front_angle_post.append_ligament(
+            "bottom_angle_post", inches_to_meters(7), 285, 6, self.color_intake
         )
-        self.back_angle_pose = self.bottom_angle_post.appendLigament(
-            "back_angle_post", inchesToMeters(4), 280, 6, self.color_intake
+        self.back_angle_pose = self.bottom_angle_post.append_ligament(
+            "back_angle_post", inches_to_meters(4), 280, 6, self.color_intake
         )
-        self.intake_return_pose = self.back_angle_pose.appendLigament(
-            "intake_return_post", inchesToMeters(6), 335, 6, self.color_intake
+        self.intake_return_pose = self.back_angle_pose.append_ligament(
+            "intake_return_post", inches_to_meters(6), 335, 6, self.color_intake
         )
 
-        self.intake_roller_1 = self.intake_post.appendLigament(
-            "intake_roller_1", inchesToMeters(0), 286, 0, self.color_intake
+        self.intake_roller_1 = self.intake_post.append_ligament(
+            "intake_roller_1", inches_to_meters(0), 286, 0, self.color_intake
         )   
-        self.intake_roller_2 = self.front_angle_post.appendLigament(
-            "intake_roller_2", inchesToMeters(0), 106, 0, self.color_intake
+        self.intake_roller_2 = self.front_angle_post.append_ligament(
+            "intake_roller_2", inches_to_meters(0), 106, 0, self.color_intake
         )
-        self.intake_roller_3 = self.bottom_angle_post.appendLigament(
-            "intake_roller_3", inchesToMeters(0), 286, 0, self.color_intake
+        self.intake_roller_3 = self.bottom_angle_post.append_ligament(
+            "intake_roller_3", inches_to_meters(0), 286, 0, self.color_intake
         )
-        self.intake_roller_4 = self.back_angle_pose.appendLigament(
-            "intake_roller_4", inchesToMeters(0), 106, 0, self.color_intake
+        self.intake_roller_4 = self.back_angle_pose.append_ligament(
+            "intake_roller_4", inches_to_meters(0), 106, 0, self.color_intake
         )
 
         num_spokes = 4
-        radius = inchesToMeters(1.5)  # 1.5'' diameter wheel, but this is exagerated to double
+        radius = inches_to_meters(1.5)  # 1.5'' diameter wheel, but this is exagerated to double
         self.intake_spokes = []
 
         # Attaching spokes to the root to make a wheel
         for i in range(num_spokes):
             angle = (360 / num_spokes) * i
-            spoke = self.intake_roller_1.appendLigament(
+            spoke = self.intake_roller_1.append_ligament(
                 f"spoke_{i}", radius, angle, 4,self.color_intake
             )
             self.intake_spokes.append(spoke)
-            spoke = self.intake_roller_2.appendLigament(
+            spoke = self.intake_roller_2.append_ligament(
                 f"spoke_{i}", radius, angle, 4,self.color_intake
             )
             self.intake_spokes.append(spoke)
-            spoke = self.intake_roller_3.appendLigament(
+            spoke = self.intake_roller_3.append_ligament(
                 f"spoke_{i}", radius, angle, 4,self.color_intake
             )
             self.intake_spokes.append(spoke)
-            spoke = self.intake_roller_4.appendLigament(
+            spoke = self.intake_roller_4.append_ligament(
                 f"spoke_{i}", radius, angle, 4,self.color_intake
             )
             self.intake_spokes.append(spoke)
@@ -183,66 +184,66 @@ class BlockheadMech:
         # Using a root here to decouple from chassis rotation if needed, or just attach to chassis
         # Horizontal conveyor
         # Butt up against intake (Right, X=32) and go Left (180 deg)
-        self.root_hopper = self.mech_side.getRoot("hopper_root", self.start_x + inchesToMeters(25), inchesToMeters(5))
+        self.root_hopper = self.mech_side.get_root("hopper_root", self.start_x + inches_to_meters(25), inches_to_meters(5))
         self.abs_hopper = 180
-        self.hopper_length = inchesToMeters(16)
-        self.hopper_tower = self.root_hopper.appendLigament(
+        self.hopper_length = inches_to_meters(16)
+        self.hopper_tower = self.root_hopper.append_ligament(
             "hopper_belt", self.hopper_length, self._get_rel_angle(self.abs_hopper, 0), self.hopper_line_weight, self.color_hopper
         )
         
         # Animation: A spacer that grows to push the indicator along the belt
         self.hopper_anim_dist = 0
-        self.hopper_spacer = self.root_hopper.appendLigament(
-            "hopper_spacer", inchesToMeters(0.1), self._get_rel_angle(self.abs_hopper, 0), 0, self.color_hopper # weight 0 = invisible
+        self.hopper_spacer = self.root_hopper.append_ligament(
+            "hopper_spacer", inches_to_meters(0.1), self._get_rel_angle(self.abs_hopper, 0), 0, self.color_hopper # weight 0 = invisible
         )
-        self.hopper_indicator = self.hopper_spacer.appendLigament(
-            "hopper_indicator", inchesToMeters(2), self._get_rel_angle(90, self.abs_hopper), self.hopper_line_weight, self.color_hopper # 90 abs (Up)
+        self.hopper_indicator = self.hopper_spacer.append_ligament(
+            "hopper_indicator", inches_to_meters(2), self._get_rel_angle(90, self.abs_hopper), self.hopper_line_weight, self.color_hopper # 90 abs (Up)
         )
 
     def _init_indexer(self):
         """Stub: Feeder mechanism."""
         # Attached to top of hopper
         # Continue left (Relative 0 -> Absolute 180)
-        self.indexer_1_root = self.hood_front_ligament.appendLigament(
-            "indexer_root", inchesToMeters(2), 180, 0, self.color_indexer  # marker
+        self.indexer_1_root = self.hood_front_ligament.append_ligament(
+            "indexer_root", inches_to_meters(2), 180, 0, self.color_indexer  # marker
         )
-        self.indexer_1 = self.indexer_1_root.appendLigament(
-            "indexer", inchesToMeters(0), 180, 0, self.color_indexer
+        self.indexer_1 = self.indexer_1_root.append_ligament(
+            "indexer", inches_to_meters(0), 180, 0, self.color_indexer
         )
         num_spokes = 4
-        radius = inchesToMeters(1.5)  # 1.5'' diameter wheel, but this is exagerated to double
+        radius = inches_to_meters(1.5)  # 1.5'' diameter wheel, but this is exagerated to double
         self.indexer_spokes = []
 
         # Attaching spokes to the root to make a wheel
         for i in range(num_spokes):
             angle = (360 / num_spokes) * i
-            spoke = self.indexer_1.appendLigament(
+            spoke = self.indexer_1.append_ligament(
                 f"spoke_{i}", radius, angle, 4,self.color_indexer
             )
             self.indexer_spokes.append(spoke)
 
         # Two Indexer wheels above each other
-        self.indexer_2_spacer = self.hood_front_curve.appendLigament(
-            "indexer_2_spacer", inchesToMeters(4.5), 270, 0, Color8Bit(0,0,0) # marker
+        self.indexer_2_spacer = self.hood_front_curve.append_ligament(
+            "indexer_2_spacer", inches_to_meters(4.5), 270, 0, Color8Bit(0,0,0) # marker
         )
-        self.indexer_2 = self.indexer_2_spacer.appendLigament(
-            "indexer_2", inchesToMeters(0), 180, 0, self.color_indexer
+        self.indexer_2 = self.indexer_2_spacer.append_ligament(
+            "indexer_2", inches_to_meters(0), 180, 0, self.color_indexer
         )
 
-        self.indexer_3_spacer = self.indexer_2_spacer.appendLigament(
-            "indexer_3_spacer", inchesToMeters(2), 200, 0, Color8Bit(0,0,0) # marker
+        self.indexer_3_spacer = self.indexer_2_spacer.append_ligament(
+            "indexer_3_spacer", inches_to_meters(2), 200, 0, Color8Bit(0,0,0) # marker
         )
-        self.indexer_3 = self.indexer_3_spacer.appendLigament(
-            "indexer_3", inchesToMeters(0), 180, 0, self.color_indexer  # marker
+        self.indexer_3 = self.indexer_3_spacer.append_ligament(
+            "indexer_3", inches_to_meters(0), 180, 0, self.color_indexer  # marker
         )
         # Adding spokes to the roots
         for i in range(num_spokes):
             angle = (360 / num_spokes) * i
-            spoke = self.indexer_2.appendLigament(
+            spoke = self.indexer_2.append_ligament(
                 f"spoke_{i}", radius, angle, 4,self.color_indexer
             )
             self.indexer_spokes.append(spoke)
-            spoke = self.indexer_3.appendLigament(
+            spoke = self.indexer_3.append_ligament(
                 f"spoke_{i}", radius, angle, 4,self.color_indexer
             )
             self.indexer_spokes.append(spoke)
@@ -256,35 +257,35 @@ class BlockheadMech:
         # Flywheel (White) - attached to center of shooter
         # Use a spacer to get to the middle (length 4)
         # Root of the flywheel is after the second curve of the shooter
-        self.flywheel_center = self.hood_front_curve.appendLigament(
-            "flywheel_center", inchesToMeters(0), 0, 0, self.color_shooter  # empty point
+        self.flywheel_center = self.hood_front_curve.append_ligament(
+            "flywheel_center", inches_to_meters(0), 0, 0, self.color_shooter  # empty point
         )
         num_spokes = 6  # Six spokes on actual flywheel
-        radius = inchesToMeters(3)  # 3'' diameter wheel on the real one, but this is exagerated to double
+        radius = inches_to_meters(3)  # 3'' diameter wheel on the real one, but this is exagerated to double
 
         for i in range(num_spokes):
             angle = (360 / num_spokes) * i
-            self.flywheel_center.appendLigament(
+            self.flywheel_center.append_ligament(
                 f"spoke_{i}", radius, angle, 4,self.color_wheel
             )
 
         '''Stub: Rollers'''
         # Rollers located after vertical section of the hood and after first curve
-        self.roller_1_center = self.hood_back_curve.appendLigament(
-            "roller_1_center", inchesToMeters(0), 0, 0, self.color_shooter  # empty point
+        self.roller_1_center = self.hood_back_curve.append_ligament(
+            "roller_1_center", inches_to_meters(0), 0, 0, self.color_shooter  # empty point
         )
-        self.roller_2_center = self.hood_back_ligament.appendLigament(
-            "roller_2_center", inchesToMeters(0), 330, 0, self.color_chassis  # marker, slightly lower
+        self.roller_2_center = self.hood_back_ligament.append_ligament(
+            "roller_2_center", inches_to_meters(0), 330, 0, self.color_chassis  # marker, slightly lower
         )
         num_spokes = 4
-        radius = inchesToMeters(1)  # 1'' diameter wheel in real life, but this is exagerated to double
+        radius = inches_to_meters(1)  # 1'' diameter wheel in real life, but this is exagerated to double
 
         for i in range(num_spokes):
             angle = (360 / num_spokes) * i
-            self.roller_1_center.appendLigament(
+            self.roller_1_center.append_ligament(
                 f"spoke_{i}", radius, angle, 4,self.color_wheel
             )
-            self.roller_2_center.appendLigament(
+            self.roller_2_center.append_ligament(
                 f"spoke_{i}", radius, angle, 4,self.color_wheel
             )
 
@@ -309,17 +310,17 @@ class BlockheadMech:
         """Stub: A game piece ball."""
         # Start on floor (Y=3 for 6" diam), to the right of intake
         # Intake tip is approx X=39 (start_x + 27 + ~7). Place ball at X=45 (start_x + 40).
-        self.ball_root = self.mech_side.getRoot("ball_root", self.start_x + inchesToMeters(40), inchesToMeters(3))
+        self.ball_root = self.mech_side.get_root("ball_root", self.start_x + inches_to_meters(40), inches_to_meters(3))
         
         # "just make one 6" tall 6" wide bar"
         # Root is at center (Y=3). Go down 3 to bottom, then draw up 6.
         
         # Invisible spacer to get to bottom
-        self.ball_spacer = self.ball_root.appendLigament(
-            "ball_spacer", inchesToMeters(3), -90, 0, self.color_ball
+        self.ball_spacer = self.ball_root.append_ligament(
+            "ball_spacer", inches_to_meters(3), -90, 0, self.color_ball
         )
-        self.ball_ligament = self.ball_spacer.appendLigament(
-            "ball_solid", inchesToMeters(6), 180, 20, self.color_ball
+        self.ball_ligament = self.ball_spacer.append_ligament(
+            "ball_solid", inches_to_meters(6), 180, 20, self.color_ball
         )
 
     # ---------------- Update Methods ----------------
@@ -330,13 +331,13 @@ class BlockheadMech:
         # Just adding a factor to animate it.
         rotation_step = speed_mps * 10 # arbitrary scaling
         
-        new_rear_angle = self.rear_wheel_ligament.getAngle() + rotation_step
-        self.rear_wheel_ligament.setAngle(new_rear_angle)
-        self.rear_wheel_ligament_2.setAngle(new_rear_angle + 180)
+        new_rear_angle = self.rear_wheel_ligament.get_angle() + rotation_step
+        self.rear_wheel_ligament.set_angle(new_rear_angle)
+        self.rear_wheel_ligament_2.set_angle(new_rear_angle + 180)
         
-        new_front_angle = self.front_wheel_ligament.getAngle() + rotation_step
-        self.front_wheel_ligament.setAngle(new_front_angle)
-        self.front_wheel_ligament_2.setAngle(new_front_angle + 180)
+        new_front_angle = self.front_wheel_ligament.get_angle() + rotation_step
+        self.front_wheel_ligament.set_angle(new_front_angle)
+        self.front_wheel_ligament_2.set_angle(new_front_angle + 180)
 
     def update_intake(self, angle: float, rpm: float):
         # Pivot relative to the vertical post (which is at 90 absolute).
@@ -344,7 +345,7 @@ class BlockheadMech:
         # Deployed: Down to ground. Relative angle -200 -> Absolute -110.
         
         # Note: appendLigament angle is relative to parent. Parent is 90 deg (vertical).
-        self.intake_post.setAngle(self._get_rel_angle(angle, self.intake_mount_angle))
+        self.intake_post.set_angle(self._get_rel_angle(angle, self.intake_mount_angle))
         
         if abs(rpm) > 10:
 
@@ -352,23 +353,23 @@ class BlockheadMech:
             
             # Updating positon based on the three roots for the indexer
             rotation_step = math.copysign(visual_speed * 0.2, rpm)  # Uses the magnitude of visual_spped * .2 with the sign of rpm
-            current_angle = self.intake_roller_1.getAngle()  # Change angle of root, spokes will follow
-            self.intake_roller_1.setAngle(current_angle - rotation_step)  # Subtracting to spin clockwise
-            current_angle = self.intake_roller_2.getAngle()  # Change angle of root, spokes will follow
-            self.intake_roller_2.setAngle(current_angle - rotation_step)  # Subtracting to spin clockwise
-            current_angle = self.intake_roller_3.getAngle()  # Change angle of root, spokes will follow
-            self.intake_roller_3.setAngle(current_angle + rotation_step)  # Adding to spin counterclockwise
-            current_angle = self.intake_roller_4.getAngle()  # Change angle of root, spokes will follow
-            self.intake_roller_4.setAngle(current_angle + rotation_step)  # Adding to spin counterclockwise
+            current_angle = self.intake_roller_1.get_angle()  # Change angle of root, spokes will follow
+            self.intake_roller_1.set_angle(current_angle - rotation_step)  # Subtracting to spin clockwise
+            current_angle = self.intake_roller_2.get_angle()  # Change angle of root, spokes will follow
+            self.intake_roller_2.set_angle(current_angle - rotation_step)  # Subtracting to spin clockwise
+            current_angle = self.intake_roller_3.get_angle()  # Change angle of root, spokes will follow
+            self.intake_roller_3.set_angle(current_angle + rotation_step)  # Adding to spin counterclockwise
+            current_angle = self.intake_roller_4.get_angle()  # Change angle of root, spokes will follow
+            self.intake_roller_4.set_angle(current_angle + rotation_step)  # Adding to spin counterclockwise
 
     def update_hopper(self, speed: float):
         # Animate the ball moving left
         if abs(speed) > 0:
-            self.hopper_anim_dist += speed * inchesToMeters(0.2)  # Scale speed for animation
+            self.hopper_anim_dist += speed * inches_to_meters(0.2)  # Scale speed for animation
             if self.hopper_anim_dist > self.hopper_length:
                 self.hopper_anim_dist = 0
             
-            self.hopper_spacer.setLength(self.hopper_anim_dist)
+            self.hopper_spacer.set_length(self.hopper_anim_dist)
 
     def update_indexer(self, rpm: float):
         # Animate bar moving up the indexer
@@ -378,12 +379,12 @@ class BlockheadMech:
             
             # Updating positon based on the three roots for the indexer
             rotation_step = math.copysign(visual_speed * 0.2, rpm)  # Uses the magnitude of visual_spped * .2 with the sign of rpm
-            current_angle = self.indexer_1.getAngle()  # Change angle of root, spokes will follow
-            self.indexer_1.setAngle(current_angle - rotation_step)  # Subtracting to spin clockwise
-            current_angle = self.indexer_2.getAngle()  # Change angle of root, spokes will follow
-            self.indexer_2.setAngle(current_angle - rotation_step)  # Subtracting to spin clockwise
-            current_angle = self.indexer_3.getAngle()  # Change angle of root, spokes will follow
-            self.indexer_3.setAngle(current_angle - rotation_step)  # Subtracting to spin clockwise
+            current_angle = self.indexer_1.get_angle()  # Change angle of root, spokes will follow
+            self.indexer_1.set_angle(current_angle - rotation_step)  # Subtracting to spin clockwise
+            current_angle = self.indexer_2.get_angle()  # Change angle of root, spokes will follow
+            self.indexer_2.set_angle(current_angle - rotation_step)  # Subtracting to spin clockwise
+            current_angle = self.indexer_3.get_angle()  # Change angle of root, spokes will follow
+            self.indexer_3.set_angle(current_angle - rotation_step)  # Subtracting to spin clockwise
 
     def update_shooter(self, rpm: float):
         # Using a sqrt scale to not have aliasing
@@ -393,8 +394,8 @@ class BlockheadMech:
             visual_speed = math.sqrt(abs(rpm))
             
             rotation_step = math.copysign(visual_speed * 0.2, rpm)  # Uses the magnitude of visual_spped * .2 with the sign of rpm
-            current_angle = self.flywheel_center.getAngle()  # Change angle of root, spokes will follow
-            self.flywheel_center.setAngle(current_angle - rotation_step)  # Subtracting to spin clockwise
+            current_angle = self.flywheel_center.get_angle()  # Change angle of root, spokes will follow
+            self.flywheel_center.set_angle(current_angle - rotation_step)  # Subtracting to spin clockwise
 
     def update_rollers(self, rpm: float):
         # Using a sqrt scale to not have aliasing
@@ -403,10 +404,10 @@ class BlockheadMech:
             visual_speed = math.sqrt(abs(rpm)) 
             
             rotation_step = math.copysign(visual_speed * 0.2, rpm)  # Uses the magnitude of visual_spped * .2 with the sign of rpm
-            current_angle = self.roller_1_center.getAngle()  # Change angle of root, spokes will follow
-            self.roller_1_center.setAngle(current_angle + rotation_step)  # Adding to spin counterclockwise
-            current_angle = self.roller_2_center.getAngle()  # Change angle of root, spokes will follow
-            self.roller_2_center.setAngle(current_angle + rotation_step)  # Adding to spin counterclockwise
+            current_angle = self.roller_1_center.get_angle()  # Change angle of root, spokes will follow
+            self.roller_1_center.set_angle(current_angle + rotation_step)  # Adding to spin counterclockwise
+            current_angle = self.roller_2_center.get_angle()  # Change angle of root, spokes will follow
+            self.roller_2_center.set_angle(current_angle + rotation_step)  # Adding to spin counterclockwise
 
     '''def update_climber(self, height_from_ground: float):
         # Calculate length: Target Height - Root Height
@@ -415,4 +416,4 @@ class BlockheadMech:
     '''
 
     def update_ball(self, x, y):
-        self.ball_root.setPosition(x, y)
+        self.ball_root.set_position(x, y)

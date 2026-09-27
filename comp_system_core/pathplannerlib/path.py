@@ -6,15 +6,15 @@ from typing import Final, List, Union
 from wpimath import Rotation2d, Translation2d, Pose2d
 from wpimath import ChassisVelocities
 import wpimath.units as units
-from wpimath import inputModulus
+from wpimath import input_modulus
 from commands2 import Command
 
 from .events import OneShotTriggerEvent, ScheduleCommandEvent, Event
 from .util import cubicLerp, calculateRadius, floatLerp, FlippingUtil, translation2dFromJson, DriveFeedforwards
 from .trajectory import PathPlannerTrajectory, PathPlannerTrajectoryState
 from .config import RobotConfig
-from wpilib import getDeployDirectory
-from hal import reportUsage
+from wpilib import get_deploy_directory
+from hal import report_usage
 import os
 import json
 
@@ -55,8 +55,8 @@ class PathConstraints:
         return PathConstraints(
             maxVel,
             maxAccel,
-            units.degreesToRadians(maxAngularVel),
-            units.degreesToRadians(maxAngularAccel),
+            units.degrees_to_radians(maxAngularVel),
+            units.degrees_to_radians(maxAngularAccel),
             nominalVoltage,
             unlimited)
 
@@ -98,7 +98,7 @@ class GoalEndState:
         vel = float(json_dict['velocity'])
         deg = float(json_dict['rotation'])
 
-        return GoalEndState(vel, Rotation2d.fromDegrees(deg))
+        return GoalEndState(vel, Rotation2d.from_degrees(deg))
 
     def __eq__(self, other):
         return (isinstance(other, GoalEndState)
@@ -123,7 +123,7 @@ class IdealStartingState:
         vel = float(json_dict['velocity'])
         deg = float(json_dict['rotation'])
 
-        return IdealStartingState(vel, Rotation2d.fromDegrees(deg))
+        return IdealStartingState(vel, Rotation2d.from_degrees(deg))
 
     def __eq__(self, other):
         return (isinstance(other, IdealStartingState)
@@ -177,7 +177,7 @@ class RotationTarget:
         pos = float(json_dict['waypointRelativePos'])
         deg = float(json_dict['rotationDegrees'])
 
-        return RotationTarget(pos, Rotation2d.fromDegrees(deg))
+        return RotationTarget(pos, Rotation2d.from_degrees(deg))
 
     def __eq__(self, other):
         return (isinstance(other, RotationTarget)
@@ -212,7 +212,7 @@ class PointTowardsZone:
         maxPos = float(json_dict['maxWaypointRelativePos'])
         deg = float(json_dict['rotationOffset'])
 
-        return PointTowardsZone(name, targetPos, minPos, maxPos, Rotation2d.fromDegrees(deg))
+        return PointTowardsZone(name, targetPos, minPos, maxPos, Rotation2d.from_degrees(deg))
 
     def flip(self) -> PointTowardsZone:
         """
@@ -428,7 +428,7 @@ class PathPlannerPath:
             self._precalcValues()
 
         PathPlannerPath._instances += 1
-        reportUsage("PathPlanner/PathPlannerPath", PathPlannerPath._instances, "")
+        report_usage("PathPlanner/PathPlannerPath", PathPlannerPath._instances, "")
 
     @staticmethod
     def fromPathPoints(path_points: List[PathPoint], constraints: PathConstraints,
@@ -458,7 +458,7 @@ class PathPlannerPath:
         if path_name in PathPlannerPath._pathCache:
             return PathPlannerPath._pathCache[path_name]
 
-        filePath = os.path.join(getDeployDirectory(), 'pathplanner', 'paths', path_name + '.path')
+        filePath = os.path.join(get_deploy_directory(), 'pathplanner', 'paths', path_name + '.path')
 
         with open(filePath, 'r') as f:
             pathJson = json.loads(f.read())
@@ -515,7 +515,7 @@ class PathPlannerPath:
 
     @staticmethod
     def _loadChoreoTrajectoryIntoCache(trajectory_name: str) -> None:
-        filePath = os.path.join(getDeployDirectory(), 'choreo', trajectory_name + '.traj')
+        filePath = os.path.join(get_deploy_directory(), 'choreo', trajectory_name + '.traj')
 
         with open(filePath, 'r') as f:
             fJson = json.loads(f.read())
@@ -564,7 +564,7 @@ class PathPlannerPath:
 
                 # The module forces are field relative, rotate them to be robot relative
                 for i in range(len(forcesX)):
-                    rotated = Translation2d(forcesX[i], forcesY[i]).rotateBy(-state.pose.rotation())
+                    rotated = Translation2d(forcesX[i], forcesY[i]).rotate_by(-state.pose.rotation())
                     forcesX[i] = rotated.x
                     forcesY[i] = rotated.y
 
@@ -597,7 +597,7 @@ class PathPlannerPath:
                         from .auto import CommandUtil
                         eventCommand = CommandUtil.commandFromJson(markerJson['event'], True, False)
                         fullEvents.append(ScheduleCommandEvent(fromTimestamp, eventCommand))
-            fullEvents.sort(key=lambda e: e.getTimestamp())
+            fullEvents.sort(key=lambda e: e.get_timestamp())
 
             # Add the full path to the cache
             fullPath = PathPlannerPath([], PathConstraints.unlimitedConstraints(12.0), None,
@@ -637,8 +637,8 @@ class PathPlannerPath:
 
                 events: List[Event] = []
                 for originalEvent in fullEvents:
-                    if startTime <= originalEvent.getTimestamp() < endTime:
-                        events.append(originalEvent.copyWithTime(originalEvent.getTimestamp() - startTime))
+                    if startTime <= originalEvent.get_timestamp() < endTime:
+                        events.append(originalEvent.copyWithTime(originalEvent.get_timestamp() - startTime))
 
                 path = PathPlannerPath([], PathConstraints.unlimitedConstraints(12.0), None,
                                        GoalEndState(states[-1].linearVelocity, states[-1].pose.rotation()))
@@ -713,7 +713,7 @@ class PathPlannerPath:
         """
         return len(self._allPoints)
 
-    def getPoint(self, index: int) -> PathPoint:
+    def get_point(self, index: int) -> PathPoint:
         """
         Get a specific point along this path
 
@@ -754,7 +754,7 @@ class PathPlannerPath:
         """
         return self._eventMarkers
 
-    def isReversed(self) -> bool:
+    def is_reversed(self) -> bool:
         """
         Should the path be followed reversed (differential drive only)
 
@@ -768,11 +768,11 @@ class PathPlannerPath:
 
         :return: Pose at the path's starting point
         """
-        startPos = self.getPoint(0).position
+        startPos = self.get_point(0).position
         heading = self.getInitialHeading()
 
         if self._reversed:
-            heading = Rotation2d.fromDegrees(inputModulus(heading.degrees() + 180, -180, 180))
+            heading = Rotation2d.from_degrees(input_modulus(heading.degrees() + 180, -180, 180))
 
         return Pose2d(startPos, heading)
 
@@ -786,7 +786,7 @@ class PathPlannerPath:
         if self._idealStartingState is None:
             return None
 
-        startPos = self.getPoint(0).position
+        startPos = self.get_point(0).position
         rotation = self._idealStartingState.rotation
 
         return Pose2d(startPos, rotation)
@@ -848,7 +848,7 @@ class PathPlannerPath:
 
     @staticmethod
     def _mirrorTranslation(translation: Translation2d) -> Translation2d:
-        return Translation2d(translation.X(), FlippingUtil.fieldSizeY - translation.Y())
+        return Translation2d(translation.x, FlippingUtil.fieldSizeY - translation.y)
 
     def mirrorPath(self) -> PathPlannerPath:
         """
@@ -974,7 +974,7 @@ class PathPlannerPath:
 
         :return: Initial heading
         """
-        return (self.getPoint(1).position - self.getPoint(0).position).angle()
+        return (self.get_point(1).position - self.get_point(0).position).angle()
 
     def getIdealTrajectory(self, robotConfig: RobotConfig) -> Union[PathPlannerTrajectory, None]:
         """
@@ -989,7 +989,7 @@ class PathPlannerPath:
             # The ideal starting state is known, generate the ideal trajectory
             heading = self.getInitialHeading()
             fieldSpeeds = Translation2d(self._idealStartingState.velocity, heading)
-            startingSpeeds = ChassisVelocities(fieldSpeeds.x, fieldSpeeds.y, 0.0).toRobotRelative(heading)
+            startingSpeeds = ChassisVelocities(fieldSpeeds.x, fieldSpeeds.y, 0.0).to_robot_relative(heading)
             self._idealTrajectory = self.generateTrajectory(startingSpeeds, self._idealStartingState.rotation,
                                                             robotConfig)
 
@@ -1257,7 +1257,7 @@ class PathPlannerPath:
     def _precalcValues(self) -> None:
         if self.numPoints() > 0:
             for i in range(self.numPoints()):
-                point = self.getPoint(i)
+                point = self.get_point(i)
 
                 if point.constraints is None:
                     point.constraints = self._globalConstraints
@@ -1271,11 +1271,11 @@ class PathPlannerPath:
                     point.maxV = point.constraints.maxVelocityMps
 
                 if i != 0:
-                    point.distanceAlongPath = self.getPoint(i - 1).distanceAlongPath + (
-                        self.getPoint(i - 1).position.distance(point.position))
+                    point.distanceAlongPath = self.get_point(i - 1).distanceAlongPath + (
+                        self.get_point(i - 1).position.distance(point.position))
 
-            self.getPoint(self.numPoints() - 1).rotationTarget = RotationTarget(-1, self._goalEndState.rotation)
-            self.getPoint(self.numPoints() - 1).maxV = self._goalEndState.velocity
+            self.get_point(self.numPoints() - 1).rotationTarget = RotationTarget(-1, self._goalEndState.rotation)
+            self.get_point(self.numPoints() - 1).maxV = self._goalEndState.velocity
 
     def _getCurveRadiusAtPoint(self, index: int) -> float:
         if self.numPoints() < 3:
@@ -1283,16 +1283,16 @@ class PathPlannerPath:
 
         if index == 0:
             return calculateRadius(
-                self.getPoint(index).position,
-                self.getPoint(index + 1).position,
-                self.getPoint(index + 2).position)
+                self.get_point(index).position,
+                self.get_point(index + 1).position,
+                self.get_point(index + 2).position)
         elif index == self.numPoints() - 1:
             return calculateRadius(
-                self.getPoint(index - 2).position,
-                self.getPoint(index - 1).position,
-                self.getPoint(index).position)
+                self.get_point(index - 2).position,
+                self.get_point(index - 1).position,
+                self.get_point(index).position)
         else:
             return calculateRadius(
-                self.getPoint(index - 1).position,
-                self.getPoint(index).position,
-                self.getPoint(index + 1).position)
+                self.get_point(index - 1).position,
+                self.get_point(index).position,
+                self.get_point(index + 1).position)

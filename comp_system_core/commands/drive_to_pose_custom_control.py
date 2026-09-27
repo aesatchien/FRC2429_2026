@@ -25,13 +25,13 @@ class DriveToPoseCustomControl(commands2.Command):
     def __init__(self, container, swerve: Swerve, target_pose_supplier: typing.Callable[[], typing.Optional[Pose2d]], 
                  indent=0, tolerance_type='exact') -> None:
         super().__init__()
-        self.setName('DriveToPoseCustomControl')
+        self.set_name('DriveToPoseCustomControl')
         
         # --- Dependencies ---
         self.indent = indent
         self.container = container
         self.swerve = swerve
-        self.addRequirements(self.swerve)
+        self.add_requirements(self.swerve)
 
         # --- Configuration ---
         self.target_pose_supplier = target_pose_supplier
@@ -67,32 +67,32 @@ class DriveToPoseCustomControl(commands2.Command):
 
     def create_controllers(self):
         self.x_pid = PIDController(tc.kAutoTranslationPID.kP, tc.kAutoTranslationPID.kI, tc.kAutoTranslationPID.kD)
-        self.x_pid.setIntegratorRange(-0.1, 0.1)  
-        self.x_pid.setIZone(0.25)  
+        self.x_pid.set_integrator_range(-0.1, 0.1)  
+        self.x_pid.set_i_zone(0.25)  
 
         self.y_pid = PIDController(tc.kAutoTranslationPID.kP, tc.kAutoTranslationPID.kI, tc.kAutoTranslationPID.kD)
-        self.y_pid.setIntegratorRange(-0.1, 0.1)  
-        self.y_pid.setIZone(0.25)  
+        self.y_pid.set_integrator_range(-0.1, 0.1)  
+        self.y_pid.set_i_zone(0.25)  
 
         self.rot_pid = PIDController(tc.kAutoRotationPID.kP, tc.kAutoRotationPID.kI, tc.kAutoRotationPID.kD)
-        self.rot_pid.enableContinuousInput(radians(-180), radians(180))
+        self.rot_pid.enable_continuous_input(radians(-180), radians(180))
 
     def _init_networktables(self):
-        self.inst = ntcore.NetworkTableInstance.getDefault()
+        self.inst = ntcore.NetworkTableInstance.get_default()
         prefix = constants.auto_prefix
 
-        self.x_setpoint_pub = self.inst.getDoubleTopic(f"{prefix}/x_setpoint").publish()
-        self.y_setpoint_pub = self.inst.getDoubleTopic(f"{prefix}/y_setpoint").publish()
-        self.rot_setpoint_pub = self.inst.getDoubleTopic(f"{prefix}/rot_setpoint").publish()
-        self.x_measured_pub = self.inst.getDoubleTopic(f"{prefix}/x_measured").publish()
-        self.y_measured_pub = self.inst.getDoubleTopic(f"{prefix}/y_measured").publish()
-        self.rot_measured_pub = self.inst.getDoubleTopic(f"{prefix}/rot_measured").publish()
-        self.x_commanded_pub = self.inst.getDoubleTopic(f"{prefix}/x_commanded").publish()
-        self.y_commanded_pub = self.inst.getDoubleTopic(f"{prefix}/y_commanded").publish()
-        self.rot_commanded_pub = self.inst.getDoubleTopic(f"{prefix}/rot_commanded").publish()
+        self.x_setpoint_pub = self.inst.get_double_topic(f"{prefix}/x_setpoint").publish()
+        self.y_setpoint_pub = self.inst.get_double_topic(f"{prefix}/y_setpoint").publish()
+        self.rot_setpoint_pub = self.inst.get_double_topic(f"{prefix}/rot_setpoint").publish()
+        self.x_measured_pub = self.inst.get_double_topic(f"{prefix}/x_measured").publish()
+        self.y_measured_pub = self.inst.get_double_topic(f"{prefix}/y_measured").publish()
+        self.rot_measured_pub = self.inst.get_double_topic(f"{prefix}/rot_measured").publish()
+        self.x_commanded_pub = self.inst.get_double_topic(f"{prefix}/x_commanded").publish()
+        self.y_commanded_pub = self.inst.get_double_topic(f"{prefix}/y_commanded").publish()
+        self.rot_commanded_pub = self.inst.get_double_topic(f"{prefix}/rot_commanded").publish()
 
-        self.auto_active_pub = self.inst.getBooleanTopic(f"{prefix}/robot_in_auto").publish()
-        self.goal_pose_pub = self.inst.getStructTopic(f"{prefix}/goal_pose", Pose2d).publish()
+        self.auto_active_pub = self.inst.get_boolean_topic(f"{prefix}/robot_in_auto").publish()
+        self.goal_pose_pub = self.inst.get_struct_topic(f"{prefix}/goal_pose", Pose2d).publish()
         self.auto_active_pub.set(False)
 
     def reset_controllers(self):
@@ -103,9 +103,9 @@ class DriveToPoseCustomControl(commands2.Command):
         else:
             self.target_pose = target
 
-        self.x_pid.setSetpoint(self.target_pose.X())
-        self.y_pid.setSetpoint(self.target_pose.Y())
-        self.rot_pid.setSetpoint(self.target_pose.rotation().radians())
+        self.x_pid.set_setpoint(self.target_pose.x)
+        self.y_pid.set_setpoint(self.target_pose.y)
+        self.rot_pid.set_setpoint(self.target_pose.rotation().radians())
 
         # reset overshoot
         self.x_overshot = False
@@ -128,8 +128,8 @@ class DriveToPoseCustomControl(commands2.Command):
         self.y_pid.reset()
         self.rot_pid.reset()
 
-        self.x_commanded_pub.set(self.target_pose.X())
-        self.y_commanded_pub.set(self.target_pose.Y())
+        self.x_commanded_pub.set(self.target_pose.x)
+        self.y_commanded_pub.set(self.target_pose.y)
         self.rot_commanded_pub.set(self.target_pose.rotation().degrees())
 
         self.goal_pose_pub.set(self.target_pose)
@@ -142,18 +142,18 @@ class DriveToPoseCustomControl(commands2.Command):
         self.extra_log_info = f'target {self.target_pose}'
 
     def execute(self) -> None:
-        if self.counter == 0 and (wpilib.RobotBase.isSimulation() or self.print_debug):
+        if self.counter == 0 and (wpilib.RobotBase.is_simulation() or self.print_debug):
             print(f'CNT  DX     XT?   Xo   |   DY    YT?   Yo   |   DR     RT?   Ro   | TC')
 
         robot_pose = self.swerve.get_pose()
 
-        x_output = self.x_pid.calculate(robot_pose.X())
-        y_output = self.y_pid.calculate(robot_pose.Y())
+        x_output = self.x_pid.calculate(robot_pose.x)
+        y_output = self.y_pid.calculate(robot_pose.y)
         rot_output = self.rot_pid.calculate(robot_pose.rotation().radians())
 
         error_vector = self.target_pose.translation() - robot_pose.translation()
-        diff_x = error_vector.X()
-        diff_y = error_vector.Y()
+        diff_x = error_vector.x
+        diff_y = error_vector.y
         diff_radians = (self.target_pose.rotation() - robot_pose.rotation()).radians()
         
         self.error_distance = error_vector.norm()
@@ -199,21 +199,21 @@ class DriveToPoseCustomControl(commands2.Command):
         else:
             self.tolerance_counter = 0
 
-        if self.counter % 10 == 0 and (wpilib.RobotBase.isSimulation() or self.print_debug):
+        if self.counter % 10 == 0 and (wpilib.RobotBase.is_simulation() or self.print_debug):
             msg = f'{self.counter:3d}  {diff_x:+.2f} {str(self.x_overshot):>5} {x_output:+.2f} | {diff_y:+.2f}  {str(self.y_overshot):>5} {y_output:+.2f} | {math.degrees(diff_radians):>+6.1f}° {str(self.rot_overshot):>5} {rot_output:+.2f} | {self.tolerance_counter} '
             print(msg)
 
-            if wpilib.RobotBase.isSimulation():
-                self.x_setpoint_pub.set(self.x_pid.getSetpoint())
-                self.y_setpoint_pub.set(self.y_pid.getSetpoint())
-                self.rot_setpoint_pub.set(math.degrees(self.rot_pid.getSetpoint()))
+            if wpilib.RobotBase.is_simulation():
+                self.x_setpoint_pub.set(self.x_pid.get_setpoint())
+                self.y_setpoint_pub.set(self.y_pid.get_setpoint())
+                self.rot_setpoint_pub.set(math.degrees(self.rot_pid.get_setpoint()))
                 self.x_measured_pub.set(robot_pose.x)
                 self.y_measured_pub.set(robot_pose.y)
                 self.rot_measured_pub.set(robot_pose.rotation().degrees())
 
         self.counter += 1
 
-    def isFinished(self) -> bool:
+    def is_finished(self) -> bool:
         if self.abort: return True
         # condition where we want to be fast - sloppy is ok
         if self.tolerance_type == 'fast':
@@ -222,6 +222,6 @@ class DriveToPoseCustomControl(commands2.Command):
         return self.tolerance_counter > 10
 
     def end(self, interrupted: bool) -> None:
-        if wpilib.RobotBase.isSimulation(): self.auto_active_pub.set(False)
+        if wpilib.RobotBase.is_simulation(): self.auto_active_pub.set(False)
         indicator = Led.Indicator.kFAILUREFLASH if (interrupted or self.abort) else Led.Indicator.kSUCCESSFLASH
-        commands2.CommandScheduler.getInstance().schedule(self.container.led.set_indicator_with_timeout(indicator, 2))
+        commands2.CommandScheduler.get_instance().schedule(self.container.led.set_indicator_with_timeout(indicator, 2))

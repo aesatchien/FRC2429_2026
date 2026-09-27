@@ -25,7 +25,7 @@ from wpimath import Pose2d
 class PathingCenterOutpost(commands2.SequentialCommandGroup):
     def __init__(self, container, indent=0) -> None:
         super().__init__()
-        self.setName(f'PathingCenterOutpost')
+        self.set_name(f'PathingCenterOutpost')
         self.container = container
 
 
@@ -38,13 +38,13 @@ class PathingCenterOutpost(commands2.SequentialCommandGroup):
         #self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=ac.k_intake_roller_rpm))
 
         # move to outpost and wait to for drop, then intake fuel
-        self.addCommands(
+        self.add_commands(
             AutoBuilder.followPath(PathPlannerPath.fromPathFile("Center_Outpost_Ground_Intake"))
         )
 
-        self.addCommands(commands2.WaitCommand(ac.k_outpost_drop_delay))
+        self.add_commands(commands2.WaitCommand(ac.k_outpost_drop_delay))
 
-        self.addCommands(
+        self.add_commands(
             AutoBuilder.followPath(PathPlannerPath.fromPathFile("Outpost_to_Shoot"))
         )
 
@@ -56,9 +56,9 @@ class PathingCenterOutpost(commands2.SequentialCommandGroup):
         # Starts the shooting cycle and then raises the intake after a delay to prevent compression and jams
         # forces it to die when the first command finishes
         
-        self.addCommands(shoot_cycle(self.container, indent=1))
+        self.add_commands(shoot_cycle(self.container, indent=1))
         # stops tracking and kill intake
 
-        self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=0))
+        self.add_commands(Intake_Set_RPM(intake=self.container.intake, rpm=0))
 
-        self.addCommands(commands2.PrintCommand(f"{'    ' * indent}** Finished {self.getName()} **"))
+        self.add_commands(commands2.PrintCommand(f"{'    ' * indent}** Finished {self.get_name()} **"))

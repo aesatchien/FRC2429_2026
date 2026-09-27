@@ -1,15 +1,25 @@
+"""
+The "virtual coprocessor": works out what each camera would see from where the robot REALLY
+is, and publishes it on the same /Cameras/... topics the real Raspberry Pis use.  vision.py
+subscribes to those and cannot tell the difference - which is the whole point.
+
+Owned by Vision.simulation_periodic().  Takes ground truth (not the pose estimate - a camera
+sees where the robot is, not where it thinks it is) and reads the game pieces back off the
+shared Field2d's "Gamepieces" object, so it depends on nothing but the field.
+"""
+
 import math
 import wpilib
 import ntcore
 from ntcore import PubSubOptions
 from wpimath import Pose2d, Rotation2d, Translation2d
 import constants
-from helpers import apriltag_utils
+from helpers import apriltag_utils, dashboard
+from simulation.gamepiece_sim import GamepieceSim
 
 class VisionSim:
-    def __init__(self, field: wpilib.Field2d):
-        self.field = field
-        self.inst = ntcore.NetworkTableInstance.getDefault()
+    def __init__(self):
+        self.inst = ntcore.NetworkTableInstance.get_default()
         
         # Configuration
         self.cam_list = list(constants.CameraConstants.k_cameras.keys())
@@ -25,7 +35,7 @@ class VisionSim:
         
         # FOV Show/Hide Subscribers
         self.show_fov_subs = {
-            key: self.inst.getBooleanTopic(f"{sim_prefix}/FOV/{key}_show_fov").subscribe(False)
+            key: self.inst.get_boolean_topic(f"{sim_prefix}/FOV/{key}_show_fov").subscribe(False)
             for key in self.cam_list
         }
 
@@ -42,36 +52,38 @@ class VisionSim:
             self.camera_dict[key] = {
                 'offset': ix,
                 'frames': 0,
-                'frames_pub': self.inst.getIntegerTopic(f"/Cameras/{cam_topic}/_frames").publish(),
-                'targets_pub': self.inst.getDoubleTopic(f"{base}/targets").publish(PubSubOptions(keepDuplicates=True)),  # otherwise targets get stale
-                'distance_pub': self.inst.getDoubleTopic(f"{base}/distance").publish(),
-                'strafe_pub': self.inst.getDoubleTopic(f"{base}/strafe").publish(),
-                'rotation_pub': self.inst.getDoubleTopic(f"{base}/rotation").publish()
+                'frames_pub': self.inst.get_integer_topic(f"/Cameras/{cam_topic}/_frames").publish(),
+                'targets_pub': self.inst.get_double_topic(f"{base}/targets").publish(PubSubOptions(keep_duplicates=True)),  # otherwise targets get stale
+                'distance_pub': self.inst.get_double_topic(f"{base}/distance").publish(),
+                'strafe_pub': self.inst.get_double_topic(f"{base}/strafe").publish(),
+                'rotation_pub': self.inst.get_double_topic(f"{base}/rotation").publish()
             }
 
     def _init_field_objects(self):
         # Pre-fetch Field2d objects for FOV visualization
         self.fov_objects = {}
         for idx, key in enumerate(self.cam_list):
-            self.fov_objects[key] = self.field.getObject(f"FOV_{idx}")
+            self.fov_objects[key] = dashboard.field_object(f"FOV_{idx}")
 
     def _init_apriltags(self):
         self.tag_translations = []
         self.tag_poses = []
         
         # Load tags from the layout utility
-        for tag in apriltag_utils.layout.getTags():
-            pose3d = apriltag_utils.layout.getTagPose(tag.ID)
+        for tag in apriltag_utils.layout.get_tags():
+            pose3d = apriltag_utils.layout.get_tag_pose(tag.ID)
             if pose3d is not None:
-                pose2d = pose3d.toPose2d()
+                pose2d = pose3d.to_pose2d()
                 self.tag_poses.append(pose2d)
                 self.tag_translations.append(pose2d.translation())
         
-        self.field.getObject("AprilTags").setPoses(self.tag_poses)
+        dashboard.field_object("AprilTags").set_poses(self.tag_poses)
 
 
-    def update(self, robot_pose: Pose2d, gamepieces: list[dict]):
-        now = wpilib.Timer.getTimestamp()
+    def update(self, robot_pose: Pose2d):
+        now = wpilib.Timer.get_timestamp()
+        # whatever is still on the floor, as drawn by RobotState's gamepiece sim
+        gamepieces = [{'pos': pos, 'active': True} for pos in GamepieceSim.active_positions_from_field()]
 
         # 1. Manual Override: Use External Cameras
         # If True: Do not simulate targets, do not blink test. Just draw FOV.
@@ -156,15 +168,16 @@ class VisionSim:
                 cam_data['rotation_pub'].set(rot)
 
                 # NOTE: We do NOT publish to the 'poses' topic here with the other data.
-                # This ensures that swerve_sim.py (which listens for live tags) doesn't
-                # get confused and try to snap the robot to these simulated targets.
+                # Two consumers listen for live tags on 'poses' - Swerve's vision measurements
+                # and simulation/hil_snap.py - and neither should mistake a simulated target
+                # for a real camera seeing a real tag.
 
             # 3. Update FOV Visualization
             self._update_fov_visualization(key, robot_pose, config, self.show_fov_subs[key].get())
 
     def _update_fov_visualization(self, key, robot_pose, config, show_fov):
         if not constants.SimConstants.k_draw_camera_fovs or not show_fov:
-            self.fov_objects[key].setPoses([])
+            self.fov_objects[key].set_poses([])
             return
 
         robot_pos = robot_pose.translation()
@@ -181,7 +194,7 @@ class VisionSim:
         p2 = robot_pos + Translation2d(fov_dist * math.cos(left_edge_angle), fov_dist * math.sin(left_edge_angle))
         p3 = robot_pos + Translation2d(fov_dist * math.cos(right_edge_angle), fov_dist * math.sin(right_edge_angle))
 
-        self.fov_objects[key].setPoses([Pose2d(p1, Rotation2d()), Pose2d(p2, Rotation2d()), Pose2d(p3, Rotation2d())])
+        self.fov_objects[key].set_poses([Pose2d(p1, Rotation2d()), Pose2d(p2, Rotation2d()), Pose2d(p3, Rotation2d())])
 
     def _run_blink_test(self, now):
         # 60s cycle for camera disconnection

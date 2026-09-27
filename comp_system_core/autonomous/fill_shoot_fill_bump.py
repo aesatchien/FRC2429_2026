@@ -17,26 +17,26 @@ from helpers.apriltag_utils import auto_reflect_pose
 class FillShootFillBump(commands2.SequentialCommandGroup):
     def __init__(self, container, indent=0) -> None:
         super().__init__()
-        self.setName(f'FillShootFillBump')
+        self.set_name(f'FillShootFillBump')
         self.container = container
 
 
         # -----  PHASE I:  DRIVE TO FILL HOPPER  -----
         # moves the intake down
-        self.addCommands(Intake_Deploy(intake=container.intake, position='down', indent=1))
+        self.add_commands(Intake_Deploy(intake=container.intake, position='down', indent=1))
 
         # self.addCommands(commands2.WaitCommand(0.5))
 
         # activates the intake
-        self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=constants.IntakeConstants.k_intake_default_rpm))
+        self.add_commands(Intake_Set_RPM(intake=self.container.intake, rpm=constants.IntakeConstants.k_intake_default_rpm))
 
         # moves to the neutral zone to intake fuel --> come back to shoot
-        self.addCommands(DriveToPoseCustomControl(container=self.container, swerve=self.container.swerve,
-                            target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_first_ball_pickup_pose, wpilib.MatchState.getAlliance(), is_shooting=False), tolerance_type='exact').withTimeout(5)
+        self.add_commands(DriveToPoseCustomControl(container=self.container, swerve=self.container.swerve,
+                            target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_first_ball_pickup_pose, wpilib.MatchState.get_alliance(), is_shooting=False), tolerance_type='exact').with_timeout(5)
         )
 
-        self.addCommands(DriveToPoseCustomControl(container=self.container, swerve=self.container.swerve,
-                            target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_shooting_pose, wpilib.MatchState.getAlliance(), is_shooting=True), tolerance_type='exact').withTimeout(5)
+        self.add_commands(DriveToPoseCustomControl(container=self.container, swerve=self.container.swerve,
+                            target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_shooting_pose, wpilib.MatchState.get_alliance(), is_shooting=True), tolerance_type='exact').with_timeout(5)
         )
 
         # -----  PHASE II:  SHOOT INITIAL HOPPER -----
@@ -45,15 +45,15 @@ class FillShootFillBump(commands2.SequentialCommandGroup):
 
         # Starts the shooting cycle and then raises the intake after a delay to prevent compression and jams
         # forces it to die when the first command finishes
-        self.addCommands(shoot_cycle(self.container, delay_cycles=50, indent=1))
+        self.add_commands(shoot_cycle(self.container, delay_cycles=50, indent=1))
         # stops tracking
 
         # -----  PHASE III:  FILL HOPPER AGAIN -----
         # Moves the intake down
-        self.addCommands(Intake_Deploy(intake=container.intake, position='down', indent=1))
-        self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=constants.IntakeConstants.k_intake_default_rpm))
+        self.add_commands(Intake_Deploy(intake=container.intake, position='down', indent=1))
+        self.add_commands(Intake_Set_RPM(intake=self.container.intake, rpm=constants.IntakeConstants.k_intake_default_rpm))
 
         # Repeat what happened above
-        self.addCommands(DriveToPoseCustomControl(container=self.container, swerve=self.container.swerve,
-                            target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_second_ball_pickup_pose, wpilib.MatchState.getAlliance(), is_shooting=False), tolerance_type='fast').withTimeout(4.5)
+        self.add_commands(DriveToPoseCustomControl(container=self.container, swerve=self.container.swerve,
+                            target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_second_ball_pickup_pose, wpilib.MatchState.get_alliance(), is_shooting=False), tolerance_type='fast').with_timeout(4.5)
         )

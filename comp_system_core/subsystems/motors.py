@@ -1,3 +1,4 @@
+from helpers import phoenix6_compat  # noqa: F401  - must precede phoenix6 import
 """
 Vendor adapters for the swerve module motors.
 
@@ -35,8 +36,11 @@ import typing
 
 import rev
 import wpilib
+import wpilib.simulation
+import wpimath
 
 import constants
+from constants import SimConstants as simc
 
 # ---------------------------------------------------------------------------------
 # phoenix6 is only importable if someone has installed it.  Keep the REV path working
@@ -78,6 +82,7 @@ class DriveMotor(typing.Protocol):
     def describe(self) -> dict: ...
     def get_sticky_faults(self) -> list: ...
     def clear_faults(self) -> None: ...
+    def sim_update(self, dt: float, vbus: float) -> float: ...
 
 
 class TurnMotor(typing.Protocol):
@@ -88,6 +93,114 @@ class TurnMotor(typing.Protocol):
     def describe(self) -> dict: ...
     def get_sticky_faults(self) -> list: ...
     def clear_faults(self) -> None: ...
+    def sim_update(self, dt: float, vbus: float) -> float: ...
+    def sim_azimuth_rad(self) -> float: ...
+
+
+# =================================================================================
+#  SIMULATION  -  the same seam, because a plant model is a per-vendor thing too
+# =================================================================================
+#
+# sim_update(dt, vbus) advances a WPILib plant model by dt and writes the result back into
+# the controller's own sim state - rev.SparkSim for a Spark, TalonFXSimState for a Kraken -
+# so that get_position_m() / get_velocity_mps() / get_position_rad() above read simulated
+# motion through EXACTLY the same calls the real robot uses.  It returns the current draw
+# in amps so the caller can sag the simulated battery.  sim_azimuth_rad() is the turn
+# plant's mechanism angle, which SwerveModule writes back into the analog absolute encoder.
+#
+# Only ever called from a simulation_periodic(); the plants are built lazily on the first
+# call so nothing here runs on the real robot.
+#
+# REV SIM GOTCHA, MEASURED ON robotpy-rev 2027.0.0a7.post1: SparkSim.iterate() overwrites the
+# encoder with the sim's OWN integrated position, and neither RelativeEncoder.set_position()
+# (the real API) nor SparkRelativeEncoderSim.set_position() moves that internal position.
+# Only SparkSim.set_position() does.  So a set_position() call from robot code is silently
+# undone on the next loop unless it is mirrored into the SparkSim - which is what
+# _RevPlant.seed() is for, and why zero_position()/seed_position_rad() below call it.
+#
+# WHY THE TURN PLANT MOVES IN THE DIRECTION OF THE COMMAND, INVERSION OR NOT.  The turn
+# config has inverted(True) so the motor pushes the wheel in the direction that REDUCES the
+# error the RIO PID measures on the absolute encoder.  The sim models that outcome - positive
+# duty means the azimuth angle the pot reads goes UP - rather than the wiring that produces
+# it.  If you flip turn_motors_inverted for a real mechanical reason, nothing here changes.
+
+def _rev_dcmotor(controller_cls, count: int = 1):
+    """SparkFlex drives a NEO Vortex, SparkMax a NEO - the only two REV pairings we use."""
+    return wpimath.DCMotor.neo_vortex(count) if controller_cls is rev.SparkFlex else wpimath.DCMotor.neo(count)
+
+
+def _rev_sim_cls(controller_cls):
+    return rev.SparkFlexSim if controller_cls is rev.SparkFlex else rev.SparkMaxSim
+
+
+class _RevPlant:
+    """A DCMotorSim behind a rev.SparkSim.  Mechanism-side units: radians at the output."""
+
+    def __init__(self, spark, gearbox: 'wpimath.DCMotor', moi_kg_m2: float, gearing: float,
+                 sim_cls) -> None:
+        self.gearing = gearing
+        self.sim = sim_cls(spark, gearbox)
+        # single_jointed_arm_from_physical_constants() is just the [angle, velocity] DC motor
+        # plant; DCMotorSim adds no gravity, so it is the right model for a wheel or an azimuth.
+        plant = wpimath.Models.single_jointed_arm_from_physical_constants(gearbox, moi_kg_m2, gearing)
+        self.plant = wpilib.simulation.DCMotorSim(plant, gearbox)
+        # keep whatever the robot code already wrote into the encoder (see the gotcha above)
+        self.seed(spark.get_encoder().get_position().get())
+
+    def seed(self, motor_rotations: float) -> None:
+        """Make the sim's encoder read `motor_rotations` from here on.  The plant itself is not
+        moved - re-zeroing an encoder does not move a wheel."""
+        self.sim.set_position(motor_rotations)
+
+    def update(self, dt: float, vbus: float) -> float:
+        self.plant.set_input_voltage(self.sim.get_applied_output() * vbus)
+        self.plant.update(dt)
+        motor_rpm = self.plant.get_angular_velocity_rpm() * self.gearing
+        # iterate() closes the Spark's own loop (velocity PID, kV feed-forward) against the
+        # motor speed we hand it and moves its encoder - so the encoder reads motor rotations
+        # and RPM exactly as the real one does.
+        self.sim.iterate(motor_rpm, vbus, dt)
+        return abs(self.plant.get_current_draw())
+
+    @property
+    def angle_rad(self) -> float:
+        return self.plant.get_angular_position()
+
+
+class _TalonPlant:
+    """A DCMotorSim behind a TalonFXSimState.  Phoenix wants ROTOR rotations and rot/s."""
+
+    def __init__(self, talon, gearbox: 'wpimath.DCMotor', moi_kg_m2: float, gearing: float,
+                 inverted: bool) -> None:
+        from phoenix6.sim import ChassisReference
+        self.gearing = gearing
+        self.state = talon.sim_state
+        # Phoenix says orientation describes the mechanical linkage, not the invert setting -
+        # but our invert flag IS the statement of how the motor is bolted on, so they agree.
+        self.state.orientation = (ChassisReference.CLOCKWISE_POSITIVE if inverted
+                                  else ChassisReference.COUNTER_CLOCKWISE_POSITIVE)
+        plant = wpimath.Models.single_jointed_arm_from_physical_constants(gearbox, moi_kg_m2, gearing)
+        self.plant = wpilib.simulation.DCMotorSim(plant, gearbox)
+
+    def update(self, dt: float, vbus: float) -> float:
+        self.state.set_supply_voltage(vbus)
+        self.plant.set_input_voltage(self.state.motor_voltage)
+        self.plant.update(dt)
+        # sensor_to_mechanism_ratio is set in the device config, so the device divides these
+        # rotor numbers back down to mechanism rotations before we read them.
+        self.state.set_raw_rotor_position(self.plant.get_angular_position_rotations() * self.gearing)
+        self.state.set_rotor_velocity(self.plant.get_angular_velocity() / math.tau * self.gearing)
+        return abs(self.plant.get_current_draw())
+
+    @property
+    def angle_rad(self) -> float:
+        return self.plant.get_angular_position()
+
+
+def _talon_inverted(config) -> bool:
+    """True if the TalonFXConfiguration says CLOCKWISE_POSITIVE (the 'inverted' one)."""
+    name = str(config.motor_output.inverted)
+    return 'CLOCKWISE_POSITIVE' in name and 'COUNTER' not in name
 
 
 # =================================================================================
@@ -95,7 +208,7 @@ class TurnMotor(typing.Protocol):
 # =================================================================================
 
 def _rev_persist_mode():
-    return rev.PersistMode.kPersistParameters if constants.k_burn_flash else rev.PersistMode.kNoPersistParameters
+    return rev.PersistMode.PERSIST_PARAMETERS if constants.k_burn_flash else rev.PersistMode.NO_PERSIST_PARAMETERS
 
 
 # REV reports sticky faults as one bitmask.  Bit -> name, from the REVLib fault enum.
@@ -142,75 +255,99 @@ def _rev_sticky_faults(spark) -> list:
     adapters normalise both to a list of strings."""
     # 2027: getStickyFaults() returns a Signal_SparkFaults, not the Faults value itself.
     # .get() unwraps it, same as the encoder getters above.
-    mask = spark.getStickyFaults().get().rawBits
+    mask = spark.get_sticky_faults().get().raw_bits
     return [name for bit, name in k_rev_fault_names.items() if mask & (1 << bit)]
 
 
-def _rev_describe(spark, kind: str) -> dict:
+def _rev_describe(spark, kind: str, position_factor: float = 1.0,
+                  velocity_factor: float = 1.0) -> dict:
     """Pull the interesting settings back off a Spark so we can eyeball them at boot."""
-    ca = spark.configAccessor
+    ca = spark.config_accessor
     return {
         'vendor': 'REV',
         'kind': kind,
-        'can_id': spark.getDeviceId(),
-        'inverted': ca.getInverted(),
-        'idle_mode': str(ca.getIdleMode()).split('.')[-1],
-        'current_limit_a': ca.getSmartCurrentLimit(),
-        'position_units_per_rev': ca.encoder.getPositionConversionFactor(),
-        'velocity_units_per_rev': ca.encoder.getVelocityConversionFactor(),
-        'kP': ca.closedLoop.getP(rev.ClosedLoopSlot.kSlot0),
-        'kFF_or_kV': ca.closedLoop.feedForward.getkV(rev.ClosedLoopSlot.kSlot0),  # 2027: volts, not duty
+        'can_id': spark.get_device_id(),
+        'inverted': ca.get_inverted(),
+        'idle_mode': str(ca.get_idle_mode()).split('.')[-1],
+        'current_limit_a': ca.get_smart_current_limit(),
+        # 2027a7: the controller no longer stores conversion factors, so these are the
+        # values motors.py is applying, passed in by the caller.
+        'position_units_per_rev': position_factor,
+        'velocity_units_per_rev': velocity_factor,
+        'kP': ca.closed_loop.get_p(rev.ClosedLoopSlot.SLOT0),
+        'kFF_or_kV': ca.closed_loop.feed_forward.getk_v(rev.ClosedLoopSlot.SLOT0),  # 2027: volts, not duty
     }
 
 
 class RevDriveMotor:
     """
-    SparkMax / SparkFlex on the drive.  The config's positionConversionFactor and
-    velocityConversionFactor already put the controller in metres and m/s, so every
-    method here is a straight passthrough.
+    SparkMax / SparkFlex on the drive.
+
+    2027a7: rev DELETED positionConversionFactor / velocityConversionFactor, so the
+    controller reports raw motor rotations and RPM and the scaling happens here.  This is
+    the same place TalonDriveMotor has always done it.
     """
 
-    def __init__(self, can_id: int, controller_cls, config, label: str = '') -> None:
+    def __init__(self, can_id: int, controller_cls, config, label: str = '',
+                 position_factor: float = 1.0, velocity_factor: float = 1.0) -> None:
         self.label = label
         self.can_id = can_id
+        self.position_factor = position_factor   # metres per motor rotation
+        self.velocity_factor = velocity_factor   # m/s per motor RPM
         # a REV drive motor would sit on the drive bus with the Krakens
-        self.spark = controller_cls(constants.k_can_bus_drive, can_id, rev.SparkLowLevel.MotorType.kBrushless)
+        self.spark = controller_cls(constants.k_can_bus_drive, can_id, rev.SparkLowLevel.MotorType.BRUSHLESS)
 
-        error = self.spark.configure(config, rev.ResetMode.kResetSafeParameters, _rev_persist_mode())
-        if error != rev.REVLibError.kOk:
+        error = self.spark.configure(config, rev.ResetMode.RESET_SAFE_PARAMETERS, _rev_persist_mode())
+        if error != rev.REVLibError.OK:
             print(f'*** CONFIG FAILED: REV drive {can_id} ({label}) returned {error} ***')
 
-        self.encoder = self.spark.getEncoder()
-        self.controller = self.spark.getClosedLoopController()
-        self.encoder.setPosition(0)
+        self.encoder = self.spark.get_encoder()
+        self.controller = self.spark.get_closed_loop_controller()
+        self.encoder.set_position(0)
+        self._controller_cls = controller_cls
+        self._plant: typing.Optional[_RevPlant] = None
+
+    def sim_update(self, dt: float, vbus: float) -> float:
+        if self._plant is None:
+            # gearing = motor rotations per wheel rotation, recovered from the unit factor
+            gearing = (math.pi * simc.k_wheel_diameter_m) / self.position_factor
+            self._plant = _RevPlant(self.spark, _rev_dcmotor(self._controller_cls),
+                                    simc.k_drive_wheel_moi, gearing, _rev_sim_cls(self._controller_cls))
+        return self._plant.update(dt, vbus)
 
     def set_velocity_mps(self, mps: float) -> None:
-        # The controller is already in m/s thanks to velocityConversionFactor.
-        self.controller.setSetpoint(mps, rev.SparkLowLevel.ControlType.kVelocity)
+        # The controller wants motor RPM now, not m/s.  The matching gain rescale lives in
+        # swerve_constants.k_drive_kp_rev_raw - change one without the other and the drive
+        # PID is off by the same 1/velocity_factor.
+        self.controller.set_setpoint(mps / self.velocity_factor,
+                                     rev.SparkLowLevel.ControlType.VELOCITY)
 
     def get_position_m(self) -> float:
-        return self.encoder.getPosition().get()   # 2027: REV getters return a Signal
+        # 2027: REV getters return a Signal, and the value is raw motor rotations.
+        return self.encoder.get_position().get() * self.position_factor
 
     def get_velocity_mps(self) -> float:
-        return self.encoder.getVelocity().get()   # 2027: REV getters return a Signal
+        return self.encoder.get_velocity().get() * self.velocity_factor
 
     def zero_position(self) -> None:
-        self.encoder.setPosition(0)
+        self.encoder.set_position(0)
+        if self._plant is not None:
+            self._plant.seed(0)
 
     def set_current_limit(self, amps: int) -> None:
         # Non-persistent partial config: leaves everything else on the controller alone.
-        tmp = rev.SparkBaseConfig().smartCurrentLimit(stallLimit=amps, freeLimit=amps)
-        error = self.spark.configure(tmp, rev.ResetMode.kNoResetSafeParameters, rev.PersistMode.kNoPersistParameters)
+        tmp = rev.SparkBaseConfig().smart_current_limit(stall_limit=amps, free_limit=amps)
+        error = self.spark.configure(tmp, rev.ResetMode.NO_RESET_SAFE_PARAMETERS, rev.PersistMode.NO_PERSIST_PARAMETERS)
         print(f'  [{self.label}] REV drive current limit -> {amps}A  ({error})')
 
     def get_sticky_faults(self) -> list:
         return _rev_sticky_faults(self.spark)
 
     def clear_faults(self) -> None:
-        self.spark.clearFaults()
+        self.spark.clear_faults()
 
     def describe(self) -> dict:
-        return _rev_describe(self.spark, 'drive')
+        return _rev_describe(self.spark, 'drive', self.position_factor, self.velocity_factor)
 
 
 class RevTurnMotor:
@@ -220,34 +357,50 @@ class RevTurnMotor:
     duty cycle.  get_position_rad() exists only so the dashboard can watch it.
     """
 
-    def __init__(self, can_id: int, controller_cls, config, label: str = '') -> None:
+    def __init__(self, can_id: int, controller_cls, config, label: str = '',
+                 position_factor: float = 1.0) -> None:
         self.label = label
         self.can_id = can_id
-        self.spark = controller_cls(constants.k_can_bus_turn, can_id, rev.SparkLowLevel.MotorType.kBrushless)
+        self.position_factor = position_factor   # radians per motor rotation (2027a7, see above)
+        self.spark = controller_cls(constants.k_can_bus_turn, can_id, rev.SparkLowLevel.MotorType.BRUSHLESS)
 
-        error = self.spark.configure(config, rev.ResetMode.kResetSafeParameters, _rev_persist_mode())
-        if error != rev.REVLibError.kOk:
+        error = self.spark.configure(config, rev.ResetMode.RESET_SAFE_PARAMETERS, _rev_persist_mode())
+        if error != rev.REVLibError.OK:
             print(f'*** CONFIG FAILED: REV turn {can_id} ({label}) returned {error} ***')
 
-        self.encoder = self.spark.getEncoder()
+        self.encoder = self.spark.get_encoder()
+        self._controller_cls = controller_cls
+        self._plant: typing.Optional[_RevPlant] = None
+
+    def sim_update(self, dt: float, vbus: float) -> float:
+        if self._plant is None:
+            gearing = math.tau / self.position_factor          # motor rotations per azimuth turn
+            self._plant = _RevPlant(self.spark, _rev_dcmotor(self._controller_cls),
+                                    simc.k_azimuth_moi, gearing, _rev_sim_cls(self._controller_cls))
+        return self._plant.update(dt, vbus)
+
+    def sim_azimuth_rad(self) -> float:
+        return self._plant.angle_rad if self._plant is not None else 0.0
 
     def set_duty_cycle(self, output: float) -> None:
-        self.spark.setThrottle(output)   # 2027: SparkBase.set() -> setThrottle()
+        self.spark.set_throttle(output)   # 2027: SparkBase.set() -> setThrottle()
 
     def get_position_rad(self) -> float:
-        return self.encoder.getPosition().get()  # positionConversionFactor puts this in radians
+        return self.encoder.get_position().get() * self.position_factor
 
     def seed_position_rad(self, radians: float) -> None:
-        self.encoder.setPosition(radians)
+        self.encoder.set_position(radians / self.position_factor)
+        if self._plant is not None:
+            self._plant.seed(radians / self.position_factor)
 
     def get_sticky_faults(self) -> list:
         return _rev_sticky_faults(self.spark)
 
     def clear_faults(self) -> None:
-        self.spark.clearFaults()
+        self.spark.clear_faults()
 
     def describe(self) -> dict:
-        return _rev_describe(self.spark, 'turn')
+        return _rev_describe(self.spark, 'turn', self.position_factor)
 
 
 # =================================================================================
@@ -326,8 +479,19 @@ class TalonDriveMotor:
         # nine REV controllers, so this is not optional.
         self.talon.optimize_bus_utilization()
         self._fault_signals = None  # built on first get_sticky_faults() - see the helper
+        self._plant: typing.Optional[_TalonPlant] = None
+        self._config = config
 
         self.zero_position()
+
+    def sim_update(self, dt: float, vbus: float) -> float:
+        if self._plant is None:
+            gearbox = (wpimath.DCMotor.kraken_x60_foc(1) if self._velocity_req.enable_foc
+                       else wpimath.DCMotor.kraken_x60(1))
+            self._plant = _TalonPlant(self.talon, gearbox, simc.k_drive_wheel_moi,
+                                      self._config.feedback.sensor_to_mechanism_ratio,
+                                      _talon_inverted(self._config))
+        return self._plant.update(dt, vbus)
 
     def _apply(self, config, what: str) -> None:
         error = self.talon.configurator.apply(config)
@@ -412,6 +576,17 @@ class TalonTurnMotor:
         self._position_sig.set_update_frequency(50)
         self.talon.optimize_bus_utilization()
         self._fault_signals = None  # built on first get_sticky_faults()
+        self._plant: typing.Optional[_TalonPlant] = None
+        self._config = config
+
+    def sim_update(self, dt: float, vbus: float) -> float:
+        if self._plant is None:
+            self._plant = _TalonPlant(self.talon, wpimath.DCMotor.kraken_x60(1), simc.k_azimuth_moi,
+                                      self.turn_gear_ratio, _talon_inverted(self._config))
+        return self._plant.update(dt, vbus)
+
+    def sim_azimuth_rad(self) -> float:
+        return self._plant.angle_rad if self._plant is not None else 0.0
 
     def set_duty_cycle(self, output: float) -> None:
         self._duty_req.output = output
@@ -445,7 +620,9 @@ class TalonTurnMotor:
 def build_drive_motor(vendor: str, can_id: int, mc, label: str = '') -> DriveMotor:
     """mc is subsystems.swerve_constants.ModuleConstants (passed in to avoid a circular import)."""
     if vendor == 'rev':
-        return RevDriveMotor(can_id, mc.k_drive_controller_cls, mc.k_driving_config, label=label)
+        return RevDriveMotor(can_id, mc.k_drive_controller_cls, mc.k_driving_config, label=label,
+                             position_factor=mc.k_drive_position_factor,
+                             velocity_factor=mc.k_drive_velocity_factor)
     if vendor == 'ctre':
         return TalonDriveMotor(can_id, mc.k_kraken_driving_config,
                                circumference_m=mc.kWheelCircumferenceMeters,
@@ -458,7 +635,8 @@ def build_drive_motor(vendor: str, can_id: int, mc, label: str = '') -> DriveMot
 
 def build_turn_motor(vendor: str, can_id: int, mc, label: str = '') -> TurnMotor:
     if vendor == 'rev':
-        return RevTurnMotor(can_id, mc.k_turn_controller_cls, mc.k_turning_config, label=label)
+        return RevTurnMotor(can_id, mc.k_turn_controller_cls, mc.k_turning_config, label=label,
+                            position_factor=mc.k_turn_position_factor)
     if vendor == 'ctre':
         return TalonTurnMotor(can_id, mc.k_kraken_turning_config,
                               turn_gear_ratio=mc.k_turning_motor_gear_ratio,

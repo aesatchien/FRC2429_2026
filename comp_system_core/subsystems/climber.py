@@ -34,6 +34,8 @@ from commands2.subsystem import Subsystem
 import math
 import ntcore
 import wpilib
+import wpilib.simulation
+from wpimath import DCMotor, Models
 from rev import ClosedLoopSlot, SparkMax
 from commands2 import Subsystem
 import constants
@@ -44,7 +46,7 @@ from rev import SparkBase, SparkLowLevel
 class Climber(Subsystem):
     def __init__(self) -> None:
         super().__init__()
-        self.setName('Climber')
+        self.set_name('Climber')
         self.climber = Climber
         self.position_index = 0
         self.current_position = 10
@@ -53,15 +55,15 @@ class Climber(Subsystem):
 
         # --------------- add motors and set motor rpm ----------------
 
-        motor_type = rev.SparkMax.MotorType.kBrushless
+        motor_type = rev.SparkMax.MotorType.BRUSHLESS
         self.motor = rev.SparkMax(constants.k_can_bus_other, cc.k_CANID_motor, motor_type)
 
         # convenient list of motors if we need to query or set all of them
         self.motors = [self.motor]
 
         # you need a controller to set velocity
-        self.climber_controller = self.motor.getClosedLoopController()
-        self.climber_encoder = self.motor.getEncoder()
+        self.climber_controller = self.motor.get_closed_loop_controller()
+        self.climber_encoder = self.motor.get_encoder()
 
         configure_sparks([(self.motor, cc.k_climber_config)], subsystem_name='climber')
 
@@ -70,14 +72,15 @@ class Climber(Subsystem):
         self.current_rpm = 0
         self.climber_heights = [10, 18, 30]
         self._init_networktables()
+        self._sim = None   # simulation only, built on the first simulation_periodic()
 
     def _init_networktables(self):
-        self.inst = ntcore.NetworkTableInstance.getDefault()
+        self.inst = ntcore.NetworkTableInstance.get_default()
 
         self.nt_prefix = constants.climber_prefix
-        self.motor_on_pub = self.inst.getBooleanTopic(f"{self.nt_prefix}/motor_on").publish()
-        self.motor_rpm_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/motor_rpm").publish()
-        self.inches_from_ground_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/inches_from_ground").publish()
+        self.motor_on_pub = self.inst.get_boolean_topic(f"{self.nt_prefix}/motor_on").publish()
+        self.motor_rpm_pub = self.inst.get_double_topic(f"{self.nt_prefix}/motor_rpm").publish()
+        self.inches_from_ground_pub = self.inst.get_double_topic(f"{self.nt_prefix}/inches_from_ground").publish()
 
         self.motor_on_pub.set(self.motor_on)
         self.motor_rpm_pub.set(self.current_rpm)
@@ -111,8 +114,8 @@ class Climber(Subsystem):
 
         if cc.k_control_type == 'max_motion':
             #ks = 0 if rpm < 1 else cc.ks_volts  # othrwise it still just turns at 0
-            self.climber_controller.setSetpoint(setpoint=target_number_of_encoder_ticks, ctrl=SparkLowLevel.ControlType.kMAXMotionPositionControl,
-                                                 slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=0)
+            self.climber_controller.set_setpoint(setpoint=target_number_of_encoder_ticks, ctrl=SparkLowLevel.ControlType.MAX_MOTION_POSITION_CONTROL,
+                                                 slot=rev.ClosedLoopSlot.SLOT0, arb_feedforward=0)
             self.current_position = self.climber_heights[self.position_index]
 
         else:
@@ -125,3 +128,25 @@ class Climber(Subsystem):
             #self.flywheel_controller.setSetpoint(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
             #self.voltage = feed_forward  # 12 * rpm / max rpm  # Guess
     #def get_distance(self):
+
+    # -------------- simulation --------------
+    # An ElevatorSim behind the Spark's sim object.  The subsystem is still half written and
+    # not constructed by RobotContainer, so this is the pattern rather than a tuned model:
+    # the encoder reads motor rotations derived from the simulated carriage height.
+    def simulation_periodic(self) -> None:
+        if self._sim is None:
+            gearbox = DCMotor.neo(1)
+            gearing = 10.0   # motor rotations per drum rotation - a placeholder until the gearbox is known
+            plant = Models.elevator_from_physical_constants(
+                gearbox, constants.SimConstants.k_climber_carriage_kg,
+                constants.SimConstants.k_climber_drum_radius_m, gearing)
+            self._sim = (rev.SparkMaxSim(self.motor, gearbox),
+                         wpilib.simulation.ElevatorSim(plant, gearbox, 0.0, 1.5, True, 0.0),
+                         gearing)
+        spark_sim, elevator, gearing = self._sim
+        vbus = wpilib.RobotController.get_battery_voltage()
+        elevator.set_input_voltage(spark_sim.get_applied_output() * vbus)
+        elevator.update(0.02)
+        drum_circumference = 2 * math.pi * constants.SimConstants.k_climber_drum_radius_m
+        motor_rpm = elevator.get_velocity() / drum_circumference * 60 * gearing
+        spark_sim.iterate(motor_rpm, vbus, 0.02)

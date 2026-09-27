@@ -27,8 +27,8 @@ USAGE
 -----
     from autonomous.shoot_cycle import shoot_cycle
 
-    self.addCommands(shoot_cycle(container, indent=1))                     # the common case
-    self.addCommands(shoot_cycle(container, timeout=5, intake='none'))     # short shot, no intake stage
+    self.add_commands(shoot_cycle(container, indent=1))                     # the common case
+    self.add_commands(shoot_cycle(container, timeout=5, intake='none'))     # short shot, no intake stage
 """
 
 import commands2
@@ -70,7 +70,7 @@ def _intake_sequence(container, mode: str, timeout: float, indent: int) -> comma
             Intake_Deploy(intake=container.intake, position='shoot2', indent=indent),
         ]
     steps.append(WaitCommand(5))  # long enough that the ShootingCommand timeout is what ends the race
-    return SequentialCommandGroup(*steps).withTimeout(timeout)
+    return SequentialCommandGroup(*steps).with_timeout(timeout)
 
 
 def shoot_cycle(container, timeout: float = ac.k_shooting_timeout, delay_cycles: int = 10,
