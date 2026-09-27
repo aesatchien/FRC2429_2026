@@ -75,7 +75,7 @@ bbox_1_12 = bbox_1.button(12)
 # copilot_r_stick_positive_y = copilot_controller.axisGreaterThan(5, 0.5)
 # copilot_r_stick_negative_y = copilot_controller.axisLessThan(5, -0.5)
 
-play_station_controller = commands2.button.CommandPS4Controller(constants.k_ps5_controller_port)
+play_station_controller = commands2.button.CommandPS4Controller(constants.ps_controller_port)
 
 ps_square = play_station_controller.square()
 ps_cross = play_station_controller.cross()

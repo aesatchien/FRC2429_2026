@@ -80,9 +80,9 @@ class CameraConstants:
     fov = 45  # sim testing fov, no effect on real robot yet
 
     k_practicebot_cameras = {
-        'logi_front': {'topic_name': 'LogitechFront', 'type': 'tags', 'rotation': 0, 'fov': fov},
+        #'logi_front': {'topic_name': 'LogitechFront', 'type': 'tags', 'rotation': 0, 'fov': fov},
         'logi_front_hsv': {'topic_name': 'LogitechFront', 'type': 'hsv', 'label': 'yellow', 'rotation': 0, 'fov': fov},
-        'logi_left': {'topic_name': 'LogitechLeft', 'type': 'tags', 'rotation': 90, 'fov': fov},
+        #'logi_left': {'topic_name': 'LogitechLeft', 'type': 'tags', 'rotation': 90, 'fov': fov},
         'logi_left_hsv': {'topic_name': 'LogitechLeft', 'type': 'hsv', 'label': 'yellow', 'rotation': 90, 'fov': fov},
     }
 
@@ -101,7 +101,7 @@ class CameraConstants:
     }
 
 
-    k_cameras = k_comp_cameras
+    k_cameras = k_practicebot_cameras
 
     # add local_tester.py's sim camera if in sim - allows for testing without pis
     if wpilib.RobotBase.isSimulation():

@@ -96,7 +96,7 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
         # -----------------------------------------------------------
         
         # --- Drive Mode & Multipliers ---
-        turbo = self.turbo_limiter.calculate(inputs['trigger']**2)
+        turbo = self.turbo_limiter.calculate((inputs['trigger'])**2)
         afterburner = self.afterburner_limiter.calculate(inputs['after_burner'])
 
         if (inputs['after_burner'] == False):
