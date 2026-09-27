@@ -11,10 +11,12 @@ from wpimath import Debouncer, SlewRateLimiter
 from subsystems.swerve_constants import DriveConstants as dc, RateLimiters as rl
 from helpers.log_command import log_command
 
+from typing import Union
+
 
 @log_command(console=True, nt=False, print_init=True, print_end=False)
 class DriveByJoystickSwerve(commands2.Command):
-    def __init__(self, container, swerve: Swerve, controller: CommandNiDsXboxController, rate_limited=False, afterburn=False) -> None:
+    def __init__(self, container, swerve: Swerve, controller: Union(CommandGenericHID, Command), rate_limited=False, afterburn=False) -> None:
         super().__init__()
         self.setName('drive_by_joystick_swerve')
 
