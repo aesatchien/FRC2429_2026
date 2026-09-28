@@ -40,6 +40,7 @@ from autonomous.pathing_center_to_outpost import PathingCenterOutpost
 from autonomous.pathing_drawing import DrawingAuto
 from autonomous.pathing_right_bump_cycle import RightBumpCycle
 from autonomous.short_bump import ShortBump
+from autonomous.one_meter import OneMeter
 
 # 2429 commands
 from commands.can_status import CANStatus
@@ -395,7 +396,8 @@ class RobotContainer:
         self.auto_chooser.add('4a: Drawing Auto *CODE*', DrawingAuto(self, indent=0))
         self.auto_chooser.add('4b: Right Bump Cycle *CODE*', RightBumpCycle(self, indent=0))
 
-        self.auto_chooser.add_default('4b: Short Bump Auto *CODE*', ShortBump(self, indent=0))
+        self.auto_chooser.add_default('4c: Short Bump Auto *CODE*', ShortBump(self, indent=0))
+        self.auto_chooser.add('4d: One Meter *CODE*', OneMeter(self, indent=0))
 
         dashboard.SmartDashboard.put_data('autonomous routines', self.auto_chooser)  #
 
