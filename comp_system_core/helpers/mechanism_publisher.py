@@ -11,8 +11,12 @@ It exposes log_to(_NativeTelemetryTable) and nothing hands Python one of those:
 That is a binding gap in the alpha, not something our code is doing wrong.  Until it is
 fixed the mech view is simply dark, so this module reproduces the wire format instead.
 
-THE WIRE FORMAT was not guessed.  It was captured by publishing a Mechanism2d from the a6
-environment - which still had SmartDashboard - and dumping every NetworkTables entry:
+THE WIRE FORMAT was captured by publishing a Mechanism2d from the a6 environment - which
+still had SmartDashboard - and dumping every NetworkTables entry.  ONE KEY CHANGED IN a7:
+the viewer reads a root's location from <root>/position (double[] [x, y], metres), not from
+separate x / y.  With only x / y every root drew at the origin - the mechanism squashed off
+the left side of the window.  Verified against glass NTMechanism2D.hpp on allwpilib main.
+_publish_node() writes both.  The a6 capture, for reference:
 
     /SmartDashboard/Mech/.type             string   "Mechanism2d"
     /SmartDashboard/Mech/.name             string   "Mech"
@@ -155,7 +159,12 @@ def _put(table, key, value, kind: str) -> None:
 def _publish_node(table, node: dict, is_root: bool) -> None:
     sub = table.get_sub_table(node["name"])
     if is_root:
-        # Roots carry only x/y - deliberately no .type, see the module docstring.
+        # Roots have deliberately no .type, see the module docstring.
+        # "position" is what the a7 viewer reads - a double[] [x, y] in metres (glass
+        # NTMechanism2D.hpp: GetTopic("{}/position")).  Without it every root lands at the
+        # origin and the whole mechanism is squashed against the left edge.  x / y are the
+        # a6 keys; the a7 viewer ignores them, kept for anything still reading the old form.
+        _put(sub, "position", [node["x"], node["y"]], "a")
         _put(sub, "x", node["x"], "d")
         _put(sub, "y", node["y"], "d")
     else:

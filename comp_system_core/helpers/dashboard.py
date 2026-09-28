@@ -37,6 +37,7 @@ the a7 codebase.
 
 import ntcore
 import wpilib
+import wpimath
 
 from helpers import mechanism_publisher
 from telemetry import TelemetryRegistry
@@ -195,28 +196,40 @@ def _warn_native_gap(key: str, obj) -> None:
               f"See _NATIVE_GAP in helpers/dashboard.py. ***")
 
 
-def _pose_array(pose) -> list[float]:
-    return [pose.x, pose.y, pose.rotation().degrees()]
+# (field key, object name) -> StructArrayPublisher.  Publishers are created once and kept:
+# a publisher going out of scope unpublishes its topic, and rebuilding one every loop would
+# make the dashboard flicker the object in and out.
+_field_publishers: dict[tuple[str, str], object] = {}
+
+
+def _field_pub(key: str, name: str):
+    pub = _field_publishers.get((key, name))
+    if pub is None:
+        topic = f"/{key.strip('/')}/{name}"
+        pub = ntcore.NetworkTableInstance.get_default().get_struct_array_topic(
+            topic, wpimath.Pose2d).publish()
+        _field_publishers[(key, name)] = pub
+    return pub
 
 
 def _publish_field2d(key: str, field: "wpilib.Field2d") -> None:
-    """Write a Field2d's NT representation by hand: .type plus one double[] per object.
+    """Write a Field2d's NT representation by hand: .type plus one Pose2d[] per object.
 
-    Objects (Target, Gamepieces, AprilTags, the camera FOVs...) are a flat [x, y, deg, ...]
-    array under the object's name, which is the same wire format the real Sendable used and
-    what Glass / AdvantageScope / our GUI read.  An empty object publishes an empty array so
-    the dashboard clears it rather than leaving the last poses on screen.
+    THE WIRE FORMAT CHANGED IN 2027.  Each object (Robot, Target, Gamepieces, AprilTags,
+    the camera FOVs...) must be a `struct:Pose2d[]` topic.  The a7 field viewer in the sim
+    GUI / Glass accepts ONLY that - glass NTField2D.cpp rejects any topic whose type is not
+    NT_RAW - so the old flat double[] [x, y, deg, ...] this used to write was silently
+    ignored and the robot never appeared on the field.  AdvantageScope reads the struct form
+    natively.  An empty object publishes an empty array so the viewer clears it rather than
+    leaving the last poses on screen.
     """
     table = ntcore.NetworkTableInstance.get_default().get_table(key.lstrip("/"))
     table.put_string(".type", "Field2d")
-    table.put_number_array("Robot", _pose_array(field.get_robot_pose()))
+    _field_pub(key, "Robot").set([field.get_robot_pose()])
     for (obj_key, name), obj in _field_objects.items():
         if obj_key != key:
             continue
-        flat: list[float] = []
-        for pose in obj.get_poses():
-            flat.extend(_pose_array(pose))
-        table.put_number_array(name, flat)
+        _field_pub(key, name).set(list(obj.get_poses()))
 
 
 def publish_fields() -> None:
