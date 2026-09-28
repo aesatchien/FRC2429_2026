@@ -147,30 +147,39 @@ class DriveConstants:
     # How the SystemCore is physically bolted in.  FLAT, LANDSCAPE or PORTRAIT.
     k_imu_mount_orientation = wpilib.OnboardIMU.MountOrientation.FLAT
 
-    # WHICH EULER AXIS IS WHICH, MEASURED ON THE ROBOT.
+    # WHICH EULER AXIS IS WHICH - A PROPERTY OF THE WPILIB VERSION, NOT JUST THE MOUNTING.
     #
-    # OnboardIMU.getAngleX/Y/Z() are the IMU CHIP's axes after the mount transform, and they
-    # do NOT line up with robot yaw/pitch/roll the way the names suggest.  Determined by
-    # hand: lift the front, lift a side, spin the robot, and watch _imu_anglex/y/z.
+    # OnboardIMU.get_angle_x/y/z() return the x/y/z of an Euler-angle struct, and WHERE that
+    # struct comes from changed between releases (allwpilib hal/.../systemcore/IMU.cpp):
     #
-    #   X -> YAW      measured.  Clean [-180, 180] and rolls over properly.
-    #   Z -> PITCH    measured.  Lifting the front of the robot moves it.
-    #   Y -> ROLL     inferred by elimination, NOT yet confirmed by lifting a side.
+    #   a6  filled from an array SystemCore's system server published on NT (/imu/euler_flat).
+    #       Its ORDER put yaw first, so on a6:  X = yaw, Z = pitch.
+    #   a7  filled straight from the hardware library, MRC_IMU_GetEulerAnglesFlat(), whose
+    #       x/y/z are the conventional axes:    X = roll, Y = pitch, Z = yaw.
     #
-    # Re-measure these if the SystemCore is ever remounted or k_imu_mount_orientation
-    # changes - they are a property of the mounting, not of the software.
+    # Nothing warned.  With X still selected, heading on a7 was ROLL - the pose stopped
+    # turning with the robot while everything else looked fine.
     #
-    # Yaw comes from an Euler axis rather than getYaw() on purpose.  getYaw() does work, but
-    # it reads over roughly [-85, 275] because resetYaw()'s offset is applied after the wrap,
-    # so the seam lands wherever the robot happened to be pointing at boot.  getAngleX is
-    # clean.  The cost is that resetYaw() does NOT affect the Euler axes, so zeroing at boot
-    # has to be done in software - see Swerve._imu_yaw_deg().
-    # 2027a7: snake_case.  THIS IS A STRING FED TO getattr() IN Swerve.get_gyro_angle(),
-    # so no automated rename can see it - it has to be changed by hand, and getting it wrong
-    # is an AttributeError at construction (or worse, a silently wrong axis).
-    k_imu_yaw_getter = 'get_angle_x'      # measured
-    k_imu_pitch_getter = 'get_angle_z'  # measured
-    k_imu_roll_getter = 'get_angle_y'   # inferred
+    # MEASURED ON THE ROBOT, a7, 2026-09-27 - turned by hand counter-clockwise:
+    #     X  -1.16 ->  -0.80   (+0.4)
+    #     Y   0.68 ->   0.59   (-0.1)
+    #     Z  -0.30 -> 150.69   (+151)   <- yaw, counter-clockwise positive, radians correct
+    #
+    # Pitch/roll use the conventional mapping, which is what a7 now passes through.  Not
+    # yet confirmed by lifting the robot - only the climb readout uses them.
+    #
+    # Re-measure after ANY WPILib or SystemCore image upgrade, or if the board is remounted:
+    # spin the robot and see which of _imu_anglex/y/z moves.  _imu_native_yaw is published
+    # alongside as a cross-check - it comes from a separate dedicated yaw call.
+    #
+    # Yaw comes from an Euler axis rather than get_yaw() because get_yaw() reads over a
+    # shifted range (reset offset applied after the wrap).  Zeroing is done in software -
+    # see Swerve._imu_yaw_raw_deg() - because reset_yaw() does not touch the Euler axes.
+    #
+    # THESE ARE STRINGS FED TO getattr(), so no automated rename can see them.
+    k_imu_yaw_getter = 'get_angle_z'    # measured on a7
+    k_imu_pitch_getter = 'get_angle_y'  # conventional on a7, unconfirmed
+    k_imu_roll_getter = 'get_angle_x'   # conventional on a7, unconfirmed
     # used in the swerve modules themselves to reverse the direction of the analog encoder
     # note turn motors and analog encoders must agree - or you go haywire
     k_reverse_analog_encoders = False  # False for 2024 and probably always.

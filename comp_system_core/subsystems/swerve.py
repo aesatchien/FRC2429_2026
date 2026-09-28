@@ -247,23 +247,21 @@ class Swerve (Subsystem):
         self.imu_rate_pub = self.inst.get_double_topic(f"{swerve_prefix}/_imu_rate_dps").publish()
         # The three Euler angles, published so the axis labels can be mapped to the robot.
         #
-        # MEASURED ON THE REAL ROBOT, mount orientation FLAT: getAngleZ() reads PITCH -
-        # lifting the front of the robot moves it.  So the X/Y/Z here are the IMU CHIP's
-        # axes after the mount-orientation transform, NOT robot yaw/pitch/roll, and the
-        # names do not line up the way you would guess.  getYaw() is the only call that
-        # reliably means "which way is the robot pointing"; these are for working out what
-        # the other two axes actually are.
+        # WHICH AXIS IS WHICH CHANGES WITH THE WPILIB VERSION - see the long note on
+        # k_imu_yaw_getter in swerve_constants.  On a6, X was yaw and Z was pitch; on a7
+        # (measured 2026-09-27) Z is yaw.  Keep all three published so a spin test after
+        # any upgrade shows immediately which one heading should come from.
         #
-        # Under the hood these are different native calls, which is why they disagree:
-        #     getYaw()        -> MRC_IMU_GetYaw{Flat,Landscape,Portrait}
-        #     getAngleX/Y/Z() -> MRC_IMU_GetEulerAngles{Flat,Landscape,Portrait}
-        #
-        # To map them: lift the FRONT (pitch), then lift one SIDE (roll), then spin the
-        # robot (yaw), and watch which topic moves each time.  Then fix get_pitch() and
-        # get_roll(), which currently assume Y=pitch and X=roll.
+        # Under the hood these are different native calls from get_yaw():
+        #     get_yaw()          -> MRC_IMU_GetYaw{Flat,Landscape,Portrait}
+        #     get_angle_x/y/z()  -> MRC_IMU_GetEulerAngles{Flat,Landscape,Portrait}
         self.imu_anglex_pub = self.inst.get_double_topic(f"{swerve_prefix}/_imu_anglex").publish()
         self.imu_angley_pub = self.inst.get_double_topic(f"{swerve_prefix}/_imu_angley").publish()
         self.imu_anglez_pub = self.inst.get_double_topic(f"{swerve_prefix}/_imu_anglez").publish()
+        # The dedicated yaw call, independent of the Euler axis ordering.  If this and the
+        # heading axis ever disagree after an upgrade, k_imu_yaw_getter is pointing at the
+        # wrong axis again.  Reads over a shifted range (offset applied after the wrap).
+        self.imu_native_yaw_pub = self.inst.get_double_topic(f"{swerve_prefix}/_imu_native_yaw").publish()
 
         # Debugging publishers - pre-allocate list to avoid f-string creation in loop
         module_names = ['LF', 'RF', 'LB', 'RB']  # TODO - just save this order somewhere and reuse it
@@ -624,7 +622,8 @@ class Swerve (Subsystem):
         self.imu_rate_pub.set(math.degrees(self.gyro.get_gyro_rate_z()))
         self.imu_anglex_pub.set(math.degrees(self.gyro.get_angle_x()))
         self.imu_angley_pub.set(math.degrees(self.gyro.get_angle_y()))
-        self.imu_anglez_pub.set(math.degrees(self.gyro.get_angle_z()))  # measured: PITCH on FLAT
+        self.imu_anglez_pub.set(math.degrees(self.gyro.get_angle_z()))  # a7: YAW (was pitch on a6)
+        self.imu_native_yaw_pub.set(math.degrees(self.gyro.get_yaw()))
 
         # post yaw, pitch, roll so we can see what is going on with the climb
         # 4th element was gyro.getRotation2d(), which is built from getYaw() - a different
@@ -672,11 +671,13 @@ class Swerve (Subsystem):
 
         # The onboard IMU.  OnboardIMU is counter-clockwise-positive like the rest of WPILib
         # (the navX was not, which is the only reason the old sim subtracted here).  Radians.
-        # set_angle_x is the axis this subsystem actually reads (k_imu_yaw_getter, measured on
-        # the robot); set_yaw is driven too so get_yaw()/get_rotation2d() stay believable.
-        # They are independent signals in sim - setting one does not move the other.
+        # Drive whichever Euler axis heading is read from - DERIVED from k_imu_yaw_getter
+        # ('get_angle_z' -> 'set_angle_z'), not hardcoded, so sim and robot cannot drift
+        # apart.  They did once: the sim kept setting X after a7 moved yaw to Z.  set_yaw is
+        # driven too so get_yaw()/get_rotation2d() stay believable.  They are independent
+        # signals in sim - setting one does not move the other.
         self._sim_yaw_rad += speeds.omega * dt
-        self._imu_sim.set_angle_x(self._sim_yaw_rad)
+        getattr(self._imu_sim, dc.k_imu_yaw_getter.replace('get_', 'set_', 1))(self._sim_yaw_rad)
         self._imu_sim.set_yaw(self._sim_yaw_rad)
         self._imu_sim.set_gyro_rate_z(speeds.omega)
 
