@@ -292,17 +292,17 @@ class BlockheadMech:
     '''def _init_climber(self):
         """Stub: Extension arms."""
         # Attached to chassis center/back
-        self.climber_root_y = inchesToMeters(2)
-        self.root_climber = self.mech_side.getRoot("climber_root", self.start_x + inchesToMeters(2), self.climber_root_y)
+        self.climber_root_y = inches_to_meters(2)
+        self.root_climber = self.mech_side.get_root("climber_root", self.start_x + inches_to_meters(2), self.climber_root_y)
         self.abs_climber = 90
-        self.climber_stage_1 = self.root_climber.appendLigament(
-            "climber_stage_1", inchesToMeters(15), self._get_rel_angle(self.abs_climber, 0), self.line_weight, self.color_climber
+        self.climber_stage_1 = self.root_climber.append_ligament(
+            "climber_stage_1", inches_to_meters(15), self._get_rel_angle(self.abs_climber, 0), self.line_weight, self.color_climber
         )
         
         # Hook pointing left (180 abs)
         self.abs_hook = 180
-        self.climber_hook = self.climber_stage_1.appendLigament(
-            "climber_hook", inchesToMeters(4), self._get_rel_angle(self.abs_hook, self.abs_climber), self.line_weight, self.color_wheel
+        self.climber_hook = self.climber_stage_1.append_ligament(
+            "climber_hook", inches_to_meters(4), self._get_rel_angle(self.abs_hook, self.abs_climber), self.line_weight, self.color_wheel
         )
     '''
 
