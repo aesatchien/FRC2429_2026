@@ -12,6 +12,7 @@ Usage:
 
 from dataclasses import dataclass
 from typing import List, Optional
+from helpers.nt_time import nt_now_seconds, nt_to_seconds
 import time
 
 import ntcore
@@ -152,11 +153,14 @@ class QuestNav:
                 value = event.data.value
                 # Get timestamp - check which attribute exists
                 if hasattr(event.data, 'time'):
-                    server_timestamp = event.data.time / 1_000_000.0
+                    # NT time in SECONDS.  2027a7 made event times nanoseconds; /1e6 here
+                    # produced a number 1000x too big.  See helpers/nt_time.py.
+                    server_timestamp = nt_to_seconds(event.data.time)
                 elif hasattr(event.data, 'timestamp'):
                     server_timestamp = event.data.timestamp
                 else:
-                    server_timestamp = current_time
+                    # same clock as the branch above - NOT time.time(), the wall clock
+                    server_timestamp = nt_now_seconds()
                 
                 # Parse frameData
                 if "frameData" in topic_name:

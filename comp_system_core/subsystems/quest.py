@@ -1,4 +1,5 @@
 import wpilib
+from helpers.nt_time import nt_to_seconds
 import random
 from commands2 import Subsystem, InstantCommand
 from wpilib import Alliance, Field2d, MatchState, Timer
@@ -338,7 +339,7 @@ class Questnav(Subsystem):
                 ground_truth.y + self.sim_offset_from_truth.y,
                 ground_truth.rotation() + self.sim_offset_from_truth.rotation()
             )
-            self.quest_pose_timestamp = ground_truth_atomic.time / 1_000_000.0
+            self.quest_pose_timestamp = nt_to_seconds(ground_truth_atomic.time)  # NT seconds, see helpers/nt_time.py
             self.was_tracking = True  # Sim never loses tracking
 
         # calculate pose error

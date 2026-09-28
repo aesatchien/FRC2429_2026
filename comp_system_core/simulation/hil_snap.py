@@ -14,6 +14,7 @@ Under the old physics.py the estimator was force-reset to ground truth every loo
 here moved the estimate too; that coupling is gone on purpose.
 """
 
+from helpers.nt_time import nt_age_seconds
 import ntcore
 from wpimath import Pose3d, Rotation3d, Translation3d
 
@@ -22,7 +23,7 @@ import helpers.apriltag_utils
 
 
 class HardwareInTheLoop:
-    k_max_tag_age_us = 100_000   # 0.1 s - fresh enough to snap to, stale enough to ignore our own sim tags
+    k_max_tag_age_s = 0.1   # fresh enough to snap to, stale enough to ignore our own sim tags
 
     def __init__(self, container):
         self.container = container
@@ -56,12 +57,12 @@ class HardwareInTheLoop:
                 continue
             atomic_data = pose_sub.get_atomic()
             tag_data = atomic_data.value
-            timestamp_us = atomic_data.time
 
             # Freshness.  This is ALSO what keeps us from snapping to our own simulated tags:
             # vision_sim.py deliberately never writes the 'poses' topic, so a simulated camera
             # leaves it stale and it is ignored here.
-            if ntcore._now() - timestamp_us >= self.k_max_tag_age_us:
+            # seconds via helpers.nt_time - a7 NT timestamps are nanoseconds
+            if nt_age_seconds(atomic_data.time) >= self.k_max_tag_age_s:
                 continue
 
             # a training tag that is not in the layout is not for odometry (get_tag_pose -> None)

@@ -1,6 +1,5 @@
 import math
 import typing
-import time
 
 import ntcore
 import wpilib
@@ -23,6 +22,7 @@ import constants
 from .swervemodule_2429 import SwerveModule
 from .swerve_constants import DriveConstants as dc, AutoConstantsSwerve as ac, ModuleConstants as mc, RateLimiters as rl
 from helpers.utilities import compare_motors
+from helpers.nt_time import nt_age_seconds, nt_now_seconds
 import helpers.apriltag_utils as atu
 from subsystems.quest import Questnav
 
@@ -507,11 +507,13 @@ class Swerve (Subsystem):
             delta_pos = current_pose.translation().distance(quest_pose.translation())
             if delta_pos < 4 and quest_accepted:  # if the quest is way off, we don't want to update from it
                 if self.validate_odometry(quest_pose):
-                    # Calculate the packet latency in its native time domain
-                    if self.questnav.mock_questnav:
-                        latency_sec = (ntcore._now() / 1e6) - self.questnav.quest_pose_timestamp
-                    else:
-                        latency_sec = time.time() - self.questnav.quest_pose_timestamp
+                    # Latency of the Quest pose.  quest_pose_timestamp is NT time in SECONDS
+                    # (helpers.nt_time) for the real Quest and the mock alike, so both use the
+                    # same clock.  The real path used to subtract it from time.time() - the WALL
+                    # clock, seconds since 1970 - which was never the same clock as NT time: on
+                    # a6 that gave ~56 years of "latency" (measurement discarded as too old),
+                    # and on a7 a negative number clamped to zero (no latency compensation).
+                    latency_sec = nt_now_seconds() - self.questnav.quest_pose_timestamp
                     
                     # Apply that latency to the FPGA Match Time (protect against negative clock jitter)
                     quest_fpga_timestamp = ts - max(0.0, latency_sec)
@@ -527,12 +529,12 @@ class Swerve (Subsystem):
                 if count_subscriber.get() > 0:  # use this camera's tag
                     atomic_data = pose_subscriber.get_atomic()
                     tag_data = atomic_data.value  # 7 items - id, tx, ty, tz, rx, ry, rz
-                    timestamp_us = atomic_data.time
-                    
-                    # Check for stale tags (e.g. > 0.5s latency) using NT timestamp
-                    # 500,000 microseconds = 0.5 seconds
-                    latency_us = ntcore._now() - timestamp_us
-                    if latency_us > 500000:
+
+                    # Skip stale tags (> 0.5 s old).  In SECONDS via helpers.nt_time: 2027a7 made
+                    # NT timestamps nanoseconds, and the old "latency_us > 500000" became a
+                    # 0.5 ms limit - every AprilTag was skipped and never reached the pose.
+                    latency_s = nt_age_seconds(atomic_data.time)
+                    if latency_s > 0.5:
                         continue
 
                     tag_id = int(tag_data[0])
@@ -551,8 +553,9 @@ class Swerve (Subsystem):
 
                     if use_tag:
                         if self.validate_odometry(tag_pose):
-                            tag_latency_sec = max(0.0, latency_us / 1_000_000.0)
-                            tag_fpga_timestamp = ts - tag_latency_sec
+                            # NT time and Timer.get_timestamp() share an epoch, so the NT-measured
+                            # latency can be taken straight off ts.
+                            tag_fpga_timestamp = ts - max(0.0, latency_s)
 
                             # Standard deviations tell the pose estimator how much to "trust" this measurement.
                             # Smaller numbers = more trust. We trust vision more when disabled and stationary.
