@@ -18,7 +18,7 @@ class CANStatus(commands2.Command):
 
     def __init__(self, container) -> None:
         super().__init__()
-        self.setName('CANStatus')
+        self.set_name('CANStatus')
         self.container = container
         # self.addRequirements()  # deliberately none - this is read-only diagnostics
 
@@ -32,7 +32,7 @@ class CANStatus(commands2.Command):
 
         self.write_log = False
 
-    def runsWhenDisabled(self) -> bool:
+    def runs_when_disabled(self) -> bool:
         return True
 
     def initialize(self) -> None:
@@ -72,7 +72,7 @@ class CANStatus(commands2.Command):
     def execute(self) -> None:
         # single execution and end
         for name, motor in self.motors.items():
-            if wpilib.RobotBase.isSimulation():
+            if wpilib.RobotBase.is_simulation():
                 # sim has no real faults - make some up so the dashboard path gets exercised
                 faults = random.sample(['kBrownout', 'kCANRX', 'kHasReset', 'kStall'],
                                        k=random.randint(0, 2))
@@ -85,7 +85,7 @@ class CANStatus(commands2.Command):
             can_id = motor.can_id
             print(f"CANID {can_id:02d}: {name:13} [{vendor}] sticky_faults: {faults if faults else 'none'}")
 
-    def isFinished(self) -> bool:
+    def is_finished(self) -> bool:
         return True
 
     def end(self, interrupted: bool) -> None:

@@ -20,14 +20,14 @@ from helpers.utilities import deprecated
 class DriveByJoystickSwerveTargeting(commands2.Command):
     def __init__(self, container, swerve: Swerve, controller: CommandNiDsXboxController, rate_limited=False) -> None:
         super().__init__()
-        self.setName('drive_by_joystick_swerve_targeting')
+        self.set_name('drive_by_joystick_swerve_targeting')
         
         # -----------------------------------------------------------
         # 1. Subsystems & Dependencies
         # -----------------------------------------------------------
         self.container = container
         self.swerve = swerve
-        self.addRequirements(self.swerve)
+        self.add_requirements(self.swerve)
         self.controller: CommandNiDsXboxController = controller
 
         # -----------------------------------------------------------
@@ -40,7 +40,7 @@ class DriveByJoystickSwerveTargeting(commands2.Command):
         # -----------------------------------------------------------
         # 3. Input Processing (Debouncers, Limiters)
         # -----------------------------------------------------------
-        self.robot_oriented_debouncer = Debouncer(0.1, Debouncer.DebounceType.kBoth)
+        self.robot_oriented_debouncer = Debouncer(0.1, Debouncer.DebounceType.BOTH)
         
         self.drive_limiter = SlewRateLimiter(rl.driver_translation_slew_rate)
         self.strafe_limiter = SlewRateLimiter(rl.driver_translation_slew_rate)
@@ -55,7 +55,7 @@ class DriveByJoystickSwerveTargeting(commands2.Command):
         
         # PID for rotation tracking (Best parts of AutoToPoseClean)
         self.rot_pid = PIDController(tc.kTeleopRotationPID.kP, tc.kTeleopRotationPID.kI, tc.kTeleopRotationPID.kD)
-        self.rot_pid.enableContinuousInput(-math.pi, math.pi)
+        self.rot_pid.enable_continuous_input(-math.pi, math.pi)
         
         # Tracking state
         self.rot_overshot = False
@@ -79,15 +79,15 @@ class DriveByJoystickSwerveTargeting(commands2.Command):
         self._init_networktables()
 
     def _init_networktables(self):
-        self.inst = ntcore.NetworkTableInstance.getDefault()
+        self.inst = ntcore.NetworkTableInstance.get_default()
         status_prefix = constants.status_prefix
         # Simulation Debugging Publishers
-        self.js_dv1_x_pub = self.inst.getDoubleTopic(f"{status_prefix}/_joystick_dv1_x").publish()
-        self.js_dv1_y_pub = self.inst.getDoubleTopic(f"{status_prefix}/_joystick_dv1_y").publish()
-        self.js_dv_norm_x_pub = self.inst.getDoubleTopic(f"{status_prefix}/_joystick_dv_norm_x").publish()
-        self.js_dv_norm_y_pub = self.inst.getDoubleTopic(f"{status_prefix}/_joystick_dv_norm_y").publish()
-        self.commanded_values_pub = self.inst.getDoubleArrayTopic(f"{status_prefix}/_joystick_commanded_values").publish()
-        self.targeting_debug_pub = self.inst.getDoubleArrayTopic(f"{status_prefix}/targeting_debug").publish()
+        self.js_dv1_x_pub = self.inst.get_double_topic(f"{status_prefix}/_joystick_dv1_x").publish()
+        self.js_dv1_y_pub = self.inst.get_double_topic(f"{status_prefix}/_joystick_dv1_y").publish()
+        self.js_dv_norm_x_pub = self.inst.get_double_topic(f"{status_prefix}/_joystick_dv_norm_x").publish()
+        self.js_dv_norm_y_pub = self.inst.get_double_topic(f"{status_prefix}/_joystick_dv_norm_y").publish()
+        self.commanded_values_pub = self.inst.get_double_array_topic(f"{status_prefix}/_joystick_commanded_values").publish()
+        self.targeting_debug_pub = self.inst.get_double_array_topic(f"{status_prefix}/targeting_debug").publish()
 
     def initialize(self) -> None:
         """Called just before this Command runs the first time."""
@@ -100,16 +100,16 @@ class DriveByJoystickSwerveTargeting(commands2.Command):
         # -----------------------------------------------------------
         # 1. READ INPUTS
         # -----------------------------------------------------------
-        hid = self.controller.getHID()
+        hid = self.controller.get_hid()
         inputs = {
             'robot_pose': self.swerve.get_pose(),
-            'left_y': hid.getLeftY(),
-            'left_x': hid.getLeftX(),
-            'right_x': hid.getRightX(),
-            'trigger': hid.getRightTriggerAxis(),
-            'robot_oriented': hid.getLeftBumperButton(),
+            'left_y': hid.get_left_y(),
+            'left_x': hid.get_left_x(),
+            'right_x': hid.get_right_x(),
+            'trigger': hid.get_right_trigger_axis(),
+            'robot_oriented': hid.get_left_bumper_button(),
             'tracking_on': hid.getRightBumper(),
-            'alliance': wpilib.MatchState.getAlliance()
+            'alliance': wpilib.MatchState.get_alliance()
         }
 
         # -----------------------------------------------------------
@@ -141,12 +141,12 @@ class DriveByJoystickSwerveTargeting(commands2.Command):
             if self.counter % 10 == 0:
                 pose = inputs['robot_pose']
                 if self.debug_prints:
-                    print(f"{self.counter:3d} | {pose.X():.2f} {pose.Y():.2f} | {self.debug_v_field.X():.2f} {self.debug_v_field.Y():.2f} | {self.debug_future_pose.X():.2f} {self.debug_future_pose.Y():.2f} | {self.debug_error_deg:6.1f} | {self.debug_pid:.2f} {self.debug_ff:.2f} {self.debug_ks:.2f} {desired_rot:.2f}")
+                    print(f"{self.counter:3d} | {pose.x:.2f} {pose.y:.2f} | {self.debug_v_field.x:.2f} {self.debug_v_field.y:.2f} | {self.debug_future_pose.x:.2f} {self.debug_future_pose.y:.2f} | {self.debug_error_deg:6.1f} | {self.debug_pid:.2f} {self.debug_ff:.2f} {self.debug_ks:.2f} {desired_rot:.2f}")
                 if self.debug_nt:
                     self.targeting_debug_pub.set([
-                        pose.X(), pose.Y(),
-                        self.debug_v_field.X(), self.debug_v_field.Y(),
-                        self.debug_future_pose.X(), self.debug_future_pose.Y(),
+                        pose.x, pose.y,
+                        self.debug_v_field.x, self.debug_v_field.y,
+                        self.debug_future_pose.x, self.debug_future_pose.y,
                         self.debug_error_deg,
                         self.debug_pid, self.debug_ff, self.debug_ks, desired_rot
                     ])
@@ -175,10 +175,10 @@ class DriveByJoystickSwerveTargeting(commands2.Command):
         # -----------------------------------------------------------
         # 4. REPORT
         # -----------------------------------------------------------
-        if wpilib.RobotBase.isSimulation():
+        if wpilib.RobotBase.is_simulation():
             # Report Raw Input
-            self.js_dv1_x_pub.set(math.fabs(raw_vector.X()))
-            self.js_dv1_y_pub.set(math.fabs(raw_vector.Y()))
+            self.js_dv1_x_pub.set(math.fabs(raw_vector.x))
+            self.js_dv1_y_pub.set(math.fabs(raw_vector.y))
             
             # Report Final Processed Input
             self.js_dv_norm_x_pub.set(math.fabs(desired_fwd))
@@ -206,8 +206,8 @@ class DriveByJoystickSwerveTargeting(commands2.Command):
         processing_vector *= multiplier
 
         # Rate Limiting
-        desired_fwd = self.drive_limiter.calculate(processing_vector.X())
-        desired_strafe = self.strafe_limiter.calculate(processing_vector.Y())
+        desired_fwd = self.drive_limiter.calculate(processing_vector.x)
+        desired_strafe = self.strafe_limiter.calculate(processing_vector.y)
 
         # Alliance Adjustment
         if inputs['alliance'] == wpilib.Alliance.RED and self.field_oriented:
@@ -228,7 +228,7 @@ class DriveByJoystickSwerveTargeting(commands2.Command):
         # Calculate robot velocity vector
         robot_vel = self.swerve.get_relative_speeds() # Robot relative ChassisVelocities
         v_robot = Translation2d(robot_vel.vx, robot_vel.vy)
-        v_field = v_robot.rotateBy(robot_pose.rotation()) # Convert to field relative
+        v_field = v_robot.rotate_by(robot_pose.rotation()) # Convert to field relative
 
         # Predict future position based on lookahead time  TODO - pop up a ghost like in autotoposeclean
         future_robot_location = robot_pose.translation() + (v_field * tc.k_targeting_lookahead_s)
@@ -279,7 +279,7 @@ class DriveByJoystickSwerveTargeting(commands2.Command):
         rot_output += ff_output
         """
         # Error analysis for fine-tuning
-        diff_radians = self.rot_pid.getError()
+        diff_radians = self.rot_pid.get_error()
         self.debug_error_deg = math.degrees(diff_radians)
         if abs(diff_radians) > abs(self.last_diff_radians):
             self.rot_overshot = True

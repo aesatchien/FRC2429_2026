@@ -14,34 +14,34 @@ from wpimath import Pose2d
 class AutoShootAndPickup(commands2.SequentialCommandGroup):
     def __init__(self, container, indent=0) -> None:
         super().__init__()
-        self.setName(f'AutoShootAndPickup')
+        self.set_name(f'AutoShootAndPickup')
         self.container = container
 
 
-        self.addCommands(Intake_Deploy(intake=container.intake, position='shoot', indent=1))
+        self.add_commands(Intake_Deploy(intake=container.intake, position='shoot', indent=1))
 
-        self.addCommands(commands2.WaitCommand(0.5))
+        self.add_commands(commands2.WaitCommand(0.5))
 
         # because the drive by velocity needs swerve, we have to actively use the swerve to auto target
-        self.addCommands(shoot_cycle(self.container, timeout=5, delay_cycles=50, intake='none', indent=1))
+        self.add_commands(shoot_cycle(self.container, timeout=5, delay_cycles=50, intake='none', indent=1))
 
         # self.addCommands(ShootingCommand(shooter=container.shooter, targeting=container.targeting, indent=1, auto_timeout=5))
 
 
-        self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=constants.IntakeConstants.k_intake_default_rpm))
+        self.add_commands(Intake_Set_RPM(intake=self.container.intake, rpm=constants.IntakeConstants.k_intake_default_rpm))
 
-        self.addCommands(commands2.ParallelCommandGroup(
-            commands2.WaitCommand(1).andThen(Intake_Deploy(intake=container.intake, position='down', indent=1)),
+        self.add_commands(commands2.ParallelCommandGroup(
+            commands2.WaitCommand(1).and_then(Intake_Deploy(intake=container.intake, position='down', indent=1)),
             AutoToPoseClean(container=self.container, swerve=self.container.swerve, target_pose=None,
                             mode="ball_pickup", control_type='not_pathplanner')
         ))
 
-        self.addCommands(Intake_Deploy(intake=container.intake, position='down', indent=1))
+        self.add_commands(Intake_Deploy(intake=container.intake, position='down', indent=1))
 
         # flight simulator rules - y axis is reversed, so negative numbers go forward on field relative
         #self.addCommands(DriveByVelocitySwerve(self.container, self.container.swerve, Pose2d(-0.25, 0, 0), field_relative=True, indent=1, timeout=2))
-        self.addCommands(AutoToPoseClean(container=self.container, swerve=self.container.swerve, target_pose=None, mode="ball_pickup",control_type='not_pathplanner'))
+        self.add_commands(AutoToPoseClean(container=self.container, swerve=self.container.swerve, target_pose=None, mode="ball_pickup",control_type='not_pathplanner'))
         
 
-        self.addCommands(commands2.PrintCommand(f"{'    ' * indent}** Finished {self.getName()} **"))
+        self.add_commands(commands2.PrintCommand(f"{'    ' * indent}** Finished {self.get_name()} **"))
 

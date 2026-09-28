@@ -14,10 +14,10 @@ class ShootingFeedingCommand(commands2.Command):  # change the name for your com
 
     def __init__(self, shooter: Shooter, indent=0, auto_timeout=None, rpm=0, delay_cycles=20) -> None:
         super().__init__()
-        self.setName('Feeding') # change this to something appropriate for this command
+        self.set_name('Feeding') # change this to something appropriate for this command
         self.indent = indent
         self.shooter = shooter
-        self.addRequirements(self.shooter)  # commandsv2 version of requirements
+        self.add_requirements(self.shooter)  # commandsv2 version of requirements
         self.extra_log_info = None
         self.counter = 0  # add a counter if you need to track iterations, remember to initialize in below
         # we want indexer and hopper to start after .1 seconds or 1/10 seconds. 
@@ -81,7 +81,7 @@ class ShootingFeedingCommand(commands2.Command):  # change the name for your com
             pass
 
 
-    def isFinished(self) -> bool:
+    def is_finished(self) -> bool:
         # True: fire once and end; False: run forever until interrupted; logic has it end when code returns True
         if self.auto_timeout is None:
             return False

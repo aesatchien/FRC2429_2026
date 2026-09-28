@@ -4,11 +4,14 @@ import time
 
 import ntcore
 import wpilib
+import wpilib.simulation
 from commands2 import Subsystem
 
-from wpilib import Alliance, DataLogManager, DriverStation, MatchState, RobotBase, SmartDashboard, Timer
+from wpilib import Alliance, DataLogManager, DriverStation, MatchState, RobotBase, Timer
+from helpers import dashboard
+from helpers.dashboard import SmartDashboard  # 2027a7: wpilib's was removed
 from wpimath import SlewRateLimiter
-from wpimath import Pose2d, Rotation2d, Translation2d, Pose3d, Rotation3d, Translation3d
+from wpimath import Pose2d, Rotation2d, Translation2d, Pose3d, Rotation3d, Translation3d, Twist2d
 from wpimath import (ChassisVelocities, SwerveModuleVelocity, SwerveDrive4Kinematics)
 from wpimath import SwerveDrive4PoseEstimator
 from wpimath import PIDController
@@ -42,17 +45,17 @@ class Swerve (Subsystem):
             self.swerve_modules.append(SwerveModule(
                 drivingCANId=drive_id, turningCANId=turn_id, encoder_analog_port=enc_port,
                 turning_encoder_offset=offset, label=label))
-        self.frontLeft, self.frontRight, self.rearLeft, self.rearRight = self.swerve_modules
+        self.front_left, self.front_right, self.rear_left, self.rear_right = self.swerve_modules
 
         # let's make sure we're getting the right properties in the swerves.  describe() works
         # whichever vendor is underneath, so this still prints on a mixed Kraken/REV module.
-        lf_drive, lf_turn = self.frontLeft.describe()
+        lf_drive, lf_turn = self.front_left.describe()
         compare_motors(lf_drive, lf_turn, name_a='LF DRIVE', name_b='LF TURN')
 
         # Say out loud which bus everything is on.  Worth the three lines: when a device does
         # not answer, the first question is always "is it even on the bus we are asking?",
         # and the two vendors spell the same bus differently.
-        print(f'  CAN buses: drive(Kraken)={mc.k_kraken_canbus!r}/int{constants.k_can_bus_drive}  '
+        print(f'  CAN buses: drive(Kraken)={mc.k_kraken_canbus!r} ({constants.k_can_bus_drive})  '
               f'turn(REV)={constants.k_can_bus_turn}  '
               f'other(REV/PDH)={constants.k_can_bus_other}')
 
@@ -85,7 +88,7 @@ class Swerve (Subsystem):
         self.keep_angle_timer.start()
         self.keep_angle_timer.reset()
         self.keep_angle_pid = PIDController(0.015, 0, 0)  # todo: put these in constants.  allow 1% stick per degree
-        self.keep_angle_pid.enableContinuousInput(-180, 180)  # using the gyro's yaw is b/w -180 and 180
+        self.keep_angle_pid.enable_continuous_input(-180, 180)  # using the gyro's yaw is b/w -180 and 180
         self.last_rotation_time = 0
         self.time_since_rotation = 0
         self.last_drive_time = 0
@@ -106,17 +109,25 @@ class Swerve (Subsystem):
 
         # ---------- pose estimator  ----------
         self.pose_estimator = SwerveDrive4PoseEstimator(dc.kDriveKinematics,
-                                 Rotation2d.fromDegrees(self.get_gyro_angle()),                                                        self.get_module_positions(),
-                                    initialPose=Pose2d(constants.k_start_x, constants.k_start_y,
-                                    Rotation2d.fromDegrees(self.get_gyro_angle())))
+                                 Rotation2d.from_degrees(self.get_gyro_angle()),                                                        self.get_module_positions(),
+                                    initial_pose=Pose2d(constants.k_start_x, constants.k_start_y,
+                                    Rotation2d.from_degrees(self.get_gyro_angle())))
+
+        # ---------- Field2d ----------
+        # The drive subsystem owns the field, on the real robot too - that is why Java teams
+        # get a field view without any simulation code.  Shared through helpers.dashboard so
+        # the gamepiece and camera sims can draw on the same one without knowing about us.
+        # On a7 it is hand-published by dashboard.update() each loop (see _NATIVE_GAP there).
+        self.field = dashboard.field("Field")
+        self.field.set_robot_pose(self.get_pose())
 
         # ---------- Vision / NT  ----------
-        self.inst = ntcore.NetworkTableInstance.getDefault()
+        self.inst = ntcore.NetworkTableInstance.get_default()
         self.use_CJH_apriltags = constants.k_use_CJH_tags  # down below we decide which one to use in the periodic method
         
         self.camera_names = [config['topic_name'] for config in constants.CameraConstants.k_cameras.values() if config['type'] == 'tags']
-        self.pose_subscribers = [self.inst.getDoubleArrayTopic(f"/Cameras/{cam}/poses/tag1").subscribe([0] * 7) for cam in self.camera_names]
-        self.count_subscribers = [self.inst.getDoubleTopic(f"/Cameras/{cam}/tags/targets").subscribe(0) for cam in self.camera_names]
+        self.pose_subscribers = [self.inst.get_double_array_topic(f"/Cameras/{cam}/poses/tag1").subscribe([0] * 7) for cam in self.camera_names]
+        self.count_subscribers = [self.inst.get_double_topic(f"/Cameras/{cam}/tags/targets").subscribe(0) for cam in self.camera_names]
 
         # -------------  Pathplanner section --------------
         robot_config = RobotConfig.fromGUISettings()
@@ -138,7 +149,7 @@ class Swerve (Subsystem):
         # ------------- Advantagescope section -------------
         if constants.k_enable_logging:
             DataLogManager.start()  # start wpilib datalog for AdvantageScope
-            DriverStation.startDataLog(DataLogManager.getLog())  # Record both DS control and joystick data
+            DriverStation.start_data_log(DataLogManager.get_log())  # Record both DS control and joystick data
             # URCL is optional and imported lazily, so a missing package is a message rather
             # than an import error at module scope.  Toggle constants.k_enable_urcl.
             if constants.k_enable_urcl:
@@ -176,7 +187,7 @@ class Swerve (Subsystem):
         checks = [
             ('wheel radius (m)', module.wheelRadiusMeters, mc.kWheelDiameterMeters / 2, 0.001),
             ('drive current limit (A)', module.driveCurrentLimit, mc.kDrivingMotorCurrentLimit, 0.5),
-            ('wheel free speed (rad/s)', module.driveMotor.freeSpeed, expected_free_rad_s, 0.5),
+            ('wheel free speed (rad/s)', module.driveMotor.free_speed, expected_free_rad_s, 0.5),
         ]
         bad = [(name, got, want) for name, got, want, tol in checks if abs(got - want) > tol]
         if bad:
@@ -198,15 +209,15 @@ class Swerve (Subsystem):
         # Pre-allocate publishers to avoid hash lookups and string creation in periodic loops
 
         # let the coprocessors know if we have decided to do tag averaging
-        self.allow_tag_averaging_pub = self.inst.getBooleanTopic(f"/Cameras/tag_averaging").publish()
+        self.allow_tag_averaging_pub = self.inst.get_boolean_topic(f"/Cameras/tag_averaging").publish()
 
         # Use StructPublisher for Pose2d - extremely efficient and works natively with AdvantageScope
-        self.pose_pub = self.inst.getStructTopic(f"{swerve_prefix}/drive_pose", Pose2d).publish()
+        self.pose_pub = self.inst.get_struct_topic(f"{swerve_prefix}/drive_pose", Pose2d).publish()
         # self.pose_pub = self.inst.getDoubleArrayTopic(f"{swerve_prefix}/drive_pose").publish()  # legacy GUI dashboard
 
-        self.drive_x_pub = self.inst.getDoubleTopic(f"{swerve_prefix}/drive_x").publish()
-        self.drive_y_pub = self.inst.getDoubleTopic(f"{swerve_prefix}/drive_y").publish()
-        self.drive_theta_pub = self.inst.getDoubleTopic(f"{swerve_prefix}/drive_theta").publish()
+        self.drive_x_pub = self.inst.get_double_topic(f"{swerve_prefix}/drive_x").publish()
+        self.drive_y_pub = self.inst.get_double_topic(f"{swerve_prefix}/drive_y").publish()
+        self.drive_theta_pub = self.inst.get_double_topic(f"{swerve_prefix}/drive_theta").publish()
 
         # The "_navx" topic NAMES are historical - there is no navX any more, the source is
         # SystemCore's OnboardIMU.  They are kept because gui/config.py subscribes to
@@ -215,18 +226,18 @@ class Swerve (Subsystem):
         # ESTIMATOR's heading (gyro fused with the april tags).  That is what the driver
         # wants on the dashboard, so it is left alone - but it means the raw IMU was never
         # actually broadcast anywhere.  _imu_raw_angle below fixes that.
-        self.navx_angle_pub = self.inst.getDoubleTopic(f"{swerve_prefix}/_navx_angle").publish()
-        self.navx_yaw_pub = self.inst.getDoubleTopic(f"{swerve_prefix}/_navx_yaw").publish()
-        self.navx_raw_pub = self.inst.getDoubleTopic(f"{swerve_prefix}/_navx").publish()
-        self.keep_angle_pub = self.inst.getDoubleTopic(f"{swerve_prefix}/keep_angle").publish()
-        self.ypr_pub = self.inst.getDoubleArrayTopic(f"{swerve_prefix}/_navx_YPR").publish()
+        self.navx_angle_pub = self.inst.get_double_topic(f"{swerve_prefix}/_navx_angle").publish()
+        self.navx_yaw_pub = self.inst.get_double_topic(f"{swerve_prefix}/_navx_yaw").publish()
+        self.navx_raw_pub = self.inst.get_double_topic(f"{swerve_prefix}/_navx").publish()
+        self.keep_angle_pub = self.inst.get_double_topic(f"{swerve_prefix}/keep_angle").publish()
+        self.ypr_pub = self.inst.get_double_array_topic(f"{swerve_prefix}/_navx_YPR").publish()
 
         # The genuinely raw IMU heading, straight off OnboardIMU.getAngleZ() with no pose
         # fusion.  Watch this one when you want to know whether the IMU itself is alive and
         # sane - if the robot spins 90 degrees this must move 90 degrees, positive
         # counter-clockwise.  Compare it against _navx to see the tags pulling the pose.
-        self.imu_raw_angle_pub = self.inst.getDoubleTopic(f"{swerve_prefix}/_imu_raw_angle").publish()
-        self.imu_rate_pub = self.inst.getDoubleTopic(f"{swerve_prefix}/_imu_rate_dps").publish()
+        self.imu_raw_angle_pub = self.inst.get_double_topic(f"{swerve_prefix}/_imu_raw_angle").publish()
+        self.imu_rate_pub = self.inst.get_double_topic(f"{swerve_prefix}/_imu_rate_dps").publish()
         # The three Euler angles, published so the axis labels can be mapped to the robot.
         #
         # MEASURED ON THE REAL ROBOT, mount orientation FLAT: getAngleZ() reads PITCH -
@@ -243,16 +254,16 @@ class Swerve (Subsystem):
         # To map them: lift the FRONT (pitch), then lift one SIDE (roll), then spin the
         # robot (yaw), and watch which topic moves each time.  Then fix get_pitch() and
         # get_roll(), which currently assume Y=pitch and X=roll.
-        self.imu_anglex_pub = self.inst.getDoubleTopic(f"{swerve_prefix}/_imu_anglex").publish()
-        self.imu_angley_pub = self.inst.getDoubleTopic(f"{swerve_prefix}/_imu_angley").publish()
-        self.imu_anglez_pub = self.inst.getDoubleTopic(f"{swerve_prefix}/_imu_anglez").publish()
+        self.imu_anglex_pub = self.inst.get_double_topic(f"{swerve_prefix}/_imu_anglex").publish()
+        self.imu_angley_pub = self.inst.get_double_topic(f"{swerve_prefix}/_imu_angley").publish()
+        self.imu_anglez_pub = self.inst.get_double_topic(f"{swerve_prefix}/_imu_anglez").publish()
 
         # Debugging publishers - pre-allocate list to avoid f-string creation in loop
         module_names = ['LF', 'RF', 'LB', 'RB']  # TODO - just save this order somewhere and reuse it
-        self.abs_enc_pubs = [self.inst.getDoubleTopic(f"{swerve_prefix}/absolute_{name}").publish() for name in module_names]
-        self.angles_pub = self.inst.getDoubleArrayTopic(f"{swerve_prefix}/_angles").publish()
+        self.abs_enc_pubs = [self.inst.get_double_topic(f"{swerve_prefix}/absolute_{name}").publish() for name in module_names]
+        self.angles_pub = self.inst.get_double_array_topic(f"{swerve_prefix}/_angles").publish()
 
-        self.brownout_mode_pub = self.inst.getBooleanTopic(f"{status_prefix}/brownout_mode").publish()
+        self.brownout_mode_pub = self.inst.get_boolean_topic(f"{status_prefix}/brownout_mode").publish()
         self.brownout_mode_pub.set(self.brownout_mode)  # publish initial False
 
 
@@ -260,16 +271,16 @@ class Swerve (Subsystem):
     # ----------  pose and odometry function definitions ----------
     def get_pose(self) -> Pose2d:
         # return the pose of the robot  TODO: update the dashboard here?
-        return self.pose_estimator.getEstimatedPosition()
+        return self.pose_estimator.get_estimated_position()
 
     def resetOdometry(self, pose: Pose2d) -> None:
-        self.pose_estimator.resetPosition(Rotation2d.fromDegrees(self.get_gyro_angle()), self.get_module_positions(), pose)
+        self.pose_estimator.reset_position(Rotation2d.from_degrees(self.get_gyro_angle()), self.get_module_positions(), pose)
 
     def validate_odometry(self, pose: Pose2d) -> bool:
         # check if the pose is physically possible for the robot center to be at
         hw = constants.FieldConstants.k_robot_width / 2.0
-        if not (hw <= pose.X() <= constants.FieldConstants.k_field_length - hw): return False
-        if not (hw <= pose.Y() <= constants.FieldConstants.k_field_width - hw): return False
+        if not (hw <= pose.x <= constants.FieldConstants.k_field_length - hw): return False
+        if not (hw <= pose.y <= constants.FieldConstants.k_field_width - hw): return False
         return True
 
     def drive(self, xSpeed: float, ySpeed: float, rot: float, fieldRelative: bool, rate_limited: bool, keep_angle:bool=True) -> None:
@@ -309,11 +320,11 @@ class Swerve (Subsystem):
         # numerically identical to the 2026 call.
         chassis_velocities = ChassisVelocities(xSpeedDelivered, ySpeedDelivered, rotDelivered)
         if fieldRelative:
-            chassis_velocities = chassis_velocities.toRobotRelative(Rotation2d.fromDegrees(self.get_angle()))
-        swerveModuleStates = dc.kDriveKinematics.toSwerveModuleVelocities(chassis_velocities)
+            chassis_velocities = chassis_velocities.to_robot_relative(Rotation2d.from_degrees(self.get_angle()))
+        swerveModuleStates = dc.kDriveKinematics.to_swerve_module_velocities(chassis_velocities)
 
         # normalize wheel speeds so we do not exceed our speed limit
-        swerveModuleStates = SwerveDrive4Kinematics.desaturateWheelVelocities(swerveModuleStates, dc.kMaxTotalSpeed)
+        swerveModuleStates = SwerveDrive4Kinematics.desaturate_wheel_velocities(swerveModuleStates, dc.kMaxTotalSpeed)
         for state, module in zip(swerveModuleStates, self.swerve_modules):
             module.setDesiredState(state)
 
@@ -359,23 +370,23 @@ class Swerve (Subsystem):
         for module in self.swerve_modules:
             module.set_drive_current_limit(limit)
 
-    def setX(self) -> None:
+    def set_x(self) -> None:
         """Sets the wheels into an X formation to prevent movement."""
         angles = [45, -45, -45, 45]
         # print('Setting Swerve X')
         for angle, swerve_module in zip(angles, self.swerve_modules):
             # setDesiredState filters you out if your speed is less than a threshold, so gotta give it a small amount
-            swerve_module.setDesiredState(SwerveModuleVelocity(0.005, Rotation2d.fromDegrees(angle)))
+            swerve_module.setDesiredState(SwerveModuleVelocity(0.005, Rotation2d.from_degrees(angle)))
 
     def set_straight(self):
         """Sets the wheels straight so we can push the robot."""
         angles = [0, 0, 0, 0]
         for angle, swerve_module in zip(angles, self.swerve_modules):
             # setDesiredState filters you out if your speed is less than a threshold, so gotta give it a small amount
-            swerve_module.setDesiredState(SwerveModuleVelocity(0.005, Rotation2d.fromDegrees(angle)))
+            swerve_module.setDesiredState(SwerveModuleVelocity(0.005, Rotation2d.from_degrees(angle)))
 
     def setModuleStates(self, desiredStates: typing.Tuple[SwerveModuleVelocity]) -> None:
-        desiredStates = SwerveDrive4Kinematics.desaturateWheelVelocities(desiredStates, dc.kMaxTotalSpeed)
+        desiredStates = SwerveDrive4Kinematics.desaturate_wheel_velocities(desiredStates, dc.kMaxTotalSpeed)
         for idx, m in enumerate(self.swerve_modules):
             m.setDesiredState(desiredStates[idx])
 
@@ -386,7 +397,7 @@ class Swerve (Subsystem):
     def get_module_positions(self):
         """ CJH-added helper function to clean up some calls above"""
         # note lots of the calls want tuples, so _could_ convert if we really want to
-        return [m.getPosition() for m in self.swerve_modules]
+        return [m.get_position() for m in self.swerve_modules]
 
     def get_module_states(self):
         """ CJH-added helper function to clean up some calls above"""
@@ -455,29 +466,20 @@ class Swerve (Subsystem):
         self.gyro_angle_adjustment = adjustment if adjustment is not None else 0.0
         self.reset_keep_angle()
 
-    #  -------------  simulation helpers  ----------
-    def get_desired_swerve_module_states(self) -> list[SwerveModuleVelocity]:
-        """
-        what it says on the wrapper; it's for physics.py because I don't like relying on an NT entry
-        to communicate between them (it's less clear what the NT entry is there for, I think) LHACK 1/12/25
-        """
-        return [module.getDesiredState() for module in self.swerve_modules]
-
-
     #  -------------  METHODS PATHPLANNER NEEDS  ----------
     def get_relative_speeds(self):
-        return dc.kDriveKinematics.toChassisVelocities(self.get_module_states())
+        return dc.kDriveKinematics.to_chassis_velocities(self.get_module_states())
 
     def drive_robot_relative(self, chassis_speeds: ChassisVelocities, feedforwards):
         # required for the pathplanner lib's pathfollowing based on chassis speeds
         # idk if we need the feedforwards
-        swerveModuleStates = dc.kDriveKinematics.toSwerveModuleVelocities(chassis_speeds)
-        swerveModuleStates = SwerveDrive4Kinematics.desaturateWheelVelocities(swerveModuleStates, dc.kMaxTotalSpeed)
+        swerveModuleStates = dc.kDriveKinematics.to_swerve_module_velocities(chassis_speeds)
+        swerveModuleStates = SwerveDrive4Kinematics.desaturate_wheel_velocities(swerveModuleStates, dc.kMaxTotalSpeed)
         for state, module in zip(swerveModuleStates, self.swerve_modules):
             module.setDesiredState(state)
 
     def flip_path(self):  # pathplanner needs a function to see if it should mirror a path
-        if MatchState.getAlliance() == Alliance.BLUE:
+        if MatchState.get_alliance() == Alliance.BLUE:
             return False
         else:
             return True
@@ -487,7 +489,7 @@ class Swerve (Subsystem):
     # -------------- periodic and periodic helpers --------------
     def periodic(self) -> None:
         self.counter += 1
-        ts = Timer.getTimestamp()
+        ts = Timer.get_timestamp()
         current_pose = self.get_pose()  # Optimization: Cache pose to avoid recalculating it below
 
         self._update_vision_measurements(current_pose, ts)
@@ -514,16 +516,16 @@ class Swerve (Subsystem):
                     # Apply that latency to the FPGA Match Time (protect against negative clock jitter)
                     quest_fpga_timestamp = ts - max(0.0, latency_sec)
 
-                    self.pose_estimator.addVisionMeasurement(quest_pose, quest_fpga_timestamp, constants.DrivetrainConstants.k_pose_stdevs_large)
+                    self.pose_estimator.add_vision_measurement(quest_pose, quest_fpga_timestamp, constants.DrivetrainConstants.k_pose_stdevs_large)
                 elif self.counter % 100 == 0:
-                    print(f"*** QuestNav update REJECTED: {quest_pose.X():.2f}, {quest_pose.Y():.2f} is outside field limits! ***")
+                    print(f"*** QuestNav update REJECTED: {quest_pose.x:.2f}, {quest_pose.y:.2f} is outside field limits! ***")
 
         
         # AprilTag Logic
         if self.use_CJH_apriltags:
             for count_subscriber, pose_subscriber in zip(self.count_subscribers, self.pose_subscribers):
                 if count_subscriber.get() > 0:  # use this camera's tag
-                    atomic_data = pose_subscriber.getAtomic()
+                    atomic_data = pose_subscriber.get_atomic()
                     tag_data = atomic_data.value  # 7 items - id, tx, ty, tz, rx, ry, rz
                     timestamp_us = atomic_data.time
                     
@@ -535,17 +537,17 @@ class Swerve (Subsystem):
 
                     tag_id = int(tag_data[0])
                     # make sure it's not a training tag not intended for odometry (returns None if not in layout)
-                    if atu.layout.getTagPose(tag_id) is None and tag_data[0] != -1:
+                    if atu.layout.get_tag_pose(tag_id) is None and tag_data[0] != -1:
                         continue
 
                     tx, ty, tz = tag_data[1], tag_data[2], tag_data[3]
                     rx, ry, rz = tag_data[4], tag_data[5], tag_data[6]
-                    tag_pose = Pose3d(Translation3d(tx, ty, tz), Rotation3d(rx, ry, rz)).toPose2d()
+                    tag_pose = Pose3d(Translation3d(tx, ty, tz), Rotation3d(rx, ry, rz)).to_pose2d()
 
                     use_tag = constants.k_use_CJH_tags  # can disable this in constants
                     # abs() because the gyro rate is SIGNED - without it we rejected motion-blurred
                     # tags when spinning one direction and accepted them at any rate spinning the other.
-                    use_tag = False if abs(math.degrees(self.gyro.getGyroRateZ())) > 90 else use_tag  # no more than n deg/s while using a tag
+                    use_tag = False if abs(math.degrees(self.gyro.get_gyro_rate_z())) > 90 else use_tag  # no more than n deg/s while using a tag
 
                     if use_tag:
                         if self.validate_odometry(tag_pose):
@@ -555,43 +557,47 @@ class Swerve (Subsystem):
                             # Standard deviations tell the pose estimator how much to "trust" this measurement.
                             # Smaller numbers = more trust. We trust vision more when disabled and stationary.
                             # Units are (x_meters, y_meters, rotation_radians).
-                            sdevs = constants.DrivetrainConstants.k_pose_stdevs_large if wpilib.RobotState.isEnabled() else constants.DrivetrainConstants.k_pose_stdevs_disabled
+                            sdevs = constants.DrivetrainConstants.k_pose_stdevs_large if wpilib.RobotState.is_enabled() else constants.DrivetrainConstants.k_pose_stdevs_disabled
                             
-                            self.pose_estimator.addVisionMeasurement(tag_pose, tag_fpga_timestamp, sdevs)
+                            self.pose_estimator.add_vision_measurement(tag_pose, tag_fpga_timestamp, sdevs)
                         elif self.counter % 100 == 0:
-                            print(f"*** AprilTag {tag_id} update REJECTED: {tag_pose.X():.2f}, {tag_pose.Y():.2f} is outside field limits! ***")
+                            print(f"*** AprilTag {tag_id} update REJECTED: {tag_pose.x:.2f}, {tag_pose.y:.2f} is outside field limits! ***")
 
     def _update_odometry(self, ts):
-        if RobotBase.isReal():
-            self.pose_estimator.updateWithTime(ts, Rotation2d.fromDegrees(self.get_gyro_angle()), self.get_module_positions(),)
-            
+        # This used to be guarded by RobotBase.is_real() because the pyfrc physics engine
+        # force-reset the estimator to ground truth every loop.  The modules and the IMU are
+        # simulated now (simulation_periodic below), so odometry runs the same code path in
+        # both places - and in sim it is ALLOWED to drift from ground truth.  That is the point.
+        self.pose_estimator.update_with_time(ts, Rotation2d.from_degrees(self.get_gyro_angle()), self.get_module_positions(),)
+
         # Clamp the pose estimator to the physical field boundaries to prevent wheel-slip creep
         pose = self.get_pose()
         hw = constants.FieldConstants.k_robot_width / 2.0
-        clamped_x = max(hw, min(constants.FieldConstants.k_field_length - hw, pose.X()))
-        clamped_y = max(hw, min(constants.FieldConstants.k_field_width - hw, pose.Y()))
+        clamped_x = max(hw, min(constants.FieldConstants.k_field_length - hw, pose.x))
+        clamped_y = max(hw, min(constants.FieldConstants.k_field_width - hw, pose.y))
         
-        if clamped_x != pose.X() or clamped_y != pose.Y():
+        if clamped_x != pose.x or clamped_y != pose.y:
             clamped_pose = Pose2d(clamped_x, clamped_y, pose.rotation())
-            self.pose_estimator.resetPosition(Rotation2d.fromDegrees(self.get_gyro_angle()), self.get_module_positions(), clamped_pose)
+            self.pose_estimator.reset_position(Rotation2d.from_degrees(self.get_gyro_angle()), self.get_module_positions(), clamped_pose)
             if self.counter % 25 == 0:
-                print(f"*** Odometry clamped to field bounds at {ts:.2f}s. Attempted pose: X={pose.X():.2f}, Y={pose.Y():.2f} ***")
+                print(f"*** Odometry clamped to field bounds at {ts:.2f}s. Attempted pose: X={pose.x:.2f}, Y={pose.y:.2f} ***")
 
     def _update_dashboard(self, pose, ts):
 
         # Send the struct (replaces the arrays). AdvantageScope detects this automatically.
         self.pose_pub.set(pose)
+        self.field.set_robot_pose(pose)   # published by dashboard.update() from robot_periodic
         # self.pose_pub.set([pose.X(), pose.Y(), pose.rotation().degrees()])  # legacy version
 
         # allow averaging to AprilTags on coprocessors when disabled OR when we are sitting still
-        if constants.k_allow_tag_averaging and wpilib.RobotState.isDisabled():
+        if constants.k_allow_tag_averaging and wpilib.RobotState.is_disabled():
             self.allow_tag_averaging_pub.set(True)
         else:
             self.allow_tag_averaging_pub.set(False)
 
         # Scalars (if you still need them for a specific dashboard layout)
-        self.drive_x_pub.set(pose.X())
-        self.drive_y_pub.set(pose.Y())
+        self.drive_x_pub.set(pose.x)
+        self.drive_y_pub.set(pose.y)
         self.drive_theta_pub.set(pose.rotation().degrees())
 
         self.navx_raw_pub.set(self.get_angle())          # POSE heading, despite the name
@@ -602,10 +608,10 @@ class Swerve (Subsystem):
         # the IMU on its own, with no pose fusion - this is the one to trust when asking
         # "is the onboard IMU working at all?"
         self.imu_raw_angle_pub.set(self.get_raw_angle())
-        self.imu_rate_pub.set(math.degrees(self.gyro.getGyroRateZ()))
-        self.imu_anglex_pub.set(math.degrees(self.gyro.getAngleX()))
-        self.imu_angley_pub.set(math.degrees(self.gyro.getAngleY()))
-        self.imu_anglez_pub.set(math.degrees(self.gyro.getAngleZ()))  # measured: PITCH on FLAT
+        self.imu_rate_pub.set(math.degrees(self.gyro.get_gyro_rate_z()))
+        self.imu_anglex_pub.set(math.degrees(self.gyro.get_angle_x()))
+        self.imu_angley_pub.set(math.degrees(self.gyro.get_angle_y()))
+        self.imu_anglez_pub.set(math.degrees(self.gyro.get_angle_z()))  # measured: PITCH on FLAT
 
         # post yaw, pitch, roll so we can see what is going on with the climb
         # 4th element was gyro.getRotation2d(), which is built from getYaw() - a different
@@ -623,3 +629,71 @@ class Swerve (Subsystem):
                 pub.set(val)
             
             self.angles_pub.set(angles)
+
+    # -------------- simulation --------------
+    # Called by CommandScheduler.run() on every registered subsystem when RobotBase.is_simulation().
+    # Nothing here reaches outside the drivetrain: the modules simulate their own motors and
+    # write their own sensors, the IMU sim is driven from what the wheels ACTUALLY did, and the
+    # pose estimator above never sees ground truth.  Ground truth exists only so the camera and
+    # gamepiece sims have something to look at, and so the dashboard can show the drift.
+    k_sim_nominal_dt = 0.02
+
+    def simulation_periodic(self) -> None:
+        now = Timer.get_timestamp()
+        if not hasattr(self, '_sim_last_time'):
+            self._sim_init()
+            self._sim_last_time = now
+            return
+        dt = now - self._sim_last_time
+        self._sim_last_time = now
+        if dt <= 0:
+            return
+        dt = min(dt, 5 * self.k_sim_nominal_dt)   # a paused sim must not integrate a huge step
+
+        vbus = wpilib.RobotController.get_battery_voltage()
+        amps = [module.simulation_periodic(dt, vbus) for module in self.swerve_modules]
+
+        # What the chassis actually did this step, from the MEASURED module states - the same
+        # states odometry consumes - not from the commanded ones.
+        speeds = dc.kDriveKinematics.to_chassis_velocities(self.get_module_states())
+
+        # The onboard IMU.  OnboardIMU is counter-clockwise-positive like the rest of WPILib
+        # (the navX was not, which is the only reason the old sim subtracted here).  Radians.
+        # set_angle_x is the axis this subsystem actually reads (k_imu_yaw_getter, measured on
+        # the robot); set_yaw is driven too so get_yaw()/get_rotation2d() stay believable.
+        # They are independent signals in sim - setting one does not move the other.
+        self._sim_yaw_rad += speeds.omega * dt
+        self._imu_sim.set_angle_x(self._sim_yaw_rad)
+        self._imu_sim.set_yaw(self._sim_yaw_rad)
+        self._imu_sim.set_gyro_rate_z(speeds.omega)
+
+        # Ground truth: integrate the same speeds as a pose exponential.  2027 removed
+        # Pose2d.exp(twist); Twist2d.exp() now returns the Transform2d.  Arc integration, not a
+        # straight line - do not "simplify" it.
+        twist = Twist2d(dx=speeds.vx * dt, dy=speeds.vy * dt, dtheta=speeds.omega * dt)
+        self._sim_ground_truth = self._sim_ground_truth.transform_by(twist.exp())
+        self._sim_ground_truth_pub.set(self._sim_ground_truth)
+        self._sim_truth_object.set_pose(self._sim_ground_truth)
+
+        wpilib.simulation.RoboRioSim.set_vin_voltage(wpilib.simulation.BatterySim.calculate(amps))
+
+    def _sim_init(self) -> None:
+        self._imu_sim = wpilib.simulation.OnboardIMUSim()
+        self._sim_yaw_rad = 0.0
+        self._sim_ground_truth = Pose2d(constants.k_start_x, constants.k_start_y, Rotation2d())
+        self._sim_ground_truth_pub = self.inst.get_struct_topic(f"{constants.sim_prefix}/ground_truth", Pose2d).publish()
+        self._sim_ground_truth_pub.set(self._sim_ground_truth)
+        # A second robot on the field so estimator error is something you can SEE.
+        self._sim_truth_object = dashboard.field_object("GroundTruth")
+        self._sim_truth_object.set_pose(self._sim_ground_truth)
+
+    def sim_get_ground_truth(self) -> Pose2d:
+        """Where the simulated robot really is.  Simulation only; never read this for control."""
+        return getattr(self, '_sim_ground_truth', Pose2d(constants.k_start_x, constants.k_start_y, Rotation2d()))
+
+    def sim_set_ground_truth(self, pose: Pose2d) -> None:
+        """Teleport ground truth - used by hardware-in-the-loop snapping (simulation/hil_snap.py).
+        Deliberately does NOT touch the pose estimator: if a real camera says we are somewhere
+        else, the estimator finds out the same way it would on the robot, through its vision
+        measurements.  That is the whole reason to keep the two apart."""
+        self._sim_ground_truth = pose

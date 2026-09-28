@@ -99,9 +99,9 @@ class FlippingUtil:
         :return: The flipped position
         """
         if FlippingUtil.symmetryType == FieldSymmetry.kMirrored:
-            return Translation2d(FlippingUtil.fieldSizeX - pos.X(), pos.Y())
+            return Translation2d(FlippingUtil.fieldSizeX - pos.x, pos.y)
         else:
-            return Translation2d(FlippingUtil.fieldSizeX - pos.X(), FlippingUtil.fieldSizeY - pos.Y())
+            return Translation2d(FlippingUtil.fieldSizeX - pos.x, FlippingUtil.fieldSizeY - pos.y)
 
     @staticmethod
     def flipFieldRotation(rotation: Rotation2d) -> Rotation2d:
@@ -272,7 +272,7 @@ def calculateRadius(a: Translation2d, b: Translation2d, c: Translation2d) -> flo
     """
     vba = a - b
     vbc = c - b
-    cross_z = (vba.X() * vbc.X()) - (vba.X() * vbc.X())
+    cross_z = (vba.x * vbc.x) - (vba.x * vbc.x)
     sign = 1 if cross_z < 0 else -1
 
     ab = a.distance(b)

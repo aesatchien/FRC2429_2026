@@ -22,7 +22,7 @@ class RumbleCommand(commands2.Command):
     def __init__(self, rumble_amount: float, left_rumble: bool, right_rumble: bool,
                  rumble_time=None, controller=None, indent=0) -> None:
         super().__init__()
-        self.setName('Rumble command')
+        self.set_name('Rumble command')
         self.indent = indent
 
         self.controller = controller if controller is not None else js.driver_controller
@@ -35,15 +35,15 @@ class RumbleCommand(commands2.Command):
         if (not left_rumble) and (not right_rumble):
             raise ValueError("why are you making a rumblecommand with no rumble")
 
-    def runsWhenDisabled(self):
+    def runs_when_disabled(self):
         return True
 
     def _set_rumble(self, amount: float) -> None:
-        hid = self.controller.getHID()
+        hid = self.controller.get_hid()
         if self.left_rumble:
-            hid.setRumble(GenericHID.RumbleType.LEFT_RUMBLE, amount)
+            hid.set_rumble(GenericHID.RumbleType.LEFT_RUMBLE, amount)
         if self.right_rumble:
-            hid.setRumble(GenericHID.RumbleType.RIGHT_RUMBLE, amount)
+            hid.set_rumble(GenericHID.RumbleType.RIGHT_RUMBLE, amount)
 
     def initialize(self) -> None:
         self.timer.restart()
@@ -52,9 +52,9 @@ class RumbleCommand(commands2.Command):
     def execute(self) -> None:
         pass
 
-    def isFinished(self) -> bool:
+    def is_finished(self) -> bool:
         if self.rumble_time:
-            return self.timer.hasElapsed(self.rumble_time)
+            return self.timer.has_elapsed(self.rumble_time)
         return True
 
     def end(self, interrupted: bool) -> None:

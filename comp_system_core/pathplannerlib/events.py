@@ -19,7 +19,7 @@ class Event:
         """
         self._timestamp = timestamp
 
-    def getTimestamp(self) -> float:
+    def get_timestamp(self) -> float:
         return self._timestamp
 
     def setTimestamp(self, timestamp: float):
@@ -67,7 +67,7 @@ class EventScheduler:
         :param time: The current time along the trajectory
         """
         # Check for events that should be handled this loop
-        while len(self._upcomingEvents) > 0 and time >= self._upcomingEvents[0].getTimestamp():
+        while len(self._upcomingEvents) > 0 and time >= self._upcomingEvents[0].get_timestamp():
             self._upcomingEvents.pop(0).handleEvent(self)
 
         # Run currently running commands
@@ -77,7 +77,7 @@ class EventScheduler:
 
             command.execute()
 
-            if command.isFinished():
+            if command.is_finished():
                 command.end(False)
                 self._eventCommands[command] = False
 
@@ -112,7 +112,7 @@ class EventScheduler:
 
         for m in path.getEventMarkers():
             if m.command is not None:
-                allReqs.update(m.command.getRequirements())
+                allReqs.update(m.command.get_requirements())
 
         return allReqs
 
@@ -132,8 +132,8 @@ class EventScheduler:
             if not self._eventCommands[cmd]:
                 continue
 
-            for req in command.getRequirements():
-                if req in cmd.getRequirements():
+            for req in command.get_requirements():
+                if req in cmd.get_requirements():
                     self.cancelCommand(cmd)
 
         command.initialize()
@@ -308,14 +308,14 @@ class OneShotTriggerEvent(Event):
         """
         super().__init__(timestamp)
         self._name = name
-        self._resetCommand = cmd.waitSeconds(0).andThen(
-            cmd.runOnce(lambda: EventTrigger.setCondition(self._name, False))).ignoringDisable(True)
+        self._resetCommand = cmd.wait_seconds(0).and_then(
+            cmd.run_once(lambda: EventTrigger.setCondition(self._name, False))).ignoring_disable(True)
 
     def handleEvent(self, eventScheduler: 'EventScheduler') -> None:
         EventTrigger.setCondition(self._name, True)
         # We schedule this command with the main command scheduler so that it is guaranteed to be run
         # in its entirety, since the EventScheduler could cancel this command before it finishes
-        CommandScheduler.getInstance().schedule(self._resetCommand)
+        CommandScheduler.get_instance().schedule(self._resetCommand)
 
     def cancelEvent(self, eventScheduler: 'EventScheduler') -> None:
         # Do nothing

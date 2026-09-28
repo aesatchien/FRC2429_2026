@@ -26,7 +26,7 @@ class DepotOrOutpostAndShoot(commands2.SequentialCommandGroup):
     def __init__(self, container, indent=0) -> None:
         super().__init__()
         self.container = container
-        self.setName(f'DepotOrOutpostAndShoot')
+        self.set_name(f'DepotOrOutpostAndShoot')
 
 
         # -----  PHASE I:  DRIVE TO FILL HOPPER  -----
@@ -38,11 +38,11 @@ class DepotOrOutpostAndShoot(commands2.SequentialCommandGroup):
         #self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=ac.k_intake_roller_rpm))
 
         # moves to the neutral zone to intake fuel --> come back to shoot
-        self.addCommands(
+        self.add_commands(
             ConditionalCommand(
                 AutoBuilder.followPath(PathPlannerPath.fromPathFile('Intake_From_Outpost'))
-                        .andThen(commands2.WaitCommand(7))
-                        .andThen(AutoBuilder.followPath(PathPlannerPath.fromPathFile('Outpost_Go_Shoot'))),
+                        .and_then(commands2.WaitCommand(7))
+                        .and_then(AutoBuilder.followPath(PathPlannerPath.fromPathFile('Outpost_Go_Shoot'))),
                 AutoBuilder.followPath(PathPlannerPath.fromPathFile('Intake_From_Depot')),
                 self.get_is_right
             )
@@ -55,7 +55,7 @@ class DepotOrOutpostAndShoot(commands2.SequentialCommandGroup):
         # Starts the shooting cycle and then raises the intake after a delay to prevent compression and jams
         # forces it to die when the first command finishes
         
-        self.addCommands(shoot_cycle(self.container, intake='one_stage', indent=1))
+        self.add_commands(shoot_cycle(self.container, intake='one_stage', indent=1))
         # stops tracking
 
         # -----  PHASE III:  FILL HOPPER AGAIN -----
@@ -80,11 +80,11 @@ class DepotOrOutpostAndShoot(commands2.SequentialCommandGroup):
         #         WaitCommand(1), InstantCommand(lambda: self.container.shooter.set_shooter_rpm(ac.k_shooter_startup_rpm)))
         # ))
 
-        self.addCommands(Intake_Set_RPM(intake=self.container.intake, rpm=0))
+        self.add_commands(Intake_Set_RPM(intake=self.container.intake, rpm=0))
 
-        self.addCommands(commands2.PrintCommand(f"{'    ' * indent}** Finished {self.getName()} **"))
+        self.add_commands(commands2.PrintCommand(f"{'    ' * indent}** Finished {self.get_name()} **"))
 
     def get_is_right(self):
-        alliance_color = wpilib.MatchState.getAlliance() == wpilib.Alliance.BLUE
-        is_left = self.container.swerve.get_pose().Y() > fc.k_field_width / 2
+        alliance_color = wpilib.MatchState.get_alliance() == wpilib.Alliance.BLUE
+        is_left = self.container.swerve.get_pose().y > fc.k_field_width / 2
         return alliance_color ^ is_left

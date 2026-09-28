@@ -110,8 +110,8 @@ class DriveConstants:
     robot_chassis = 27.0  # in
     mk4i_offset = 2.5  # in
 
-    kTrackWidth = units.inchesToMeters(robot_chassis - 2 * mk4i_offset)  # Distance between centers of right and left wheels on robot
-    kWheelBase = units.inchesToMeters(robot_chassis - 2 * mk4i_offset)   # Distance between front and back wheels on robot
+    kTrackWidth = units.inches_to_meters(robot_chassis - 2 * mk4i_offset)  # Distance between centers of right and left wheels on robot
+    kWheelBase = units.inches_to_meters(robot_chassis - 2 * mk4i_offset)   # Distance between front and back wheels on robot
 
     # kinematics gets passed [self.frontLeft, self.frontRight, self.rearLeft, self.rearRight]
     # Front left is X+Y+, Front right is + -, Rear left is - +, Rear right is - - (otherwise odometery is wrong)
@@ -165,9 +165,12 @@ class DriveConstants:
     # so the seam lands wherever the robot happened to be pointing at boot.  getAngleX is
     # clean.  The cost is that resetYaw() does NOT affect the Euler axes, so zeroing at boot
     # has to be done in software - see Swerve._imu_yaw_deg().
-    k_imu_yaw_getter = 'getAngleX'      # measured
-    k_imu_pitch_getter = 'getAngleZ'    # measured
-    k_imu_roll_getter = 'getAngleY'     # inferred
+    # 2027a7: snake_case.  THIS IS A STRING FED TO getattr() IN Swerve.get_gyro_angle(),
+    # so no automated rename can see it - it has to be changed by hand, and getting it wrong
+    # is an AttributeError at construction (or worse, a silently wrong axis).
+    k_imu_yaw_getter = 'get_angle_x'      # measured
+    k_imu_pitch_getter = 'get_angle_z'  # measured
+    k_imu_roll_getter = 'get_angle_y'   # inferred
     # used in the swerve modules themselves to reverse the direction of the analog encoder
     # note turn motors and analog encoders must agree - or you go haywire
     k_reverse_analog_encoders = False  # False for 2024 and probably always.
@@ -382,33 +385,57 @@ class ModuleConstants:
     # ==========================================
     k_driving_config = DriveConstants.ACTIVE_CONFIG['config_cls']()
     k_driving_config.inverted(DriveConstants.swerve_motor_inversions['drive_motors_inverted'])
-    k_driving_config.closedLoop.pid(p=0.02, i=0, d=0)
+    k_driving_config.closed_loop.pid(p=0.02, i=0, d=0)
     # 2027: REV removed pidf()'s ff term.  kV is in VOLTS per wheel-rps; the old ff was
     # duty cycle per wheel-rps, so the same gain is ff * 12.  This is the identical
     # conversion motors.py already does for the Kraken's k_v.
-    k_driving_config.closedLoop.feedForward.kV(12.0 / kDriveWheelFreeSpeedRps)
-    k_driving_config.closedLoop.minOutput(-0.96)
-    k_driving_config.closedLoop.maxOutput(0.96)
-    k_driving_config.closedLoop.IZone(0.001)
-    k_driving_config.closedLoop.maxMotion.cruiseVelocity(3)
-    k_driving_config.closedLoop.maxMotion.maxAcceleration(2)
-    k_driving_config.setIdleMode(idleMode=SparkFlexConfig.IdleMode.kBrake)
-    k_driving_config.smartCurrentLimit(stallLimit=kDrivingMotorCurrentLimit, freeLimit=kDrivingMotorCurrentLimit, limitRpm=5700)
-    k_driving_config.voltageCompensation(12)
-    k_driving_config.encoder.positionConversionFactor((kWheelDiameterMeters * math.pi) / kDrivingMotorReduction) # meters
-    k_driving_config.encoder.velocityConversionFactor((kWheelDiameterMeters * math.pi) / ( kDrivingMotorReduction * 60)) # meters per second
+    k_driving_config.closed_loop.feed_forward.v(12.0 / kDriveWheelFreeSpeedRps)
+    k_driving_config.closed_loop.min_output(-0.96)
+    k_driving_config.closed_loop.max_output(0.96)
+    k_driving_config.closed_loop.i_zone(0.001)
+    k_driving_config.closed_loop.max_motion.cruise_velocity(3)
+    k_driving_config.closed_loop.max_motion.max_acceleration(2)
+    k_driving_config.set_idle_mode(idle_mode=SparkFlexConfig.IdleMode.BRAKE)
+    k_driving_config.smart_current_limit(stall_limit=kDrivingMotorCurrentLimit, free_limit=kDrivingMotorCurrentLimit, limit_rpm=5700)
+    k_driving_config.voltage_compensation(12)
+    # ---------------------------------------------------------------------------
+    # UNIT CONVERSION - MOVED OUT OF THE CONTROLLER IN 2027a7.
+    #
+    # rev 2027.0.0a7 DELETED positionConversionFactor / velocityConversionFactor.  There is
+    # no replacement - the string "conversion" does not appear anywhere in the package.  A
+    # REV controller now always reports raw MOTOR ROTATIONS and RPM, and the robot code has
+    # to scale.  We do that in motors.RevDriveMotor / RevTurnMotor, which is where the
+    # Kraken path has always done it anyway (see the k_kraken note below), so the two
+    # vendors finally agree on where units live.
+    #
+    # These factors are therefore exported as plain numbers instead of being pushed into the
+    # controller config.
+    # ---------------------------------------------------------------------------
+    k_drive_position_factor = (kWheelDiameterMeters * math.pi) / kDrivingMotorReduction        # m per motor rot
+    k_drive_velocity_factor = (kWheelDiameterMeters * math.pi) / (kDrivingMotorReduction * 60) # m/s per motor RPM
+
+    # GAIN RESCALE THAT COMES WITH IT.  The REV closed loop now sees error in motor RPM, not
+    # m/s.  error_mps == error_rpm * k_drive_velocity_factor, so to keep the SAME duty cycle
+    # for the same physical error the gains must be multiplied by that factor.  Skipping this
+    # would leave the drive PID ~1270x too hot.
+    #     UNVERIFIED ON HARDWARE - this path only runs when drive_vendor == 'rev', and the
+    #     comp bot is 'ctre'.  Bench it before trusting it on an all-REV robot.
+    k_drive_kp_rev_raw = 0.02 * k_drive_velocity_factor
     # k_driving_config.closedLoop.pid(0, 0, 0); feedForward.kV(0.12)
 
     # note: we don't use any spark pid or ff for turning
     k_turning_config = DriveConstants.ACTIVE_CONFIG['config_cls']()
     k_turning_config.inverted(DriveConstants.swerve_motor_inversions['turn_motors_inverted'])
-    k_turning_config.setIdleMode(SparkMaxConfig.IdleMode.kBrake)
-    k_turning_config.smartCurrentLimit(stallLimit=kTurningMotorCurrentLimit, freeLimit=kTurningMotorCurrentLimit, limitRpm=5700)
-    k_turning_config.voltageCompensation(12)
+    k_turning_config.set_idle_mode(SparkMaxConfig.IdleMode.BRAKE)
+    k_turning_config.smart_current_limit(stall_limit=kTurningMotorCurrentLimit, free_limit=kTurningMotorCurrentLimit, limit_rpm=5700)
+    k_turning_config.voltage_compensation(12)
 
-    # nor do we use this encoder-- we configure it "just to watch it if we need to for velocities, etc."
-    k_turning_config.encoder.positionConversionFactor(math.tau/k_turning_motor_gear_ratio) # radian
-    k_turning_config.encoder.velocityConversionFactor(math.tau/(k_turning_motor_gear_ratio * 60)) # radians per second
+    # nor do we use this encoder-- we watch it "just to see it if we need to for velocities, etc."
+    # 2027a7 removed the controller-side conversion (see the drive block above); motors.py
+    # applies these instead.  Turn is diagnostics-only - the RIO closes the loop on the
+    # analog absolute encoder - so getting this wrong misreads a dashboard number, nothing more.
+    k_turn_position_factor = math.tau / k_turning_motor_gear_ratio            # rad per motor rot
+    k_turn_velocity_factor = math.tau / (k_turning_motor_gear_ratio * 60)     # rad/s per motor RPM
 
     # ==========================================
     # Kraken X60 / TalonFX Configuration  (drive only, for k_swerve_config = "comp_kraken")
@@ -453,7 +480,8 @@ class ModuleConstants:
     # Krakens still fail to connect on can_s0, can_s1 is the next thing to try.  Whether
     # REV's integer bus 0 is the same physical bus as Phoenix's can_s0 is not documented
     # anywhere we can find; REV bus 0 is definitely the one the Sparks answer on.
-    k_kraken_canbus = f'can_s{constants.k_can_bus_drive}'   # no CANivore yet
+    # int() because k_can_bus_drive is a wpilib.CANPort now, not a bare int (2027a7).
+    k_kraken_canbus = f'can_s{int(constants.k_can_bus_drive)}'   # no CANivore yet
 
     # REV gives one current knob; Phoenix gives two, and they are different quantities.
     #   supply  - protects the breaker and the battery.  This is what brownout mode moves.
@@ -509,7 +537,7 @@ class ModuleConstants:
 
         # Deliberately NOT ported, and why:
         #   voltageCompensation(12)      - VelocityVoltage control is inherently compensated
-        #   closedLoop.IZone(0.001)      - Phoenix slot configs have no IZone, and our kI is 0
+        #   closedLoop.i_zone(0.001)      - Phoenix slot configs have no IZone, and our kI is 0
         #   maxMotion.cruiseVelocity(3)     - dead on the REV side too; we command kVelocity, not MAXMotion
         #   maxMotion.maxAcceleration(2) - same
         #   PersistMode / k_burn_flash   - Phoenix configs persist in the device by default

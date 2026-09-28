@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from wpimath import Translation2d, Rotation2d
 from wpimath import ChassisVelocities, SwerveDrive4Kinematics, SwerveModuleVelocity
-from wpimath.units import rotationsToRadians
+from wpimath.units import rotations_to_radians
 from wpilib import RobotController
 from pathplannerlib.config import RobotConfig
 from pathplannerlib.util import DriveFeedforwards
@@ -37,7 +37,7 @@ class SwerveSetpointGenerator:
         """
         self._config = config
         self._max_steer_velocity_rads_per_sec = max_steer_velocity_rads_per_sec
-        self._brownoutVoltage = RobotController.getBrownoutVoltage()
+        self._brownoutVoltage = RobotController.get_brownout_voltage()
 
     @classmethod
     def from_rots_per_sec(cls, config: RobotConfig, max_steer_velocity: float) -> "SwerveSetpointGenerator":
@@ -48,7 +48,7 @@ class SwerveSetpointGenerator:
         :param max_steer_velocity: The maximum rotation velocity of a swerve module, in rotations
         :return: A SwerveSetpointGenerator object
         """
-        return cls(config, rotationsToRadians(max_steer_velocity))
+        return cls(config, rotations_to_radians(max_steer_velocity))
 
     def generateSetpoint(self, prev_setpoint: SwerveSetpoint, desired_state_robot_relative: ChassisVelocities, dt: float,
                          input_voltage: float = None, constraints: PathConstraints = None) -> SwerveSetpoint:
@@ -70,7 +70,7 @@ class SwerveSetpointGenerator:
         desired_state quickly.
         """
         if input_voltage is None:
-            input_voltage = RobotController.getInputVoltage()
+            input_voltage = RobotController.get_input_voltage()
 
         if math.isnan(input_voltage):
             input_voltage = 12.0
@@ -89,10 +89,10 @@ class SwerveSetpointGenerator:
                                                                                constraints.maxAngularVelocityRps),
                                                                            -constraints.maxAngularVelocityRps))
 
-        desired_module_states = self._config.toSwerveModuleVelocities(desired_state_robot_relative)
+        desired_module_states = self._config.to_swerve_module_velocities(desired_state_robot_relative)
         # Make sure desired_state respects velocity limits.
-        SwerveDrive4Kinematics.desaturateWheelVelocities(desired_module_states, maxSpeed)
-        desired_state_robot_relative = self._config.toChassisVelocities(desired_module_states)
+        SwerveDrive4Kinematics.desaturate_wheel_velocities(desired_module_states, maxSpeed)
+        desired_state_robot_relative = self._config.to_chassis_velocities(desired_module_states)
 
         # Special case: desired_state is a complete stop. In this case, module angle is arbitrary, so
         # just use the previous angle.
@@ -122,7 +122,7 @@ class SwerveSetpointGenerator:
             )
             prev_heading.append(prev_setpoint.module_states[m].angle)
             if prev_setpoint.module_states[m].velocity < 0.0:
-                prev_heading[m] = prev_heading[m].rotateBy(Rotation2d.fromDegrees(180))
+                prev_heading[m] = prev_heading[m].rotate_by(Rotation2d.from_degrees(180))
 
             desired_vx.append(
                 desired_module_states[m].angle.cos() * desired_module_states[m].velocity
@@ -132,10 +132,10 @@ class SwerveSetpointGenerator:
             )
             desired_heading.append(desired_module_states[m].angle)
             if desired_module_states[m].velocity < 0.0:
-                desired_heading[m] = desired_heading[m].rotateBy(Rotation2d.fromDegrees(180))
+                desired_heading[m] = desired_heading[m].rotate_by(Rotation2d.from_degrees(180))
             if all_modules_should_flip:
                 required_rotation_rad = \
-                    math.fabs((-prev_heading[m]).rotateBy(desired_heading[m]).radians())
+                    math.fabs((-prev_heading[m]).rotate_by(desired_heading[m]).radians())
                 if required_rotation_rad < math.pi / 2.0:
                     all_modules_should_flip = False
         if all_modules_should_flip \
@@ -179,9 +179,9 @@ class SwerveSetpointGenerator:
                     override_steering[m] = prev_setpoint.module_states[m].angle
                     continue
 
-                necessary_rotation = (-prev_setpoint.module_states[m].angle).rotateBy(desired_module_states[m].angle)
+                necessary_rotation = (-prev_setpoint.module_states[m].angle).rotate_by(desired_module_states[m].angle)
                 if self.flipHeading(necessary_rotation):
-                    necessary_rotation = necessary_rotation.rotateBy(Rotation2d(math.pi))
+                    necessary_rotation = necessary_rotation.rotate_by(Rotation2d(math.pi))
 
                 # radians() bounds to +/- pi.
                 num_steps_needed = math.fabs(necessary_rotation.radians()) / max_theta_step
@@ -192,7 +192,7 @@ class SwerveSetpointGenerator:
                 else:
                     # Adjust steering by max_theta_step.
                     override_steering[m] = \
-                        prev_setpoint.module_states[m].angle.rotateBy(
+                        prev_setpoint.module_states[m].angle.rotate_by(
                             Rotation2d(
                                 self._signum(necessary_rotation.radians()) * max_theta_step
                             )
@@ -294,8 +294,8 @@ class SwerveSetpointGenerator:
 
         # Use kinematics to convert chassis accelerations to module accelerations
         chassis_accel = \
-            ChassisVelocities(chassis_accel_vec.X(), chassis_accel_vec.Y(), chassis_angular_accel)
-        accel_states = self._config.toSwerveModuleVelocities(chassis_accel)
+            ChassisVelocities(chassis_accel_vec.x, chassis_accel_vec.y, chassis_angular_accel)
+        accel_states = self._config.to_swerve_module_velocities(chassis_accel)
 
         for m in range(self._config.numModules):
             if min_s == 0.0:
@@ -333,7 +333,7 @@ class SwerveSetpointGenerator:
 
         wheel_forces = self._config.chassisForcesToWheelForceVectors(chassis_forces)
 
-        ret_states = self._config.toSwerveModuleVelocities(ret_speeds)
+        ret_states = self._config.to_swerve_module_velocities(ret_speeds)
         accel_FF = []
         linear_force_FF = []
         torque_current_FF = []
@@ -349,15 +349,15 @@ class SwerveSetpointGenerator:
             maybe_override = override_steering[m]
             if maybe_override is not None:
                 override = maybe_override
-                if self.flipHeading((-ret_states[m].angle).rotateBy(override)):
+                if self.flipHeading((-ret_states[m].angle).rotate_by(override)):
                     ret_states[m].velocity *= -1.0
                     applied_force *= -1.0
                     torque_current *= -1.0
                 ret_states[m].angle = override
             delta_rotation = \
-                (-prev_setpoint.module_states[m].angle).rotateBy(ret_states[m].angle)
+                (-prev_setpoint.module_states[m].angle).rotate_by(ret_states[m].angle)
             if self.flipHeading(delta_rotation):
-                ret_states[m].angle = ret_states[m].angle.rotateBy(Rotation2d.fromDegrees(180))
+                ret_states[m].angle = ret_states[m].angle.rotate_by(Rotation2d.from_degrees(180))
                 ret_states[m].velocity *= -1.0
                 applied_force *= -1.0
                 torque_current *= -1.0
@@ -365,8 +365,8 @@ class SwerveSetpointGenerator:
             accel_FF.append((ret_states[m].velocity - prev_setpoint.module_states[m].velocity) / dt)
             linear_force_FF.append(applied_force)
             torque_current_FF.append(torque_current)
-            force_X_FF.append(wheel_forces[m].X())
-            force_Y_FF.append(wheel_forces[m].Y())
+            force_X_FF.append(wheel_forces[m].x)
+            force_Y_FF.append(wheel_forces[m].y)
 
         return SwerveSetpoint(
             ret_speeds,

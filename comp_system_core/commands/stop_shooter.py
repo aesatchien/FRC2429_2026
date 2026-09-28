@@ -9,10 +9,10 @@ class StopShooter(commands2.Command):  # change the name for your command
 
     def __init__(self, shooter: Shooter, rpm=0, indent=0) -> None:
         super().__init__()
-        self.setName('Stop Shooter') # change this to something appropriate for this command
+        self.set_name('Stop Shooter') # change this to something appropriate for this command
         self.indent = indent
         self.shooter = shooter
-        self.addRequirements(self.shooter)  # commandsv2 version of requirements
+        self.add_requirements(self.shooter)  # commandsv2 version of requirements
         self.extra_log_info = None
 
     def initialize(self) -> None:
@@ -23,7 +23,7 @@ class StopShooter(commands2.Command):  # change the name for your command
     def execute(self) -> None:
         pass
 
-    def isFinished(self) -> bool:
+    def is_finished(self) -> bool:
         # True: fire once and end; False: run forever until interrupted; logic has it end when code returns True
         return True
         

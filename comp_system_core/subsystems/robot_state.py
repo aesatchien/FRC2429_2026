@@ -7,6 +7,7 @@ from wpimath import LinearFilter, MedianFilter
 import ntcore
 import constants
 from constants import LedConstants
+from wpimath import Pose2d
 
 
 # TODO - do something better than putting a callback in LED but no polling
@@ -32,7 +33,7 @@ class RobotState(commands2.Subsystem):
 
     def __init__(self):
         super().__init__()
-        self.setName('RobotState')
+        self.set_name('RobotState')
         # try to start all the subsystems on a different count so they don't all do the periodic updates at the same time
         self.counter = constants.RobotStateConstants.k_counter_offset
 
@@ -53,7 +54,7 @@ class RobotState(commands2.Subsystem):
 
         # ---------- power monitoring filters ----------
         # IIR smooths voltage (slow-changing signal, ~0.5s time constant, 0.04s period = 25Hz read rate)
-        self.voltage_filter = LinearFilter.singlePoleIIR(timeConstant=0.1, period=0.04)
+        self.voltage_filter = LinearFilter.single_pole_iir(time_constant=0.1, period=0.04)
         # MedianFilter rejects CAN glitch readings on current without adding lag
         self.current_filter = MedianFilter(3)
 
@@ -71,19 +72,21 @@ class RobotState(commands2.Subsystem):
         # implement costs one console line instead of the whole robot program.
         self._power_telemetry_ok = constants.k_enable_power_telemetry
 
+        self._gamepiece_sim = None   # simulation only, built on the first simulation_periodic()
+
     def _init_networktables(self):
-        self.inst = ntcore.NetworkTableInstance.getDefault()
-        self.state_pub = self.inst.getStringTopic(f"{constants.status_prefix}/_robot_state").publish()
-        self.fms_pub = self.inst.getBooleanTopic(f"{constants.status_prefix}/_fms_attached").publish()
+        self.inst = ntcore.NetworkTableInstance.get_default()
+        self.state_pub = self.inst.get_string_topic(f"{constants.status_prefix}/_robot_state").publish()
+        self.fms_pub = self.inst.get_boolean_topic(f"{constants.status_prefix}/_fms_attached").publish()
         self.fms_pub.set(False)
-        self.pdh_volt_pub = self.inst.getDoubleTopic(f"{constants.status_prefix}/_pdh_voltage").publish()
-        self.pdh_current_pub = self.inst.getDoubleTopic(f"{constants.status_prefix}/_pdh_current").publish()
-        self.pdh_power_pub = self.inst.getDoubleTopic(f"{constants.status_prefix}/_pdh_inst_power").publish()
-        self.pdh_cumulative_energy_pub = self.inst.getDoubleTopic(f"{constants.status_prefix}/_pdh_tot_energy_wh").publish()
-        self.pdh_cumulative_charge_pub = self.inst.getDoubleTopic(f"{constants.status_prefix}/_pdh_tot_charge_ah").publish()
-        self.pdh_min_voltage_pub = self.inst.getDoubleTopic(f"{constants.status_prefix}/_pdh_min_voltage").publish()
-        self.pdh_max_current_pub = self.inst.getDoubleTopic(f"{constants.status_prefix}/_pdh_max_current").publish()
-        self.rio_browned_out_pub = self.inst.getBooleanTopic(f"{constants.status_prefix}/_rio_browned_out").publish()
+        self.pdh_volt_pub = self.inst.get_double_topic(f"{constants.status_prefix}/_pdh_voltage").publish()
+        self.pdh_current_pub = self.inst.get_double_topic(f"{constants.status_prefix}/_pdh_current").publish()
+        self.pdh_power_pub = self.inst.get_double_topic(f"{constants.status_prefix}/_pdh_inst_power").publish()
+        self.pdh_cumulative_energy_pub = self.inst.get_double_topic(f"{constants.status_prefix}/_pdh_tot_energy_wh").publish()
+        self.pdh_cumulative_charge_pub = self.inst.get_double_topic(f"{constants.status_prefix}/_pdh_tot_charge_ah").publish()
+        self.pdh_min_voltage_pub = self.inst.get_double_topic(f"{constants.status_prefix}/_pdh_min_voltage").publish()
+        self.pdh_max_current_pub = self.inst.get_double_topic(f"{constants.status_prefix}/_pdh_max_current").publish()
+        self.rio_browned_out_pub = self.inst.get_boolean_topic(f"{constants.status_prefix}/_rio_browned_out").publish()
 
     # put in a callback so the logic to LED is not circular
     def register_callback(self, callback):
@@ -107,7 +110,7 @@ class RobotState(commands2.Subsystem):
         self.prev_state = getattr(self, '_state', self.State.NONE)
         self._state = new_state
         self._notify_callbacks()  # Call all registered callbacks
-        print(f'State set to {new_state.value["name"]} at {Timer.getTimestamp():.1f}s')
+        print(f'State set to {new_state.value["name"]} at {Timer.get_timestamp():.1f}s')
         self.state_pub.set(self._state.value['name'])
 
 
@@ -121,9 +124,9 @@ class RobotState(commands2.Subsystem):
             # otherwise one unimplemented HAL call raises every single loop.  The cached
             # _voltage/_current/_power keep their last values and publishing carries on.
             try:
-                self._brownout_detected |= wpilib.RobotController.isBrownedOut()
-                voltage = self.voltage_filter.calculate(self.pdh.getVoltage())
-                current = self.current_filter.calculate(self.pdh.getTotalCurrent())
+                self._brownout_detected |= wpilib.RobotController.is_browned_out()
+                voltage = self.voltage_filter.calculate(self.pdh.get_voltage())
+                current = self.current_filter.calculate(self.pdh.get_total_current())
             except RuntimeError as e:
                 self._power_telemetry_ok = False
                 print(f'*** power telemetry DISABLED for this run: {e} ***')
@@ -156,7 +159,7 @@ class RobotState(commands2.Subsystem):
             self._brownout_detected = False  # reset for next window
 
         if self.counter % 100 == 0:  # let's check if we have connected to the FMS
-            fms = wpilib.RobotState.isFMSAttached()  # wpilib's, not this module's class
+            fms = wpilib.RobotState.is_fms_attached()  # wpilib's, not this module's class
             just_connected = fms and not self._last_fms
             if just_connected:
                 print("**** Just connected to FMS! ****")
@@ -167,3 +170,19 @@ class RobotState(commands2.Subsystem):
                 self.fms_pub.set(False)
 
             self._last_fms = fms
+
+    # -------------- simulation --------------
+    # Game pieces are field state, not a mechanism, so they live here.  Called by the
+    # scheduler after periodic() whenever RobotBase.is_simulation().
+    def simulation_periodic(self):
+        if self._gamepiece_sim is None:
+            from simulation.gamepiece_sim import GamepieceSim
+            self._gamepiece_sim = GamepieceSim()
+            # where the robot REALLY is, published by Swerve.simulation_periodic()
+            self._ground_truth_sub = self.inst.get_struct_topic(
+                f"{constants.sim_prefix}/ground_truth", Pose2d).subscribe(Pose2d())
+        self._gamepiece_sim.update(self._ground_truth_sub.get())
+
+    def sim_on_gamepiece(self) -> bool:
+        """Did the simulated robot just drive over a piece?  Simulation only."""
+        return self._gamepiece_sim is not None and self._gamepiece_sim.on_gamepiece

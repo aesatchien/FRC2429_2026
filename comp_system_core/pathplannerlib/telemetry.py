@@ -5,12 +5,12 @@ from .path import PathPlannerPath
 
 class PPLibTelemetry:
     _compMode: bool = False
-    _velPub: DoubleArrayPublisher = NetworkTableInstance.getDefault().getDoubleArrayTopic('/PathPlanner/vel').publish()
-    _posePub: StructPublisher = NetworkTableInstance.getDefault().getStructTopic(
+    _velPub: DoubleArrayPublisher = NetworkTableInstance.get_default().get_double_array_topic('/PathPlanner/vel').publish()
+    _posePub: StructPublisher = NetworkTableInstance.get_default().get_struct_topic(
         '/PathPlanner/currentPose', Pose2d).publish()
-    _pathPub: StructArrayPublisher = NetworkTableInstance.getDefault().getStructArrayTopic(
+    _pathPub: StructArrayPublisher = NetworkTableInstance.get_default().get_struct_array_topic(
         '/PathPlanner/activePath', Pose2d).publish()
-    _targetPosePub: StructPublisher = NetworkTableInstance.getDefault().getStructTopic(
+    _targetPosePub: StructPublisher = NetworkTableInstance.get_default().get_struct_topic(
         '/PathPlanner/targetPose', Pose2d).publish()
 
     @staticmethod
