@@ -36,7 +36,11 @@ class DriveToPoseCustomControl(commands2.Command):
         # --- Configuration ---
         self.target_pose_supplier = target_pose_supplier
         self.tolerance_type = tolerance_type
-        self.print_debug = True
+        # PID tuning trace to the console, 5 lines a second while the command runs.  OFF by
+        # default - it used to be hard-coded True, so it printed on the real robot and in
+        # every sim run whether anyone was tuning or not.  Set True while tuning.  The
+        # setpoint/measured values go to NetworkTables in sim regardless.
+        self.print_debug = False
         
         # --- State ---
         self.counter = 0
@@ -142,7 +146,7 @@ class DriveToPoseCustomControl(commands2.Command):
         self.extra_log_info = f'target {self.target_pose}'
 
     def execute(self) -> None:
-        if self.counter == 0 and (wpilib.RobotBase.is_simulation() or self.print_debug):
+        if self.counter == 0 and self.print_debug:
             print(f'CNT  DX     XT?   Xo   |   DY    YT?   Yo   |   DR     RT?   Ro   | TC')
 
         robot_pose = self.swerve.get_pose()
@@ -199,9 +203,10 @@ class DriveToPoseCustomControl(commands2.Command):
         else:
             self.tolerance_counter = 0
 
-        if self.counter % 10 == 0 and (wpilib.RobotBase.is_simulation() or self.print_debug):
+        if self.counter % 10 == 0:
             msg = f'{self.counter:3d}  {diff_x:+.2f} {str(self.x_overshot):>5} {x_output:+.2f} | {diff_y:+.2f}  {str(self.y_overshot):>5} {y_output:+.2f} | {math.degrees(diff_radians):>+6.1f}° {str(self.rot_overshot):>5} {rot_output:+.2f} | {self.tolerance_counter} '
-            print(msg)
+            if self.print_debug:
+                print(msg)
 
             if wpilib.RobotBase.is_simulation():
                 self.x_setpoint_pub.set(self.x_pid.get_setpoint())

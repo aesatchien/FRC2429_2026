@@ -5,19 +5,23 @@ import ntcore
 
 import constants
 from subsystems.swerve import Swerve  # allows us to access the definitions
-from commands2.button import CommandXboxController, CommandDualSenseController  # Xbox-only: reads Xbox axis names
+from commands2.button import CommandXboxController, CommandDualSenseController
 from wpimath import Translation2d
 from wpimath import Debouncer, SlewRateLimiter
 from subsystems.swerve_constants import DriveConstants as dc, RateLimiters as rl
 from helpers.log_command import log_command
 
-from typing import Union
-
 
 @log_command(console=True, nt=False, print_init=True, print_end=False)
 class DriveByJoystickSwerve(commands2.Command):
 
-    def __init__(self, container, swerve: Swerve, controller: Union(CommandXboxController, CommandDualSenseController), rate_limited=False, afterburn=False) -> None:
+    # Either pad works (Trentan, Sept 2026).  The annotation used to be
+    # Union(CommandXboxController, CommandDualSenseController) - parentheses instead of [...]
+    # would raise TypeError if anything evaluated it; Python 3.14 defers annotations, which
+    # is the only reason it never crashed.  A | B is the modern spelling.
+    def __init__(self, container, swerve: Swerve,
+                 controller: CommandXboxController | CommandDualSenseController,
+                 rate_limited=False, afterburn=False) -> None:
 
         super().__init__()
         self.set_name('drive_by_joystick_swerve')
@@ -28,7 +32,9 @@ class DriveByJoystickSwerve(commands2.Command):
         self.container = container
         self.swerve = swerve
         self.add_requirements(self.swerve)
-        self.controller: CommandXboxController = controller
+        self.controller = controller
+        # The two pads name the trigger and bumper differently, so pick once which to read.
+        self.is_dualsense = isinstance(controller, CommandDualSenseController)
 
         # -----------------------------------------------------------
         # 2. Configuration & State
@@ -79,8 +85,14 @@ class DriveByJoystickSwerve(commands2.Command):
         # the CommandGenericHID wrapper without these getters), and the trigger getter lost
         # its _axis suffix.
         hid = self.controller.get_controller()
-        right_trigger_value = hid.get_right_trigger()
-        robot_oriented_value = hid.get_left_bumper_button()
+        if self.is_dualsense:
+            # DualSense has no get_right_trigger()/get_left_bumper_button() - the old code
+            # AttributeError'd on the first loop with a PS5 pad.  R2 is already 0..1.
+            right_trigger_value = hid.get_r2()
+            robot_oriented_value = hid.get_l1_button()
+        else:
+            right_trigger_value = hid.get_right_trigger()
+            robot_oriented_value = hid.get_left_bumper_button()
         left_y = hid.get_left_y()
         left_x = hid.get_left_x()
         right_x = hid.get_right_x()

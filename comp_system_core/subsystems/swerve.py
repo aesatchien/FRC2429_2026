@@ -23,6 +23,7 @@ from .swervemodule_2429 import SwerveModule
 from .swerve_constants import DriveConstants as dc, AutoConstantsSwerve as ac, ModuleConstants as mc, RateLimiters as rl
 from helpers.utilities import compare_motors
 from helpers.nt_time import nt_age_seconds, nt_now_seconds
+from helpers.condition_log import ConditionLog
 import helpers.apriltag_utils as atu
 from subsystems.quest import Questnav
 
@@ -81,6 +82,12 @@ class Swerve (Subsystem):
         self.gyro_angle_adjustment = 0.0  # degrees, replaces navX setAngleAdjustment()
         self._imu_zero_deg = self._imu_yaw_raw_deg()  # we boot up at zero degrees
         self.gyro_calibrated = False
+
+        # Persistent conditions log once when they start and once when they clear, rather
+        # than re-printing every 0.5-2 s for as long as they last.  See helpers/condition_log.py.
+        self._quest_reject_log = ConditionLog("QuestNav update REJECTED")
+        self._tag_reject_log = ConditionLog("AprilTag update REJECTED")
+        self._clamp_log = ConditionLog("Odometry clamped to field bounds")
 
         # ---------- timer and variables for checking if we should be using pid on rotation ----------
         self.keep_angle = 0.0  # the heading we try to maintain when not rotating
@@ -519,8 +526,9 @@ class Swerve (Subsystem):
                     quest_fpga_timestamp = ts - max(0.0, latency_sec)
 
                     self.pose_estimator.add_vision_measurement(quest_pose, quest_fpga_timestamp, constants.DrivetrainConstants.k_pose_stdevs_large)
-                elif self.counter % 100 == 0:
-                    print(f"*** QuestNav update REJECTED: {quest_pose.x:.2f}, {quest_pose.y:.2f} is outside field limits! ***")
+                    self._quest_reject_log.clear()
+                else:
+                    self._quest_reject_log.hit(f"{quest_pose.x:.2f}, {quest_pose.y:.2f} is outside field limits")
 
         
         # AprilTag Logic
@@ -563,8 +571,9 @@ class Swerve (Subsystem):
                             sdevs = constants.DrivetrainConstants.k_pose_stdevs_large if wpilib.RobotState.is_enabled() else constants.DrivetrainConstants.k_pose_stdevs_disabled
                             
                             self.pose_estimator.add_vision_measurement(tag_pose, tag_fpga_timestamp, sdevs)
-                        elif self.counter % 100 == 0:
-                            print(f"*** AprilTag {tag_id} update REJECTED: {tag_pose.x:.2f}, {tag_pose.y:.2f} is outside field limits! ***")
+                            self._tag_reject_log.clear()
+                        else:
+                            self._tag_reject_log.hit(f"tag {tag_id} at {tag_pose.x:.2f}, {tag_pose.y:.2f} is outside field limits")
 
     def _update_odometry(self, ts):
         # This used to be guarded by RobotBase.is_real() because the pyfrc physics engine
@@ -582,8 +591,9 @@ class Swerve (Subsystem):
         if clamped_x != pose.x or clamped_y != pose.y:
             clamped_pose = Pose2d(clamped_x, clamped_y, pose.rotation())
             self.pose_estimator.reset_position(Rotation2d.from_degrees(self.get_gyro_angle()), self.get_module_positions(), clamped_pose)
-            if self.counter % 25 == 0:
-                print(f"*** Odometry clamped to field bounds at {ts:.2f}s. Attempted pose: X={pose.x:.2f}, Y={pose.y:.2f} ***")
+            self._clamp_log.hit(f"attempted X={pose.x:.2f}, Y={pose.y:.2f}")
+        else:
+            self._clamp_log.clear()
 
     def _update_dashboard(self, pose, ts):
 
