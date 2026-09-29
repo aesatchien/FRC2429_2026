@@ -83,6 +83,21 @@ if constants.k_controller_type not in k_controller_types:
     raise ValueError(f"constants.k_controller_type must be one of {k_controller_types}, "
                      f"got {constants.k_controller_type!r}")
 
+def _raw_axes(pad):
+    """Turn OFF the deadband WPILib now builds into every gamepad axis.
+
+    2027 added a default deadband to all gamepads: sticks read 0 below 0.1 and are rescaled
+    above it (0.2 raw -> 0.11).  Our drive commands already apply their own deadband
+    (dc.k_inner_deadband) and sqrt curve, tuned on 2026 raw values - stacked, the stick was
+    dead to ~0.19 and low-speed driving felt mushy.  Zeroing it here gives the commands
+    exactly what 2026 gave them.
+    """
+    hid = pad.get_controller()
+    for name in dir(hid):
+        if name.startswith('set_') and name.endswith('_deadband'):
+            getattr(hid, name)(0.0)
+
+
 # ---------------------------------------------------------------------------
 # Driver - one pad, either kind.  Same variable names either way.
 # ---------------------------------------------------------------------------
@@ -121,6 +136,8 @@ else:
     driver_start = driver_controller.menu()     # right small button (a7 renamed Start -> Menu)
     driver_ps_logo = driver_touchpad = driver_mic = None   # no such buttons on an Xbox pad
 
+_raw_axes(driver_controller)
+
 # the D-pad is spelled the same on both
 driver_up = driver_controller.dpad_up()
 driver_down = driver_controller.dpad_down()
@@ -132,6 +149,7 @@ driver_right = driver_controller.dpad_right()
 # index table in the module docstring for what the NiDs class would do to these.
 # ---------------------------------------------------------------------------
 copilot_controller = CommandXboxController(constants.k_co_driver_controller_port)
+_raw_axes(copilot_controller)
 copilot_a = copilot_controller.a()
 copilot_b = copilot_controller.b()
 copilot_x = copilot_controller.x()
