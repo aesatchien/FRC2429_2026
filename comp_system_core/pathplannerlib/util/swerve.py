@@ -244,7 +244,8 @@ class SwerveSetpointGenerator:
             reverse_module_torque = self._config.moduleConfig.driveMotor.torque(reverse_current_draw)
 
             prev_speed = prev_setpoint.module_states[m].velocity
-            desired_module_states[m].optimize(prev_setpoint.module_states[m].angle)
+            # a7: optimize() returns a new state instead of changing this one in place
+            desired_module_states[m] = desired_module_states[m].optimize(prev_setpoint.module_states[m].angle)
             desired_speed = desired_module_states[m].velocity
 
             force_sign = 1

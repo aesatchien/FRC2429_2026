@@ -98,8 +98,12 @@ class SwerveModule:
         correctedDesiredState.velocity = desiredState.velocity
         correctedDesiredState.angle = desiredState.angle
 
-        # Optimize the reference state to avoid spinning further than 90 degrees
-        correctedDesiredState.optimize(Rotation2d(self.get_turn_encoder()))
+        # Optimize the reference state to avoid spinning further than 90 degrees.
+        # a7: optimize() RETURNS the optimized state and leaves the original alone (2026's
+        # SwerveModuleState.optimize() changed it in place and returned None).  Calling it
+        # without the assignment silently turned the optimization off - wheels steered the
+        # long way through ~180 instead of reversing the drive.
+        correctedDesiredState = correctedDesiredState.optimize(Rotation2d(self.get_turn_encoder()))
 
         # don't let wheels servo back if we aren't asking the module to move
         if math.fabs(desiredState.velocity) < 0.002:  # need to see what is this minimum m/s that makes sense
