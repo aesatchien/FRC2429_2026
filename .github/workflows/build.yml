@@ -2,7 +2,7 @@ name: Python CI
 on: [push, pull_request]
 
 jobs:
-  build:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -13,18 +13,63 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install RobotPy
+      - name: Install flake8
         run: |
           python -m pip install --upgrade pip
-          pip install robotpy[all]
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install robotpy[all] flake8
+          pip install flake8
 
       - name: Run Syntax Check (Lint)
         run: |
           # Use flake8 to check for syntax errors and undefined names
           # --select=E9,F63,F7,F82 allows the build to fail on logic errors but ignore formatting
           flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+  test:
+    # comp_bot (2026-season, roboRIO) and comp_system_core (2027a7 alpha, SystemCore) pin
+    # completely incompatible robotpy versions - see CLAUDE.md "Environments". Each needs
+    # its own job with its own exact pins, installed the same way the per-project
+    # pyproject.toml's own "DEV ENVIRONMENT MIRROR" comment documents, NOT `robotpy sync`:
+    # sync also downloads roboRIO cross-compiled wheels (and a roboRIO Python interpreter
+    # image) meant for an actual robot deploy, which is pure waste in a CI job that only
+    # ever runs `robotpy test` locally.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - project: comp_bot
+            python-version: '3.12'
+          - project: comp_system_core
+            python-version: '3.13'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ matrix.project }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install comp_bot dependencies
+        if: matrix.project == 'comp_bot'
+        run: |
+          python -m pip install --upgrade pip
+          pip install "robotpy[apriltag,commands2]==2026.2.2"
+          pip install "protobuf>=6.0,<7" robotpy-urcl "robotpy-pathplannerlib>=2026.1.1" \
+                      "robotpy-navx>=2026.0.0" "robotpy-rev>=2026.0.1" "phoenix6>=26.1"
+
+      - name: Install comp_system_core dependencies
+        if: matrix.project == 'comp_system_core'
+        run: |
+          python -m pip install --upgrade pip
+          # --pre is required: these are alpha releases, and pip only installs a
+          # pre-release when the specifier itself names one.
+          pip install --pre "robotpy[commands2,apriltag,sim]==2027.0.0a7"
+          pip install --pre "robotpy-rev==2027.0.0a7" "phoenix6==26.50.0a1"
+          pip install "protobuf>=6.0,<7" numpy pint
+
+      - name: Run tests
+        run: python -m robotpy test
