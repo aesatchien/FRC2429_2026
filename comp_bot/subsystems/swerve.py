@@ -182,6 +182,13 @@ class Swerve (Subsystem):
         self.drive_y_pub = self.inst.getDoubleTopic(f"{swerve_prefix}/drive_y").publish()
         self.drive_theta_pub = self.inst.getDoubleTopic(f"{swerve_prefix}/drive_theta").publish()
 
+        # Struct-array (byte-encoded) SwerveModuleState[] publishers for AdvantageScope's
+        # Swerve visualizer - drag both onto a Swerve tab as the "Measured" and "Setpoints"
+        # fields to see live wheel speed/angle vectors. Far cheaper than the old double[]
+        # (speed, angle) x4 layout and self-describing, so AdvantageScope needs no manual schema.
+        self.module_states_pub = self.inst.getStructArrayTopic(f"{swerve_prefix}/module_states", SwerveModuleState).publish()
+        self.module_states_desired_pub = self.inst.getStructArrayTopic(f"{swerve_prefix}/module_states_desired", SwerveModuleState).publish()
+
         self.navx_angle_pub = self.inst.getDoubleTopic(f"{swerve_prefix}/_navx_angle").publish()
         self.navx_yaw_pub = self.inst.getDoubleTopic(f"{swerve_prefix}/_navx_yaw").publish()
         self.navx_raw_pub = self.inst.getDoubleTopic(f"{swerve_prefix}/_navx").publish()
@@ -192,6 +199,19 @@ class Swerve (Subsystem):
         module_names = ['LF', 'RF', 'LB', 'RB']  # TODO - just save this order somewhere and reuse it
         self.abs_enc_pubs = [self.inst.getDoubleTopic(f"{swerve_prefix}/absolute_{name}").publish() for name in module_names]
         self.angles_pub = self.inst.getDoubleArrayTopic(f"{swerve_prefix}/_angles").publish()
+
+        # Drive motor electrical/status telemetry (order matches module_names: LF RF LB RB).
+        # Watch these in AdvantageScope to see the Kraken's actual output/current/faults live -
+        # e.g. to tell whether "twitchy" driving is a PID problem or genuinely more current
+        # draw than the Vortex ever pulled.  current_limit reflects brownout mode's toggling.
+        self.drive_output_volts_pub = self.inst.getDoubleArrayTopic(f"{swerve_prefix}/drive_output_volts").publish()
+        self.drive_stator_amps_pub = self.inst.getDoubleArrayTopic(f"{swerve_prefix}/drive_stator_amps").publish()
+        self.drive_supply_amps_pub = self.inst.getDoubleArrayTopic(f"{swerve_prefix}/drive_supply_amps").publish()
+        self.drive_current_limit_pub = self.inst.getDoubleArrayTopic(f"{swerve_prefix}/drive_current_limit").publish()
+        # "Status lights": a fault name string per module (empty = healthy) plus a parallel
+        # boolean array so a Shuffleboard/AdvantageScope boolean box can act as a red/green light.
+        self.drive_faults_pub = self.inst.getStringArrayTopic(f"{swerve_prefix}/drive_faults").publish()
+        self.drive_fault_present_pub = self.inst.getBooleanArrayTopic(f"{swerve_prefix}/drive_fault_present").publish()
 
         self.brownout_mode_pub = self.inst.getBooleanTopic(f"{status_prefix}/brownout_mode").publish()
         self.brownout_mode_pub.set(self.brownout_mode)  # publish initial False
@@ -402,7 +422,12 @@ class Swerve (Subsystem):
 
         self._update_vision_measurements(current_pose, ts)
         self._update_odometry(ts)
-        
+
+        # Published every loop (not throttled like _update_dashboard) so AdvantageScope's
+        # Swerve widget animates smoothly instead of updating in visible 200ms steps.
+        self.module_states_pub.set(self.get_module_states())
+        self.module_states_desired_pub.set(self.get_desired_swerve_module_states())
+
         if self.counter % 10 == 0:
             self._update_dashboard(current_pose, ts)
 
@@ -517,8 +542,17 @@ class Swerve (Subsystem):
         if constants.k_swerve_debugging_messages:
             angles = [m.get_turn_motor_position() for m in self.swerve_modules]
             absolutes = [m.get_turn_encoder() for m in self.swerve_modules]
-            
+
             for pub, val in zip(self.abs_enc_pubs, absolutes):
                 pub.set(val)
-            
+
             self.angles_pub.set(angles)
+
+            # Drive motor electrical/status telemetry - see _init_networktables for topic names.
+            module_faults = [m.get_drive_faults() for m in self.swerve_modules]
+            self.drive_output_volts_pub.set([m.get_drive_output_voltage() for m in self.swerve_modules])
+            self.drive_stator_amps_pub.set([m.get_drive_stator_current() for m in self.swerve_modules])
+            self.drive_supply_amps_pub.set([m.get_drive_supply_current() for m in self.swerve_modules])
+            self.drive_current_limit_pub.set([m.get_drive_current_limit() for m in self.swerve_modules])
+            self.drive_faults_pub.set([', '.join(f) for f in module_faults])
+            self.drive_fault_present_pub.set([len(f) > 0 for f in module_faults])

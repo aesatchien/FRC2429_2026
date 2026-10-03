@@ -78,6 +78,11 @@ class DriveMotor(typing.Protocol):
     def describe(self) -> dict: ...
     def get_sticky_faults(self) -> list: ...
     def clear_faults(self) -> None: ...
+    # Electrical telemetry, for dashboard monitoring only - never used in a control loop.
+    def get_output_voltage(self) -> float: ...
+    def get_stator_current_amps(self) -> float: ...
+    def get_supply_current_amps(self) -> float: ...
+    def get_current_limit_amps(self) -> float: ...
 
 
 class TurnMotor(typing.Protocol):
@@ -150,6 +155,10 @@ class RevDriveMotor:
         self.controller = self.spark.getClosedLoopController()
         self.encoder.setPosition(0)
 
+        # Seed from the config we just applied, rather than a slow configAccessor read every
+        # loop - only set_current_limit() (below) ever changes it after this.
+        self.current_limit_a = self.spark.configAccessor.getSmartCurrentLimit()
+
     def set_velocity_mps(self, mps: float) -> None:
         # The controller is already in m/s thanks to velocityConversionFactor.
         self.controller.setReference(mps, rev.SparkLowLevel.ControlType.kVelocity)
@@ -167,7 +176,23 @@ class RevDriveMotor:
         # Non-persistent partial config: leaves everything else on the controller alone.
         tmp = rev.SparkBaseConfig().smartCurrentLimit(stallLimit=amps, freeLimit=amps)
         error = self.spark.configure(tmp, rev.ResetMode.kNoResetSafeParameters, rev.PersistMode.kNoPersistParameters)
+        self.current_limit_a = amps
         print(f'  [{self.label}] REV drive current limit -> {amps}A  ({error})')
+
+    def get_output_voltage(self) -> float:
+        return self.spark.getAppliedOutput() * self.spark.getBusVoltage()
+
+    def get_stator_current_amps(self) -> float:
+        # REV exposes exactly one current reading - closest analog to CTRE's stator current
+        # (the torque/traction-relevant one), so both stator and supply report it below.
+        return self.spark.getOutputCurrent()
+
+    def get_supply_current_amps(self) -> float:
+        # No separate supply-current signal on REV - same reading as stator, see above.
+        return self.spark.getOutputCurrent()
+
+    def get_current_limit_amps(self) -> float:
+        return self.current_limit_a
 
     def get_sticky_faults(self) -> list:
         return _rev_sticky_faults(self.spark)
@@ -286,6 +311,16 @@ class TalonDriveMotor:
         self._velocity_sig = self.talon.get_velocity()
         self._position_sig.set_update_frequency(100)  # 2x our 50 Hz odometry loop
         self._velocity_sig.set_update_frequency(100)
+
+        # Electrical telemetry for dashboard monitoring only - never read in a control loop,
+        # so a slower rate than position/velocity is fine and keeps CAN bus load down.
+        self._voltage_sig = self.talon.get_motor_voltage()
+        self._stator_current_sig = self.talon.get_stator_current()
+        self._supply_current_sig = self.talon.get_supply_current()
+        self._voltage_sig.set_update_frequency(20)
+        self._stator_current_sig.set_update_frequency(20)
+        self._supply_current_sig.set_update_frequency(20)
+
         # Everything we did NOT ask for drops to 4 Hz.  We share the roboRIO CAN bus with
         # nine REV controllers, so this is not optional.
         self.talon.optimize_bus_utilization()
@@ -326,6 +361,19 @@ class TalonDriveMotor:
                   .with_stator_current_limit(self.stator_limit_a).with_stator_current_limit_enable(True))
         self._apply(limits, f'supply current limit -> {amps}A')
         print(f'  [{self.label}] Kraken supply current limit -> {amps}A (stator held at {self.stator_limit_a}A)')
+
+    def get_output_voltage(self) -> float:
+        return self._voltage_sig.refresh().value
+
+    def get_stator_current_amps(self) -> float:
+        return self._stator_current_sig.refresh().value
+
+    def get_supply_current_amps(self) -> float:
+        return self._supply_current_sig.refresh().value
+
+    def get_current_limit_amps(self) -> float:
+        # The SUPPLY limit - the one brownout mode actually moves (see set_current_limit).
+        return self.supply_limit_a
 
     def get_sticky_faults(self) -> list:
         if self._fault_signals is None:
