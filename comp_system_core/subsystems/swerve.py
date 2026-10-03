@@ -277,6 +277,25 @@ class Swerve (Subsystem):
         self.abs_enc_pubs = [self.inst.get_double_topic(f"{swerve_prefix}/absolute_{name}").publish() for name in module_names]
         self.angles_pub = self.inst.get_double_array_topic(f"{swerve_prefix}/_angles").publish()
 
+        # Drive motor (Kraken) electrical/status telemetry (order matches module_names:
+        # LF RF LB RB).  Watch these in AdvantageScope to see the Kraken's actual
+        # output/current/faults live - e.g. to tell whether "twitchy" driving is a PID
+        # problem or genuinely more current draw than expected.  current_limit reflects
+        # brownout mode's toggling.
+        self.drive_output_volts_pub = self.inst.get_double_array_topic(f"{swerve_prefix}/drive_output_volts").publish()
+        self.drive_stator_amps_pub = self.inst.get_double_array_topic(f"{swerve_prefix}/drive_stator_amps").publish()
+        self.drive_supply_amps_pub = self.inst.get_double_array_topic(f"{swerve_prefix}/drive_supply_amps").publish()
+        self.drive_current_limit_pub = self.inst.get_double_array_topic(f"{swerve_prefix}/drive_current_limit").publish()
+        self.drive_faults_pub = self.inst.get_string_array_topic(f"{swerve_prefix}/drive_faults").publish()
+        self.drive_fault_present_pub = self.inst.get_boolean_array_topic(f"{swerve_prefix}/drive_fault_present").publish()
+
+        # Turn motor (REV) electrical/status telemetry - same shape as drive, above, so the
+        # dashboard can watch both motors on a module side by side.
+        self.turn_output_volts_pub = self.inst.get_double_array_topic(f"{swerve_prefix}/turn_output_volts").publish()
+        self.turn_amps_pub = self.inst.get_double_array_topic(f"{swerve_prefix}/turn_amps").publish()
+        self.turn_faults_pub = self.inst.get_string_array_topic(f"{swerve_prefix}/turn_faults").publish()
+        self.turn_fault_present_pub = self.inst.get_boolean_array_topic(f"{swerve_prefix}/turn_fault_present").publish()
+
         self.brownout_mode_pub = self.inst.get_boolean_topic(f"{status_prefix}/brownout_mode").publish()
         self.brownout_mode_pub.set(self.brownout_mode)  # publish initial False
 
@@ -655,11 +674,33 @@ class Swerve (Subsystem):
         if constants.k_swerve_debugging_messages:
             angles = [m.get_turn_motor_position() for m in self.swerve_modules]
             absolutes = [m.get_turn_encoder() for m in self.swerve_modules]
-            
+
             for pub, val in zip(self.abs_enc_pubs, absolutes):
                 pub.set(val)
-            
+
             self.angles_pub.set(angles)
+
+            # Drive (Kraken) and turn (REV) electrical/status telemetry - see
+            # _init_networktables for topic names.  Throttled to 1 Hz (self.counter is
+            # already a multiple of 10 here, so %50 means every 5th call) on top of the 4 Hz
+            # CAN signal rate in motors.py - get_drive_faults()/get_turn_faults() alone
+            # refresh 27 signals per Kraken, so at the old 5 Hz this block was a real
+            # contributor to "communication gets laggy".  A human watching a current readout
+            # does not need faster than 1 Hz anyway.
+            if self.counter % 50 == 0:
+                drive_faults = [m.get_drive_faults() for m in self.swerve_modules]
+                self.drive_output_volts_pub.set([m.get_drive_output_voltage() for m in self.swerve_modules])
+                self.drive_stator_amps_pub.set([m.get_drive_stator_current() for m in self.swerve_modules])
+                self.drive_supply_amps_pub.set([m.get_drive_supply_current() for m in self.swerve_modules])
+                self.drive_current_limit_pub.set([m.get_drive_current_limit() for m in self.swerve_modules])
+                self.drive_faults_pub.set([', '.join(f) for f in drive_faults])
+                self.drive_fault_present_pub.set([len(f) > 0 for f in drive_faults])
+
+                turn_faults = [m.get_turn_faults() for m in self.swerve_modules]
+                self.turn_output_volts_pub.set([m.get_turn_output_voltage() for m in self.swerve_modules])
+                self.turn_amps_pub.set([m.get_turn_current() for m in self.swerve_modules])
+                self.turn_faults_pub.set([', '.join(f) for f in turn_faults])
+                self.turn_fault_present_pub.set([len(f) > 0 for f in turn_faults])
 
     # -------------- simulation --------------
     # Called by CommandScheduler.run() on every registered subsystem when RobotBase.is_simulation().

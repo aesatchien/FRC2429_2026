@@ -83,6 +83,11 @@ class DriveMotor(typing.Protocol):
     def get_sticky_faults(self) -> list: ...
     def clear_faults(self) -> None: ...
     def sim_update(self, dt: float, vbus: float) -> float: ...
+    # Electrical telemetry, for dashboard monitoring only - never used in a control loop.
+    def get_output_voltage(self) -> float: ...
+    def get_stator_current_amps(self) -> float: ...
+    def get_supply_current_amps(self) -> float: ...
+    def get_current_limit_amps(self) -> float: ...
 
 
 class TurnMotor(typing.Protocol):
@@ -95,6 +100,11 @@ class TurnMotor(typing.Protocol):
     def clear_faults(self) -> None: ...
     def sim_update(self, dt: float, vbus: float) -> float: ...
     def sim_azimuth_rad(self) -> float: ...
+    # Electrical telemetry, for dashboard monitoring only - never used in a control loop.
+    # No stator/supply split here (unlike DriveMotor) - turn motors never get a dynamic
+    # current-limit change (no brownout logic for turn), so one reading is enough.
+    def get_output_voltage(self) -> float: ...
+    def get_current_amps(self) -> float: ...
 
 
 # =================================================================================
@@ -307,6 +317,10 @@ class RevDriveMotor:
         self._controller_cls = controller_cls
         self._plant: typing.Optional[_RevPlant] = None
 
+        # Seed from the config we just applied, rather than a slow config_accessor read every
+        # loop - only set_current_limit() (below) ever changes it after this.
+        self.current_limit_a = self.spark.config_accessor.get_smart_current_limit()
+
     def sim_update(self, dt: float, vbus: float) -> float:
         if self._plant is None:
             # gearing = motor rotations per wheel rotation, recovered from the unit factor
@@ -338,6 +352,7 @@ class RevDriveMotor:
         # Non-persistent partial config: leaves everything else on the controller alone.
         tmp = rev.SparkBaseConfig().smart_current_limit(stall_limit=amps, free_limit=amps)
         error = self.spark.configure(tmp, rev.ResetMode.NO_RESET_SAFE_PARAMETERS, rev.PersistMode.NO_PERSIST_PARAMETERS)
+        self.current_limit_a = amps
         print(f'  [{self.label}] REV drive current limit -> {amps}A  ({error})')
 
     def get_sticky_faults(self) -> list:
@@ -348,6 +363,21 @@ class RevDriveMotor:
 
     def describe(self) -> dict:
         return _rev_describe(self.spark, 'drive', self.position_factor, self.velocity_factor)
+
+    def get_output_voltage(self) -> float:
+        return self.spark.get_applied_output().get() * self.spark.get_bus_voltage().get()
+
+    def get_stator_current_amps(self) -> float:
+        # REV exposes exactly one current reading - closest analog to CTRE's stator current
+        # (the torque/traction-relevant one), so both stator and supply report it below.
+        return self.spark.get_output_current().get()
+
+    def get_supply_current_amps(self) -> float:
+        # No separate supply-current signal on REV - same reading as stator, see above.
+        return self.spark.get_output_current().get()
+
+    def get_current_limit_amps(self) -> float:
+        return self.current_limit_a
 
 
 class RevTurnMotor:
@@ -401,6 +431,12 @@ class RevTurnMotor:
 
     def describe(self) -> dict:
         return _rev_describe(self.spark, 'turn', self.position_factor)
+
+    def get_output_voltage(self) -> float:
+        return self.spark.get_applied_output().get() * self.spark.get_bus_voltage().get()
+
+    def get_current_amps(self) -> float:
+        return self.spark.get_output_current().get()
 
 
 # =================================================================================
@@ -475,6 +511,20 @@ class TalonDriveMotor:
         self._velocity_sig = self.talon.get_velocity()
         self._position_sig.set_update_frequency(100)  # 2x our 50 Hz odometry loop
         self._velocity_sig.set_update_frequency(100)
+
+        # Electrical telemetry for dashboard monitoring only - never read in a control loop.
+        # 4 Hz (not 20) - that is the same rate every OTHER signal we did not explicitly
+        # request already drops to (optimize_bus_utilization() below), so this asks for
+        # nothing more than the bus was already giving us for free. 20 Hz across 4 Krakens
+        # x 3 signals was adding real CAN traffic for a human-watched dashboard number -
+        # dropping it measurably eased the "communication gets laggy" symptom.
+        self._voltage_sig = self.talon.get_motor_voltage()
+        self._stator_current_sig = self.talon.get_stator_current()
+        self._supply_current_sig = self.talon.get_supply_current()
+        self._voltage_sig.set_update_frequency(4)
+        self._stator_current_sig.set_update_frequency(4)
+        self._supply_current_sig.set_update_frequency(4)
+
         # Everything we did NOT ask for drops to 4 Hz.  We share the roboRIO CAN bus with
         # nine REV controllers, so this is not optional.
         self.talon.optimize_bus_utilization()
@@ -535,6 +585,19 @@ class TalonDriveMotor:
     def clear_faults(self) -> None:
         self.talon.clear_sticky_faults()
 
+    def get_output_voltage(self) -> float:
+        return self._voltage_sig.refresh().value
+
+    def get_stator_current_amps(self) -> float:
+        return self._stator_current_sig.refresh().value
+
+    def get_supply_current_amps(self) -> float:
+        return self._supply_current_sig.refresh().value
+
+    def get_current_limit_amps(self) -> float:
+        # The SUPPLY limit - the one brownout mode actually moves (see set_current_limit).
+        return self.supply_limit_a
+
     def describe(self) -> dict:
         cfg = TalonFXConfiguration()
         self.talon.configurator.refresh(cfg)
@@ -574,6 +637,13 @@ class TalonTurnMotor:
         self._duty_req = DutyCycleOut(0, enable_foc=False)
         self._position_sig = self.talon.get_position()
         self._position_sig.set_update_frequency(50)
+
+        # Electrical telemetry for dashboard monitoring only - see TalonDriveMotor's note.
+        self._voltage_sig = self.talon.get_motor_voltage()
+        self._current_sig = self.talon.get_stator_current()  # torque-relevant, matches drive's choice
+        self._voltage_sig.set_update_frequency(4)   # see TalonDriveMotor's note on why not 20
+        self._current_sig.set_update_frequency(4)
+
         self.talon.optimize_bus_utilization()
         self._fault_signals = None  # built on first get_sticky_faults()
         self._plant: typing.Optional[_TalonPlant] = None
@@ -605,6 +675,12 @@ class TalonTurnMotor:
 
     def clear_faults(self) -> None:
         self.talon.clear_sticky_faults()
+
+    def get_output_voltage(self) -> float:
+        return self._voltage_sig.refresh().value
+
+    def get_current_amps(self) -> float:
+        return self._current_sig.refresh().value
 
     def describe(self) -> dict:
         return {'vendor': 'CTRE', 'kind': 'turn', 'can_id': self.can_id,
