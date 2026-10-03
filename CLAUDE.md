@@ -8,13 +8,16 @@ This is a monorepo of **independent FRC robot projects** (team 2429), each a sel
 RobotPy app with its own `pyproject.toml`, `robot.py`, `robotcontainer.py`, `constants.py`,
 `subsystems/`, `commands/`:
 
-- `comp_bot/` — the 2026-season competition robot. Targets a **roboRIO**. Pinned to
-  `robotpy==2026.2.2`.
-- `comp_system_core/` — the 2027-season migration of `comp_bot` onto **SystemCore** hardware
-  (FRC's new roboRIO replacement). Pinned to the `robotpy==2027.0.0a7` alpha. This is a
-  parallel, independently-maintained codebase, not a shared-code variant of `comp_bot` —
-  changes to one do not propagate to the other. See `comp_system_core/docs/a7_migration.md`
-  before editing anything here.
+- `comp_bot/` — the **roboRIO** version of the competition robot code. Pinned to
+  `robotpy==2026.2.2`. The competition robot itself now runs a SystemCore, so this code no
+  longer runs on that robot — but it is **actively maintained, not historical**: the team
+  still has many roboRIOs and will for the next year or two, so this is the version every
+  roboRIO robot runs. See "Keeping the two versions straight" below.
+- `comp_system_core/` — the **SystemCore** version of the same robot code (FRC's new roboRIO
+  replacement). Pinned to the `robotpy==2027.0.0a7` alpha. This is what the competition
+  robot runs now. It is a parallel codebase, not a shared-code variant of `comp_bot` —
+  nothing is shared, so a change made in one is NOT in the other until someone ports it. See
+  `comp_system_core/docs/a7_migration.md` before editing anything here.
 - `other_robots/` — `practicebot` (swerve test bed), `practice_bot_remake`, `tankbot`
   (west-coast-drive + shooter/turret tutorial bot), `chairbot` (STEAM outreach go-kart),
   `template` (starter skeleton). All pinned to 2026-era robotpy like `comp_bot`.
@@ -24,6 +27,25 @@ RobotPy app with its own `pyproject.toml`, `robot.py`, `robotcontainer.py`, `con
   `gui/config.py`).
 - `deploy/`, `resources/`, `networktables.json` — shared assets (PathPlanner paths, field
   images, git guidelines).
+
+## Keeping the two versions straight
+
+`comp_bot` (roboRIO) and `comp_system_core` (SystemCore) are two versions of the same robot
+code that both have to stay correct until the team has enough SystemCore controllers to
+retire the roboRIOs.
+
+- **A feature or fix that applies to both goes in both**, ported by hand: snake_case and the
+  other a7 API changes in `comp_system_core`, camelCase 2026 API in `comp_bot`. Say in the
+  commit message which project(s) it touches and whether the other still needs it.
+- **Hardware differs, so do not copy hardware assumptions across.** On the roboRIO there is
+  ONE CAN bus (no CANivore): 4 Krakens, 14 REV controllers and the PDH all share it. On
+  SystemCore the buses are split: Krakens alone on `can_s0`, swerve turn SparkFlexes on
+  `can_s1`, everything else on `can_s2` (`constants.k_can_bus_*`). The IMU (navX vs
+  `wpilib.OnboardIMU`), analog rail (5 V vs 3.3 V) and NT timestamp units also differ.
+- **Say where something was tested.** The competition robot is SystemCore, so `comp_bot`
+  changes are only hardware-tested on one of the team's other roboRIO robots. If a change
+  was only run in `robotpy test`/sim, say so — never write "confirmed on the robot" for a
+  project that robot does not run.
 
 ## Environments — the single most common mistake in this repo
 
