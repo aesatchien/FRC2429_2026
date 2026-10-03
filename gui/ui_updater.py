@@ -45,6 +45,12 @@ class UIUpdater:
         self.dtap_retries = 0
         self.start_time = time.time()
 
+        # Preventive fix, not reactive: suppresses the double-tap-to-passthrough gesture at
+        # the OS level so _check_questnav_passthrough_issue below has less to clean up after.
+        # debug.* properties don't survive a headset reboot, so this has to be re-sent every
+        # time this GUI starts up - it's not a one-time device setting.
+        self._disable_quest_double_tap_passthrough()
+
         # Map update styles from config to specific update functions
         self.updaters = {
             'indicator': self._update_indicator,
@@ -130,6 +136,25 @@ class UIUpdater:
                 props['selected_publisher'] = self.ui.ntinst.getStringTopic(props['selected_topic']).publish()
 
         self._last_connection_state = is_connected
+
+    def _disable_quest_double_tap_passthrough(self):
+        """Disables the Quest's double-tap-to-passthrough gesture via an ADB system property,
+        so a bump on the field never triggers it in the first place.  Run once at GUI startup
+        (see __init__) rather than continuously - it's a cheap, idempotent command, but there's
+        no need to re-send it every loop tick.
+
+        debug.* properties are NOT persisted across a headset reboot (only persist.* is, and
+        Oculus doesn't expose a persist.* variant of this one), so this only lasts until the
+        Quest next restarts - if the headset gets power-cycled mid-session, re-launch this GUI
+        (or re-run this call) to re-apply it.
+        """
+        try:
+            adb_path = os.path.join(os.path.dirname(__file__), "adb", "adb.exe")
+            cmd = [adb_path, "-s", config.QUESTNAV_ADB_ADDRESS, "shell", "setprop", "debug.oculus.double_tap_passthrough", "0"]
+            subprocess.Popen(cmd)
+            print(f"[{time.strftime('%H:%M:%S')}] Sent ADB command to disable Quest double-tap passthrough.", flush=True)
+        except Exception as e:
+            print(f"[{time.strftime('%H:%M:%S')}] Failed to disable Quest double-tap passthrough via ADB: {e}", flush=True)
 
     def _check_questnav_passthrough_issue(self):
         """Monitors QuestNav passthrough state and restarts app via adb if stuck."""
