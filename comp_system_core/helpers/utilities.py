@@ -57,6 +57,49 @@ def set_config_defaults(configs: Union[SparkConfig, List[SparkConfig]]) -> None:
         config.set_idle_mode(config.IdleMode.BRAKE)
         config.smart_current_limit(40)
 
+def init_motor_monitors(inst, prefix: str, named_motors: Sequence[Tuple[str, object]]) -> List[Tuple[object, object, object, object]]:
+    """Pre-allocates one current (amps) and one speed (RPM) DoubleTopic publisher per
+    (name, motor) pair, at f"{prefix}/current_{name}" and f"{prefix}/speed_{name}", for
+    watching REV motor status live in AdvantageScope/Shuffleboard.
+
+    Ported from comp_bot's helpers/utilities.py (which comp_system_core does not share
+    code with - see CLAUDE.md), adapted for a7's snake_case REV API
+    (get_output_current()/get_encoder()/get_velocity(), not getOutputCurrent()/etc).
+
+    Written once so Intake, Shooter and Climber don't each hand-roll the same "loop over
+    self.motors and publish get_output_current()/encoder.get_velocity()" code - see
+    subsystems/swerve.py's per-module drive_stator_amps/drive_supply_amps publishers for the
+    equivalent on the swerve side, which use CTRE's own split current signals instead since a
+    Kraken has both. Speed is whatever the motor's own encoder reports (RPM unless a
+    conversion factor was configured) - though a7 removed REV's controller-side conversion
+    factors outright (see _get_motor_state's note below), so on this project it is always
+    raw RPM off the Spark's own encoder, never pre-scaled.
+
+    Returns a list of (current_pub, speed_pub, motor, encoder) tuples - pass it to
+    update_motor_monitors() on whatever cadence your periodic() already uses.
+    """
+    monitors = []
+    for name, motor in named_motors:
+        current_pub = inst.get_double_topic(f"{prefix}/current_{name}").publish()
+        speed_pub = inst.get_double_topic(f"{prefix}/speed_{name}").publish()
+        monitors.append((current_pub, speed_pub, motor, motor.get_encoder()))
+    return monitors
+
+
+def update_motor_monitors(monitors: Sequence[Tuple[object, object, object, object]]) -> None:
+    """Pushes each motor's get_output_current() (amps) and encoder velocity (RPM) to its
+    publishers.  See init_motor_monitors().
+
+    a7: get_output_current()/encoder.get_velocity() return a measurement object, not a bare
+    float - the extra .get() is required (same pattern intake.py/shooter.py already use for
+    get_position()/get_velocity() elsewhere; omitting it would publish the wrapper object
+    itself and crash the first .set() call rather than silently misbehave).
+    """
+    for current_pub, speed_pub, motor, encoder in monitors:
+        current_pub.set(motor.get_output_current().get())
+        speed_pub.set(encoder.get_velocity().get())
+
+
 def _get_motor_state(motor):
     """
     Extracts key configuration and state data from a REV Spark motor.

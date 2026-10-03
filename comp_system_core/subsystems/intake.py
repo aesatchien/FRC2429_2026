@@ -13,7 +13,7 @@ from rev import SparkBase, SparkLowLevel  # trying to save some typing
 
 import constants
 from constants import IntakeConstants as ic, SimConstants as simc
-from helpers.utilities import _get_motor_state, compare_motors, configure_sparks
+from helpers.utilities import _get_motor_state, compare_motors, configure_sparks, init_motor_monitors, update_motor_monitors
 
 
 class Intake(Subsystem):
@@ -128,7 +128,18 @@ class Intake(Subsystem):
         self.deployer_setpoint_pub = self.inst.get_double_topic(f"{self.intake_prefix}/deployer_setpoint").publish()
         self.deployer_internal_setpoint_pub = self.inst.get_double_topic(f"{self.intake_prefix}/deployer_internal_setpoint").publish()
         self.intake_calibration_pub = self.inst.get_boolean_topic(f"{self.intake_prefix}/intake_calibration").publish()
-        
+
+        # Per-motor current (A) and speed (RPM) - see helpers.utilities.init_motor_monitors().
+        # deploy's current is separate from deployer_average_current_pub above (that one's
+        # filtered/used for calibration logic; this is the raw reading, for consistency with
+        # the other motors) - and deployer_velocity_pub below already covers deploy's speed,
+        # so speed_deploy here is a harmless duplicate, not a new signal.
+        self.motor_monitors = init_motor_monitors(self.inst, self.intake_prefix, [
+            ('intake_left_leader', self.intake_motor),
+            ('intake_right_follower', self.intake_motor_follower),
+            ('deploy', self.deploy_motor),
+        ])
+
         self.intake_on_pub.set(self.intake_on)
         self.intake_rpm_pub.set(self.current_rpm)
         self.deployed_pub.set(self.deployed)
@@ -310,6 +321,7 @@ class Intake(Subsystem):
              self.deployer_output_pub.set(self.deploy_motor.get_applied_output().get())
              self.deployer_velocity_pub.set(self.get_angle_velocity_dps())
              self.intake_calibration_pub.set(self.is_calibrated)
+             update_motor_monitors(self.motor_monitors)
              # (the is_simulation() override that used to sit here is gone - the encoders are
              # simulated now, so the measured values above are the right ones to publish)
 

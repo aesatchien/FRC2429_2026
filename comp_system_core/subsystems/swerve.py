@@ -233,6 +233,15 @@ class Swerve (Subsystem):
         # ESTIMATOR's heading (gyro fused with the april tags).  That is what the driver
         # wants on the dashboard, so it is left alone - but it means the raw IMU was never
         # actually broadcast anywhere.  _imu_raw_angle below fixes that.
+        # Struct-array (byte-encoded) SwerveModuleVelocity[] publishers for AdvantageScope's
+        # Swerve visualizer - drag both onto a Swerve tab as the "Measured" and "Setpoints"
+        # fields to see live wheel speed/angle vectors.  Same NT key names as comp_bot's
+        # swerve.py (module_states / module_states_desired) for a shared AdvantageScope
+        # layout, even though the underlying type here is SwerveModuleVelocity, not
+        # SwerveModuleState - a7 split State into Velocity/Position/Acceleration.
+        self.module_states_pub = self.inst.get_struct_array_topic(f"{swerve_prefix}/module_states", SwerveModuleVelocity).publish()
+        self.module_states_desired_pub = self.inst.get_struct_array_topic(f"{swerve_prefix}/module_states_desired", SwerveModuleVelocity).publish()
+
         self.navx_angle_pub = self.inst.get_double_topic(f"{swerve_prefix}/_navx_angle").publish()
         self.navx_yaw_pub = self.inst.get_double_topic(f"{swerve_prefix}/_navx_yaw").publish()
         self.navx_raw_pub = self.inst.get_double_topic(f"{swerve_prefix}/_navx").publish()
@@ -409,6 +418,11 @@ class Swerve (Subsystem):
         # note lots of the calls want tuples, so _could_ convert if we really want to
         return [m.getState() for m in self.swerve_modules]
 
+    def get_desired_module_states(self):
+        """Setpoint (not measured) module states - for the AdvantageScope Swerve widget's
+        'Setpoints' field, so you can see commanded vs. actual wheel vectors side by side."""
+        return [m.getDesiredState() for m in self.swerve_modules]
+
     #  -------------  gyro functions  ----------
 
     @staticmethod
@@ -499,7 +513,12 @@ class Swerve (Subsystem):
 
         self._update_vision_measurements(current_pose, ts)
         self._update_odometry(ts)
-        
+
+        # Published every loop (not throttled like _update_dashboard) so AdvantageScope's
+        # Swerve widget animates smoothly instead of updating in visible 200ms steps.
+        self.module_states_pub.set(self.get_module_states())
+        self.module_states_desired_pub.set(self.get_desired_module_states())
+
         if self.counter % 10 == 0:
             self._update_dashboard(current_pose, ts)
 
