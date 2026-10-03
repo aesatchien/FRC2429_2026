@@ -54,7 +54,7 @@ class NamedCommands:
         if NamedCommands.hasCommand(name):
             return CommandUtil.wrappedEventCommand(NamedCommands._namedCommands[name])
         else:
-            reportWarning(
+            report_warning(
                 f"PathPlanner attempted to create a command '{name}' that has not been registered with NamedCommands.registerCommand",
                 False)
             return cmd.none()
@@ -468,7 +468,7 @@ class AutoBuilder:
         :param drive_subsystem: the subsystem for the robot's drive
         """
         if AutoBuilder._configured:
-            reportError('AutoBuilder has already been configured. This is likely in error.', True)
+            report_error('AutoBuilder has already been configured. This is likely in error.', True)
 
         AutoBuilder._pathFollowingCommandBuilder = lambda path: FollowPathCommand(
             path,
@@ -527,7 +527,7 @@ class AutoBuilder:
         :param should_flip_pose: Supplier that determines if the starting pose should be flipped to the other side of the field. This will maintain a global blue alliance origin. NOTE: paths will not be flipped when configured with a custom path following command. Flipping the paths must be handled in your command.
         """
         if AutoBuilder._configured:
-            reportError('AutoBuilder has already been configured. This is likely in error.', True)
+            report_error('AutoBuilder has already been configured. This is likely in error.', True)
 
         AutoBuilder._pathFollowingCommandBuilder = path_following_command_builder
         AutoBuilder._resetPose = reset_pose
