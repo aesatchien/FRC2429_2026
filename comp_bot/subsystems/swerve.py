@@ -201,17 +201,13 @@ class Swerve (Subsystem):
         self.angles_pub = self.inst.getDoubleArrayTopic(f"{swerve_prefix}/_angles").publish()
 
         # Drive motor electrical/status telemetry (order matches module_names: LF RF LB RB).
-        # Watch these in AdvantageScope to see the Kraken's actual output/current/faults live -
+        # Watch these in AdvantageScope to see the Kraken's actual output/current live -
         # e.g. to tell whether "twitchy" driving is a PID problem or genuinely more current
         # draw than the Vortex ever pulled.  current_limit reflects brownout mode's toggling.
         self.drive_output_volts_pub = self.inst.getDoubleArrayTopic(f"{swerve_prefix}/drive_output_volts").publish()
         self.drive_stator_amps_pub = self.inst.getDoubleArrayTopic(f"{swerve_prefix}/drive_stator_amps").publish()
         self.drive_supply_amps_pub = self.inst.getDoubleArrayTopic(f"{swerve_prefix}/drive_supply_amps").publish()
         self.drive_current_limit_pub = self.inst.getDoubleArrayTopic(f"{swerve_prefix}/drive_current_limit").publish()
-        # "Status lights": a fault name string per module (empty = healthy) plus a parallel
-        # boolean array so a Shuffleboard/AdvantageScope boolean box can act as a red/green light.
-        self.drive_faults_pub = self.inst.getStringArrayTopic(f"{swerve_prefix}/drive_faults").publish()
-        self.drive_fault_present_pub = self.inst.getBooleanArrayTopic(f"{swerve_prefix}/drive_fault_present").publish()
 
         self.brownout_mode_pub = self.inst.getBooleanTopic(f"{status_prefix}/brownout_mode").publish()
         self.brownout_mode_pub.set(self.brownout_mode)  # publish initial False
@@ -423,10 +419,14 @@ class Swerve (Subsystem):
         self._update_vision_measurements(current_pose, ts)
         self._update_odometry(ts)
 
-        # Published every loop (not throttled like _update_dashboard) so AdvantageScope's
-        # Swerve widget animates smoothly instead of updating in visible 200ms steps.
-        self.module_states_pub.set(self.get_module_states())
-        self.module_states_desired_pub.set(self.get_desired_swerve_module_states())
+        # 10 Hz, not every loop.  DataLogManager records every NT value to the .wpilog, so
+        # 50 Hz x two struct arrays was ~25 MB of disk per hour of robot uptime for a picture a
+        # human watches.  10 Hz still animates in AdvantageScope.  The setpoints are what the
+        # module actually COMMANDED (after optimize() and the low-speed hold) - the raw request
+        # points 180 deg away from the wheel whenever optimize() reverses the drive.
+        if self.counter % 5 == 0:
+            self.module_states_pub.set(self.get_module_states())
+            self.module_states_desired_pub.set([m.getCommandedState() for m in self.swerve_modules])
 
         if self.counter % 10 == 0:
             self._update_dashboard(current_pose, ts)
@@ -548,17 +548,15 @@ class Swerve (Subsystem):
 
             self.angles_pub.set(angles)
 
-            # Drive motor electrical/status telemetry - see _init_networktables for topic
-            # names.  Throttled to 1 Hz (self.counter is already a multiple of 10 here, so
-            # %50 means every 5th call) on top of the 4 Hz CAN signal rate in motors.py -
-            # get_drive_faults() alone refreshes 27 signals per Kraken, so at the old 5 Hz
-            # this block was a real contributor to "communication gets laggy".  A human
-            # watching a current readout does not need faster than 1 Hz anyway.
+            # Drive voltage and current at 1 Hz (self.counter is a multiple of 10 here, so %50
+            # is every 5th call) - a human watching a current readout needs no more.
+            # NO FAULTS HERE.  Reading a Kraken's sticky faults is not free: the first read
+            # turns on 27 fault signals at 10 Hz on that motor and blocks up to 0.25 s waiting
+            # for them, and they stay on for the rest of the match.  Polled from periodic that
+            # is lag, not monitoring.  Faults are a diagnostic - read them on demand with the
+            # CAN status command (commands/can_status.py) while disabled.
             if self.counter % 50 == 0:
-                module_faults = [m.get_drive_faults() for m in self.swerve_modules]
                 self.drive_output_volts_pub.set([m.get_drive_output_voltage() for m in self.swerve_modules])
                 self.drive_stator_amps_pub.set([m.get_drive_stator_current() for m in self.swerve_modules])
                 self.drive_supply_amps_pub.set([m.get_drive_supply_current() for m in self.swerve_modules])
                 self.drive_current_limit_pub.set([m.get_drive_current_limit() for m in self.swerve_modules])
-                self.drive_faults_pub.set([', '.join(f) for f in module_faults])
-                self.drive_fault_present_pub.set([len(f) > 0 for f in module_faults])

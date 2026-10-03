@@ -34,6 +34,12 @@ def test_module_reverses_drive_instead_of_turning_180(container):
     steer = _wrap(module.turning_PID_controller.get_setpoint() - wheel)
     assert abs(math.degrees(steer) - (-10)) < 0.5, f"wheel should steer -10 deg, not {math.degrees(steer):.1f}"
 
+    # AdvantageScope's "Setpoints" publish getCommandedState() - it must be what the motors got,
+    # not the raw request, or the setpoint arrow points 180 deg away from a correct wheel.
+    commanded = module.getCommandedState()
+    assert commanded.velocity == -2.0
+    assert abs(math.degrees(_wrap(commanded.angle.radians() - wheel)) - (-10)) < 0.5
+
 
 def test_gamepad_axes_are_raw():
     """2027 gamepads apply their own 0.1 deadband by default.  Ours (dc.k_inner_deadband) was

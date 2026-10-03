@@ -38,11 +38,18 @@ jobs:
         include:
           - project: comp_bot
             python-version: '3.12'
+            os: ubuntu-latest
+          # Windows, not Ubuntu: a7's native wheels (robotpy-native-wpihal etc.) are built
+          # manylinux_2_41 - glibc 2.41 - and ubuntu-latest (24.04) ships glibc 2.39, so pip
+          # finds no installable wheel and the job can never get past the install step.
+          # Windows is also the platform the team's a7 dev environment actually runs on.
           - project: comp_system_core
             python-version: '3.13'
-    runs-on: ubuntu-latest
+            os: windows-latest
+    runs-on: ${{ matrix.os }}
     defaults:
       run:
+        shell: bash   # same shell on both runners; the install lines use \ continuations
         working-directory: ${{ matrix.project }}
     steps:
       - name: Checkout Code
