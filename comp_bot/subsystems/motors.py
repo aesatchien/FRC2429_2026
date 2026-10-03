@@ -316,9 +316,11 @@ class TalonDriveMotor:
         # 4 Hz (not 20) - that is the same rate every OTHER signal we did not explicitly
         # request already drops to (optimize_bus_utilization() below), so this asks for
         # nothing more than the bus was already giving us.  20 Hz across 4 Krakens x 3 signals
-        # was extra CAN traffic for a human-watched dashboard number.  (The "laggy" CAN seen
-        # with this feature was more likely the sticky-fault polling swerve.py used to do -
-        # see the NO FAULTS note there.  Reading a signal is free; ENABLING one is not.)
+        # was extra CAN traffic for a human-watched dashboard number.  (What caused the "laggy"
+        # communication seen on the SystemCore robot with this feature was never measured.  The
+        # sticky-fault polling swerve.py used to do was removed because it blocks the loop and
+        # leaves frames on - see the NO FAULTS note there.  Reading a signal is free; ENABLING
+        # one is not.)
         self._voltage_sig = self.talon.get_motor_voltage()
         self._stator_current_sig = self.talon.get_stator_current()
         self._supply_current_sig = self.talon.get_supply_current()
