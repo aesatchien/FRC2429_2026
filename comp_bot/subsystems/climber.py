@@ -136,5 +136,5 @@ class Climber(SubsystemBase):
         # keeps them live continuously instead, same as Intake/Shooter already do.  Inert
         # today since RobotContainer doesn't instantiate Climber this season.
         self.counter += 1
-        if self.counter % 10 == 0:
+        if self.counter % 50 == 0:  # 1 Hz - see the same change in intake.py/shooter.py
             update_motor_monitors(self.motor_monitors)

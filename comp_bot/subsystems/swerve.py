@@ -548,11 +548,17 @@ class Swerve (Subsystem):
 
             self.angles_pub.set(angles)
 
-            # Drive motor electrical/status telemetry - see _init_networktables for topic names.
-            module_faults = [m.get_drive_faults() for m in self.swerve_modules]
-            self.drive_output_volts_pub.set([m.get_drive_output_voltage() for m in self.swerve_modules])
-            self.drive_stator_amps_pub.set([m.get_drive_stator_current() for m in self.swerve_modules])
-            self.drive_supply_amps_pub.set([m.get_drive_supply_current() for m in self.swerve_modules])
-            self.drive_current_limit_pub.set([m.get_drive_current_limit() for m in self.swerve_modules])
-            self.drive_faults_pub.set([', '.join(f) for f in module_faults])
-            self.drive_fault_present_pub.set([len(f) > 0 for f in module_faults])
+            # Drive motor electrical/status telemetry - see _init_networktables for topic
+            # names.  Throttled to 1 Hz (self.counter is already a multiple of 10 here, so
+            # %50 means every 5th call) on top of the 4 Hz CAN signal rate in motors.py -
+            # get_drive_faults() alone refreshes 27 signals per Kraken, so at the old 5 Hz
+            # this block was a real contributor to "communication gets laggy".  A human
+            # watching a current readout does not need faster than 1 Hz anyway.
+            if self.counter % 50 == 0:
+                module_faults = [m.get_drive_faults() for m in self.swerve_modules]
+                self.drive_output_volts_pub.set([m.get_drive_output_voltage() for m in self.swerve_modules])
+                self.drive_stator_amps_pub.set([m.get_drive_stator_current() for m in self.swerve_modules])
+                self.drive_supply_amps_pub.set([m.get_drive_supply_current() for m in self.swerve_modules])
+                self.drive_current_limit_pub.set([m.get_drive_current_limit() for m in self.swerve_modules])
+                self.drive_faults_pub.set([', '.join(f) for f in module_faults])
+                self.drive_fault_present_pub.set([len(f) > 0 for f in module_faults])

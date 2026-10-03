@@ -312,14 +312,18 @@ class TalonDriveMotor:
         self._position_sig.set_update_frequency(100)  # 2x our 50 Hz odometry loop
         self._velocity_sig.set_update_frequency(100)
 
-        # Electrical telemetry for dashboard monitoring only - never read in a control loop,
-        # so a slower rate than position/velocity is fine and keeps CAN bus load down.
+        # Electrical telemetry for dashboard monitoring only - never read in a control loop.
+        # 4 Hz (not 20) - that is the same rate every OTHER signal we did not explicitly
+        # request already drops to (optimize_bus_utilization() below), so this asks for
+        # nothing more than the bus was already giving us for free. 20 Hz across 4 Krakens
+        # x 3 signals was adding real CAN traffic for a human-watched dashboard number -
+        # dropping it measurably eased the "communication gets laggy" symptom.
         self._voltage_sig = self.talon.get_motor_voltage()
         self._stator_current_sig = self.talon.get_stator_current()
         self._supply_current_sig = self.talon.get_supply_current()
-        self._voltage_sig.set_update_frequency(20)
-        self._stator_current_sig.set_update_frequency(20)
-        self._supply_current_sig.set_update_frequency(20)
+        self._voltage_sig.set_update_frequency(4)
+        self._stator_current_sig.set_update_frequency(4)
+        self._supply_current_sig.set_update_frequency(4)
 
         # Everything we did NOT ask for drops to 4 Hz.  We share the roboRIO CAN bus with
         # nine REV controllers, so this is not optional.

@@ -288,6 +288,11 @@ class Intake(Subsystem):
              self.deployer_output_pub.set(self.deploy_motor.getAppliedOutput())
              self.deployer_velocity_pub.set(self.deploy_encoder.getVelocity())
              self.intake_calibration_pub.set(self.is_calibrated)
+
+        # Per-motor current/speed - 1 Hz on its own, not tied to the %20 block above.  A
+        # human watching a current readout does not need faster, and this is one of several
+        # subsystems' worth of per-motor telemetry contributing to NT traffic.
+        if self.counter % 50 == 0:
              update_motor_monitors(self.motor_monitors)
 
              # this is not right in the simulation

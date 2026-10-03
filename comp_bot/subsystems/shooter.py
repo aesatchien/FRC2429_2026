@@ -224,9 +224,14 @@ class Shooter(Subsystem):
         # SmartDashboard.putBoolean('shooter_enable', self.shooter_enable)
         if self.counter % 10 == 0:
             self.update_nt()
-            update_motor_monitors(self.motor_monitors)
             if self.shooter_on:
                 pass
                 # self.flywheel_encoder_rm_pub.set(self.flywheel_encoder.getVelocity())
             # else:
             #     self.shooter_rpm_pub.set(0)
+
+        # Per-motor current/speed - 1 Hz on its own, not tied to the %10 block above.  A
+        # human watching a current readout does not need faster, and this is one of several
+        # subsystems' worth of per-motor telemetry contributing to NT traffic.
+        if self.counter % 50 == 0:
+            update_motor_monitors(self.motor_monitors)
