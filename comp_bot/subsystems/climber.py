@@ -38,14 +38,13 @@ from rev import ClosedLoopSlot, SparkMax
 from commands2 import SubsystemBase
 import constants
 from constants import ClimberConstants as cc
-from helpers.utilities import configure_sparks
+from helpers.utilities import configure_sparks, init_motor_monitors, update_motor_monitors
 from rev import SparkBase, SparkLowLevel
 
 class Climber(SubsystemBase):
     def __init__(self) -> None:
         super().__init__()
         self.setName('Climber')
-        self.climber = Climber
         self.position_index = 0
         self.current_position = 10
         self.counter = cc.k_counter_offset  # note this should be an offset in constants
@@ -78,6 +77,11 @@ class Climber(SubsystemBase):
         self.motor_on_pub = self.inst.getBooleanTopic(f"{self.nt_prefix}/motor_on").publish()
         self.motor_rpm_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/motor_rpm").publish()
         self.inches_from_ground_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/inches_from_ground").publish()
+
+        # Per-motor current (A) and speed (RPM) - see helpers.utilities.init_motor_monitors().
+        self.motor_monitors = init_motor_monitors(self.inst, self.nt_prefix, [
+            ('climber', self.motor),
+        ])
 
         self.motor_on_pub.set(self.motor_on)
         self.motor_rpm_pub.set(self.current_rpm)
@@ -125,3 +129,12 @@ class Climber(SubsystemBase):
             #self.flywheel_controller.setSetpoint(setpoint=rpm, ctrl=SparkLowLevel.ControlType.kVelocity, slot=rev.ClosedLoopSlot.kSlot0, arbFeedforward=feed_forward)
             #self.voltage = feed_forward  # 12 * rpm / max rpm  # Guess
     #def get_distance(self):
+
+    def periodic(self) -> None:
+        # Climber previously had no periodic() at all, so current/speed monitoring (and
+        # update_nt()) only ever ran when move_climber()/set_position() were called.  This
+        # keeps them live continuously instead, same as Intake/Shooter already do.  Inert
+        # today since RobotContainer doesn't instantiate Climber this season.
+        self.counter += 1
+        if self.counter % 10 == 0:
+            update_motor_monitors(self.motor_monitors)

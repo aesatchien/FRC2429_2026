@@ -57,6 +57,38 @@ def set_config_defaults(configs: Union[SparkConfig, List[SparkConfig]]) -> None:
         config.setIdleMode(config.IdleMode.kBrake)
         config.smartCurrentLimit(40)
 
+def init_motor_monitors(inst, prefix: str, named_motors: Sequence[Tuple[str, object]]) -> List[Tuple[object, object, object, object]]:
+    """Pre-allocates one current (amps) and one speed (RPM) DoubleTopic publisher per
+    (name, motor) pair, at f"{prefix}/current_{name}" and f"{prefix}/speed_{name}", for
+    watching REV motor status live in AdvantageScope/Shuffleboard.
+
+    Written once so Intake, Shooter and Climber don't each hand-roll the same "loop over
+    self.motors and publish getOutputCurrent()/encoder.getVelocity()" code - see
+    subsystems/swerve.py's per-module drive_stator_amps/drive_supply_amps publishers for the
+    equivalent on the swerve side, which use CTRE's own split current signals instead since a
+    Kraken has both. Speed is whatever the motor's own encoder reports (RPM unless a
+    velocityConversionFactor was configured), same as every other rpm-flavoured value already
+    on these subsystems' dashboards.
+
+    Returns a list of (current_pub, speed_pub, motor, encoder) tuples - pass it to
+    update_motor_monitors() on whatever cadence your periodic() already uses.
+    """
+    monitors = []
+    for name, motor in named_motors:
+        current_pub = inst.getDoubleTopic(f"{prefix}/current_{name}").publish()
+        speed_pub = inst.getDoubleTopic(f"{prefix}/speed_{name}").publish()
+        monitors.append((current_pub, speed_pub, motor, motor.getEncoder()))
+    return monitors
+
+
+def update_motor_monitors(monitors: Sequence[Tuple[object, object, object, object]]) -> None:
+    """Pushes each motor's getOutputCurrent() (amps) and encoder velocity (RPM) to its
+    publishers.  See init_motor_monitors()."""
+    for current_pub, speed_pub, motor, encoder in monitors:
+        current_pub.set(motor.getOutputCurrent())
+        speed_pub.set(encoder.getVelocity())
+
+
 def _get_motor_state(motor):
     """
     Extracts key configuration and state data from a REV Spark motor.
