@@ -326,8 +326,9 @@ class TalonDriveMotor:
         self._stator_current_sig.set_update_frequency(4)
         self._supply_current_sig.set_update_frequency(4)
 
-        # Everything we did NOT ask for drops to 4 Hz.  We share the roboRIO CAN bus with
-        # nine REV controllers, so this is not optional.
+        # Everything we did NOT ask for drops to 4 Hz.  The roboRIO has ONE CAN bus and there is
+        # no CANivore, so these 4 Krakens share it with 14 REV controllers (4 swerve turn,
+        # 3 intake, 6 shooter, 1 climber) plus the PDH.  Not optional.
         self.talon.optimize_bus_utilization()
         self._fault_signals = None  # built on first get_sticky_faults() - see the helper
 

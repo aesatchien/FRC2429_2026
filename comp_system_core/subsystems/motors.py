@@ -448,7 +448,7 @@ def _talon_enable_fault_signals(talon) -> dict:
 
     Deferred until something actually asks for faults, for two reasons:
       - optimize_bus_utilization() slows every signal we did not explicitly request, so
-        fault frames are not flowing during a match.  That is what we want on a shared bus;
+        fault frames are not flowing during a match.  That is what we want on any CAN bus;
         we do not spend bandwidth on diagnostics all match.  Turn them on here instead.
       - constructing a StatusSignal performs an initial refresh, and doing 27 of those per
         motor at boot prints a wall of "CAN frame not received" warnings before the bus has
@@ -526,8 +526,10 @@ class TalonDriveMotor:
         self._stator_current_sig.set_update_frequency(4)
         self._supply_current_sig.set_update_frequency(4)
 
-        # Everything we did NOT ask for drops to 4 Hz.  We share the roboRIO CAN bus with
-        # nine REV controllers, so this is not optional.
+        # Everything we did NOT ask for drops to 4 Hz.  On SystemCore the Krakens have can_s0 to
+        # themselves (turn SparkFlexes are on can_s1, everything else on can_s2 - see
+        # constants.k_can_bus_*), so this is about keeping the drive bus quiet and the loop
+        # cheap, not about sharing with REV.  It was written for the roboRIO, where they did.
         self.talon.optimize_bus_utilization()
         self._fault_signals = None  # built on first get_sticky_faults() - see the helper
         self._plant: typing.Optional[_TalonPlant] = None

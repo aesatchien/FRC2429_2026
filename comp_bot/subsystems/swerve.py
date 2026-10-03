@@ -551,9 +551,9 @@ class Swerve (Subsystem):
             # Drive voltage and current at 1 Hz (self.counter is a multiple of 10 here, so %50
             # is every 5th call) - a human watching a current readout needs no more.
             # NO FAULTS HERE.  Reading a Kraken's sticky faults is not free: the first read
-            # turns on 27 fault signals at 10 Hz on that motor and blocks up to 0.25 s waiting
-            # for them, and they stay on for the rest of the match.  Polled from periodic that
-            # is lag, not monitoring.  Faults are a diagnostic - read them on demand with the
+            # enables its fault status frames (27 signals, packed into a few frames) at 10 Hz for
+            # the rest of the match, and blocks the loop up to 0.25 s per motor waiting for them.
+            # Polled from periodic that is a loop stall plus extra bus traffic, not monitoring.  Faults are a diagnostic - read them on demand with the
             # CAN status command (commands/can_status.py) while disabled.
             if self.counter % 50 == 0:
                 self.drive_output_volts_pub.set([m.get_drive_output_voltage() for m in self.swerve_modules])
