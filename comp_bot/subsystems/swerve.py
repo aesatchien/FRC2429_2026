@@ -182,6 +182,13 @@ class Swerve (Subsystem):
         self.drive_y_pub = self.inst.getDoubleTopic(f"{swerve_prefix}/drive_y").publish()
         self.drive_theta_pub = self.inst.getDoubleTopic(f"{swerve_prefix}/drive_theta").publish()
 
+        # Struct-array (byte-encoded) SwerveModuleState[] publishers for AdvantageScope's
+        # Swerve visualizer - drag both onto a Swerve tab as the "Measured" and "Setpoints"
+        # fields to see live wheel speed/angle vectors. Far cheaper than the old double[]
+        # (speed, angle) x4 layout and self-describing, so AdvantageScope needs no manual schema.
+        self.module_states_pub = self.inst.getStructArrayTopic(f"{swerve_prefix}/module_states", SwerveModuleState).publish()
+        self.module_states_desired_pub = self.inst.getStructArrayTopic(f"{swerve_prefix}/module_states_desired", SwerveModuleState).publish()
+
         self.navx_angle_pub = self.inst.getDoubleTopic(f"{swerve_prefix}/_navx_angle").publish()
         self.navx_yaw_pub = self.inst.getDoubleTopic(f"{swerve_prefix}/_navx_yaw").publish()
         self.navx_raw_pub = self.inst.getDoubleTopic(f"{swerve_prefix}/_navx").publish()
@@ -192,6 +199,15 @@ class Swerve (Subsystem):
         module_names = ['LF', 'RF', 'LB', 'RB']  # TODO - just save this order somewhere and reuse it
         self.abs_enc_pubs = [self.inst.getDoubleTopic(f"{swerve_prefix}/absolute_{name}").publish() for name in module_names]
         self.angles_pub = self.inst.getDoubleArrayTopic(f"{swerve_prefix}/_angles").publish()
+
+        # Drive motor electrical/status telemetry (order matches module_names: LF RF LB RB).
+        # Watch these in AdvantageScope to see the Kraken's actual output/current live -
+        # e.g. to tell whether "twitchy" driving is a PID problem or genuinely more current
+        # draw than the Vortex ever pulled.  current_limit reflects brownout mode's toggling.
+        self.drive_output_volts_pub = self.inst.getDoubleArrayTopic(f"{swerve_prefix}/drive_output_volts").publish()
+        self.drive_stator_amps_pub = self.inst.getDoubleArrayTopic(f"{swerve_prefix}/drive_stator_amps").publish()
+        self.drive_supply_amps_pub = self.inst.getDoubleArrayTopic(f"{swerve_prefix}/drive_supply_amps").publish()
+        self.drive_current_limit_pub = self.inst.getDoubleArrayTopic(f"{swerve_prefix}/drive_current_limit").publish()
 
         self.brownout_mode_pub = self.inst.getBooleanTopic(f"{status_prefix}/brownout_mode").publish()
         self.brownout_mode_pub.set(self.brownout_mode)  # publish initial False
@@ -402,7 +418,16 @@ class Swerve (Subsystem):
 
         self._update_vision_measurements(current_pose, ts)
         self._update_odometry(ts)
-        
+
+        # 10 Hz, not every loop.  DataLogManager records every NT value to the .wpilog, so
+        # 50 Hz x two struct arrays was ~25 MB of disk per hour of robot uptime for a picture a
+        # human watches.  10 Hz still animates in AdvantageScope.  The setpoints are what the
+        # module actually COMMANDED (after optimize() and the low-speed hold) - the raw request
+        # points 180 deg away from the wheel whenever optimize() reverses the drive.
+        if self.counter % 5 == 0:
+            self.module_states_pub.set(self.get_module_states())
+            self.module_states_desired_pub.set([m.getCommandedState() for m in self.swerve_modules])
+
         if self.counter % 10 == 0:
             self._update_dashboard(current_pose, ts)
 
@@ -517,8 +542,21 @@ class Swerve (Subsystem):
         if constants.k_swerve_debugging_messages:
             angles = [m.get_turn_motor_position() for m in self.swerve_modules]
             absolutes = [m.get_turn_encoder() for m in self.swerve_modules]
-            
+
             for pub, val in zip(self.abs_enc_pubs, absolutes):
                 pub.set(val)
-            
+
             self.angles_pub.set(angles)
+
+            # Drive voltage and current at 1 Hz (self.counter is a multiple of 10 here, so %50
+            # is every 5th call) - a human watching a current readout needs no more.
+            # NO FAULTS HERE.  Reading a Kraken's sticky faults is not free: the first read
+            # enables its fault status frames (27 signals, packed into a few frames) at 10 Hz for
+            # the rest of the match, and blocks the loop up to 0.25 s per motor waiting for them.
+            # Polled from periodic that is a loop stall plus extra bus traffic, not monitoring.  Faults are a diagnostic - read them on demand with the
+            # CAN status command (commands/can_status.py) while disabled.
+            if self.counter % 50 == 0:
+                self.drive_output_volts_pub.set([m.get_drive_output_voltage() for m in self.swerve_modules])
+                self.drive_stator_amps_pub.set([m.get_drive_stator_current() for m in self.swerve_modules])
+                self.drive_supply_amps_pub.set([m.get_drive_supply_current() for m in self.swerve_modules])
+                self.drive_current_limit_pub.set([m.get_drive_current_limit() for m in self.swerve_modules])

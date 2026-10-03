@@ -27,6 +27,10 @@ class SwerveModule:
 
         self.label = label
         self.desiredState = SwerveModuleState(0.0, Rotation2d())  # initialize desired state
+        # What setDesiredState() actually sent the motors - after optimize() and the
+        # low-speed hold.  desiredState above is the raw request, which can point 180 deg
+        # away from what the wheel is doing whenever optimize() reverses the drive.
+        self.commandedState = SwerveModuleState(0.0, Rotation2d())
         self.turning_output = 0
 
         #  ---------------- MOTORS (vendor chosen by the active config)  ------------------
@@ -65,6 +69,20 @@ class SwerveModule:
         """(drive, turn) config snapshots for the boot-time printout in Swerve."""
         return self.drive_motor.describe(), self.turn_motor.describe()
 
+    # ---------------- drive motor electrical/status telemetry (dashboard only) ----------------
+    def get_drive_output_voltage(self) -> float:
+        return self.drive_motor.get_output_voltage()
+
+    def get_drive_stator_current(self) -> float:
+        return self.drive_motor.get_stator_current_amps()
+
+    def get_drive_supply_current(self) -> float:
+        return self.drive_motor.get_supply_current_amps()
+
+    def get_drive_current_limit(self) -> float:
+        return self.drive_motor.get_current_limit_amps()
+
+
     def getState(self) -> SwerveModuleState:
         """Returns the current state of the module.
         :returns: The current state of the module.
@@ -81,6 +99,10 @@ class SwerveModule:
 
     def getDesiredState(self):
         return self.desiredState
+
+    def getCommandedState(self):
+        """The state the motors were actually told to hold - see commandedState."""
+        return self.commandedState
 
     def setDesiredState(self, desiredState: SwerveModuleState) -> None:
         """Sets the desired state for the module.
@@ -110,6 +132,7 @@ class SwerveModule:
         self.turn_motor.set_duty_cycle(self.turning_output)
 
         self.desiredState = desiredState
+        self.commandedState = correctedDesiredState
 
     def set_drive_current_limit(self, amps: int) -> None:
         """Temporarily changes the drive motor current limit without resetting other configuration."""

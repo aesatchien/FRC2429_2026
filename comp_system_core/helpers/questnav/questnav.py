@@ -164,7 +164,12 @@ class QuestNav:
                 
                 # Parse frameData
                 if "frameData" in topic_name:
-                    raw_data = value.get_raw() if hasattr(value, 'getRaw') else bytes()
+                    # a7: hasattr() must check the real snake_case method name - checking the
+                    # old camelCase 'getRaw' here always returned False (hasattr swallows the
+                    # miss instead of raising), so raw_data was silently empty() forever and
+                    # frameData/deviceData never actually got parsed on the Python side, even
+                    # though the NT4 traffic itself was fine.
+                    raw_data = value.get_raw() if hasattr(value, 'get_raw') else bytes()
                     
                     if raw_data:
                         frame_data = data_pb2.ProtobufQuestNavFrameData()
@@ -196,7 +201,7 @@ class QuestNav:
                 
                 # Parse deviceData
                 elif "deviceData" in topic_name:
-                    raw_data = value.get_raw() if hasattr(value, 'getRaw') else bytes()
+                    raw_data = value.get_raw() if hasattr(value, 'get_raw') else bytes()
                     
                     if raw_data:
                         device_data = data_pb2.ProtobufQuestNavDeviceData()
@@ -208,7 +213,7 @@ class QuestNav:
                 
                 # Parse command responses
                 elif "response" in topic_name:
-                    raw_data = value.get_raw() if hasattr(value, 'getRaw') else bytes()
+                    raw_data = value.get_raw() if hasattr(value, 'get_raw') else bytes()
                     
                     if raw_data:
                         response = commands_pb2.ProtobufQuestNavCommandResponse()

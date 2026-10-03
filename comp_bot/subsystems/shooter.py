@@ -5,7 +5,7 @@ from rev import SparkBase, SparkLowLevel  # trying to save some typing
 
 import constants
 from constants import ShooterConstants as sc
-from helpers.utilities import configure_sparks
+from helpers.utilities import configure_sparks, init_motor_monitors, update_motor_monitors
 
 
 class Shooter(Subsystem):
@@ -90,6 +90,16 @@ class Shooter(Subsystem):
         self.roller_on_pub = self.inst.getBooleanTopic(f"{self.nt_prefix}/roller_on").publish()
         self.roller_rpm_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/roller_rpm").publish()
         self.flywheel_encoder_rm_pub = self.inst.getDoubleTopic(f"{self.nt_prefix}/flywheel_encoder_rpm").publish()
+
+        # Per-motor current (A) and speed (RPM) - see helpers.utilities.init_motor_monitors().
+        self.motor_monitors = init_motor_monitors(self.inst, self.nt_prefix, [
+            ('hopper', self.hopper),
+            ('indexer_left_leader', self.indexer_left_leader),
+            ('indexer_right_follower', self.indexer_right_follower),
+            ('flywheel_left_leader', self.flywheel_left_leader),
+            ('flywheel_right_follower', self.flywheel_right_follower),
+            ('roller', self.roller_motor),
+        ])
 
     def update_nt(self):
         self.shooter_on_pub.set(self.shooter_on)
@@ -219,3 +229,9 @@ class Shooter(Subsystem):
                 # self.flywheel_encoder_rm_pub.set(self.flywheel_encoder.getVelocity())
             # else:
             #     self.shooter_rpm_pub.set(0)
+
+        # Per-motor current/speed - 1 Hz on its own, not tied to the %10 block above.  A
+        # human watching a current readout does not need faster, and this is one of several
+        # subsystems' worth of per-motor telemetry contributing to NT traffic.
+        if self.counter % 50 == 0:
+            update_motor_monitors(self.motor_monitors)
