@@ -88,6 +88,7 @@ class DriveMotor(typing.Protocol):
     def get_stator_current_amps(self) -> float: ...
     def get_supply_current_amps(self) -> float: ...
     def get_current_limit_amps(self) -> float: ...
+    def get_temperature_c(self) -> float: ...
 
 
 class TurnMotor(typing.Protocol):
@@ -105,6 +106,7 @@ class TurnMotor(typing.Protocol):
     # current-limit change (no brownout logic for turn), so one reading is enough.
     def get_output_voltage(self) -> float: ...
     def get_current_amps(self) -> float: ...
+    def get_temperature_c(self) -> float: ...
 
 
 # =================================================================================
@@ -379,6 +381,11 @@ class RevDriveMotor:
     def get_current_limit_amps(self) -> float:
         return self.current_limit_a
 
+    def get_temperature_c(self) -> float:
+        # REV reports motor winding temperature in degrees C; slow-moving, so the caller
+        # samples it at a low rate.
+        return self.spark.get_motor_temperature().get()
+
 
 class RevTurnMotor:
     """
@@ -437,6 +444,9 @@ class RevTurnMotor:
 
     def get_current_amps(self) -> float:
         return self.spark.get_output_current().get()
+
+    def get_temperature_c(self) -> float:
+        return self.spark.get_motor_temperature().get()
 
 
 # =================================================================================
@@ -527,6 +537,9 @@ class TalonDriveMotor:
         self._voltage_sig.set_update_frequency(4)
         self._stator_current_sig.set_update_frequency(4)
         self._supply_current_sig.set_update_frequency(4)
+        # Device temperature moves over minutes, not milliseconds - 1 Hz is plenty.
+        self._temp_sig = self.talon.get_device_temp()
+        self._temp_sig.set_update_frequency(1)
 
         # Everything we did NOT ask for drops to 4 Hz.  On SystemCore the Krakens have can_s0 to
         # themselves (turn SparkFlexes are on can_s1, everything else on can_s2 - see
@@ -603,6 +616,9 @@ class TalonDriveMotor:
         # The SUPPLY limit - the one brownout mode actually moves (see set_current_limit).
         return self.supply_limit_a
 
+    def get_temperature_c(self) -> float:
+        return self._temp_sig.refresh().value
+
     def describe(self) -> dict:
         cfg = TalonFXConfiguration()
         self.talon.configurator.refresh(cfg)
@@ -648,6 +664,8 @@ class TalonTurnMotor:
         self._current_sig = self.talon.get_stator_current()  # torque-relevant, matches drive's choice
         self._voltage_sig.set_update_frequency(4)   # see TalonDriveMotor's note on why not 20
         self._current_sig.set_update_frequency(4)
+        self._temp_sig = self.talon.get_device_temp()
+        self._temp_sig.set_update_frequency(1)
 
         self.talon.optimize_bus_utilization()
         self._fault_signals = None  # built on first get_sticky_faults()
@@ -686,6 +704,9 @@ class TalonTurnMotor:
 
     def get_current_amps(self) -> float:
         return self._current_sig.refresh().value
+
+    def get_temperature_c(self) -> float:
+        return self._temp_sig.refresh().value
 
     def describe(self) -> dict:
         return {'vendor': 'CTRE', 'kind': 'turn', 'can_id': self.can_id,
