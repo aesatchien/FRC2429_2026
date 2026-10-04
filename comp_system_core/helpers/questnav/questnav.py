@@ -112,7 +112,8 @@ class QuestNav:
         self._tracking_lost_counter = 0
         self._frame_count = 0
         self._last_command_id = 0
-        
+        self._command_results = {}  # command_id -> success, from the headset's response topic
+
         # Queues for unread frames
         self._unread_frames: List[PoseFrame] = []
     
@@ -219,6 +220,9 @@ class QuestNav:
                         response = commands_pb2.ProtobufQuestNavCommandResponse()
                         response.ParseFromString(raw_data)
                         
+                        self._command_results[response.command_id] = response.success
+                        if len(self._command_results) > 16:  # keep it small, only recent ids matter
+                            self._command_results.pop(next(iter(self._command_results)))
                         if not response.success:
                             print(f"QuestNav command {response.command_id} failed: {response.error_message}")
                         
@@ -230,6 +234,10 @@ class QuestNav:
         self._unread_frames.clear()
         return frames
     
+    def get_command_result(self, command_id):
+        """Headset's answer to a command: True/False once a response has arrived, else None."""
+        return self._command_results.get(command_id)
+
     def set_pose(self, pose: Pose3d):
         """
         Sets the field-relative pose of the Quest headset.
@@ -249,6 +257,9 @@ class QuestNav:
         Args:
             pose: The Quest's current field-relative pose in WPILib coordinates
         
+        Returns:
+            The command id that was sent (see get_command_result), or None if sending failed.
+
         Example:
             # If you know Quest pose directly
             quest_pose = Pose3d(1.5, 5.5, 0.0, Rotation3d())
@@ -292,9 +303,11 @@ class QuestNav:
             # Publish command
             serialized = command.SerializeToString()
             self.command_pub.set(serialized)
-            
+            return self._last_command_id
+
         except Exception as e:
             print(f"QuestNav error sending pose reset: {e}")
+            return None  # nothing was sent - callers must not treat this as a reset
     
     def get_battery_percent(self) -> int:  # was Optional[int]:
         """
