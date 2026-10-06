@@ -129,7 +129,7 @@ class RobotContainer:
                                              Intake_Deploy(intake=self.intake, position='shoot2')),
         ).before_starting(Intake_Set_RPM(intake=self.intake, rpm=500, led=self.led)))
         # does not work as an "andThen" for some reason
-        js.driver_a.on_false(Intake_Deploy(intake=self.intake, position='down').and_then(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
+        js.driver_a.on_false(Intake_Deploy(intake=self.intake, position='down').and_then(Intake_Set_RPM(intake=self.intake, rpm=ic.k_intake_teleop_rpm, led=self.led)))
 
         # manual shooting - identical to the above but with fixed RPM
         js.driver_x.while_true(commands2.ParallelCommandGroup(
@@ -139,7 +139,7 @@ class RobotContainer:
                                              commands2.WaitCommand(constants.AutoConstants.k_intake_raise_delay),
                                              Intake_Deploy(intake=self.intake, position='shoot2')),
         ).before_starting(Intake_Set_RPM(intake=self.intake, rpm=500, led=self.led)))
-        js.driver_x.on_false(Intake_Deploy(intake=self.intake, position='down').and_then(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
+        js.driver_x.on_false(Intake_Deploy(intake=self.intake, position='down').and_then(Intake_Set_RPM(intake=self.intake, rpm=ic.k_intake_teleop_rpm, led=self.led)))
 
         js.driver_b.on_true(InstantCommand(lambda: self.shooter.set_shooter_rpm(sc.k_fire_up_speed)))
         js.driver_b.while_true(commands2.ParallelCommandGroup(
@@ -149,7 +149,7 @@ class RobotContainer:
                                              commands2.WaitCommand(constants.AutoConstants.k_intake_raise_delay),
                                              Intake_Deploy(intake=self.intake, position='shoot2')),
         ).before_starting(Intake_Set_RPM(intake=self.intake, rpm=500, led=self.led)))
-        js.driver_b.on_false(Intake_Deploy(intake=self.intake, position='down').and_then(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
+        js.driver_b.on_false(Intake_Deploy(intake=self.intake, position='down').and_then(Intake_Set_RPM(intake=self.intake, rpm=ic.k_intake_teleop_rpm, led=self.led)))
 
 
         # start / stop tracking
@@ -170,7 +170,7 @@ class RobotContainer:
             js.driver_up.on_true(Intake_Deploy(intake=self.intake, position='up'))
             #js.driver_right.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=1))
             #js.driver_left.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=-1))
-            js.driver_down.on_true(Intake_Deploy(intake=self.intake, position='down'))
+            js.driver_down.on_true(Intake_Deploy(intake=self.intake, position='down').and_then(Intake_Set_RPM(intake=self.intake, rpm=ic.k_intake_teleop_rpm, led=self.led)))
 
         # --- Subsystems ---
         # Giving Jeremy faster and slower fixed speeds
