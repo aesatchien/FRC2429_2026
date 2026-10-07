@@ -129,7 +129,7 @@ class RobotContainer:
                                              Intake_Deploy(intake=self.intake, position='shoot2')),
         ).before_starting(Intake_Set_RPM(intake=self.intake, rpm=500, led=self.led)))
         # does not work as an "andThen" for some reason
-        js.driver_a.on_false(Intake_Deploy(intake=self.intake, position='down').and_then(Intake_Set_RPM(intake=self.intake, rpm=ic.k_intake_teleop_rpm, led=self.led)))
+        js.driver_a.on_false(Intake_Deploy(intake=self.intake, position='down').and_then(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
 
         # manual shooting - identical to the above but with fixed RPM
         js.driver_x.while_true(commands2.ParallelCommandGroup(
@@ -139,7 +139,7 @@ class RobotContainer:
                                              commands2.WaitCommand(constants.AutoConstants.k_intake_raise_delay),
                                              Intake_Deploy(intake=self.intake, position='shoot2')),
         ).before_starting(Intake_Set_RPM(intake=self.intake, rpm=500, led=self.led)))
-        js.driver_x.on_false(Intake_Deploy(intake=self.intake, position='down').and_then(Intake_Set_RPM(intake=self.intake, rpm=ic.k_intake_teleop_rpm, led=self.led)))
+        js.driver_x.on_false(Intake_Deploy(intake=self.intake, position='down').and_then(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
 
         js.driver_b.on_true(InstantCommand(lambda: self.shooter.set_shooter_rpm(sc.k_fire_up_speed)))
         js.driver_b.while_true(commands2.ParallelCommandGroup(
@@ -149,7 +149,7 @@ class RobotContainer:
                                              commands2.WaitCommand(constants.AutoConstants.k_intake_raise_delay),
                                              Intake_Deploy(intake=self.intake, position='shoot2')),
         ).before_starting(Intake_Set_RPM(intake=self.intake, rpm=500, led=self.led)))
-        js.driver_b.on_false(Intake_Deploy(intake=self.intake, position='down').and_then(Intake_Set_RPM(intake=self.intake, rpm=ic.k_intake_teleop_rpm, led=self.led)))
+        js.driver_b.on_false(Intake_Deploy(intake=self.intake, position='down').and_then(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
 
 
         # start / stop tracking
@@ -170,7 +170,7 @@ class RobotContainer:
             js.driver_up.on_true(Intake_Deploy(intake=self.intake, position='up'))
             #js.driver_right.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=1))
             #js.driver_left.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=-1))
-            js.driver_down.on_true(Intake_Deploy(intake=self.intake, position='down').and_then(Intake_Set_RPM(intake=self.intake, rpm=ic.k_intake_teleop_rpm, led=self.led)))
+            js.driver_down.on_true(Intake_Deploy(intake=self.intake, position='down'))
 
         # --- Subsystems ---
         # Giving Jeremy faster and slower fixed speeds
@@ -241,8 +241,8 @@ class RobotContainer:
         )
 
         # user should never sync the odometry.  should only be done with a good apriltag, not by the operator
-        #js.bbox_1_4.onTrue(InstantCommand(lambda: self.questnav.quest_sync_odometry()).ignoringDisable(True))
-        js.bbox_1_5.on_true(InstantCommand(lambda: self.questnav.quest_enabled_toggle(force='off')).ignoring_disable(True))
+        js.bbox_1_5.onTrue(InstantCommand(lambda: self.questnav.quest_sync_odometry()).ignoringDisable(True))  # TEMPORARY FOR DRIVING PRACTICE AND CAMERAS ARE DOWN -TRENTAN
+        # js.bbox_1_5.on_true(InstantCommand(lambda: self.questnav.quest_enabled_toggle(force='off')).ignoring_disable(True))
         js.bbox_1_6.on_true(InstantCommand(lambda: self.questnav.quest_enabled_toggle(force='on')).ignoring_disable(True))
         js.bbox_1_7.on_true(InstantCommand(lambda: self.questnav.quest_unsync_odometry()).ignoring_disable(True))
 
