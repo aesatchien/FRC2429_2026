@@ -241,7 +241,7 @@ class RobotContainer:
         )
 
         # user should never sync the odometry.  should only be done with a good apriltag, not by the operator
-        #js.bbox_1_4.onTrue(InstantCommand(lambda: self.questnav.quest_sync_odometry()).ignoringDisable(True))
+        #js.bbox_1_4.on_true(InstantCommand(lambda: self.questnav.quest_sync_odometry()).ignoringDisable(True))
         js.bbox_1_5.on_true(InstantCommand(lambda: self.questnav.quest_enabled_toggle(force='off')).ignoring_disable(True))
         js.bbox_1_6.on_true(InstantCommand(lambda: self.questnav.quest_enabled_toggle(force='on')).ignoring_disable(True))
         js.bbox_1_7.on_true(InstantCommand(lambda: self.questnav.quest_unsync_odometry()).ignoring_disable(True))
