@@ -137,7 +137,15 @@ WIDGET_CONFIG = {
 
     'qcombobox_autonomous_routines': {'widget_name': 'qcombobox_autonomous_routines', 'nt_topic': rf'{base_prefix}/autonomous routines/options',
                                       'active_topic': rf'{base_prefix}/autonomous routines/active',
-                                      'selected_topic': rf'{base_prefix}/autonomous routines/selected', 'update_style': 'combo'},
+                                      'selected_topic': rf'{base_prefix}/autonomous routines/selected',
+                                      # 2027a7 Selectable (robotpy-tunables) has no 'active'.  Its choice is a "robust"
+                                      # tunable: clients WRITE to 'selected/tune' and the robot echoes what it accepted
+                                      # to 'selected/value' (writes to either 'selected' or 'selected/value' are ignored).
+                                      # 'default' is what it runs if nothing is chosen.
+                                      'selected_tune_topic': rf'{base_prefix}/autonomous routines/selected/tune',
+                                      'selected_value_topic': rf'{base_prefix}/autonomous routines/selected/value',
+                                      'default_topic': rf'{base_prefix}/autonomous routines/default',
+                                      'update_style': 'combo'},
     'qcombobox_auto_delay': {'widget_name': 'qcombobox_auto_delay', 'nt_topic': f'{auto_prefix}/auto_delay', 'update_style': 'numeric_combo'},
     'qlabel_nt_connected': {'widget_name': 'qlabel_nt_connected', 'update_style': 'connection'},
     'qlabel_fms_connected': {'widget_name': 'qlabel_fms_connected_indicator', 'nt_topic': f'{status_prefix}/_fms_attached', 'update_style': 'indicator'},

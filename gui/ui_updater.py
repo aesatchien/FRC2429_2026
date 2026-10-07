@@ -116,10 +116,11 @@ class UIUpdater:
 
                     # 3. CRITICAL: Close the publisher to erase its cached value from the NT4 client's memory.
                     # This is the key step that prevents the GUI from forcing its old selection on a newly rebooted robot.
-                    pub = props.get('selected_publisher')
-                    if pub:
-                        pub.close()
-                        props['selected_publisher'] = None # Mark as closed
+                    for pub_key in ('selected_publisher', 'selected_tune_publisher'):
+                        pub = props.get(pub_key)
+                        if pub:
+                            pub.close()
+                            props[pub_key] = None # Mark as closed
                     
         elif is_connected and not was_connected:
             print(f"[{time.strftime('%H:%M:%S')}] Network reconnected. Re-creating chooser publisher to allow user input.")
@@ -128,6 +129,8 @@ class UIUpdater:
             props = self.ui.widget_dict.get('qcombobox_autonomous_routines')
             if props and props.get('selected_topic'):
                 props['selected_publisher'] = self.ui.ntinst.getStringTopic(props['selected_topic']).publish()
+                if props.get('selected_tune_topic'):
+                    props['selected_tune_publisher'] = self.ui.ntinst.getStringTopic(props['selected_tune_topic']).publish()
 
         self._last_connection_state = is_connected
 
@@ -537,10 +540,14 @@ class UIUpdater:
 
         # SendableChooser publishes actual state to 'active', and reads requests from 'selected'
         active_sub = props.get('active_subscriber')
-        selected_sub = props.get('selected_subscriber')
-        
-        robot_routine = active_sub.get() if active_sub else (selected_sub.get() if selected_sub else "")
 
+        # 2026 SendableChooser: 'active' is what the robot is really running.  2027a7 Selectable has no 'active':
+        # the robot echoes the choice it accepted to 'selected/value' and, until someone picks, runs 'default'.
+        # Never fall back to the plain 'selected' topic on a7 - nothing reads it, so it only echoed this GUI.
+        robot_routine = active_sub.get() if active_sub else ""
+        if not robot_routine:
+            value_sub, default_sub = props.get('selected_value_subscriber'), props.get('default_subscriber')
+            robot_routine = (value_sub.get() if value_sub else "") or (default_sub.get() if default_sub else "")
         if robot_routine:
             if list_changed or robot_routine != widget.currentText():
                 widget.blockSignals(True)
