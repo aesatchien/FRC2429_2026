@@ -95,6 +95,12 @@ class SwerveModule:
     def get_turn_current(self) -> float:
         return self.turn_motor.get_current_amps()
 
+    def get_drive_temperature_c(self) -> float:
+        return self.drive_motor.get_temperature_c()
+
+    def get_turn_temperature_c(self) -> float:
+        return self.turn_motor.get_temperature_c()
+
 
     def getState(self) -> SwerveModuleVelocity:
         """Returns the current state of the module.

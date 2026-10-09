@@ -292,6 +292,11 @@ class Swerve (Subsystem):
         self.turn_output_volts_pub = self.inst.get_double_array_topic(f"{swerve_prefix}/turn_output_volts").publish()
         self.turn_amps_pub = self.inst.get_double_array_topic(f"{swerve_prefix}/turn_amps").publish()
 
+        # Motor temperatures, degrees C (order LF RF LB RB).  Sampled slowly - see
+        # _update_dashboard - since winding temperature changes over minutes.
+        self.drive_temp_c_pub = self.inst.get_double_array_topic(f"{swerve_prefix}/drive_temp_c").publish()
+        self.turn_temp_c_pub = self.inst.get_double_array_topic(f"{swerve_prefix}/turn_temp_c").publish()
+
         self.brownout_mode_pub = self.inst.get_boolean_topic(f"{status_prefix}/brownout_mode").publish()
         self.brownout_mode_pub.set(self.brownout_mode)  # publish initial False
 
@@ -690,6 +695,14 @@ class Swerve (Subsystem):
 
                 self.turn_output_volts_pub.set([m.get_turn_output_voltage() for m in self.swerve_modules])
                 self.turn_amps_pub.set([m.get_turn_current() for m in self.swerve_modules])
+
+        # Motor temperatures, every 500 ticks = every 10 s at 50 Hz (self.counter is a multiple
+        # of 10 here).  Deliberately NOT inside the debugging gate and deliberately slow: the
+        # Phoenix signal itself is only requested at 1 Hz, and a winding temperature changes
+        # over minutes, so anything faster is pure bus and NT traffic for no information.
+        if self.counter % 500 == 0:
+            self.drive_temp_c_pub.set([m.get_drive_temperature_c() for m in self.swerve_modules])
+            self.turn_temp_c_pub.set([m.get_turn_temperature_c() for m in self.swerve_modules])
 
     # -------------- simulation --------------
     # Called by CommandScheduler.run() on every registered subsystem when RobotBase.is_simulation().
