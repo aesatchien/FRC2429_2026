@@ -250,7 +250,7 @@ class VisionConstants:
 
 class QuestConstants:
     k_counter_offset = next(_counter)
-    quest_to_robot = Transform2d(inches_to_meters(-14), inches_to_meters(-8), Rotation2d().from_degrees(270))
+    quest_to_robot = Transform2d(inches_to_meters(-14), inches_to_meters(-8), Rotation2d().from_degrees(280)) # +10 degree offset added 10/4/26
 
     k_max_disconnected_count = 14  # number of cycles of lost quest before we call passthru
     k_allow_quest_auto_resync = True  # teleop tries to resync if certain conditions are met
@@ -299,14 +299,14 @@ class IntakeConstants:
 
     k_CANID_dropper = 3  # reserve 4 if we need another
 
-    k_CANID_intake_left_leader = 4  # robot right, does not need inverted
-    k_CANID_intake_right_follower = 5  # robot left, needs follower inverted
+    k_CANID_intake_left_leader = 4  # robot right, inverted so the lower rollers pull in
+    k_CANID_intake_right_follower = 5  # robot left, follows the (inverted) leader un-inverted
 
     # Deploy has always had the later stages 18 -> 50,  sprockets are 16 -> 32.  Initial stage changed three times
     # First was 7->38 but it was not constrained well, then was 12->34 bit was too weak (needed 60A)
     # Current incarnation has a 1/5x maxplanetary followed by a 20->26
-    # Deploy gear box is [was 7->38] now 12->34, and 18 -> 50,  sprockets are 16 -> 32
-    gear_ratio = 1/5 * 20/26 * 18/50 * 16/32  # one motor turn goes .0277 turns on the outer axle for a stepdown of ~36
+    # Deploy gear box is [was 7->38] now 12->34, and 18 -> 50,  sprockets are 16 -> 48 (Houston intake)
+    gear_ratio = 1/5 * 20/26 * 18/50 * 16/48  # one motor turn goes .0277 turns on the outer axle for a stepdown of ~36
     deploy_degrees_per_motor_rotation = 360 * gear_ratio
     k_deploy_config = SparkFlexConfig()
     # 2027a7 DELETED positionConversionFactor / velocityConversionFactor from rev's
@@ -373,8 +373,9 @@ class IntakeConstants:
 
     allowed_rpms = [0, 60] + [i for i in range(2000, 5601, 250)]
 
-    k_intake_left_leader_config.inverted(False)
-    k_intake_right_follower_config.follow(k_CANID_intake_left_leader, invert=True)  # depends on motor placement
+    k_intake_left_leader_config.inverted(True)  # lower rollers (CAN 4) were spinning backwards, flipped 10/5/26
+    # the follower inherits the leader's inversion, so with the leader inverted it now follows un-inverted
+    k_intake_right_follower_config.follow(k_CANID_intake_left_leader, invert=False)  # depends on motor placement
 
     set_config_defaults(k_intake_configs)
     k_deploy_config.smart_current_limit(40)  # can't lift the new one with 40A
