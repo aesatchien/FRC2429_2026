@@ -59,7 +59,16 @@ class Questnav(Subsystem):
         self.out_of_bounds_count = 0
         self.dtap_count = 0  # count how many times we've double-tapped to track the issue in sim and real
         self.k_max_disconnected_count = qc.k_max_disconnected_count  # lost iterations before we say we are disconnected
-        self.expecting_jump = False
+        # A pose reset we sent but the headset has not proven it applied yet.  Until a frame
+        # lands near the target (or it fails / times out) the pose is NOT accepted, because
+        # the frames right after a reset can still carry the pre-reset pose.
+        self.pending_reset_id = None  # command id from questnav.set_pose()
+        self.pending_reset_pose = None  # robot-frame pose we asked for
+        self.pending_reset_start = 0.0
+        self.pending_reset_marks_synced = False  # True for a sync, False for a plain reset
+        self.k_reset_timeout = 1.0  # s to wait for the headset to show the new pose
+        self.k_reset_tolerance_m = 0.5  # how close a frame must be to the target to count as applied
+        self.k_reset_tolerance_deg = 30.0
         self.error_pose = Pose2d(0,0,0)  # difference between robot and quest
         self.passthru_start_time = 0.0
         self.synced_before_passthru = False
@@ -140,9 +149,13 @@ class Questnav(Subsystem):
 
     def set_quest_pose(self, pose: Pose2d) -> None:
         # set the pose of the Questnav, transforming from robot center top questnav coordinate
-        self.questnav.set_pose(Pose3d(pose.transform_by(self.quest_to_robot.inverse())))
-        self.expecting_jump = True
-        
+        command_id = self.questnav.set_pose(Pose3d(pose.transform_by(self.quest_to_robot.inverse())))
+        self.pending_reset_id = command_id
+        self.pending_reset_pose = pose
+        self.pending_reset_start = Timer.get_timestamp()
+        if command_id is None:  # nothing was sent
+            self._fail_pending_reset("command could not be sent")
+
         if self.mock_questnav:
             # In Sim, calculate the error needed so that (Truth + Error) = TargetPose
             # This allows us to "reset" the quest to a specific field location even if the robot isn't there
@@ -153,6 +166,37 @@ class Questnav(Subsystem):
                 pose.rotation() - ground_truth.rotation()
             )
             print(f"Sim Quest Reset: Error reset to {self.sim_offset_from_truth.x:.2f}, {self.sim_offset_from_truth.y:.2f}")
+            self._finish_pending_reset()  # no headset to wait for, the mock applies it instantly
+
+    def _finish_pending_reset(self) -> None:
+        """The headset showed the pose we asked for - now it is safe to call it synced."""
+        marks_synced = self.pending_reset_marks_synced
+        self.pending_reset_id = None
+        self.pending_reset_pose = None
+        self.pending_reset_marks_synced = False
+        if marks_synced:
+            self.quest_has_synched = True  # let the robot know we have been synched so we don't automatically do it again
+            self.quest_synched_pub.set(self.quest_has_synched)
+
+    def _fail_pending_reset(self, reason: str) -> None:
+        print(f"*** QuestNav pose reset not applied ({reason}) at {Timer.get_timestamp():.2f}s ***")
+        self.pending_reset_id = None
+        self.pending_reset_pose = None
+        self.pending_reset_marks_synced = False
+        self.quest_unsync_odometry()  # never leave a failed reset looking synced
+
+    def _check_pending_reset(self, frame_pose) -> None:
+        """Called every loop while a reset is pending; frame_pose is the newest robot-frame quest pose or None."""
+        if self.mock_questnav:
+            return
+        if self.questnav.get_command_result(self.pending_reset_id) is False:
+            self._fail_pending_reset("headset reported failure")
+        elif (frame_pose is not None
+              and frame_pose.translation().distance(self.pending_reset_pose.translation()) < self.k_reset_tolerance_m
+              and abs((frame_pose.rotation() - self.pending_reset_pose.rotation()).degrees()) < self.k_reset_tolerance_deg):
+            self._finish_pending_reset()
+        elif Timer.get_timestamp() - self.pending_reset_start > self.k_reset_timeout:
+            self._fail_pending_reset("headset never showed the new pose")
 
     def reset_pose_with_quest(self, pose: Pose2d) -> None:
         # this came over from swerve, maybe we don't need it anymore
@@ -173,6 +217,7 @@ class Questnav(Subsystem):
         else:
             new_pose = blue_pose
 
+        self.pending_reset_marks_synced = False  # a reset supersedes any sync still in flight
         self.set_quest_pose(new_pose)
         print(f"Reset questnav at {Timer.get_timestamp():.2f}s")
         self.quest_unsync_odometry()
@@ -182,8 +227,13 @@ class Questnav(Subsystem):
             print(f"*** Cannot sync QuestNav: Headset not connected at {Timer.get_timestamp():.2f}s ***")
             return
 
-        self.quest_has_synched = True  # let the robot know we have been synched so we don't automatically do it again
-        
+        if self.pending_reset_id is not None:
+            return  # a reset is already in flight - the auto-sync callers retry, so don't pile up commands
+
+        # quest_has_synched is only set once the headset has shown the new pose (see
+        # _check_pending_reset) - sending the command is not the same as it being applied
+        self.pending_reset_marks_synced = True
+
         if self.mock_questnav:
             # In Sim, "Sync" means agree with Ground Truth (remove all drift/error)
             self.set_quest_pose(self.ground_truth_sub.get())
@@ -191,11 +241,10 @@ class Questnav(Subsystem):
             # In Real life, "Sync" means agree with the Robot's Odometry
             # Although, really, the swerve sim is basically serving that same sim ground truth
 
-            print("Real robot synched to questnav")
+            print("Sync command sent to questnav, waiting for the headset to apply it")
             self.set_quest_pose(self.drive_pose_sub.get())
 
-        self.quest_synched_pub.set(self.quest_has_synched)
-        print(f'  synched quest to {self.quest_pose}\nusing               {self.drive_pose_sub.get()}')
+        print(f'  syncing quest to {self.drive_pose_sub.get()} (quest was at {self.quest_pose})')
 
     def quest_soft_resync(self):
         # allow quest to resync to itself without changing the pose
@@ -246,16 +295,21 @@ class Questnav(Subsystem):
         return self.quest_pose_accepted
 
     def is_quest_connected(self):
-        return self.questnav.is_connected()
+        # the mock has no headset to be connected to, so it is always "connected" - otherwise
+        # Swerve's fusion gate would never open in mock sim
+        return True if self.mock_questnav else self.questnav.is_connected()
 
     def periodic(self) -> None:
         self.counter += 1
 
         self.questnav.command_periodic()
 
-        # Cache these states so we can build strict acceptance criteria later
-        is_connected = self.questnav.is_connected()
-        is_tracking = self.questnav.is_tracking()
+        # Read the frames FIRST: reading is what updates the headset's connected/tracking state,
+        # so caching the flags before it acted on the previous loop's state.  The mock has no
+        # headset, so it is always connected and tracking.
+        frames = [] if self.mock_questnav else self.questnav.get_all_unread_pose_frames()
+        is_connected = True if self.mock_questnav else self.questnav.is_connected()
+        is_tracking = True if self.mock_questnav else self.questnav.is_tracking()
 
         if not is_connected:
             self.disconnected_count += 1
@@ -268,8 +322,6 @@ class Questnav(Subsystem):
             self.was_connected = True
 
         if not self.mock_questnav:  # True for Real Robot, or Sim when hardware-in-the-loop is enabled
-            frames = self.questnav.get_all_unread_pose_frames()
-
             # FIX: Exception Fall-Through. Only process if actively tracking AND frames exist.
             if is_tracking and frames:
                 self.missed_frame_count = 0  # Reset watchdog
@@ -296,8 +348,6 @@ class Questnav(Subsystem):
                                 print(f"  Quest recovered but moved too far ({distance_moved:.2f}m > {constants.QuestConstants.k_max_passthru_distance}m). Skipping soft resync.")
                                 print(f"    Old Pose: X={self.pre_passthru_pose.x:.2f}, Y={self.pre_passthru_pose.y:.2f} | New Pose: X={self.quest_pose.x:.2f}, Y={self.quest_pose.y:.2f}")
                         
-                    self.expecting_jump = False
-
                     self.was_tracking = True  # Successfully processed a valid tracking frame
 
                 except Exception as e:
@@ -342,6 +392,10 @@ class Questnav(Subsystem):
             self.quest_pose_timestamp = nt_to_seconds(ground_truth_atomic.time)  # NT seconds, see helpers/nt_time.py
             self.was_tracking = True  # Sim never loses tracking
 
+        if self.pending_reset_id is not None:
+            newest = self.quest_pose if (is_tracking and frames and not self.mock_questnav) else None
+            self._check_pending_reset(newest)
+
         # calculate pose error
         self.error_pose = self.quest_pose.relative_to(self.drive_pose_sub.get())
 
@@ -369,7 +423,9 @@ class Questnav(Subsystem):
         #    *Why both 2 & 5?* If the Quest double-taps to passthrough, the app suspends.
         #    `is_connected` stays True for 200ms, but `data_is_fresh` fails instantly at 100ms,
         #    killing odometry updates twice as fast during a blackout to prevent pose drift.
-        if in_bounds and is_connected and is_tracking and self.was_tracking and data_is_fresh:
+        #    (and no reset pending - frames right after a reset can still carry the old pose)
+        if (in_bounds and is_connected and is_tracking and self.was_tracking and data_is_fresh
+                and self.pending_reset_id is None):
             self.quest_pose_accepted = True
         else:
             self.quest_pose_accepted = False
