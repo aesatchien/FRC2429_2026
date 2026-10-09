@@ -277,7 +277,11 @@ class QuestNav:
             pose_proto.translation.z = pose.translation().z
             
             quat = pose.rotation().get_quaternion()
-            pose_proto.rotation.q.w = quat.W()
+            # a7: Quaternion.W() became the property .w, like x/y/z below.  The migration's
+            # rename pattern skips capitalised accessors, so this one kept the call parens,
+            # raised AttributeError, and the broad except below swallowed it - every pose
+            # reset silently never reached the headset.  test_questnav_pose_reset.py guards it.
+            pose_proto.rotation.q.w = quat.w
             pose_proto.rotation.q.x = quat.x
             pose_proto.rotation.q.y = quat.y
             pose_proto.rotation.q.z = quat.z
