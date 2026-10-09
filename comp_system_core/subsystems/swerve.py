@@ -1,4 +1,5 @@
 import math
+import os
 import typing
 
 import ntcore
@@ -155,8 +156,17 @@ class Swerve (Subsystem):
 
         # ------------- Advantagescope section -------------
         if constants.k_enable_logging:
-            DataLogManager.start()  # start wpilib datalog for AdvantageScope
+            # Write to the USB stick if it is there.  start() is ignored if the log manager is already running,
+            # so this has to be the first thing that touches the datalog.
+            log_dir = ''
+            if RobotBase.is_real():
+                if os.path.isdir(constants.k_usb_log_dir):
+                    log_dir = constants.k_usb_log_dir
+                else:
+                    print(f'  *** {constants.k_usb_log_dir} not found - logging to the default (internal) location ***')
+            DataLogManager.start(dir=log_dir)  # start wpilib datalog for AdvantageScope
             DriverStation.start_data_log(DataLogManager.get_log())  # Record both DS control and joystick data
+            print(f'  logging to: {DataLogManager.get_log_dir()}')
             # URCL is optional and imported lazily, so a missing package is a message rather
             # than an import error at module scope.  Toggle constants.k_enable_urcl.
             if constants.k_enable_urcl:
@@ -171,6 +181,8 @@ class Swerve (Subsystem):
             # Phoenix's own SignalLogger, which writes .hoot files AdvantageScope opens separately.
             if dc.k_drive_vendor == 'ctre' or dc.k_turn_vendor == 'ctre':
                 from phoenix6 import SignalLogger
+                if log_dir:  # .hoot files are separate from the .wpilog and need the same destination
+                    SignalLogger.set_path(log_dir)
                 SignalLogger.start()
                 print('  started Phoenix SignalLogger (.hoot) alongside URCL')
 

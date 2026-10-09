@@ -21,6 +21,11 @@ _counter = count(1)
 
 # TODO - organize this better
 k_enable_logging = True  # allow logging from Advantagescope (in swerve.py), but really we may as well start it here
+# Where the SystemCore writes .wpilog and .hoot files.  WPILib only looks for the USB stick at lowercase
+# /u/logs, but the stick mounts at /U (Linux is case-sensitive), so without this the logs land on the
+# internal storage.  Used only on the real robot and only if the folder exists (mkdir -p /U/logs once over
+# SSH); otherwise logging falls back to the default location and says so.  Sim keeps using ./logs.
+k_usb_log_dir = "/U/logs"
 
 # URCL is the Unofficial REV-Compatible Logger - it logs REV devices for AdvantageScope.
 # It has no 2027 build yet, so this is False.  Flip it to True once robotpy-urcl ships
