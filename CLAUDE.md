@@ -128,9 +128,13 @@ near-identical, differing mainly in the a6→a7 API surface — see below):
 - **AdvantageScope swerve visualization**: `<swerve_prefix>/module_states` and
   `module_states_desired` are struct-array topics (`SwerveModuleState[]` on 2026,
   `SwerveModuleVelocity[]` on 2027a7 — a7 split `SwerveModuleState` into
-  `Velocity`/`Position`/`Acceleration`), published every `periodic()` tick unthrottled so
-  the widget animates smoothly. Most other dashboard values are throttled via a
-  `self.counter % N == 0` pattern instead.
+  `Velocity`/`Position`/`Acceleration`), published at 10 Hz (`self.counter % 5 == 0`).
+  Not every loop: `DataLogManager` writes every NT value to the `.wpilog`, and 50 Hz was
+  roughly 25 MB of disk per hour of robot uptime; 10 Hz still animates fine.
+  `module_states_desired` is what each module actually COMMANDED (`getCommandedState()`,
+  after `optimize()` and the low-speed hold), not the raw request. Every other dashboard
+  value is throttled the same way, with `self.counter % N == 0`; before publishing
+  anything, ask who reads it and how often they actually need it.
 - **REV motor current/speed telemetry**: `helpers/utilities.py`'s `init_motor_monitors()` /
   `update_motor_monitors()` give any subsystem a one-line way to publish per-motor amps and
   RPM; Kraken-specific electrical telemetry (stator/supply current, applied voltage) lives
