@@ -241,7 +241,6 @@ class RobotContainer:
         )
 
         # user should never sync the odometry.  should only be done with a good apriltag, not by the operator
-        # NOTE bbox_1_4 is the brownout toggle above - pick a free button before re-enabling this.
         #js.bbox_1_4.on_true(InstantCommand(lambda: self.questnav.quest_sync_odometry()).ignoring_disable(True))
         js.bbox_1_5.on_true(InstantCommand(lambda: self.questnav.quest_enabled_toggle(force='off')).ignoring_disable(True))
         js.bbox_1_6.on_true(InstantCommand(lambda: self.questnav.quest_enabled_toggle(force='on')).ignoring_disable(True))
