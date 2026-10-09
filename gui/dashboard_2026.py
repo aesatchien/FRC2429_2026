@@ -371,6 +371,17 @@ class Ui(QtWidgets.QMainWindow):
                 new_entry['selected_publisher'] = self.ntinst.getStringTopic(selected_topic).publish()
                 # print(f'{key} has selected topic: {selected_topic} with value {new_entry[selected_subscriber].get()'}
 
+            selected_value_topic = config.get('selected_value_topic')  # 2027a7 Selectable echoes its accepted choice here
+            if selected_value_topic:
+                new_entry['selected_value_subscriber'] = self.ntinst.getStringTopic(selected_value_topic).subscribe("")
+            selected_tune_topic = config.get('selected_tune_topic')  # ...and takes the driver's choice here
+            if selected_tune_topic:
+                new_entry['selected_tune_publisher'] = self.ntinst.getStringTopic(selected_tune_topic).publish()
+
+            default_topic = config.get('default_topic')
+            if default_topic:
+                new_entry['default_subscriber'] = self.ntinst.getStringTopic(default_topic).subscribe("")
+
             active_topic = config.get('active_topic')
             if active_topic:
                 new_entry['active_subscriber'] = self.ntinst.getStringTopic(active_topic).subscribe("")
@@ -420,9 +431,12 @@ class Ui(QtWidgets.QMainWindow):
         return camera_dict
 
     def update_routines(self, text):
-        pub = self.widget_dict['qcombobox_autonomous_routines'].get('selected_publisher')
-        if pub:
-            pub.set(text)
+        props = self.widget_dict['qcombobox_autonomous_routines']
+        # 2026 SendableChooser reads 'selected'; 2027a7 Selectable reads 'selected/tune'.  We don't know which
+        # robot is on the other end, so write both - the one it doesn't read is just an unused topic.
+        for pub in (props.get('selected_publisher'), props.get('selected_tune_publisher')):
+            if pub:
+                pub.set(text)
         self.ntinst.flush()
 
     def update_auto_delay(self, text):
