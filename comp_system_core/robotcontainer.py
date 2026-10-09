@@ -166,10 +166,10 @@ class RobotContainer:
             js.driver_left.while_true(DriveByVelocitySwerve(self, self.swerve, Pose2d(0, dpad_output, 0), timeout=10))
             js.driver_right.while_true(DriveByVelocitySwerve(self, self.swerve, Pose2d(0, -dpad_output, 0), timeout=10))
         else:
-            # js.driver_up.whileTrue(CalibrateIntake(intake=self.intake))
+            # js.driver_up.while_true(CalibrateIntake(intake=self.intake))
             js.driver_up.on_true(Intake_Deploy(intake=self.intake, position='up'))
-            #js.driver_right.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=1))
-            #js.driver_left.whileTrue(IncrementShooter(shooter=self.shooter, speed_change=-1))
+            #js.driver_right.while_true(IncrementShooter(shooter=self.shooter, speed_change=1))
+            #js.driver_left.while_true(IncrementShooter(shooter=self.shooter, speed_change=-1))
             js.driver_down.on_true(Intake_Deploy(intake=self.intake, position='down').and_then(Intake_Set_RPM(intake=self.intake, rpm=ic.k_intake_teleop_rpm, led=self.led)))
 
         # --- Subsystems ---
@@ -180,29 +180,29 @@ class RobotContainer:
         js.driver_start.while_true(Intake_Deploy(self.intake, "down").and_then(Intake_Set_RPM(self.intake, -constants.IntakeConstants.k_intake_default_rpm).along_with(InstantCommand(lambda: self.shooter.set_hopper_rpm(-constants.ShooterConstants.k_hopper_rpm)))))
 
 
-        # js.driver_l_trigger.whileTrue(Intake_Set(intake=self.intake, rpm=2500))
-        # js.driver_r_trigger.whileTrue(ShootingCommand(shooter=self.shooter, rpm=5000))
+        # js.driver_l_trigger.while_true(Intake_Set(intake=self.intake, rpm=2500))
+        # js.driver_r_trigger.while_true(ShootingCommand(shooter=self.shooter, rpm=5000))
 
         # --- Vision & Automation ---
         # Align to Pose (Front/Left)
-        #js.driver_a.debounce(0.1).whileTrue(AutoToPoseClean(self, self.swerve, target_pose=None, use_vision=True, cameras=['logi_front_hsv'], control_type='not_pathplanner'))
-        #js.driver_x.debounce(0.1).whileTrue(AutoToPoseClean(self, self.swerve, target_pose=None, use_vision=True, cameras=['logi_left_hsv'], control_type='not_pathplanner'))
+        #js.driver_a.debounce(0.1).while_true(AutoToPoseClean(self, self.swerve, target_pose=None, use_vision=True, cameras=['logi_front_hsv'], control_type='not_pathplanner'))
+        #js.driver_x.debounce(0.1).while_true(AutoToPoseClean(self, self.swerve, target_pose=None, use_vision=True, cameras=['logi_left_hsv'], control_type='not_pathplanner'))
         
         # Track Target
-        #js.driver_b.debounce(0.1).whileTrue(AutoTrackVisionTarget(self, camera_key='logi_front_hsv', target_distance=0.40))
+        #js.driver_b.debounce(0.1).while_true(AutoTrackVisionTarget(self, camera_key='logi_front_hsv', target_distance=0.40))
 
         # --- Debug & Simulation ---
-        #js.driver_lb.whileTrue(SimShowFOV(self))
-        #js.driver_rb.onTrue(MoveTrainingBox(self))
+        #js.driver_lb.while_true(SimShowFOV(self))
+        #js.driver_rb.on_true(MoveTrainingBox(self))
 
         # This kills targeting mode!  DO NOT USE RB
-        # js.driver_back.whileTrue(SwerveTest(self, self.swerve))
+        # js.driver_back.while_true(SwerveTest(self, self.swerve))
 
         # --- Debug & Simulation ---
         # test a setting of the swerve modules straight before running the auto to tag
-        # js.driver_a.whileTrue(commands2.cmd.run(lambda: self.swerve.set_straight(), self.swerve))
-        #js.driver_a.whileTrue(TrackHub(self))
-        #js.driver_a.whileTrue(ShootingCommand(container=self, shooter=self.shooter))
+        # js.driver_a.while_true(commands2.cmd.run(lambda: self.swerve.set_straight(), self.swerve))
+        #js.driver_a.while_true(TrackHub(self))
+        #js.driver_a.while_true(ShootingCommand(container=self, shooter=self.shooter))
 
 
     def bind_codriver_buttons(self) -> None:
@@ -212,13 +212,13 @@ class RobotContainer:
     def bind_bbox_buttons(self) -> None:
         print("Binding bbox buttons")
 
-        # js.bbox_1_1.onTrue(InstantCommand(lambda: self.shooter.set_shooting_offset(125)))
-        # js.bbox_1_1.onFalse(InstantCommand(lambda: self.shooter.set_shooting_offset(0)))
+        # js.bbox_1_1.on_true(InstantCommand(lambda: self.shooter.set_shooting_offset(125)))
+        # js.bbox_1_1.on_false(InstantCommand(lambda: self.shooter.set_shooting_offset(0)))
 
         js.bbox_1_1.on_true(InstantCommand(lambda: self.intake.zero_intake()).ignoring_disable(True))
         js.bbox_1_2.on_true(InstantCommand(lambda: self.intake.set_angle_max()).ignoring_disable(True))
 
-        #js.bbox_1_3.onTrue(InstantCommand(lambda: self.targeting.stop_tracking()))
+        #js.bbox_1_3.on_true(InstantCommand(lambda: self.targeting.stop_tracking()))
         js.bbox_1_3.while_true(commands2.ParallelCommandGroup(
             Intake_Deploy(intake=self.intake, position='up').and_then(
                 Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)),
@@ -241,7 +241,8 @@ class RobotContainer:
         )
 
         # user should never sync the odometry.  should only be done with a good apriltag, not by the operator
-        #js.bbox_1_4.on_true(InstantCommand(lambda: self.questnav.quest_sync_odometry()).ignoringDisable(True))
+        # NOTE bbox_1_4 is the brownout toggle above - pick a free button before re-enabling this.
+        #js.bbox_1_4.on_true(InstantCommand(lambda: self.questnav.quest_sync_odometry()).ignoring_disable(True))
         js.bbox_1_5.on_true(InstantCommand(lambda: self.questnav.quest_enabled_toggle(force='off')).ignoring_disable(True))
         js.bbox_1_6.on_true(InstantCommand(lambda: self.questnav.quest_enabled_toggle(force='on')).ignoring_disable(True))
         js.bbox_1_7.on_true(InstantCommand(lambda: self.questnav.quest_unsync_odometry()).ignoring_disable(True))
@@ -271,27 +272,27 @@ class RobotContainer:
         js.bbox_1_12.on_false(InstantCommand(lambda: self.shooter.set_shooting_offset(0)))
 
         # test the intake deploy positions on the L1-L4 buttons
-        # js.bbox_2_1.whileTrue(CalibrateIntake(intake=self.intake))
-        # js.bbox_2_2.onTrue(Intake_Deploy(intake=self.intake, position='down'))
-        # js.bbox_2_3.onTrue(Intake_Deploy(intake=self.intake, position='shoot'))
-        # js.bbox_2_4.onTrue(Intake_Deploy(intake=self.intake, position='up'))
+        # js.bbox_2_1.while_true(CalibrateIntake(intake=self.intake))
+        # js.bbox_2_2.on_true(Intake_Deploy(intake=self.intake, position='down'))
+        # js.bbox_2_3.on_true(Intake_Deploy(intake=self.intake, position='shoot'))
+        # js.bbox_2_4.on_true(Intake_Deploy(intake=self.intake, position='up'))
 
         # # test the intake speed
-        # #js.bbox_AB.onTrue(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
-        # #js.bbox_CD.whileTrue(Intake_Set_RPM(intake=self.intake, rpm=2500, led=self.led))
-        # #js.bbox_EF.whileTrue(Intake_Set_RPM(intake=self.intake, rpm=3000, led=self.led))
+        # #js.bbox_AB.on_true(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
+        # #js.bbox_CD.while_true(Intake_Set_RPM(intake=self.intake, rpm=2500, led=self.led))
+        # #js.bbox_EF.while_true(Intake_Set_RPM(intake=self.intake, rpm=3000, led=self.led))
 
         # # test the shooting commands
-        # js.bbox_2_6.whileTrue(ShootingCommand(shooter=self.shooter, targeting=self.targeting))
-        # js.bbox_2_8.whileTrue(StopShooter(shooter=self.shooter))
+        # js.bbox_2_6.while_true(ShootingCommand(shooter=self.shooter, targeting=self.targeting))
+        # js.bbox_2_8.while_true(StopShooter(shooter=self.shooter))
 
         # # this is a combo of shooting commands
-        # js.bbox_2_7.whileTrue(commands2.ParallelCommandGroup(
+        # js.bbox_2_7.while_true(commands2.ParallelCommandGroup(
         #     ShootingCommand(shooter=self.shooter, targeting=self.targeting),
         #     Intake_Deploy(intake=self.intake, position='shoot'),
         # ).beforeStarting(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led)))
         # # does not work as an "andThen" for some reason
-        # js.bbox_2_7.onFalse(Intake_Deploy(intake=self.intake, position='down'))
+        # js.bbox_2_7.on_false(Intake_Deploy(intake=self.intake, position='down'))
 
     def initialize_dashboard(self):
         # ----------  DASHBOARD COMMANDS  ---------------
