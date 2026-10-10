@@ -138,7 +138,17 @@ class SwerveModule:
         # SwerveModuleState.optimize() changed it in place and returned None).  Calling it
         # without the assignment silently turned the optimization off - wheels steered the
         # long way through ~180 instead of reversing the drive.
-        correctedDesiredState = correctedDesiredState.optimize(Rotation2d(self.get_turn_encoder()))
+        current_angle = Rotation2d(self.get_turn_encoder())   # read once: optimize and cosine_scale use the same angle
+        correctedDesiredState = correctedDesiredState.optimize(current_angle)
+
+        # Cosine scaling: while the wheel is still turning toward its target, drive it only as fast
+        # as the part of its push that points the right way - speed * cos(angle error).  60 deg off
+        # -> half speed, 90 deg off -> stopped until it turns.  Without it a lagging wheel drives at
+        # full speed in the wrong direction and shoves the robot sideways in sharp turns (the auto 3a
+        # stutter).  After optimize() the error is at most 90 deg, so the factor is 0..1.  The turn
+        # PID still steers to the full angle; only the drive speed changes.  WPILib since 2025.
+        # a7: RETURNS the scaled state, like optimize() - calling it without the assignment does nothing.
+        correctedDesiredState = correctedDesiredState.cosine_scale(current_angle)
 
         # don't let wheels servo back if we aren't asking the module to move
         if math.fabs(desiredState.velocity) < 0.002:  # need to see what is this minimum m/s that makes sense
