@@ -270,7 +270,7 @@ class LedConstants:
 
     k_counter_offset = next(_counter)
     k_nt_debugging = False  # print extra values to NT for debugging
-    k_led_count = 8  # correct as of 2026 0319
+    k_led_count = 16  # 16 on the comp robot (2026-10-10) - was 8, which left LEDs 9-16 frozen on stale colors
     k_led_count_ignore = 4  # flat ones not for the height indicator
     k_led_pwm_port = 5  # SystemCore GPIO 5.  Was 0, which is roboRIO PWM 0 but is also the
                         # RB module's absolute encoder here - moved off it rather than bet
