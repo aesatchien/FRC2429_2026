@@ -21,7 +21,7 @@ from helpers import joysticks as js
 class OneMeter(commands2.SequentialCommandGroup):
     def __init__(self, container, indent=0) -> None:
         super().__init__()
-        self.set_name(f'Right One Meter Auto')
+        self.set_name(f'One Meter Auto')
         self.container = container
         self.add_commands(commands2.PrintCommand(f"{'    ' * indent}** Started {self.get_name()} **"))
 

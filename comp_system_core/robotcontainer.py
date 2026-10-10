@@ -158,7 +158,7 @@ class RobotContainer:
         js.driver_rb.on_false(InstantCommand(lambda: self.targeting.stop_tracking()))
 
         # D-Pad: Slow, smooth robot-centric alignment (Nudge)
-        dpad_driving = True
+        dpad_driving = False
         if dpad_driving:
             dpad_output = 0.15
             js.driver_up.while_true(DriveByVelocitySwerve(self, self.swerve, Pose2d(dpad_output, 0, 0), timeout=10))
