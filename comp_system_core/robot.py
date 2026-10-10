@@ -12,6 +12,7 @@ from constants import IntakeConstants as ic
 from wpimath.units import inches_to_meters
 
 from helpers import dashboard, log_command
+from helpers.log_start import DeferredLogStart
 from robotcontainer import RobotContainer
 from subsystems.led import Led  # allows indexing of LED colors
 from simulation.blockhead_mech import BlockheadMech
@@ -53,6 +54,8 @@ class MyRobot(commands2.TimedCommandRobot):
         attribute it was supposed to have created.  That is exactly how this was found.
         """
         super().__init__()
+        # First, so its clock starts at boot: the datalog waits for the USB stick (see helpers/log_start.py)
+        self.log_start = DeferredLogStart()
         # Instantiate our RobotContainer.  This will perform all our button bindings, and put our
         # autonomous chooser on the dashboard.
         self.container = RobotContainer()
@@ -249,6 +252,9 @@ class MyRobot(commands2.TimedCommandRobot):
         # commented out 2025 0305 CJH - this should never have been in here
 
         super().robot_periodic()
+
+        # starts the .wpilog / DS / .hoot logs once the USB stick is mounted; no-op after that
+        self.log_start.poll()
 
         # 2027a7: pump the tunables.  Without this, values only ever flow OUT to the
         # dashboard - the auto chooser selection and every dashboard command button would

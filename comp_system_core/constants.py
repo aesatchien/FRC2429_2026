@@ -20,11 +20,14 @@ k_at_home = False  # used for intake calibration - True means we start with the 
 _counter = count(1)
 
 # TODO - organize this better
-k_enable_logging = True  # allow logging from Advantagescope (in swerve.py), but really we may as well start it here
-# Where the SystemCore writes .wpilog and .hoot files.  WPILib only looks for the USB stick at lowercase
-# /u/logs, but the stick mounts at /U (Linux is case-sensitive), so without this the logs land on the
-# internal storage.  Used only on the real robot and only if the folder exists (mkdir -p /U/logs once over
-# SSH); otherwise logging falls back to the default location and says so.  Sim keeps using ./logs.
+k_enable_logging = True  # .wpilog / DS / .hoot logging - started by helpers/log_start.py, from robot_periodic()
+# Where the SystemCore writes .wpilog and .hoot files.  The USB stick mounts at /U about 2-3 s AFTER the robot
+# program starts, so the log start waits for /U to be a mount point (up to DeferredLogStart.k_wait_s, then the
+# internal storage with a warning) - see helpers/log_start.py.  Checking once at startup was a race that the
+# stick lost on some boots.  The path is passed explicitly: WPILib's default only looks at lowercase /u/logs,
+# and the /u -> /U symlink on the comp robot was made by hand, not part of the SystemCore image.
+# /U/logs is created if missing.  Sim keeps using ./logs.
+k_usb_mount = "/U"
 k_usb_log_dir = "/U/logs"
 
 # URCL is the Unofficial REV-Compatible Logger - it logs REV devices for AdvantageScope.

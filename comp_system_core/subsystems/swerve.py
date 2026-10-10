@@ -1,5 +1,4 @@
 import math
-import os
 import typing
 
 import ntcore
@@ -7,7 +6,7 @@ import wpilib
 import wpilib.simulation
 from commands2 import Subsystem
 
-from wpilib import Alliance, DataLogManager, DriverStation, MatchState, RobotBase, Timer
+from wpilib import Alliance, MatchState, Timer
 from helpers import dashboard
 from helpers.dashboard import SmartDashboard  # 2027a7: wpilib's was removed
 from wpimath import SlewRateLimiter
@@ -155,36 +154,9 @@ class Swerve (Subsystem):
         self.automated_path = None
 
         # ------------- Advantagescope section -------------
-        if constants.k_enable_logging:
-            # Write to the USB stick if it is there.  start() is ignored if the log manager is already running,
-            # so this has to be the first thing that touches the datalog.
-            log_dir = ''
-            if RobotBase.is_real():
-                if os.path.isdir(constants.k_usb_log_dir):
-                    log_dir = constants.k_usb_log_dir
-                else:
-                    print(f'  *** {constants.k_usb_log_dir} not found - logging to the default (internal) location ***')
-            DataLogManager.start(dir=log_dir)  # start wpilib datalog for AdvantageScope
-            DriverStation.start_data_log(DataLogManager.get_log())  # Record both DS control and joystick data
-            print(f'  logging to: {DataLogManager.get_log_dir()}')
-            # URCL is optional and imported lazily, so a missing package is a message rather
-            # than an import error at module scope.  Toggle constants.k_enable_urcl.
-            if constants.k_enable_urcl:
-                try:
-                    import urcl
-                    urcl.URCL.start()  # unofficial REV logger for AdvantageScope
-                    print('  started URCL (REV device logging)')
-                except ImportError:
-                    print('  *** k_enable_urcl is True but robotpy-urcl is not installed - skipping ***')
-                    print('      (no 2027 build exists yet; set constants.k_enable_urcl = False to silence)')
-            # URCL only sees REV devices.  If any Krakens are on the bus they log through
-            # Phoenix's own SignalLogger, which writes .hoot files AdvantageScope opens separately.
-            if dc.k_drive_vendor == 'ctre' or dc.k_turn_vendor == 'ctre':
-                from phoenix6 import SignalLogger
-                if log_dir:  # .hoot files are separate from the .wpilog and need the same destination
-                    SignalLogger.set_path(log_dir)
-                SignalLogger.start()
-                print('  started Phoenix SignalLogger (.hoot) alongside URCL')
+        # The .wpilog / DriverStation / URCL / Phoenix .hoot logs are NOT started here any more.
+        # The USB stick mounts a few seconds after the robot program starts, so checking for it
+        # during construction was a race - see helpers/log_start.py, polled from robot_periodic().
 
         # pre-allocate all the keys for speed
         self._init_networktables()
