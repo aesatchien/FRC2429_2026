@@ -87,6 +87,8 @@ class Led(commands2.Subsystem):
         self.set_leds((0, 0, 0))  # our own custom function
 
         self.led_strip.set_length(self.led_count)
+        # the strip's byte order - see constants.LedConstants.k_led_color_order
+        self.led_strip.set_color_order(getattr(AddressableLED.ColorOrder, constants.LedConstants.k_led_color_order))
         self.led_strip.set_data(self.led_data)
         # 2027: AddressableLED lost start()/stop().  The strip outputs as soon as it is
         # configured, so there is nothing to start - setData() alone drives it.

@@ -272,6 +272,10 @@ class LedConstants:
     k_nt_debugging = False  # print extra values to NT for debugging
     k_led_count = 16  # 16 on the comp robot (2026-10-10) - was 8, which left LEDs 9-16 frozen on stale colors
     k_led_count_ignore = 4  # flat ones not for the height indicator
+    # This strip takes RGB.  WPILib's default is GRB, which swapped red and green: red showed as
+    # green, and the green end of the blue rainbow showed as red (2026-10-10).  Blue is the same
+    # in both orders, which is why blue always looked right.
+    k_led_color_order = 'RGB'
     k_led_pwm_port = 5  # SystemCore GPIO 5.  Was 0, which is roboRIO PWM 0 but is also the
                         # RB module's absolute encoder here - moved off it rather than bet
                         # on analog and LED numbering being separate.  See the GPIO map.
