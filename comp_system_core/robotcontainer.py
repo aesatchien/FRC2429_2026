@@ -389,14 +389,14 @@ class RobotContainer:
         # self.auto_chooser.addOption('2d: Two Cycles *CODE*', TwoCycle(self, indent=0))
         # self.auto_chooser.addOption('3a: FSF Bump *CODE*', FillShootFillBump(self, indent=0))
         # self.auto_chooser.setDefaultOption('3b: FSFS Bump *CODE*', FillShootFillShootBump(self, indent=0))
-        self.auto_chooser.add('3a: FSFS Bump to Bump *CODE*', PathingFSFSBumptoBump(self, indent=0))
+        self.auto_chooser.add_default('3a: FSFS Bump to Bump *CODE*', PathingFSFSBumptoBump(self, indent=0))
         self.auto_chooser.add('3b: FSFS Trench to Bump *CODE*', PathingFSFSTrenchtoBump(self, indent=0))
         self.auto_chooser.add('3c: FSFS Trench to Trench *CODE*', PathingFSFSTrenchtoTrench(self, indent=0))
         # self.auto_chooser.addOption('4a: Intake Depot or Outpost Shoot *CODE*', DepotOrOutpostAndShoot(self, indent=0))
         self.auto_chooser.add('4a: Drawing Auto *CODE*', DrawingAuto(self, indent=0))
         self.auto_chooser.add('4b: Right Bump Cycle *CODE*', RightBumpCycle(self, indent=0))
 
-        self.auto_chooser.add_default('4c: Short Bump Auto *CODE*', ShortBump(self, indent=0))
+        self.auto_chooser.add('4c: Short Bump Auto *CODE*', ShortBump(self, indent=0))
         self.auto_chooser.add('4d: One Meter *CODE*', OneMeter(self, indent=0))
 
         dashboard.SmartDashboard.put_data('autonomous routines', self.auto_chooser)  #
