@@ -5,7 +5,9 @@ the alliance color (robot.py disabled_periodic) so the sync is visible from the 
 
 import math
 
-from subsystems.led import Led, pulse_brightness
+from wpilib import AddressableLED
+
+from subsystems.led import Led, led_color_order, pulse_brightness
 
 
 def test_pulse_fades_between_floor_and_full():
@@ -38,3 +40,11 @@ def test_indicator_names_are_unique():
     # indicators_dict is keyed by name - a duplicate silently hides one from the dashboard
     names = [i.value['name'] for i in Led.Indicator]
     assert len(names) == len(set(names)), names
+
+
+def test_led_color_order_falls_back_to_grb_on_a_bad_name(capsys):
+    assert led_color_order('RGB') == AddressableLED.ColorOrder.RGB
+    assert led_color_order(' rgb ') == AddressableLED.ColorOrder.RGB       # case/space forgiven
+    for bad in ('RGBW', 'xyz', '', None, 3):
+        assert led_color_order(bad) == AddressableLED.ColorOrder.GRB        # never raises
+    assert 'using GRB' in capsys.readouterr().out

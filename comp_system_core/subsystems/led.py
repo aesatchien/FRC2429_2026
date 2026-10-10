@@ -11,6 +11,17 @@ from subsystems.robot_state import RobotState
 # TODO - make the frequencies actual times per second - so divide by the LED update rate (currently 10x per second)
 
 
+def led_color_order(name) -> AddressableLED.ColorOrder:
+    """AddressableLED.ColorOrder for a name like 'RGB'.  A bad name (typo, lowercase, 'RGBW')
+    falls back to WPILib's default GRB with a warning - wrong colors are recoverable, a robot
+    program that will not start because of an LED setting is not."""
+    order = getattr(AddressableLED.ColorOrder, str(name).strip().upper(), None)
+    if not isinstance(order, AddressableLED.ColorOrder):
+        print(f"*** LED color order {name!r} is not one of RGB/GRB/BGR/BRG/GBR/RBG - using GRB ***")
+        return AddressableLED.ColorOrder.GRB
+    return order
+
+
 def pulse_brightness(t: float, frequency: float, floor: float = 0.1) -> float:
     """Brightness for a smooth pulse: a cosine between `floor` and 1.0, `frequency` cycles/s.
     The floor keeps the strip visibly lit at the bottom of the fade."""
@@ -88,7 +99,7 @@ class Led(commands2.Subsystem):
 
         self.led_strip.set_length(self.led_count)
         # the strip's byte order - see constants.LedConstants.k_led_color_order
-        self.led_strip.set_color_order(getattr(AddressableLED.ColorOrder, constants.LedConstants.k_led_color_order))
+        self.led_strip.set_color_order(led_color_order(constants.LedConstants.k_led_color_order))
         self.led_strip.set_data(self.led_data)
         # 2027: AddressableLED lost start()/stop().  The strip outputs as soon as it is
         # configured, so there is nothing to start - setData() alone drives it.
