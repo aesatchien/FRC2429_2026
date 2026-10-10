@@ -115,7 +115,18 @@ class SwerveModule:
         correctedDesiredState.angle = desiredState.angle
 
         # Optimize the reference state to avoid spinning further than 90 degrees
-        correctedDesiredState.optimize(Rotation2d(self.get_turn_encoder()))
+        current_angle = Rotation2d(self.get_turn_encoder())   # read once: optimize and cosineScale use the same angle
+        correctedDesiredState.optimize(current_angle)
+
+        # Cosine scaling: while the wheel is still turning toward its target, drive it only as fast
+        # as the part of its push that points the right way - speed * cos(angle error).  60 deg off
+        # -> half speed, 90 deg off -> stopped until it turns.  Without it a lagging wheel drives at
+        # full speed in the wrong direction and shoves the robot sideways in sharp turns.  After
+        # optimize() the error is at most 90 deg, so the factor is 0..1.  The turn PID still steers to
+        # the full angle; only the drive speed changes.  WPILib since 2025.
+        # 2026: modifies the state IN PLACE and returns None - do NOT assign the result.
+        # (comp_system_core's a7 cosine_scale() is the opposite: it returns a new state.)
+        correctedDesiredState.cosineScale(current_angle)
 
         # don't let wheels servo back if we aren't asking the module to move
         if math.fabs(desiredState.speed) < 0.002:  # need to see what is this minimum m/s that makes sense
