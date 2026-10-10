@@ -3,12 +3,12 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 3.317699898097826,
+        "x": 3.0815977175463622,
         "y": 2.5421006000905804
       },
       "prevControl": null,
       "nextControl": {
-        "x": 3.7173862609153105,
+        "x": 3.4812840803638467,
         "y": 2.650265238649923
       },
       "isLocked": false,
@@ -21,7 +21,7 @@
       },
       "prevControl": {
         "x": 4.457030411449017,
-        "y": 1.9300357781753128
+        "y": 1.9300357781753132
       },
       "nextControl": {
         "x": 7.8760475540693236,
@@ -48,16 +48,16 @@
     },
     {
       "anchor": {
-        "x": 6.126181818181818,
-        "y": 3.582113636363637
+        "x": 6.342139800285306,
+        "y": 3.213395149786021
       },
       "prevControl": {
-        "x": 6.223111698969875,
-        "y": 4.185232894600435
+        "x": 6.439069681073363,
+        "y": 3.816514408022818
       },
       "nextControl": {
-        "x": 6.033420454545454,
-        "y": 3.0049318181818183
+        "x": 6.249378436648942,
+        "y": 2.6362133316042025
       },
       "isLocked": false,
       "linkedName": null
@@ -80,12 +80,12 @@
     },
     {
       "anchor": {
-        "x": 3.0616457960644006,
-        "y": 2.5421006000905804
+        "x": 2.5511126961483592,
+        "y": 2.644094151212554
       },
       "prevControl": {
-        "x": 3.28759349586447,
-        "y": 2.6490942305321052
+        "x": 2.777060395948429,
+        "y": 2.751087781654079
       },
       "nextControl": null,
       "isLocked": false,
@@ -102,34 +102,7 @@
       "rotationDegrees": 179.54631407333804
     }
   ],
-  "constraintZones": [
-    {
-      "name": "Bump",
-      "minWaypointRelativePos": 0.0,
-      "maxWaypointRelativePos": 0.6813360091743119,
-      "constraints": {
-        "maxVelocity": 3.0,
-        "maxAcceleration": 2.0,
-        "maxAngularVelocity": 540.0,
-        "maxAngularAcceleration": 720.0,
-        "nominalVoltage": 12.0,
-        "unlimited": false
-      }
-    },
-    {
-      "name": "Bump2",
-      "minWaypointRelativePos": 3.75,
-      "maxWaypointRelativePos": 4.264227350917431,
-      "constraints": {
-        "maxVelocity": 3.2,
-        "maxAcceleration": 2.5,
-        "maxAngularVelocity": 540.0,
-        "maxAngularAcceleration": 720.0,
-        "nominalVoltage": 12.0,
-        "unlimited": false
-      }
-    }
-  ],
+  "constraintZones": [],
   "pointTowardsZones": [],
   "eventMarkers": [
     {
@@ -165,7 +138,7 @@
   },
   "goalEndState": {
     "velocity": 0,
-    "rotation": 50.45037328454988
+    "rotation": 39.17365797044425
   },
   "reversed": false,
   "folder": null,
