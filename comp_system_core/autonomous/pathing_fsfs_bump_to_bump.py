@@ -55,7 +55,7 @@ class PathingFSFSBumptoBump(commands2.SequentialCommandGroup):
         # Starts the shooting cycle and then raises the intake after a delay to prevent compression and jams
         # forces it to die when the first command finishes
         
-        self.add_commands(shoot_cycle(self.container, indent=1))
+        self.add_commands(shoot_cycle(self.container, timeout=3, indent=1))
         # stops tracking
 
         # -----  PHASE III:  FILL HOPPER AGAIN -----
