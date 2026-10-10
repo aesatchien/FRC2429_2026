@@ -81,7 +81,7 @@ class DriveConstants:
     # on NEOs.
     kMaxSpeedMetersPerSecond = 4.75
     kMaxAngularSpeed = 7 # 0.5 * math.tau  # radians per second was 0.5 tau through AVR - too slow
-    kSlowModeCap = 0.35                   # translation slow-mode floor for targeting command
+    kSlowModeCap = 0.4375                   # translation slow-mode floor for targeting command (was 0.35; +25% on 2026-10-10, driver wanted faster)
     kAngularSlowFloor = 0.5               # angular slow-mode floor for both joystick commands
     kJoystickLegacyTranslationFloor = 0.2 # translation slow-mode floor for drive_by_joystick_swerve only
     # Ceiling handed to SwerveDrive4Kinematics.desaturateWheelVelocities().  Its whole job is: when
