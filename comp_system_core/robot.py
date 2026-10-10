@@ -92,13 +92,19 @@ class MyRobot(commands2.TimedCommandRobot):
                 self.alliance_zone = None
 
         if self.disabled_counter % 500 == 0:
-            # check on the questnav - auto synch it if we have been up more than 10s and have not synched yet
-            # but attempt to see if we have a good starting tag (logitech reef)
-            # TODO: make this robust - arducam right is index 0, not 1
-            if ( wpilib.Timer.get_timestamp() > 10 and
-                    not self.container.questnav.quest_has_synched and
-                    (self.container.swerve.count_subscribers[0]).get() > 0):
-                self.container.swerve.questnav.quest_sync_odometry()  # this will mark that we have synched
+            # Auto-sync the Quest once, after 10 s up, when a tag camera sees a tag.  FAVOR
+            # count_subscribers[0] (ArducamRight): it alone can trigger the sync for the first 20 s
+            # of the window.  ArducamBack (index 1) is the fallback, allowed after 30 s, because
+            # ArducamRight has had boot problems.  The sync copies the swerve pose ESTIMATE (which
+            # both cameras feed), so this only decides WHEN it may sync, not what it syncs to.
+            now = wpilib.Timer.get_timestamp()
+            if now > 10 and not self.container.questnav.quest_has_synched:
+                cams = self.container.swerve.count_subscribers
+                allowed = (0, 1) if now > 10 + 20 else (0,)   # back camera only after a 20 s grace
+                seeing = next((i for i in allowed if i < len(cams) and cams[i].get() > 0), None)
+                if seeing is not None:
+                    print(f"  disabled auto-sync at {now:.0f}s: {self.container.swerve.camera_names[seeing]} sees a tag")
+                    self.container.swerve.questnav.quest_sync_odometry()  # marks synched once applied
             if wpilib.RobotBase.is_real() or wpilib.RobotBase.is_simulation():  # redundant to show we covered both cases
                 pass
                 # print(f"quest sync:{self.container.questnav.quest_has_synched} logitech tag count is:{self.container.swerve.count_subscribers[3].get()} at {self.container.timer.get():.1f}s")
