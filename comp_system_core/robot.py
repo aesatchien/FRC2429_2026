@@ -80,12 +80,15 @@ class MyRobot(commands2.TimedCommandRobot):
             alliance_color = wpilib.MatchState.get_alliance()
             is_connected = wpilib.RobotState.is_fms_attached() or wpilib.RobotState.is_ds_attached()
             # print(f'color is {alliance_color}, connected is {is_connected}')
+            # Once the Quest has synced, a slow pulse in the alliance color instead of the rainbow -
+            # readable from the bleachers: pulsing = synced, rainbow = not synced yet.
+            synced = self.container.questnav.quest_has_synched
             if alliance_color is not None and is_connected:
                 if alliance_color == wpilib.Alliance.RED:
-                    self.container.led.set_indicator(Led.Indicator.kHOTBOW)
+                    self.container.led.set_indicator(Led.Indicator.kREDPULSE if synced else Led.Indicator.kHOTBOW)
                     self.alliance_zone = "Red"
                 elif alliance_color == wpilib.Alliance.BLUE:
-                    self.container.led.set_indicator(Led.Indicator.kCOOLBOW)
+                    self.container.led.set_indicator(Led.Indicator.kBLUEPULSE if synced else Led.Indicator.kCOOLBOW)
                     self.alliance_zone = "Blue"
             else:
                 self.container.led.set_indicator(Led.Indicator.kPOLKA)

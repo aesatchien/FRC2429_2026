@@ -1,4 +1,5 @@
 from enum import Enum
+import math
 import time  # import time for precise timing
 import commands2
 from wpilib import AddressableLED
@@ -8,6 +9,12 @@ import constants
 from subsystems.robot_state import RobotState
 
 # TODO - make the frequencies actual times per second - so divide by the LED update rate (currently 10x per second)
+
+
+def pulse_brightness(t: float, frequency: float, floor: float = 0.1) -> float:
+    """Brightness for a smooth pulse: a cosine between `floor` and 1.0, `frequency` cycles/s.
+    The floor keeps the strip visibly lit at the bottom of the fade."""
+    return floor + (1.0 - floor) * (0.5 - 0.5 * math.cos(math.tau * frequency * t))
 
 
 class Led(commands2.Subsystem):
@@ -35,7 +42,7 @@ class Led(commands2.Subsystem):
         # non-animated indicators (flashing is not an animation)
         kSUCCESS = {'name': "SUCCESS", "on_color": [0, 255, 0], "off_color": [0, 0, 0],             "animated": False, "frequency": 3, "duty_cycle": 0.5, 'use_mode': False}
         kSUCCESSFLASH = {'name': "SUCCESS + MODE", "on_color": [0, 255, 0], "off_color": [0, 0, 0], "animated": False, "frequency": 3, "duty_cycle": 0.5, 'use_mode': True}
-        kWHITEFLASH = {'name': "SUCCESS + MODE", "on_color": [255, 255, 255], "off_color": [0, 0, 0], "animated": False, "frequency": 10, "duty_cycle": 0.5, 'use_mode': False}
+        kWHITEFLASH = {'name': "WHITEFLASH", "on_color": [255, 255, 255], "off_color": [0, 0, 0], "animated": False, "frequency": 10, "duty_cycle": 0.5, 'use_mode': False}
         kFAILURE = {'name': "FAILURE", "on_color": [255, 0, 0], "off_color": [0, 0, 0],             "animated": False, "frequency": 3, "duty_cycle": 0.5, 'use_mode': False}
         kFAILUREFLASH = {'name': "FAILURE + MODE", "on_color": [255, 0, 0], "off_color": [0, 0, 0], "animated": False, "frequency": 3, "duty_cycle": 0.5, 'use_mode': True}
         kNONE = {'name': "NONE", "on_color": [255, 0, 0], "off_color": [0, 0, 0],                   "animated": False, "frequency": 3, "duty_cycle": 0.5, 'use_mode': False}
@@ -43,6 +50,11 @@ class Led(commands2.Subsystem):
         # Rebuilt specific indicators
         kINTAKEON = {'name': "INTAKEON", "on_color": [255, 255, 0], "off_color": [0, 0, 0],         "animated": False, "frequency": 3, "duty_cycle": 1, 'use_mode': False}
         kINTAKEOFF = {'name': "INTAKEOFF", "on_color": [255, 255, 0], "off_color": [0, 0, 0],       "animated": False, "frequency": 4, "duty_cycle": 0.5, 'use_mode': False}
+
+        # Slow, smooth pulse (whole strip fades dim <-> bright, 'frequency' cycles per second).
+        # Shown while disabled once the Quest has synced, in the alliance color - see robot.py.
+        kREDPULSE = {'name': "RED PULSE", "on_color": [255, 0, 0], "off_color": [0, 0, 0],          "animated": False, "frequency": 0.5, "duty_cycle": None, 'pulse': True, 'use_mode': False}
+        kBLUEPULSE = {'name': "BLUE PULSE", "on_color": [0, 0, 255], "off_color": [0, 0, 0],        "animated": False, "frequency": 0.5, "duty_cycle": None, 'pulse': True, 'use_mode': False}
 
 
     class Mode(Enum):
@@ -195,7 +207,11 @@ class Led(commands2.Subsystem):
             time_since_toggle = current_time - self.last_toggle_time
 
             if self.indicator != self.Indicator.kNONE:
-                if not self.indicator.value["animated"]:  # Non-animated indicators
+                if self.indicator.value.get("pulse"):  # smooth fade, not a blink
+                    brightness = pulse_brightness(current_time, self.indicator.value["frequency"])
+                    self.set_leds([int(c * brightness) for c in self.indicator.value["on_color"]])
+
+                elif not self.indicator.value["animated"]:  # Non-animated indicators
                     frequency = self.indicator.value["frequency"]
                     period = 1 / frequency  # Period for one cycle (on + off)
 
