@@ -100,7 +100,7 @@ COMMAND_LIST = ['IntakeStow', 'IntakeDeploy', 'IntakeShoot', 'IntakeCalStow', 'I
 
 # this config will be used to bind the NT topics to entries we can use later
 # todo - somehow make the camera names all update from a config file, but that means ui and robot code need to know
-DEFAULT_CAMERA = 'ardu_right'  # used in camera worker as the one to go to first - can do switching logic there
+DEFAULT_CAMERA = 'arducam_right'  # must be a CAMERA_CONFIG key ('ardu_right' was not, so auto-switch showed nothing) - used in camera worker as the one to go to first - can do switching logic there
 CAMERA_BASE_CONFIG = {
     'arducam_right': {'URL': 'http://10.24.29.12:1186/stream.mjpg', 'IP': '10.24.29.12',  # use ip to ping hardware heartbeat
                    'BASE_TOPIC': 'ArducamRight',

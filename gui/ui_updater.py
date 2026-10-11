@@ -482,18 +482,16 @@ class UIUpdater:
             if time_delta > 0:
                 frames = self.ui.camera_manager.worker.frames if self.ui.camera_manager.worker else 0
                 
-                # Calculate NT Latency (Data Age)
-                # This measures time in ms since the last timestamp update was received
-                # Use match_time as the heartbeat since _timestamp is gone
-                match_time_sub = self.ui.widget_dict['qlabel_matchtime'].get('subscriber')
-                latency = -1.0
-                if match_time_sub:
-                    atomic_ts = match_time_sub.getAtomic()
-                    if atomic_ts.time != 0:
-                        # ntcore._now() and atomic_ts.time are both in microseconds. Divide by 1000 for ms.
-                        latency = (ntcore._now() - atomic_ts.time) / 1000.0
-                
-                msg = f'GUI: {80/time_delta:.1f}Hz | CAM: {(frames - self.ui.previous_frames)/time_delta:.1f}Hz | LATENCY: {latency:.1f}ms'
+                # DATA AGE: ms since ANY value from the robot changed - a heartbeat, not a network latency.
+                # This used to be the age of match_time alone, which the robot sends 5x/s (so it read
+                # 0-200 ms however good the link was) and which NT does not resend while it is not
+                # changing (so it climbed forever while disabled).  Lots of robot values change every
+                # few loops, so the newest of them is a fair "is data still flowing" number.
+                newest = max((props['subscriber'].getAtomic().time for props in self.ui.widget_dict.values()
+                              if props.get('subscriber') is not None), default=0)
+                age = f'{(ntcore._now() - newest) / 1000.0:.0f}ms' if newest else 'none yet'
+
+                msg = f'GUI: {80/time_delta:.1f}Hz | CAM: {(frames - self.ui.previous_frames)/time_delta:.1f}Hz | DATA AGE: {age}'
                 self.ui.statusBar().showMessage(msg)
             self.ui.previous_time = current_time
             self.ui.previous_frames = frames

@@ -21,9 +21,15 @@ class NTManager:
         time.sleep(sleep_time)
         self.ntinst = NetworkTableInstance.getDefault()
         self.ntinst.startClient4(identity=f'PyQt Dashboard {datetime.today().strftime("%H%M%S")}')
-        self.ntinst.setServerTeam(2429)
+        # Reconnect to whichever server we were on.  This used to always go back to the team server
+        # while server_index stayed 1, so after "swap to sim" + reconnect the GUI was on the robot
+        # but still doing the sim match-time math (ui_updater checks server_index == 1).
+        if self.server_index == 0:
+            self.ntinst.setServerTeam(2429)
+        else:
+            self.ntinst.setServer(server_name=self.servers[self.server_index])
         time.sleep(sleep_time)
-        self.ui.qt_text_status.appendPlainText(f'{datetime.today().strftime("%H:%M:%S")}: Reconnected to NetworkTables.')
+        self.ui.qt_text_status.appendPlainText(f'{datetime.today().strftime("%H:%M:%S")}: Reconnected to NetworkTables ({self.servers[self.server_index]}).')
 
     def increment_server(self):
         current_server = self.servers[self.server_index]
