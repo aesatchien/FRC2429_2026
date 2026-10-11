@@ -4,9 +4,11 @@ import time
 import numpy as np
 import os
 import subprocess
+import threading
 import wpimath.geometry as geo
 import ntcore
 import config
+from quest_address import quest_ip, ADB_PORT
 from PyQt6 import QtGui, QtCore
 
 class UIUpdater:
@@ -44,6 +46,8 @@ class UIUpdater:
         self.dtap_last_fix_time = 0.0
         self.dtap_retries = 0
         self.start_time = time.time()
+        # who is connected to the robot's NT server - the Quest's real IP is in here (see quest_address.py)
+        self.nt_clients_sub = ntcore.NetworkTableInstance.getDefault().getRawTopic("$clients").subscribe("msgpack", b"")
 
         # Map update styles from config to specific update functions
         self.updaters = {
@@ -161,13 +165,9 @@ class UIUpdater:
                         self.dtap_retries += 1
                         print(f"[{time.strftime('%H:%M:%S')}] QuestNav has been in passthrough for > {config.QUESTNAV_PASSTHRU_ADB_DELAY:.2f}s. Attempting ADB fix ({self.dtap_retries}/{config.QUESTNAV_ADB_MAX_RETRIES}).", flush=True)
                         
-                        try:
-                            adb_path = os.path.join(os.path.dirname(__file__), "adb", "adb.exe")
-                            cmd = [adb_path, "-s", config.QUESTNAV_ADB_ADDRESS, "shell", "am", "start", "-n", "gg.QuestNav.QuestNav/com.unity3d.player.UnityPlayerGameActivity"]
-                            subprocess.Popen(cmd)
-                            print(f"[{time.strftime('%H:%M:%S')}] ADB command sent. Waiting for cooldown...", flush=True)
-                        except Exception as e:
-                            print(f"[{time.strftime('%H:%M:%S')}] Failed to execute QuestNav ADB fix: {e}", flush=True)
+                        address = self._quest_adb_address()
+                        threading.Thread(target=self._run_adb_fix, args=(address,), daemon=True).start()
+                        print(f"[{time.strftime('%H:%M:%S')}] ADB fix sent to {address}. Waiting for cooldown...", flush=True)
                     elif self.dtap_retries == config.QUESTNAV_ADB_MAX_RETRIES:
                         print(f"[{time.strftime('%H:%M:%S')}] QuestNav ADB fix max retries ({config.QUESTNAV_ADB_MAX_RETRIES}) reached. Giving up.", flush=True)
                         self.dtap_retries += 1  # Increment once more so we don't spam the 'Giving up' message
@@ -180,6 +180,38 @@ class UIUpdater:
                 print(f"[{time.strftime('%H:%M:%S')}] QuestNav passthru resolved.", flush=True)
                 self.dtap_retries = 0
 
+    def _quest_adb_address(self):
+        """The Quest's adb address RIGHT NOW: its IP as the robot's NT server sees it, falling back to
+        config (hard-coded, or whatever the last Ping Quest found) only if the Quest is not connected.
+        This used to be config alone, so a changed DHCP address meant adb went to the old one."""
+        ip = quest_ip(self.nt_clients_sub.get())
+        if ip is None:
+            return config.QUESTNAV_ADB_ADDRESS
+        address = f"{ip}:{ADB_PORT}"
+        if address != config.QUESTNAV_ADB_ADDRESS:
+            print(f"[{time.strftime('%H:%M:%S')}] Quest is at {address} (from the robot's NT client list), "
+                  f"not {config.QUESTNAV_ADB_ADDRESS} - using {address}", flush=True)
+            config.QUESTNAV_ADB_ADDRESS = address  # so Ping Quest and the test button agree
+        return address
+
+    @staticmethod
+    def _run_adb_fix(address):
+        """Background thread: connect first (`adb -s` does not connect, and the adb server may only
+        know the OLD address), then bring QuestNav back to the front.  Prints adb's answers so a
+        failure is visible instead of a silent Popen."""
+        adb_path = os.path.join(os.path.dirname(__file__), "adb", "adb.exe")
+        creationflags = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
+        for cmd in ([adb_path, "connect", address],
+                    [adb_path, "-s", address, "shell", "am", "start", "-n",
+                     "gg.QuestNav.QuestNav/com.unity3d.player.UnityPlayerGameActivity"]):
+            try:
+                res = subprocess.run(cmd, capture_output=True, text=True, timeout=5, creationflags=creationflags)
+                out = (res.stdout + res.stderr).strip().replace("\n", " | ")
+                print(f"[{time.strftime('%H:%M:%S')}] adb {cmd[1]} {address}: {out or res.returncode}", flush=True)
+            except Exception as e:
+                print(f"[{time.strftime('%H:%M:%S')}] adb {cmd[1]} {address} failed: {e}", flush=True)
+                return
+
     def _test_questnav_dtap(self):
         """Fires an ADB command to simulate/test Quest passthrough by returning to the Home screen.
         None of these do what they are supposed to - the HOME actually kills and restarts (seriously messes up the quest), and the FocusPlaceholderActivity doesn't work
@@ -190,7 +222,7 @@ class UIUpdater:
         try:
             adb_path = os.path.join(os.path.dirname(__file__), "adb", "adb.exe")
             # cmd = [adb_path, "-s", config.QUESTNAV_ADB_ADDRESS, "shell", "am", "start", "-a", "android.intent.action.MAIN", "-c", "android.intent.category.HOME"]
-            cmd = [adb_path, "-s", config.QUESTNAV_ADB_ADDRESS, "shell", "am", "start", "-n", "com.oculus.vrshell/.FocusPlaceholderActivity"]
+            cmd = [adb_path, "-s", self._quest_adb_address(), "shell", "am", "start", "-n", "com.oculus.vrshell/.FocusPlaceholderActivity"]
             subprocess.Popen(cmd)
         except Exception as e:
             print(f"[{time.strftime('%H:%M:%S')}] Failed to execute QuestNav DTAP test: {e}", flush=True)
