@@ -24,6 +24,7 @@ from subsystems.led import Led
 from subsystems.quest import Questnav
 from subsystems.robot_state import RobotState
 from subsystems.swerve import Swerve
+from subsystems.swerve_sysid import register_sysid
 from subsystems.vision import Vision
 from subsystems.shooter import Shooter
 from subsystems.intake import Intake
@@ -297,6 +298,8 @@ class RobotContainer:
         # ----------  DASHBOARD COMMANDS  ---------------
         # --------------   COMMANDS FOR GUI (ROBOT DEBUGGING) - 20250224 CJH
         command_prefix = constants.command_prefix
+        # shop-only drive feedforward test, does nothing unless constants.k_enable_sysid
+        self.sysid = register_sysid(self.swerve)
         # --------------   TESTING LEDS ----------------
         self.led_mode_chooser = Selectable()
         [self.led_mode_chooser.add(key, value) for key, value in self.led.modes_dict.items()]  # add all the indicators

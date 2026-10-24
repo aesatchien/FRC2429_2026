@@ -167,6 +167,14 @@ class SwerveModule:
         self.desiredState = desiredState
         self.commandedState = correctedDesiredState
 
+    def sysid_drive(self, volts: float) -> None:
+        """Shop SysId only: raw volts to the drive motor while the turn loop holds the wheel at 0 degrees.
+        Call it every loop (the turn PID needs that).  Needs a drive motor with set_voltage() (Kraken)."""
+        self.drive_motor.set_voltage(volts)
+        out = self.turning_PID_controller.calculate(self.get_turn_encoder(), 0.0)
+        self.turning_output = 0 if math.fabs(out) < 0.01 else out   # same deadband as setDesiredState
+        self.turn_motor.set_duty_cycle(self.turning_output)
+
     def set_drive_current_limit(self, amps: int) -> None:
         """Temporarily changes the drive motor current limit without resetting other configuration."""
         self.drive_motor.set_current_limit(amps)

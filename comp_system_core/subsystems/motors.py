@@ -51,7 +51,7 @@ try:
     from phoenix6 import BaseStatusSignal, CANBus, StatusCode
     from phoenix6.hardware import TalonFX
     from phoenix6.configs import TalonFXConfiguration, CurrentLimitsConfigs
-    from phoenix6.controls import VelocityVoltage, DutyCycleOut
+    from phoenix6.controls import VelocityVoltage, DutyCycleOut, VoltageOut
     from phoenix6.signals import InvertedValue, NeutralModeValue
     k_phoenix_available = True
     _phoenix_import_error = None
@@ -515,6 +515,7 @@ class TalonDriveMotor:
         # to be reused; building a new one every loop allocates ~200 objects/sec on the RIO.
         # enable_foc must be explicit: it defaults to True, and True needs a Phoenix Pro licence.
         self._velocity_req = VelocityVoltage(0, enable_foc=enable_foc)
+        self._voltage_req = None   # built on first set_voltage(), shop SysId only
 
         # Cache the status signals too, for the same reason, then set their rates.
         self._position_sig = self.talon.get_position()
@@ -572,6 +573,14 @@ class TalonDriveMotor:
     def set_velocity_mps(self, mps: float) -> None:
         self._velocity_req.velocity = mps / self.circumference_m  # m/s -> wheel rot/s
         self.talon.set_control(self._velocity_req)
+
+    def set_voltage(self, volts: float) -> None:
+        """Raw open-loop volts, bypassing the velocity loop.  Only the shop SysId test uses this
+        (subsystems/swerve_sysid.py); same non-FOC voltage mode the match feedforward is fit against."""
+        if self._voltage_req is None:
+            self._voltage_req = VoltageOut(0, enable_foc=False)   # allocated on first use, like _velocity_req
+        self._voltage_req.output = volts
+        self.talon.set_control(self._voltage_req)
 
     def get_position_m(self) -> float:
         return self._position_sig.refresh().value * self.circumference_m

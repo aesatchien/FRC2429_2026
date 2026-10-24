@@ -20,6 +20,13 @@ k_at_home = False  # used for intake calibration - True means we start with the 
 _counter = count(1)
 
 # TODO - organize this better
+# SHOP TESTING ONLY.  When True, four SysId commands appear on the dashboard under Command/SysId/ and the robot
+# will drive itself (all four drive motors, raw volts) while one runs, but only while enabled.  Leave False for
+# matches.  Procedure: gui/scope2429/SYSID_SHOP_GUIDE.md.  Ramp is V/s, step is V, timeout is s.
+k_enable_sysid = False
+k_sysid_ramp_rate = 1.0
+k_sysid_step_voltage = 4.0
+k_sysid_timeout = 6.0
 k_enable_logging = True  # .wpilog / DS / .hoot logging - started by helpers/log_start.py, from robot_periodic()
 # Where the SystemCore writes .wpilog and .hoot files.  The USB stick mounts at /U about 2-3 s AFTER the robot
 # program starts, so the log start waits for /U to be a mount point (up to DeferredLogStart.k_wait_s, then the
