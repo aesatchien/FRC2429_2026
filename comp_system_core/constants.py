@@ -20,6 +20,10 @@ k_at_home = False  # used for intake calibration - True means we start with the 
 _counter = count(1)
 
 # TODO - organize this better
+# Status-signal rate (Hz) of the drive Krakens' MotorVoltage, StatorCurrent, SupplyCurrent and Acceleration, so the
+# .hoot has enough samples for the Scope2429 drive feedforward fit (position and velocity are already 100 Hz).
+# 4 was the old quiet default.  The 4 drive Krakens are alone on can_s0, so 100 Hz is a small load.
+k_drive_hoot_rate_hz = 100
 k_enable_logging = True  # .wpilog / DS / .hoot logging - started by helpers/log_start.py, from robot_periodic()
 # Where the SystemCore writes .wpilog and .hoot files.  The USB stick mounts at /U about 2-3 s AFTER the robot
 # program starts, so the log start waits for /U to be a mount point (up to DeferredLogStart.k_wait_s, then the

@@ -531,12 +531,19 @@ class TalonDriveMotor:
         # sticky-fault polling swerve.py used to do was removed because it blocks the loop and
         # leaves frames on - see the NO FAULTS note there.  Reading a signal is free; ENABLING
         # one is not.)
+        #
+        # EXCEPT for the hoot: Scope2429's drive feedforward fit (kS / kV / kA, see
+        # gui/scope2429/SYSID_SHOP_GUIDE.md) needs MotorVoltage and Acceleration at the same rate
+        # as Velocity, and at 4 Hz it had one voltage sample per 250 ms.  constants.k_drive_hoot_rate_hz
+        # raises these to 100 Hz for the 4 drive Krakens, which have can_s0 to themselves.  Set it to 4
+        # to go back to the quiet setting.
         self._voltage_sig = self.talon.get_motor_voltage()
         self._stator_current_sig = self.talon.get_stator_current()
         self._supply_current_sig = self.talon.get_supply_current()
-        self._voltage_sig.set_update_frequency(4)
-        self._stator_current_sig.set_update_frequency(4)
-        self._supply_current_sig.set_update_frequency(4)
+        self._acceleration_sig = self.talon.get_acceleration()  # never read, enabled so the hoot logs it
+        BaseStatusSignal.set_update_frequency_for_all(
+            constants.k_drive_hoot_rate_hz, self._voltage_sig, self._stator_current_sig,
+            self._supply_current_sig, self._acceleration_sig)
         # Device temperature moves over minutes, not milliseconds - 1 Hz is plenty.
         self._temp_sig = self.talon.get_device_temp()
         self._temp_sig.set_update_frequency(1)
