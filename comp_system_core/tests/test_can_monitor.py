@@ -117,3 +117,22 @@ def test_the_real_calls_do_not_raise_in_simulation():
     assert set(got) == {'can_s0', 'can_s1', 'can_s2'}
     assert _read('can_s1', 'utilization') >= 0.0
     assert _read('can_s1', 'source', 'string') in ('wpilib', 'phoenix')
+
+
+def test_phoenix_is_opened_by_name_not_with_the_systemcore_helper(monkeypatch):
+    """On the competition robot `CANBus.systemcore` does not exist ("type object 'CANBus' has no attribute 'systemcore'"), so the
+    monitor must open a bus the way motors.py does, by its name."""
+    import phoenix6
+    opened = []
+
+    class FakeBus:                                    # deliberately has no .systemcore
+        def __init__(self, name):
+            opened.append(name)
+
+        def get_status(self):
+            return _phoenix(2.45)
+    monkeypatch.setattr(phoenix6, 'CANBus', FakeBus)
+    mon = CanMonitor(status_fn=_broken_wpilib)        # WPILib fails, as it does on the robot, so Phoenix is the reader
+    got = mon.sample()
+    assert set(got) == {'can_s0', 'can_s1', 'can_s2'} and sorted(set(opened)) == ['can_s0', 'can_s1', 'can_s2']
+    assert _read('can_s0', 'source', 'string') == 'phoenix' and _read('can_s0', 'utilization') == 2.45

@@ -248,10 +248,12 @@ def _report_canbus_once(bus) -> None:
         return
     _canbus_reported.add(bus.name)
     try:
+        # Phoenix documents bus_utilization as 0..1, but the robot returned 0.76 at boot and 2.45 later: not a fraction (2.45
+        # would be 245 %), so it is already percent.  This line used to format it as a fraction and print "76.0%".
         status = bus.get_status()
         ok = status.status.is_ok()
         print(f'  Phoenix CAN bus {bus.name!r}: {"OK" if ok else status.status.name}'
-              f'  (utilization {status.bus_utilization:.1%}, bus-off {status.bus_off_count},'
+              f'  (utilization {status.bus_utilization:.2f} %, bus-off {status.bus_off_count},'
               f' TX-full {status.tx_full_count})')
         if not ok:
             print(f'  *** Phoenix cannot see CAN bus {bus.name!r}.  Valid SystemCore names are')

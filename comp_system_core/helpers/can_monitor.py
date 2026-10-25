@@ -14,8 +14,8 @@ Two readers exist and each bus uses the first that works:
   1. wpilib.RobotController.get_can_status(port): utilization, bus-off, TX-full, receive and transmit errors.
   2. Phoenix: CANBus.systemcore(n).get_status(): bus_utilization, bus_off_count, tx_full_count, rec, tec.
 
-On the competition SystemCore (2026-10-25) the WPILib call raised for all three buses, and nobody saw it because the monitor
-swallowed the error.  Phoenix worked.  So the monitor now says, once per bus, which reader it uses and why the other failed
+On the competition SystemCore (2026-10-25) the WPILib call raised for all three buses ("HAL: A handle parameter was passed
+incorrectly: GetCANStatus"), and nobody saw it because the monitor swallowed the error.  Phoenix worked.  So the monitor now says, once per bus, which reader it uses and why the other failed
 (it is in the console log), and publishes that as a `source` string.  WPILib is tried first because it needs no vendor library.
 
 The three SystemCore buses (constants.k_can_bus_*): can_s0 = swerve drive Krakens, can_s1 = swerve turn SparkFlexes,
@@ -122,8 +122,9 @@ class CanMonitor:
         return out
 
     def _phoenix_status(self, name: str):
-        """Phoenix's CANBusStatus for 'can_s0'..'can_s4'."""
+        """Phoenix's CANBusStatus for 'can_s0'..'can_s4'.  CANBus(name), the same call motors.py makes for the Krakens: the
+        CANBus.systemcore(n) helper does not exist in the Phoenix on the competition robot (2026-10-25)."""
         if name not in self._phoenix_buses:
             from phoenix6 import CANBus
-            self._phoenix_buses[name] = CANBus.systemcore(int(name[-1]))
+            self._phoenix_buses[name] = CANBus(name)
         return self._phoenix_buses[name].get_status()
