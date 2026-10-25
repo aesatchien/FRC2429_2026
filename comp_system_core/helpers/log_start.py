@@ -82,6 +82,13 @@ class DeferredLogStart:
         DriverStation.start_data_log(DataLogManager.get_log())   # DS control and joystick data
         print(f'  logging to: {DataLogManager.get_log_dir()}  (started {waited:.1f} s after boot)')
 
+        # the robot's console output goes in the same folder, next to the .wpilog it explains (helpers/console_log.py)
+        from helpers import console_log
+        console = console_log.get()
+        if console is not None:
+            path = console.open_in(DataLogManager.get_log_dir(), note=f'logging to {choice}, {waited:.1f} s after boot')
+            print(f'  console log: {path or "NOT OPENED (see above)"}')
+
         # URCL is optional and imported lazily, so a missing package is a message rather than an
         # import error.  Toggle constants.k_enable_urcl.
         if constants.k_enable_urcl:

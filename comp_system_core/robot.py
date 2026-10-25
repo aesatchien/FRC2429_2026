@@ -12,6 +12,7 @@ from constants import IntakeConstants as ic
 from wpimath.units import inches_to_meters
 
 from helpers import dashboard, log_command
+from helpers import console_log
 from helpers.log_start import DeferredLogStart
 from robotcontainer import RobotContainer
 from subsystems.led import Led  # allows indexing of LED colors
@@ -53,6 +54,9 @@ class MyRobot(commands2.TimedCommandRobot):
         simply never gets called, nothing complains, and the program dies later on the first
         attribute it was supposed to have created.  That is exactly how this was found.
         """
+        # Very first: capture what the program prints from here on.  It is held in memory until log_start opens the folder.
+        if constants.k_enable_logging and constants.k_log_console:
+            console_log.start()
         super().__init__()
         # First, so its clock starts at boot: the datalog waits for the USB stick (see helpers/log_start.py)
         self.log_start = DeferredLogStart()
