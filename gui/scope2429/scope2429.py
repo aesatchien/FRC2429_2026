@@ -660,9 +660,11 @@ class App(tk.Tk):
         cfgs = core.find_field_configs("2026")
         self.field_paths = {GENERIC_FIELD: None}
         for c in cfgs:
+            if not core.field_is_frc_shaped(c):          # FTC fields crash the dashboard layout, so they are not offered
+                continue
             self.field_paths[os.path.basename(os.path.dirname(c)) + "  —  " + c] = c
         extra = self.settings.get("field_custom")
-        if extra and os.path.exists(extra):
+        if extra and os.path.exists(extra) and core.field_is_frc_shaped(extra):
             self.field_paths["custom  —  " + extra] = extra
         self.field_cb["values"] = list(self.field_paths)
         want = select or self.settings.get("field")
@@ -685,7 +687,10 @@ class App(tk.Tk):
     def _browse_field(self):
         f = filedialog.askopenfilename(title="AdvantageScope Field2d config.json",
                                        filetypes=[("config.json", "config.json"), ("JSON", "*.json")])
-        if f:
+        if f and not core.field_is_frc_shaped(f):
+            messagebox.showwarning("Field image", "That field is not about twice as long as it is wide (an FTC field?). The dashboard "
+                                   "layout is built for a FRC field, so it was not loaded.")
+        elif f:
             self.settings["field_custom"] = f
             self._refresh_fields("custom  —  " + f)
 

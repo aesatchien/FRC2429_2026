@@ -740,6 +740,18 @@ def _read_json(path):
         return json.load(f)
 
 
+def field_is_frc_shaped(config_path) -> bool:
+    """False for fields that are not about twice as long as they are wide, e.g. the FIRST Tech Challenge fields (144 x 144 in)
+    that AdvantageScope installs next to the FRC ones.  The dashboard layout is built for a FRC field and crashes on those
+    ("could not broadcast input array"), which showed up as a frozen preview with a "Preview error" in the status line."""
+    try:
+        cfg = _read_json(config_path)
+        ratio = float(cfg.get("widthInches", 651.2)) / float(cfg.get("heightInches", 317.7))
+        return 1.5 <= ratio <= 2.5
+    except Exception:
+        return True                                      # unreadable: load_field has its own fallback
+
+
 def load_field(config_path: str | None) -> FieldImage:
     if config_path and os.path.exists(config_path):
         try:
