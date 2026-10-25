@@ -23,7 +23,10 @@ _counter = count(1)
 k_enable_logging = True  # .wpilog / DS / .hoot logging - started by helpers/log_start.py, from robot_periodic()
 # Also save everything the program prints (our prints, robotpy INFO lines, native warnings such as the watchdog and loop
 # overruns) to console_<boot UTC>.log next to the .wpilog, stamped with the wpilog clock.  See helpers/console_log.py.
-# It redirects stdout and stderr at the OS level (and forwards them untouched to the console); set False to turn that off.
+# On the robot it redirects stdout and stderr at the OS level (so native C++ messages are caught; everything is forwarded
+# untouched to the console).  In the Windows simulator it wraps Python's sys.stdout / sys.stderr instead (redirecting the
+# descriptors crashes a Windows console), so the simulator's file has Python prints and logging but not native C++ messages.
+# Set False to turn the whole thing off.
 k_log_console = True
 # Where the SystemCore writes .wpilog and .hoot files.  The USB stick mounts at /U about 2-3 s AFTER the robot
 # program starts, so the log start waits for /U to be a mount point (up to DeferredLogStart.k_wait_s, then the

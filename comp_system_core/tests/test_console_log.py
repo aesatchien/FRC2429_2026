@@ -31,7 +31,7 @@ def _records(path):
 
 
 def test_python_and_native_output_are_saved_with_timestamps_and_streams(tmp_path, capfd):
-    log = ConsoleLog()
+    log = ConsoleLog(fd_level=True)
     assert log.start()
     try:
         say('before the folder is known')                          # held in memory until open_in()
@@ -62,7 +62,7 @@ def test_python_and_native_output_are_saved_with_timestamps_and_streams(tmp_path
 
 
 def test_console_is_given_back_on_stop(tmp_path, capfd):
-    log = ConsoleLog()
+    log = ConsoleLog(fd_level=True)
     assert log.start()
     log.open_in(str(tmp_path))
     log.stop()
@@ -74,7 +74,7 @@ def test_console_is_given_back_on_stop(tmp_path, capfd):
 def test_long_waits_keep_the_newest_lines_and_say_how_many_were_dropped(tmp_path, monkeypatch):
     import helpers.console_log as cl
     monkeypatch.setattr(cl, 'MAX_HELD_LINES', 5)
-    log = ConsoleLog()
+    log = ConsoleLog(fd_level=True)
     assert log.start()
     try:
         for i in range(12):
@@ -95,7 +95,7 @@ def test_long_waits_keep_the_newest_lines_and_say_how_many_were_dropped(tmp_path
 def test_an_unwritable_folder_does_not_break_the_robot(tmp_path, capfd):
     blocker = tmp_path / 'a_file'
     blocker.write_text('x')
-    log = ConsoleLog()
+    log = ConsoleLog(fd_level=True)
     assert log.start()
     try:
         assert log.open_in(str(blocker / 'logs')) == ''            # a folder cannot be made under a file
@@ -103,3 +103,61 @@ def test_an_unwritable_folder_does_not_break_the_robot(tmp_path, capfd):
     finally:
         log.stop()
     assert 'still printing' in capfd.readouterr().out
+
+
+# ---------------------------------------------------------------------------------------------------------
+# Python-level mode: what the simulator on Windows uses.  Redirecting the file descriptors there killed the robot program
+# in its constructor ("OSError: [WinError 1] Incorrect function" on the next print()), because Python's console writer
+# keeps the console's OS handle and the redirect closes it.  So this mode must never touch the descriptors.
+# ---------------------------------------------------------------------------------------------------------
+def test_python_mode_never_touches_the_file_descriptors(tmp_path, monkeypatch):
+    calls = []
+    for name in ('dup2', 'dup', 'pipe'):
+        real = getattr(os, name)
+        monkeypatch.setattr(os, name, lambda *a, _n=name, _r=real, **k: (calls.append(_n), _r(*a, **k))[1])
+    log = ConsoleLog(fd_level=False)
+    try:
+        assert log.start()
+        log.open_in(str(tmp_path))
+        print('a line')
+    finally:
+        log.stop()
+        monkeypatch.undo()                                # the guard covers only the console log's own window
+    assert calls == [], f'the Python-level mode must not redirect file descriptors, but called os.{calls}'
+
+
+def test_python_mode_saves_prints_stderr_and_logging_and_still_prints(tmp_path, capsys):
+    import logging
+    logger = logging.getLogger('console_log_test')
+    logger.propagate = False
+    handler = logging.StreamHandler(sys.stderr)          # made BEFORE start, like robotpy's: holds the original stderr
+    logger.addHandler(handler)
+    log = ConsoleLog(fd_level=False)
+    try:
+        assert log.start()
+        print('held print')                              # before the folder is known
+        path = log.open_in(str(tmp_path))
+        print('plain print')
+        print('two', 'parts', end='')                    # a line finished by a later write
+        print(' of one line')
+        sys.stderr.write('stderr line\n')
+        logger.warning('logging line')
+    finally:
+        log.stop()
+        logger.removeHandler(handler)
+    text = {r[3]: r[2] for r in _records(path)}
+    assert text['held print'] == 'O' and text['plain print'] == 'O'
+    assert text['two parts of one line'] == 'O'
+    assert text['stderr line'] == 'E'
+    assert text['logging line'] == 'E', "robotpy's logging handler holds stderr: its lines must be caught too"
+    out = capsys.readouterr()
+    assert 'plain print' in out.out and 'stderr line' in out.err, "the real streams still receive everything"
+
+
+def test_python_mode_gives_the_streams_back(tmp_path):
+    before_out, before_err = sys.stdout, sys.stderr
+    log = ConsoleLog(fd_level=False)
+    assert log.start()
+    assert sys.stdout is not before_out
+    log.stop()
+    assert sys.stdout is before_out and sys.stderr is before_err

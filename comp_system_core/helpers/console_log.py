@@ -32,6 +32,13 @@ FILE FORMAT  (console_<boot UTC>.log, plain text, one line per console line)
     to find the right file, not to place a line precisely.  The .hoot folder names are local wall-clock times.
   * O = stdout, E = stderr.
 
+TWO MODES.  On the robot (Linux) the file descriptors are redirected, as above.  On Windows (the simulator) that must NOT
+be done: Python's console writer keeps the console's OS handle, redirecting fd 1 closes that handle and the pipe can take
+its number, so the next print() raises "OSError: [WinError 1] Incorrect function" and the robot program dies in its
+constructor.  There the Python streams sys.stdout / sys.stderr (and any logging handler that holds one, such as robotpy's)
+are wrapped instead, which never touches the console.  That catches every Python print and logging line but NOT the native
+C++ messages, which still only reach the terminal; the robot's file has both.
+
 NEVER BLOCK THE ROBOT.  If a pipe stopped being read, the next print would block once it filled (64 KB) and freeze the robot
 loop.  So every thread body is wrapped, any failure puts the original descriptors straight back, and the file is only
 written from the threads, never from the code that printed.
@@ -39,6 +46,8 @@ written from the threads, never from the code that printed.
 
 import atexit
 import datetime
+import io
+import logging
 import os
 import sys
 import threading
@@ -58,8 +67,35 @@ def format_line(t: float, utc: str, stream: str, text: str) -> str:
     return f'{t:.3f} {utc} {stream} {text}\n'
 
 
+class _Tee(io.TextIOBase):
+    """A text stream that writes through to the real one and also hands every complete line to the ConsoleLog."""
+
+    def __init__(self, inner, tag: str, log: 'ConsoleLog') -> None:
+        self._inner, self._tag, self._log = inner, tag, log
+
+    def write(self, s):
+        n = self._inner.write(s)
+        try:
+            self._log._feed(self._tag, s)
+        except Exception:  # noqa - the log must never break a print
+            pass
+        return n if n is not None else len(s)
+
+    def flush(self):
+        self._inner.flush()
+
+    def __getattr__(self, name):          # isatty, fileno, encoding, buffer, ... come from the real stream
+        return getattr(self._inner, name)
+
+
 class ConsoleLog:
-    def __init__(self) -> None:
+    def __init__(self, fd_level=None) -> None:
+        # None: redirect file descriptors everywhere except Windows (see the module docstring)
+        self.fd_level = (os.name != 'nt') if fd_level is None else bool(fd_level)
+        self._tee = {}                   # 'O' / 'E' -> (_Tee, the original stream)
+        self._partial = {'O': '', 'E': ''}
+        self._tee_lock = threading.Lock()
+        self._handlers = []              # (logging handler, its original stream)
         self._lock = threading.Lock()
         self._held = []                  # lines waiting for a folder: (t, utc, stream, text)
         self._dropped = 0
@@ -77,6 +113,8 @@ class ConsoleLog:
         """Redirect stdout and stderr.  Returns False (and changes nothing) if that is not possible here."""
         if self._active:
             return True
+        if not self.fd_level:
+            return self._start_tee()
         try:
             for stream in (sys.stdout, sys.stderr):
                 try:
@@ -114,6 +152,8 @@ class ConsoleLog:
                 stream.flush()
             except Exception:  # noqa
                 pass
+        if not self.fd_level:
+            self._stop_tee()
         self._redirect_back()                             # puts the console back and drops the pipes' write ends: the threads see EOF
         for t in self._threads:
             t.join(timeout=1.0)                           # they forward and record what was still in the pipes
@@ -147,6 +187,54 @@ class ConsoleLog:
         """Console back to normal immediately (used when something went wrong)."""
         self._redirect_back()
         self._close_saved()
+
+    # ------------------------------------------------------------------ Python-level capture (Windows / simulator)
+    def _start_tee(self) -> bool:
+        for tag, name in (('O', 'stdout'), ('E', 'stderr')):
+            orig = getattr(sys, name)
+            tee = _Tee(orig, tag, self)
+            self._tee[tag] = (tee, orig)
+            setattr(sys, name, tee)
+        # logging handlers made before now (robotpy's) hold the ORIGINAL stderr: point them at the tee too
+        tee_for = {id(orig): tee for tee, orig in self._tee.values()}
+        loggers = [logging.getLogger()] + [lg for lg in logging.Logger.manager.loggerDict.values() if isinstance(lg, logging.Logger)]
+        for lg in loggers:
+            for h in lg.handlers:
+                stream = getattr(h, 'stream', None)
+                if stream is not None and id(stream) in tee_for:
+                    self._handlers.append((h, stream))
+                    h.stream = tee_for[id(stream)]
+        self._active = True
+        atexit.register(self.stop)
+        return True
+
+    def _stop_tee(self) -> None:
+        for h, stream in self._handlers:
+            h.stream = stream
+        self._handlers.clear()
+        for tag, name in (('O', 'stdout'), ('E', 'stderr')):
+            if tag in self._tee:
+                tee, orig = self._tee[tag]
+                if getattr(sys, name) is tee:
+                    setattr(sys, name, orig)
+        with self._tee_lock:
+            rest = dict(self._partial)
+            self._partial = {'O': '', 'E': ''}
+        for tag, text in rest.items():
+            if text:
+                self._record(wpilib.Timer.get_timestamp(), _utc(), tag, text)
+        self._tee.clear()
+
+    def _feed(self, tag: str, text: str) -> None:
+        """Text written to a tee'd stream: record each complete line, keep the unfinished one."""
+        if not text:
+            return
+        t, utc = wpilib.Timer.get_timestamp(), _utc()
+        with self._tee_lock:
+            buf = self._partial[tag] + text
+            *lines, self._partial[tag] = buf.split('\n')
+        for ln in lines:
+            self._record(t, utc, tag, ln.rstrip('\r'))
 
     # ------------------------------------------------------------------ the folder
     def open_in(self, folder: str, note: str = '') -> str:
