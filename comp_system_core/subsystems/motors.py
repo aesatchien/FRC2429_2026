@@ -51,7 +51,7 @@ try:
     from phoenix6 import BaseStatusSignal, CANBus, StatusCode
     from phoenix6.hardware import TalonFX
     from phoenix6.configs import TalonFXConfiguration, CurrentLimitsConfigs
-    from phoenix6.controls import VelocityVoltage, DutyCycleOut
+    from phoenix6.controls import VelocityVoltage, DutyCycleOut, VoltageOut
     from phoenix6.signals import InvertedValue, NeutralModeValue
     k_phoenix_available = True
     _phoenix_import_error = None
@@ -515,6 +515,7 @@ class TalonDriveMotor:
         # to be reused; building a new one every loop allocates ~200 objects/sec on the RIO.
         # enable_foc must be explicit: it defaults to True, and True needs a Phoenix Pro licence.
         self._velocity_req = VelocityVoltage(0, enable_foc=enable_foc)
+        self._voltage_req = None   # built on first set_voltage(), shop SysId only
 
         # Cache the status signals too, for the same reason, then set their rates.
         self._position_sig = self.talon.get_position()
@@ -531,12 +532,19 @@ class TalonDriveMotor:
         # sticky-fault polling swerve.py used to do was removed because it blocks the loop and
         # leaves frames on - see the NO FAULTS note there.  Reading a signal is free; ENABLING
         # one is not.)
+        #
+        # EXCEPT for the hoot: Scope2429's drive feedforward fit (kS / kV / kA, see
+        # gui/scope2429/SYSID_SHOP_GUIDE.md) needs MotorVoltage and Acceleration at the same rate
+        # as Velocity, and at 4 Hz it had one voltage sample per 250 ms.  constants.k_drive_hoot_rate_hz
+        # raises these to 100 Hz for the 4 drive Krakens, which have can_s0 to themselves.  Set it to 4
+        # to go back to the quiet setting.
         self._voltage_sig = self.talon.get_motor_voltage()
         self._stator_current_sig = self.talon.get_stator_current()
         self._supply_current_sig = self.talon.get_supply_current()
-        self._voltage_sig.set_update_frequency(4)
-        self._stator_current_sig.set_update_frequency(4)
-        self._supply_current_sig.set_update_frequency(4)
+        self._acceleration_sig = self.talon.get_acceleration()  # never read, enabled so the hoot logs it
+        BaseStatusSignal.set_update_frequency_for_all(
+            constants.k_drive_hoot_rate_hz, self._voltage_sig, self._stator_current_sig,
+            self._supply_current_sig, self._acceleration_sig)
         # Device temperature moves over minutes, not milliseconds - 1 Hz is plenty.
         self._temp_sig = self.talon.get_device_temp()
         self._temp_sig.set_update_frequency(1)
@@ -572,6 +580,14 @@ class TalonDriveMotor:
     def set_velocity_mps(self, mps: float) -> None:
         self._velocity_req.velocity = mps / self.circumference_m  # m/s -> wheel rot/s
         self.talon.set_control(self._velocity_req)
+
+    def set_voltage(self, volts: float) -> None:
+        """Raw open-loop volts, bypassing the velocity loop.  Only the shop SysId test uses this
+        (subsystems/swerve_sysid.py); same non-FOC voltage mode the match feedforward is fit against."""
+        if self._voltage_req is None:
+            self._voltage_req = VoltageOut(0, enable_foc=False)   # allocated on first use, like _velocity_req
+        self._voltage_req.output = volts
+        self.talon.set_control(self._voltage_req)
 
     def get_position_m(self) -> float:
         return self._position_sig.refresh().value * self.circumference_m

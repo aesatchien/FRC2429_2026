@@ -20,6 +20,18 @@ k_at_home = False  # used for intake calibration - True means we start with the 
 _counter = count(1)
 
 # TODO - organize this better
+# SHOP TESTING ONLY.  When True, four SysId commands appear on the dashboard under Command/SysId/ and the robot
+# will drive itself (all four drive motors, raw volts) while one runs, but only while enabled.  Leave False for
+# matches.  Procedure: gui/scope2429/SYSID_SHOP_GUIDE.md.  Ramp is V/s, step is V, timeout is s.
+k_enable_sysid = False
+k_sysid_ramp_rate = 1.0
+k_sysid_step_voltage = 4.0
+k_sysid_timeout = 6.0
+
+# Status-signal rate (Hz) of the drive Krakens' MotorVoltage, StatorCurrent, SupplyCurrent and Acceleration, so the
+# .hoot has enough samples for the Scope2429 drive feedforward fit (position and velocity are already 100 Hz).
+# 4 was the old quiet default.  The 4 drive Krakens are alone on can_s0, so 100 Hz is a small load.
+k_drive_hoot_rate_hz = 100
 k_enable_logging = True  # .wpilog / DS / .hoot logging - started by helpers/log_start.py, from robot_periodic()
 # Also save everything the program prints (our prints, robotpy INFO lines, native warnings such as the watchdog and loop
 # overruns) to console_<boot UTC>.log next to the .wpilog, stamped with the wpilog clock.  See helpers/console_log.py.

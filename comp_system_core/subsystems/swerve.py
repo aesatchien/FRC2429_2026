@@ -485,6 +485,11 @@ class Swerve (Subsystem):
         self.reset_keep_angle()
 
     #  -------------  METHODS PATHPLANNER NEEDS  ----------
+    def sysid_drive(self, volts: float) -> None:
+        """Shop SysId only (subsystems/swerve_sysid.py): the same raw volts to all four drive motors, turns held at 0."""
+        for module in self.swerve_modules:
+            module.sysid_drive(volts)
+
     def get_relative_speeds(self):
         return dc.kDriveKinematics.to_chassis_velocities(self.get_module_states())
 
