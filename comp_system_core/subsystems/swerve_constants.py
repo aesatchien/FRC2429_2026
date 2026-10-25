@@ -459,18 +459,28 @@ class ModuleConstants:
     #     k_v = ff_rev * 12 V * circumference          and equivalently   12 V / wheel_free_rps
     #     k_p = kP_rev * 12 V * circumference
     #
-    # Both routes agree, which is the check that the units are right.  These are DERIVED starting
-    # points, not measured ones - run SysId before you trust them, and see k_kraken_ks below.
+    # Both routes agree, which is the check that the units are right.  kP is still derived this way.
+    # kV, kS and kA are now MEASURED (see below); the derived kV is kept for reference.
     k_kraken_free_speed_rpm = 6000           # X60 trapezoidal.  FOC is 5800 and a different curve.
     k_kraken_wheel_free_speed_rps = k_kraken_free_speed_rpm / 60 / kDrivingMotorReduction  # wheel rot/s
-    k_kraken_kv = 12.0 / k_kraken_wheel_free_speed_rps                # ~0.810 V per wheel-rps
+    k_kraken_kv_derived = 12.0 / k_kraken_wheel_free_speed_rps        # ~0.810 V per wheel-rps: 12 V / free speed, not measured
     k_kraken_kp = 0.02 * 12.0 * kWheelCircumferenceMeters             # ~0.0766, from REV kP=0.02
     k_kraken_ki = 0.0
     k_kraken_kd = 0.0
-    # No REV equivalent exists - our Spark config has no static term at all, which is why
-    # setDesiredState has to deadband below 0.002 m/s.  Measure this with SysId and the
-    # deadband hack may become unnecessary.
-    k_kraken_ks = 0.0
+    # SysId fit of the four drive Krakens from the 2026-10-25 hoots (Scope2429, voltage and velocity at 100 Hz, wheel-rotation
+    # units: volts, volts per wheel-rps).  R^2 0.997-0.998 on every motor.
+    #   kS 0.16-0.19 V on every motor, kV 0.749 / 0.766 / 0.759 / 0.785 for 25 / 23 / 27 / 21 -> 0.76.
+    #   kA per motor 0.013-0.020 V per (wheel-rps / s), and the fit flagged all four as poorly determined.  It is entered as
+    #   0.06 V per (m/s^2), the same thing in the units the rest of this file's REV side uses, and converted to wheel rotations
+    #   with the circumference: 0.06 * 0.319 = ~0.019, which agrees with the per-motor fits.
+    # kV used to be 0.810 (derived, k_kraken_kv_derived) and kS was 0.0.  There is no REV equivalent of kS - our Spark config
+    # has no static term - which is why setDesiredState deadbands below 0.002 m/s; that hack may now be unnecessary.
+    # NOTE kA does nothing yet: Phoenix applies it to the ACCELERATION in the control request, and motors.py only sets the
+    # velocity (VelocityVoltage.acceleration stays 0).  The gain is here so that feeding the profile's acceleration is one line.
+    k_kraken_kv = 0.76
+    k_kraken_ks = 0.18
+    k_kraken_ka_per_mps2 = 0.06
+    k_kraken_ka = k_kraken_ka_per_mps2 * kWheelCircumferenceMeters
 
     # FOC needs a per-device Phoenix Pro licence.  Every Phoenix control request defaults to
     # enable_foc=True, so we have to say False explicitly until the licences are bought.
@@ -534,6 +544,7 @@ class ModuleConstants:
         k_kraken_driving_config.slot0.k_d = k_kraken_kd
         k_kraken_driving_config.slot0.k_v = k_kraken_kv
         k_kraken_driving_config.slot0.k_s = k_kraken_ks
+        k_kraken_driving_config.slot0.k_a = k_kraken_ka
 
         # was closedLoop.minOutput/maxOutput(+/-0.96) - i.e. +/- 0.96 * 12 V
         k_kraken_driving_config.voltage.peak_forward_voltage = 0.96 * 12
