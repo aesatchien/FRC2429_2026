@@ -1,0 +1,15 @@
+{
+  "name": "2026 REBUILT (WPILib)",
+  "isFTC": false,
+  "coordinateSystem": "wall-blue",
+  "topLeft": [
+    127,
+    60
+  ],
+  "bottomRight": [
+    1976,
+    958
+  ],
+  "widthInches": 651.22,
+  "heightInches": 317.69
+}

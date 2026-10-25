@@ -1,0 +1,413 @@
+<meta charset="utf-8">
+<title>@@NEWNAME@@ Robot vs Prior Comps</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Semi+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one column of panels. Verdict, then side-by-side numbers, current and battery curves, camera-link timeline, one-match detail, match table. Blue = the new robot, orange = prior comps. */
+:root{
+  --bg:#f3f5f7;--panel:#fff;--panel-2:#eef1f4;--ink:#12161b;--ink-2:#4a5360;--ink-3:#6f7987;--line:#d9dee5;--grid:#e7ebf0;
+  --accent:#1f5fbf;--accent-ink:#fff;--accent-soft:#e2ebf8;
+  --rA:#2a78d6;--rB:#eb6834;--stall:#e3a100;--reboot:#d03b3b;--quest:#7a5fd0;--cur:#8d97a5;--bad:#d03b3b;--good:#0ca30c;--warning:#fab219;
+  --f-display:"Barlow Semi Condensed","Arial Narrow",system-ui,sans-serif;--f-body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Consolas,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#111418;--panel:#191d22;--panel-2:#20252b;--ink:#eceff3;--ink-2:#b4bcc7;--ink-3:#8a94a1;--line:#2e353d;--grid:#252b32;
+  --accent:#5b95e8;--accent-ink:#0b1220;--accent-soft:#1f2d42;--rA:#3987e5;--rB:#d95926;--stall:#eda100;--reboot:#e66767;--quest:#9085e9;--cur:#6f7987;--bad:#e66767;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111418;--panel:#191d22;--panel-2:#20252b;--ink:#eceff3;--ink-2:#b4bcc7;--ink-3:#8a94a1;--line:#2e353d;--grid:#252b32;
+  --accent:#5b95e8;--accent-ink:#0b1220;--accent-soft:#1f2d42;--rA:#3987e5;--rB:#d95926;--stall:#eda100;--reboot:#e66767;--quest:#9085e9;--cur:#6f7987;--bad:#e66767;color-scheme:dark}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45}
+.wrap{max-width:1280px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:18px}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance;letter-spacing:.01em}
+h1{font-size:28px;font-weight:700;line-height:1.1}h2{font-size:20px;font-weight:600}h3{font-size:16px;font-weight:600}
+p{margin:0;max-width:75ch}
+.eyebrow{font-family:var(--f-display);font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+.hint{font-size:12.5px;color:var(--ink-3)}.muted{color:var(--ink-3)}
+.mono,.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:13px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0;display:grid;gap:12px}
+.head{display:flex;flex-wrap:wrap;gap:8px 16px;justify-content:space-between;align-items:baseline}
+.controls{display:flex;flex-wrap:wrap;gap:14px 22px;align-items:end}
+.field{display:grid;gap:4px}.field>label{font-size:12px;font-weight:600;color:var(--ink-2)}
+.field input[type=number]{font:500 14px var(--f-mono);color:var(--ink);background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:7px 9px;width:7em}
+.check{display:flex;gap:8px;align-items:center;font-size:14px}
+button{font:600 14px var(--f-body);border-radius:6px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:6px 11px;cursor:pointer}
+button:hover{border-color:var(--ink-3)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;flex-wrap:wrap}
+.seg button{border:0;border-radius:0;background:var(--panel);color:var(--ink-2);padding:6px 11px;font-size:13.5px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{display:inline-flex;gap:6px;align-items:center}
+.chips button[aria-pressed="true"]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;flex:none}
+.verdict{display:grid;gap:8px;padding:14px 16px;border-radius:10px;background:var(--accent-soft);border:1px solid var(--line)}
+.verdict .big{font-family:var(--f-display);font-size:21px;font-weight:600;line-height:1.25;max-width:85ch}
+.verdict ul{margin:0;padding-left:18px;display:grid;gap:4px;color:var(--ink-2);max-width:90ch}
+.tablewrap{overflow-x:auto;min-width:0}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{text-align:left;font-family:var(--f-display);font-weight:600;font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);padding:6px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:7px 10px;border-bottom:1px solid var(--grid);vertical-align:top}
+td.num,th.num{text-align:right;white-space:nowrap}
+th.rA,th.rB{display:table-cell}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--panel-2);border:1px solid var(--line);white-space:nowrap}
+.chip .dot{width:8px;height:8px;border-radius:50%;flex:none}
+.charts{display:grid;grid-template-columns:minmax(0,1fr);gap:18px}
+@media (min-width:1000px){.charts{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr)}}
+.chart{position:relative;min-width:0}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart svg text{font-family:var(--f-mono);font-size:11px;fill:var(--ink-3)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:13px;color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.scrollx{overflow-x:auto;min-width:0}
+.tl{min-width:760px}
+select{font:500 14px var(--f-body);color:var(--ink);background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:6px 8px}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">FRC 2429 · 2026 season</div>
+  <h1>@@NEWNAME@@ Robot vs Prior Comps</h1>
+  <p class="muted">@@SUBTITLE@@</p>
+</header>
+
+<section class="verdict" id="verdict">
+  <div class="big" id="vbig"></div>
+  <ul id="vlist"></ul>
+</section>
+
+<section class="panel">
+  <div class="controls">
+    <div class="field"><label for="thr">High-current line (A)</label><input id="thr" type="number" min="50" max="400" step="5" value="175"></div>
+    <label class="check"><input id="partial" type="checkbox" checked> Include partial matches</label>
+    <label class="check"><input id="prac" type="checkbox" checked> Include practice matches</label>
+  </div>
+  <p class="hint">Only the roboRIO's total supply current and battery voltage exist in every log, so that is what the two robots are compared on. Per-motor currents exist only in the newest logs. The total current rarely passes 250 A in any log, so the default line is 175 A.</p>
+</section>
+
+<section class="panel">
+  <div class="head"><h2>Side by side</h2><span class="hint" id="sbsHint"></span></div>
+  <div class="tablewrap"><table id="sbs"></table></div>
+</section>
+
+<div class="charts">
+  <section class="panel">
+    <h3>How often each robot draws at least this much</h3>
+    <div class="legend" id="lg1"></div>
+    <div class="chart" id="exc"></div>
+    <p class="hint">Share of enabled time (log scale) at or above each total supply current. A curve further right draws more, more often.</p>
+  </section>
+  <section class="panel">
+    <div class="head"><h3>By event</h3>
+      <div class="seg" id="evseg"><button data-k="avg" aria-pressed="true">Average</button><button data-k="p95" aria-pressed="false">95th pct</button><button data-k="peak" aria-pressed="false">Peak</button></div></div>
+    <div class="legend" id="lg2"></div>
+    <div class="chart" id="byev"></div>
+    <p class="hint">Mean over each event's matches of the total supply current (A). Subsystem and per-motor breakdowns cannot be compared because earlier logs do not have motor currents.</p>
+  </section>
+</div>
+
+<section class="panel">
+  <div class="head"><h2>Battery sag</h2><span class="hint">roboRIO battery voltage while enabled</span></div>
+  <div class="legend" id="lg3"></div>
+  <div class="chart" id="sag"></div>
+  <p class="hint">Share of enabled time the battery spent below each voltage. The roboRIO logs this at 5 Hz, so brief dips are missed. Where a CTRE hoot file is loaded, the Kraken motors measured their own supply (table below the match picker).</p>
+</section>
+
+<section class="panel">
+  <div class="head"><h2>Camera coprocessor disconnects</h2><span class="hint">One row per match, aligned to the start of auto</span></div>
+  <div class="tablewrap"><table id="copt"></table></div>
+  <div class="legend" id="lg4"></div>
+  <div class="scrollx"><div class="tl chart" id="tl"></div></div>
+  <p class="hint">A camera counts as down when its frame counter does not change for 2.5 s or more while the robot is enabled. "Link drop" means the camera coprocessor also lost its NetworkTables connection within 3 s of the outage; "stalled" means it stayed connected; "reboot" means the frame counter restarted from zero.</p>
+</section>
+
+<section class="panel">
+  <div class="head"><h2>Battery and network, one match</h2><span class="hint">Robot logs only. CAN bus use and network round trip were not logged by the robot code.</span></div>
+  <div class="controls">
+    <div class="field"><label>Event</label><div class="seg" id="evpick"></div></div>
+    <div class="field"><label for="vmark">Mark battery below (V)</label><input id="vmark" type="number" min="5" max="12" step="0.1" value="7"></div>
+  </div>
+  <div class="chips" id="mpick"></div>
+  <div class="legend" id="lg5"></div>
+  <div class="scrollx"><div class="tl chart" id="one"></div></div>
+  <div class="tablewrap"><table id="hoot"></table></div>
+</section>
+
+<section class="panel">
+  <div class="head"><h2>Match by match</h2><span class="hint">Matches under 60 s enabled (replays) are left out</span></div>
+  <div class="tablewrap"><table id="mt"></table></div>
+</section>
+
+<section class="panel">
+  <h2>How the numbers are made</h2>
+  <ul style="margin:0;padding-left:18px;display:grid;gap:5px;max-width:90ch">
+    <li>Source: @@NLOGS@@ robot <code>.wpilog</code> files with at least 60 s enabled (@@NOLD@@ from prior comps, @@NNEW@@ from @@NEWNAME@@). Empty logs and short replay fragments are excluded.</li>
+    <li>Current and voltage are the PDH total current and battery voltage the robot code publishes, time-weighted over the enabled windows. Sampling is 5 to 18 Hz, which differs by event, so peaks are not exact.</li>
+    <li>Camera down, link drops and reboots come from each camera's frame counter and the NetworkTables connection log. Kraken data comes from the converted CTRE hoot files, aligned on the robot-enable edges.</li>
+    <li>Prior comps used a different robot code base and the roboRIO; the robot hardware may also differ. Differences smaller than the spread between matches within one event are not conclusions.</li>
+    <li>"Drops within 3 s after a spike" is compared with the share of enabled time that falls within 3 s after a spike, which is what a random drop would show.</li>
+  </ul>
+</section>
+</div>
+
+<script>
+const D = @@DATA@@;
+const $ = id => document.getElementById(id);
+const NS = "http://www.w3.org/2000/svg";
+const RA = "var(--rA)", RB = "var(--rB)";
+const NAME = {new: "New robot · " + D.newName + " " + D.newDate, old: "Prior comps · " + D.oldNames + " " + D.oldDates};
+const COL = {new: RA, old: RB};
+const EVORDER = D.order;
+D.matches.sort((x, y) => EVORDER.indexOf(x.event) - EVORDER.indexOf(y.event));
+const state = {thr: 175, partial: true, prac: true, evk: "avg", ev: D.newName, match: null};
+const BIN = D.bin, T0 = D.t0, NB = D.matches[0].cur.length;
+const fmt = (x, d = 0) => x == null || isNaN(x) ? "–" : x.toFixed(d);
+const el = (tag, attrs = {}, kids = []) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); kids.forEach(c => e.appendChild(c)); return e; };
+const txt = (x, y, s, attrs = {}) => { const t = el("text", { x, y, ...attrs }); t.textContent = s; return t; };
+
+function sel() {
+  return D.matches.filter(m => (state.partial || m.complete) && (state.prac || m.typ !== "P"));
+}
+const grp = g => sel().filter(m => m.group === g);
+
+// ---------------- per-match derived numbers
+function spikes(m, thr) {
+  const out = []; let last = -9;
+  for (let i = 0; i < NB; i++) {
+    const v = m.cur[i]; if (v == null || v < thr) continue;
+    const t = T0 + i * BIN; if (!inWin(m, t)) continue;
+    if (t - last >= 2) { out.push(t); } last = t;
+  }
+  return out;
+}
+const inWin = (m, t) => m.windows.some(w => t >= w[0] && t <= w[1]);
+function camIntervals(m) { return m.stalls.map(s => ({ cam: s[0], a: s[1], b: s[2] })); }
+function union(iv) {
+  const s = iv.map(x => [x.a, x.b]).sort((p, q) => p[0] - q[0]); const o = [];
+  for (const x of s) { if (o.length && x[0] <= o[o.length - 1][1]) o[o.length - 1][1] = Math.max(o[o.length - 1][1], x[1]); else o.push([x[0], x[1]]); }
+  return o;
+}
+function causeOf(m, s) { return m.cop.some(t => t >= s.a - 3 && t <= s.b + 3) ? "link" : "stalled"; }
+function summarize(ms, thr) {
+  const R = { n: ms.length, en: 0, drops: 0, down: 0, spikes: 0, link: 0, stalled: 0, reboot: 0, dropAfter: 0, chanceT: 0, matchesWithCam: 0 };
+  for (const m of ms) {
+    R.en += m.enabled; R.drops += m.cop.length;
+    const sp = spikes(m, thr); R.spikes += sp.length;
+    const iv = camIntervals(m); R.down += union(iv).reduce((a, x) => a + (x[1] - x[0]), 0);
+    iv.forEach(s => { causeOf(m, s) === "link" ? R.link++ : R.stalled++; });
+    R.reboot += m.restarts.length;
+    m.cop.forEach(t => { if (sp.some(s => t - s >= 0 && t - s <= 3)) R.dropAfter++; });
+    // share of enabled time within 3 s after a spike
+    let cov = 0; const w = m.windows;
+    union(sp.map(s => ({ a: s, b: s + 3 }))).forEach(x => { w.forEach(ww => { cov += Math.max(0, Math.min(x[1], ww[1]) - Math.max(x[0], ww[0])); }); });
+    R.chanceT += cov;
+  }
+  return R;
+}
+const avg = (a, k) => a.length ? a.reduce((s, m) => s + m.stats[k], 0) / a.length : NaN;
+
+// ---------------- verdict + side by side
+function renderStatic() {
+  const nw = D.matches.filter(m => m.group === "new"), od = D.matches.filter(m => m.group === "old");
+  const SA = summarize(nw, 175), pct = (avg(nw, "avg") / avg(od, "avg") - 1) * 100;
+  const dir = pct >= 0 ? "more" : "less";
+  $("vbig").textContent = `The ${D.newName} robot draws about ${fmt(Math.abs(pct))}% ${dir} total current than the prior comps${D.facts.krakenMin != null ? `, and its Kraken drive motors saw battery dips to ${D.facts.krakenMin.toFixed(1)} V that the roboRIO log does not show` : ""}.`;
+  const perEv = D.order.filter(e => e !== D.newName).map(e => `${e} ${fmt(avg(od.filter(m => m.event == e), "avg"))} A`).join(", ");
+  const lt7 = e => od.filter(m => m.event === e && m.stats.vmin < 7).length;
+  const items = [
+    `Average total current: ${D.newName} ${fmt(avg(nw, "avg"))} A against ${fmt(avg(od, "avg"))} A for all prior comps (${perEv}).`,
+    `Lowest battery voltage averages ${fmt(avg(nw, "vmin"), 2)} V at ${D.newName} and ${fmt(avg(od, "vmin"), 2)} V for the prior comps. Matches under 7.0 V on the roboRIO: ${nw.filter(m => m.stats.vmin < 7).length} at ${D.newName}, ${od.filter(m => m.stats.vmin < 7).length} before.`,
+    `The camera coprocessor dropped off the network ${fmt(SA.drops / Math.max(SA.n, 1), 1)} times per match at ${D.newName}. A camera was down for ${fmt(SA.down / Math.max(SA.en, 1) * 100)}% of its enabled time.`];
+  if (D.facts.hooted) items.push(`${D.facts.brownMatches} of ${D.facts.hooted} hooted ${D.newName} matches show Kraken bridge brownout faults` + (D.facts.otherFaults.length ? `; other Kraken faults: ${D.facts.otherFaults.join(", ")}.` : "."));
+  $("vlist").innerHTML = items.map(s => `<li>${s}</li>`).join("");
+}
+function renderSbs() {
+  const A = grp("new"), B = grp("old");
+  const SA = summarize(A, state.thr), SB = summarize(B, state.thr);
+  const mins = S => S.en / 60, per10 = (x, S) => S.en ? x / (S.en / 600) : NaN;
+  const hd = `<tr><th>Measure</th><th class="num"><span class="sw" style="background:${RA}"></span> ${NAME.new}</th><th class="num"><span class="sw" style="background:${RB}"></span> ${NAME.old}</th></tr>`;
+  const rows = [
+    ["Matches", A.length, B.length],
+    ["Enabled time", fmt(mins(SA)) + " min", fmt(mins(SB)) + " min"],
+    ["Average total current", fmt(avg(A, "avg")) + " A", fmt(avg(B, "avg")) + " A"],
+    ["95th percentile current (mean of matches)", fmt(avg(A, "p95")) + " A", fmt(avg(B, "p95")) + " A"],
+    ["Peak current (mean of matches)", fmt(avg(A, "peak")) + " A", fmt(avg(B, "peak")) + " A"],
+    [`Spikes ≥ ${state.thr} A per 10 min enabled`, fmt(per10(SA.spikes, SA), 1), fmt(per10(SB.spikes, SB), 1)],
+    ["Lowest battery voltage (mean of matches)", fmt(avg(A, "vmin"), 2) + " V", fmt(avg(B, "vmin"), 2) + " V"],
+    ["Matches with lowest battery under 7.0 V", A.filter(m => m.stats.vmin < 7).length, B.filter(m => m.stats.vmin < 7).length],
+  ];
+  $("sbs").innerHTML = hd + rows.map(r => `<tr><td>${r[0]}</td><td class="num">${r[1]}</td><td class="num">${r[2]}</td></tr>`).join("");
+  $("sbsHint").textContent = "";
+}
+
+// ---------------- charts
+function legend(id, items) { $(id).innerHTML = items.map(([c, t]) => `<span><i class="sw" style="background:${c}"></i>${t}</span>`).join(""); }
+const L2 = [[RA, NAME.new], [RB, NAME.old]];
+function logChart(host, xs, ys, xmax, xmin, xticks, unit, vline) {
+  const W = 760, H = 330, ml = 48, mr = 14, mt = 14, mb = 34;
+  const X = x => ml + (x - xmin) / (xmax - xmin) * (W - ml - mr);
+  const Y = v => mt + (1 - (Math.log10(Math.max(v, 0.1)) + 1) / 3) * (H - mt - mb);
+  const s = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img" });
+  [0.1, 1, 10, 100].forEach(v => { s.appendChild(el("line", { x1: ml, x2: W - mr, y1: Y(v), y2: Y(v), stroke: "var(--grid)" })); s.appendChild(txt(ml - 6, Y(v) + 4, v + "%", { "text-anchor": "end" })); });
+  xticks.forEach(x => { s.appendChild(el("line", { x1: X(x), x2: X(x), y1: mt, y2: H - mb, stroke: "var(--grid)" })); s.appendChild(txt(X(x), H - mb + 16, x + (x === xticks[xticks.length - 1] ? " " + unit : ""), { "text-anchor": "middle" })); });
+  for (const g of ["old", "new"]) {
+    const pts = xs.map((x, i) => `${X(x).toFixed(1)},${Y(ys[g][i]).toFixed(1)}`).join(" ");
+    s.appendChild(el("polyline", { points: pts, fill: "none", stroke: COL[g], "stroke-width": 2.2, "stroke-linejoin": "round" }));
+  }
+  if (vline != null) { s.appendChild(el("line", { x1: X(vline), x2: X(vline), y1: mt, y2: H - mb, stroke: "var(--ink)", "stroke-dasharray": "4 3" })); s.appendChild(txt(X(vline) + 4, mt + 10, vline + " " + unit, { fill: "var(--ink)" })); }
+  host.replaceChildren(s);
+}
+function renderExc() {
+  logChart($("exc"), D.curX, { new: D.curves.new.cur, old: D.curves.old.cur }, 450, 0, [0, 100, 200, 300, 400], "A", state.thr);
+  legend("lg1", L2);
+}
+function renderSag() {
+  logChart($("sag"), D.volX, { new: D.curves.new.vol, old: D.curves.old.vol }, 12, 5, [5, 6, 7, 8, 9, 10, 11, 12], "V", 7);
+  legend("lg3", L2);
+}
+function renderByEvent() {
+  const k = state.evk, rows = EVORDER.map(e => { const ms = sel().filter(m => m.event === e); return { e, n: ms.length, v: avg(ms, k) }; });
+  const W = 520, rowH = 44, H = rows.length * rowH + 34, ml = 120, mr = 50;
+  const max = Math.max(...rows.map(r => r.v)) * 1.08;
+  const s = el("svg", { viewBox: `0 0 ${W} ${H}` });
+  rows.forEach((r, i) => {
+    const y = 10 + i * rowH, w = (W - ml - mr) * r.v / max, c = r.e === D.newName ? RA : RB;
+    s.appendChild(txt(ml - 10, y + 14, r.e, { "text-anchor": "end", fill: "var(--ink)", "font-size": 12 }));
+    s.appendChild(txt(ml - 10, y + 28, r.n + " matches", { "text-anchor": "end" }));
+    s.appendChild(el("rect", { x: ml, y: y + 4, width: Math.max(w, 1), height: 22, rx: 3, fill: c }));
+    s.appendChild(txt(ml + w + 6, y + 20, fmt(r.v), { fill: "var(--ink)" }));
+  });
+  [0, 0.5, 1].forEach(f => { const v = max * f; s.appendChild(txt(ml + (W - ml - mr) * f, H - 8, fmt(v) + (f === 1 ? " A" : ""), { "text-anchor": f === 1 ? "end" : "middle" })); });
+  $("byev").replaceChildren(s); legend("lg2", L2);
+}
+
+// ---------------- coprocessor table and timeline
+function renderCop() {
+  const A = grp("new"), B = grp("old"), SA = summarize(A, state.thr), SB = summarize(B, state.thr);
+  const per10 = (x, S) => S.en ? x / (S.en / 600) : NaN;
+  const dn = S => S.en ? S.down / S.en * 100 : 0;
+  const chance = S => S.en ? S.chanceT / S.en * 100 : 0;
+  const chips = S => `<span class="chip"><i class="dot" style="background:var(--rB)"></i>${S.link} link drop</span> <span class="chip"><i class="dot" style="background:var(--stall)"></i>${S.stalled} stalled</span> <span class="chip"><i class="dot" style="background:var(--reboot)"></i>${S.reboot} reboot</span>`;
+  const rows = [
+    ["Matches with camera data", A.length, B.length],
+    ["Enabled time", fmt(SA.en / 60) + " min", fmt(SB.en / 60) + " min"],
+    ["Coprocessor NT drops while enabled", SA.drops, SB.drops],
+    ["Drops per 10 min enabled", fmt(per10(SA.drops, SA), 1), fmt(per10(SB.drops, SB), 1)],
+    ["A camera down while enabled", `${fmt(SA.down)} s (${fmt(dn(SA), 1)}%)`, `${fmt(SB.down)} s (${fmt(dn(SB), 1)}%)`],
+    [`Drops within 3 s after ≥ ${state.thr} A`, `${SA.dropAfter} of ${SA.drops}  (chance: ${fmt(chance(SA), 0)}%)`, `${SB.dropAfter} of ${SB.drops}  (chance: ${fmt(chance(SB), 0)}%)`],
+    ["Causes of camera outages", chips(SA), chips(SB)],
+  ];
+  $("copt").innerHTML = `<tr><th>Measure</th><th class="num"><span class="sw" style="background:${RA}"></span> New robot · ${D.newName}</th><th class="num"><span class="sw" style="background:${RB}"></span> Prior comps</th></tr>` +
+    rows.map(r => `<tr><td>${r[0]}</td><td class="num">${r[1]}</td><td class="num">${r[2]}</td></tr>`).join("");
+  legend("lg4", [["var(--reboot)", "Reboot"], [RB, "Link drop"], ["var(--stall)", "Stalled"], ["var(--cur)", "Total supply current"], ["var(--quest)", "Quest disconnected"], ["var(--ink)", `▼ Spike ≥ ${state.thr} A`]]);
+  timeline();
+}
+function drawRow(s, m, y, h, X, thr, showAll) {
+  const base = y + h - 2;
+  // not enabled shading
+  s.appendChild(el("rect", { x: X(T0), y, width: X(T0 + NB * BIN) - X(T0), height: h, fill: "var(--panel-2)" }));
+  m.windows.forEach(w => s.appendChild(el("rect", { x: X(w[0]), y, width: X(w[1]) - X(w[0]), height: h, fill: "var(--panel)" })));
+  // camera blocks
+  camIntervals(m).forEach(c => {
+    const col = causeOf(m, c) === "link" ? "var(--rB)" : "var(--stall)";
+    s.appendChild(el("rect", { x: X(c.a), y: y + 1, width: Math.max(X(c.b) - X(c.a), 1), height: h - 2, fill: col, "fill-opacity": 0.28, stroke: col, "stroke-width": 1.2 }, [el("title", {}, [])]));
+  });
+  m.quest.forEach(q => s.appendChild(el("rect", { x: X(q[0]), y: base - 2, width: Math.max(X(q[1]) - X(q[0]), 1), height: 3, fill: "var(--quest)" })));
+  // current area
+  let d = `M ${X(T0)} ${base}`;
+  for (let i = 0; i < NB; i++) { const v = m.cur[i]; const t = T0 + i * BIN; d += ` L ${X(t).toFixed(1)} ${(base - Math.min(v == null ? 0 : v, 400) / 400 * (h - 5)).toFixed(1)}`; }
+  d += ` L ${X(T0 + NB * BIN)} ${base} Z`;
+  s.appendChild(el("path", { d, fill: "var(--cur)", "fill-opacity": 0.55 }));
+  m.restarts.forEach(r => s.appendChild(el("line", { x1: X(r[1]), x2: X(r[1]), y1: y, y2: y + h, stroke: "var(--reboot)", "stroke-width": 2, "stroke-dasharray": "3 2" })));
+  m.cop.forEach(t => s.appendChild(el("line", { x1: X(t), x2: X(t), y1: y, y2: y + 5, stroke: "var(--rB)", "stroke-width": 2 })));
+  spikes(m, thr).forEach(t => s.appendChild(el("path", { d: `M ${X(t) - 3} ${y} l 6 0 l -3 6 z`, fill: "var(--ink)" })));
+  s.appendChild(el("line", { x1: X(T0), x2: X(T0 + NB * BIN), y1: y + h, y2: y + h, stroke: "var(--grid)" }));
+}
+function timeline() {
+  const ms = sel(), W = 1180, ml = 120, mr = 10, rowH = 24, gap = 16;
+  const X = t => ml + (t - T0) / (NB * BIN) * (W - ml - mr);
+  let y = 6; const nodes = [];
+  let lastG = null;
+  ms.forEach(m => { if (lastG && lastG !== m.event) y += gap; lastG = m.event; nodes.push([m, y]); y += rowH; });
+  const H = y + 22;
+  const s = el("svg", { viewBox: `0 0 ${W} ${H}` });
+  nodes.forEach(([m, yy]) => {
+    s.appendChild(el("rect", { x: ml - 6, y: yy + 2, width: 3, height: rowH - 4, fill: COL[m.group] }));
+    s.appendChild(txt(ml - 12, yy + rowH / 2 + 4, m.id, { "text-anchor": "end", fill: "var(--ink)", "font-size": 12 }));
+    drawRow(s, m, yy, rowH - 2, X, state.thr);
+  });
+  [0, 30, 60, 90, 120, 150].forEach(t => { s.appendChild(txt(X(t), H - 6, t + " s", { "text-anchor": "middle" })); s.appendChild(el("line", { x1: X(t), x2: X(t), y1: 0, y2: y, stroke: "var(--grid)", "stroke-dasharray": "2 3" })); });
+  $("tl").replaceChildren(s);
+}
+
+// ---------------- one match
+function renderPick() {
+  $("evpick").innerHTML = EVORDER.map(e => `<button data-e="${e}" aria-pressed="${e === state.ev}">${e}</button>`).join("");
+  $("evpick").querySelectorAll("button").forEach(b => b.onclick = () => { state.ev = b.dataset.e; state.match = null; renderPick(); });
+  const ms = sel().filter(m => m.event === state.ev);
+  if (!ms.find(m => m.id === state.match)) state.match = ms.length ? ms[0].id : null;
+  $("mpick").innerHTML = ms.map(m => `<button data-m="${m.id}" aria-pressed="${m.id === state.match}"><i class="sw" style="background:${COL[m.group]}"></i>${m.id.split(" ")[1]}</button>`).join("");
+  $("mpick").querySelectorAll("button").forEach(b => b.onclick = () => { state.match = b.dataset.m; renderPick(); });
+  renderOne(); renderHoot();
+}
+function renderOne() {
+  const m = D.matches.find(x => x.id === state.match); if (!m) { $("one").replaceChildren(); return; }
+  const W = 1180, ml = 60, mr = 14, X = t => ml + (t - T0) / (NB * BIN) * (W - ml - mr);
+  const pH = 120, vH = 150, trH = 22, gapp = 12;
+  const H = pH + gapp + vH + gapp + trH * 4 + 36;
+  const s = el("svg", { viewBox: `0 0 ${W} ${H}` });
+  const Yc = v => pH - 6 - Math.min(v, 400) / 400 * (pH - 20);
+  const y0 = pH + gapp, Yv = v => y0 + (1 - (Math.min(Math.max(v, 4), 13) - 4) / 9) * vH;
+  const shade = (yy, hh) => { s.appendChild(el("rect", { x: X(T0), y: yy, width: X(T0 + NB * BIN) - X(T0), height: hh, fill: "var(--panel-2)" })); m.windows.forEach(w => s.appendChild(el("rect", { x: X(w[0]), y: yy, width: X(w[1]) - X(w[0]), height: hh, fill: "var(--panel)" }))); };
+  shade(0, pH); shade(y0, vH);
+  [0, 200, 400].forEach(v => { s.appendChild(el("line", { x1: ml, x2: W - mr, y1: Yc(v), y2: Yc(v), stroke: "var(--grid)" })); s.appendChild(txt(ml - 6, Yc(v) + 4, v + (v === 400 ? " A" : ""), { "text-anchor": "end" })); });
+  s.appendChild(el("line", { x1: ml, x2: W - mr, y1: Yc(state.thr), y2: Yc(state.thr), stroke: "var(--ink-3)", "stroke-dasharray": "2 3" }));
+  s.appendChild(txt(W - mr - 2, Yc(state.thr) - 4, state.thr + " A", { "text-anchor": "end" }));
+  let d = "";
+  m.cur.forEach((v, i) => { if (v == null) return; d += (d ? " L" : "M") + ` ${X(T0 + i * BIN).toFixed(1)} ${Yc(v).toFixed(1)}`; });
+  s.appendChild(el("path", { d, fill: "none", stroke: "var(--cur)", "stroke-width": 1.4 }));
+  [4, 6, 8, 10, 12].forEach(v => { s.appendChild(el("line", { x1: ml, x2: W - mr, y1: Yv(v), y2: Yv(v), stroke: "var(--grid)" })); s.appendChild(txt(ml - 6, Yv(v) + 4, v + (v === 12 ? " V" : ""), { "text-anchor": "end" })); });
+  const vm = +$("vmark").value;
+  s.appendChild(el("line", { x1: ml, x2: W - mr, y1: Yv(vm), y2: Yv(vm), stroke: "var(--bad)", "stroke-dasharray": "5 3" }));
+  s.appendChild(txt(W - mr - 2, Yv(vm) - 4, vm + " V", { "text-anchor": "end", fill: "var(--bad)" }));
+  d = "";
+  m.vol.forEach((v, i) => { if (v == null) return; d += (d ? " L" : "M") + ` ${X(T0 + i * BIN).toFixed(1)} ${Yv(v).toFixed(1)}`; });
+  s.appendChild(el("path", { d, fill: "none", stroke: RA, "stroke-width": 1.6 }));
+  m.vol.forEach((v, i) => { if (v != null && v < vm && inWin(m, T0 + i * BIN)) s.appendChild(el("circle", { cx: X(T0 + i * BIN), cy: Yv(v), r: 3, fill: "var(--bad)" })); });
+  s.appendChild(txt(ml + 4, 12, "CURRENT", { fill: "var(--ink-2)" })); s.appendChild(txt(ml + 4, y0 + 12, "BATTERY", { fill: "var(--ink-2)" }));
+  const ty = y0 + vH + gapp, tracks = ["Coprocessor", "Camera down", "Quest", "Kraken brownout"];
+  tracks.forEach((n, i) => { const yy = ty + i * trH; s.appendChild(el("rect", { x: X(T0), y: yy, width: X(T0 + NB * BIN) - X(T0), height: trH - 4, fill: "var(--panel-2)" })); s.appendChild(txt(ml - 6, yy + 12, n.slice(0, 7) === "Coproce" ? "coproc" : n === "Camera down" ? "camera" : n === "Quest" ? "quest" : "brown", { "text-anchor": "end" })); });
+  m.cop.forEach(t => s.appendChild(el("rect", { x: X(t) - 1.5, y: ty, width: 3, height: trH - 4, fill: "var(--rB)" })));
+  camIntervals(m).forEach(c => s.appendChild(el("rect", { x: X(c.a), y: ty + trH, width: Math.max(X(c.b) - X(c.a), 1), height: trH - 4, fill: causeOf(m, c) === "link" ? "var(--rB)" : "var(--stall)" }, [])));
+  m.restarts.forEach(r => s.appendChild(el("rect", { x: X(r[1]) - 1.5, y: ty + trH, width: 3, height: trH - 4, fill: "var(--reboot)" })));
+  m.quest.forEach(q => s.appendChild(el("rect", { x: X(q[0]), y: ty + 2 * trH, width: Math.max(X(q[1]) - X(q[0]), 1), height: trH - 4, fill: "var(--quest)" })));
+  m.brown.forEach(t => s.appendChild(el("path", { d: `M ${X(t)} ${ty + 3 * trH} l 6 8 l -6 8 l -6 -8 z`, fill: "var(--reboot)" })));
+  [0, 15, 30, 45, 60, 75, 90, 105, 120, 135, 150, 165].forEach(t => s.appendChild(txt(X(t), H - 6, `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`, { "text-anchor": "middle" })));
+  $("one").replaceChildren(s);
+  legend("lg5", [["var(--cur)", "Total supply current"], [RA, "Battery voltage"], ["var(--bad)", "Below the marked voltage"], [RB, "Coprocessor link drop / camera link drop"], ["var(--stall)", "Camera stalled"], ["var(--quest)", "Quest disconnected"], ["var(--reboot)", "Camera reboot / Kraken brownout"]]);
+}
+function renderHoot() {
+  const rows = D.matches.filter(m => m.event === D.newName);
+  const H = D.hoot;
+  $("hoot").innerHTML = `<tr><th>${D.newName} match</th><th class="num">Lowest battery on roboRIO</th><th class="num">Lowest Kraken supply</th><th class="num">Bridge brownout faults</th><th>Other Kraken fault</th></tr>` +
+    rows.map(m => { const h = H[m.id.split(" ")[1]]; return `<tr><td>${m.id}</td><td class="num">${fmt(m.stats.vmin, 2)} V</td><td class="num">${h ? fmt(h.v, 2) + " V" : "no hoot"}</td><td class="num">${h ? (h.b || "–") : "–"}</td><td>${h && h.other ? h.other : ""}</td></tr>`; }).join("");
+}
+function renderTable() {
+  const rows = sel().map(m => {
+    const iv = union(camIntervals(m)).reduce((a, x) => a + (x[1] - x[0]), 0);
+    return `<tr><td><span class="chip"><i class="dot" style="background:${COL[m.group]}"></i>${m.group === "new" ? "New robot" : "Prior"}</span></td><td>${m.event}</td><td><b>${m.id.split(" ")[1]}</b><div class="hint">${m.file}</div></td>
+    <td><span class="chip"><i class="dot" style="background:${m.complete ? "var(--good)" : "var(--warning)"}"></i>${m.complete ? "Complete" : "Partial"}</span></td>
+    <td class="num">${fmt(m.enabled)} s</td><td class="num">${fmt(m.stats.avg)} A</td><td class="num">${fmt(m.stats.p95)} A</td><td class="num">${fmt(m.stats.peak)} A</td>
+    <td class="num">${fmt(m.stats.vmin, 2)} V</td><td class="num">${m.cop.length}</td><td class="num">${iv ? fmt(iv) + " s" : "–"}</td></tr>`; }).join("");
+  $("mt").innerHTML = `<tr><th>Robot</th><th>Event</th><th>Match</th><th>Status</th><th class="num">Enabled</th><th class="num">Average</th><th class="num">95th pct</th><th class="num">Peak</th><th class="num">Lowest battery</th><th class="num">Coprocessor drops</th><th class="num">Camera down</th></tr>` + rows;
+}
+
+function all() { renderSbs(); renderExc(); renderByEvent(); renderSag(); renderCop(); renderPick(); renderTable(); }
+$("thr").oninput = e => { state.thr = +e.target.value || 175; all(); };
+$("partial").onchange = e => { state.partial = e.target.checked; all(); };
+$("prac").onchange = e => { state.prac = e.target.checked; all(); };
+$("vmark").oninput = () => renderOne();
+$("evseg").querySelectorAll("button").forEach(b => b.onclick = () => { state.evk = b.dataset.k; $("evseg").querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b)); renderByEvent(); });
+renderStatic(); all();
+</script>

@@ -1,0 +1,115 @@
+<meta charset="utf-8">
+<title>2429 Season Systems Report</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Semi+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one column of panels on a pale ground; verdict box first, then evidence panels (same system as the power-draw comparison page). */
+:root{
+  --bg:#f3f5f7;--panel:#fff;--panel-2:#eef1f4;--ink:#12161b;--ink-2:#4a5360;--ink-3:#6f7987;--line:#d9dee5;--grid:#e7ebf0;
+  --accent:#1f5fbf;--accent-soft:#e2ebf8;--good:#0ca30c;--warn:#a85d00;--bad:#d03b3b;
+  --c0:#eef1f4;--c1:#fbf1d6;--c2:#f9dcb4;--c3:#f4b8b2;
+  --f-display:"Barlow Semi Condensed","Arial Narrow",system-ui,sans-serif;--f-body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Consolas,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#111418;--panel:#191d22;--panel-2:#20252b;--ink:#eceff3;--ink-2:#b4bcc7;--ink-3:#8a94a1;--line:#2e353d;--grid:#252b32;
+  --accent:#5b95e8;--accent-soft:#1f2d42;--good:#5ec283;--warn:#e8a54a;--bad:#e66767;
+  --c0:#20252b;--c1:#4a4120;--c2:#5d3f1a;--c3:#6b2a27;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111418;--panel:#191d22;--panel-2:#20252b;--ink:#eceff3;--ink-2:#b4bcc7;--ink-3:#8a94a1;--line:#2e353d;--grid:#252b32;
+  --accent:#5b95e8;--accent-soft:#1f2d42;--good:#5ec283;--warn:#e8a54a;--bad:#e66767;
+  --c0:#20252b;--c1:#4a4120;--c2:#5d3f1a;--c3:#6b2a27;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45}
+main{max-width:1280px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:18px}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance;letter-spacing:.01em}
+h1{font-size:28px;font-weight:700;line-height:1.1}h2{font-size:20px;font-weight:600}h3{font-size:16px;font-weight:600;margin-top:6px}
+p{margin:0;max-width:75ch}
+ul{margin:0;padding-left:18px;display:grid;gap:5px;max-width:85ch}
+.eyebrow{font-family:var(--f-display);font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);margin:0 0 6px}
+.sub{color:var(--ink-3)}
+section{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0;display:grid;gap:12px}
+section.verdict{background:var(--accent-soft)}
+.lead{font-family:var(--f-display);font-size:21px;font-weight:600;line-height:1.25;max-width:85ch}
+.box{min-width:0}.scroll{overflow-x:auto;min-width:0}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{padding:7px 10px;border-bottom:1px solid var(--grid);text-align:right;white-space:nowrap}
+thead th{font-family:var(--f-display);font-weight:600;font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);border-bottom:1px solid var(--line);vertical-align:bottom;white-space:normal}
+th[scope=row],thead th:first-child{text-align:left}
+td{font-family:var(--f-mono);font-size:13px}
+td.c0{background:var(--c0)}td.c1{background:var(--c1)}td.c2{background:var(--c2)}td.c3{background:var(--c3)}
+td.mute,.mute{color:var(--ink-3);background:none}
+.evn{display:block;font-weight:600}.evd{display:block;font-size:12.5px;color:var(--ink-3);font-weight:400}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.cols>div{min-width:0;border:1px solid var(--line);border-radius:8px;padding:12px;background:var(--panel-2);display:grid;gap:8px;align-content:start}
+.tag{display:inline-flex;align-items:center;gap:6px;justify-self:start;font-size:12.5px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--panel);border:1px solid var(--line)}
+.tag::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+.t-good{color:var(--good)}.t-bad{color:var(--bad)}.t-dim{color:var(--ink-3)}
+.chart{width:100%;min-width:640px;height:auto;display:block;overflow:visible}
+.chart .grid{stroke:var(--grid);stroke-width:1}.chart .tick,.chart .evs{fill:var(--ink-3);font:11px var(--f-mono)}
+.chart .evl{fill:var(--ink);font:600 12px var(--f-body)}
+.chart .thr{stroke:var(--bad);stroke-width:1;stroke-dasharray:4 3}.chart .thrt{fill:var(--bad);font:11px var(--f-mono)}
+.chart .dot{fill:var(--accent);stroke:var(--panel);stroke-width:1.5}.chart .dot.bad{fill:var(--bad)}
+.chart .mean{stroke:var(--ink);stroke-width:2;opacity:.55}
+.cap,.hint{font-size:12.5px;color:var(--ink-3);max-width:85ch}
+code{font-family:var(--f-mono);font-size:13px}
+.matrix td{text-align:center;font-family:var(--f-body)}
+.y{color:var(--good);font-weight:600}.n{color:var(--ink-3)}
+</style>
+<main>
+<header>
+  <div class="eyebrow">@@TEAM@@ · @@SEASON@@ season · robot log review</div>
+  <h1>What the @@SEASON@@ match logs say about the robot</h1>
+  <p class="sub">@@INTRO@@</p>
+</header>
+
+<section class="verdict">
+  <h2>Key numbers</h2>
+  <ul>@@KEY@@</ul>
+</section>
+
+<section>
+  <h2>Event scorecard</h2>
+  <div class="box scroll">
+  <table>
+    <thead><tr><th>Event</th><th>Avg lowest battery V</th><th>Worst V</th><th>Avg seconds under 8 V</th><th>Quest disconnected (share of match)</th><th>Coprocessor NT drops per match</th><th>Matches with a camera out ≥30 s</th><th>Auto cut short (&lt;19 s)</th></tr></thead>
+    <tbody>@@SCORE@@</tbody>
+  </table>
+  </div>
+  <p class="cap">Full-length matches (60 s or more enabled). Shading goes from none to worst within each column. Battery voltage is the roboRIO's PDH reading (5 to 18 Hz), so true dips are lower. Camera out means the camera's frame counter stopped for that long while the robot was enabled.</p>
+</section>
+
+<section>
+  <h2>What can and cannot be compared</h2>
+  <p>The robot code and its logging change between events. A signal that is missing is shown as a gap, never as zero.</p>
+  <div class="box scroll">@@MATRIX@@</div>
+</section>
+
+<section>
+  <h2>Power and brownouts</h2>
+  <div class="box scroll">@@CHARTV@@</div>
+  <p class="cap">Lowest battery voltage while enabled, one dot per match in time order. Bar marks the event average. Red dots are under 7.0 V.</p>
+  <ul>@@POWER@@</ul>
+  <h3>Kraken view (CTRE hoot files)</h3>
+  <div class="box scroll"><table><thead><tr><th>Match</th><th>Lowest Kraken supply V</th><th>Bridge brownout faults</th><th>Other</th></tr></thead><tbody>@@HOOT@@</tbody></table></div>
+  <p class="cap">From the swerve drive Krakens, lined up to the robot clock on the enable edges.</p>
+</section>
+
+<section>
+  <h2>Connectivity</h2>
+  <h3>Camera coprocessor dropping off the network</h3>
+  <div class="box scroll">@@CHARTC@@</div>
+  <p class="cap">Times the coprocessor lost its NetworkTables connection while the robot was enabled.</p>
+  <h3>Quest headset disconnected</h3>
+  <div class="box scroll">@@CHARTQ@@</div>
+  <p class="cap">Share of enabled time the Quest reported itself disconnected.</p>
+  <ul>@@CONN@@</ul>
+</section>
+
+@@NOTES@@
+
+<section>
+  <h2>Method and limits</h2>
+  <ul>@@METHOD@@</ul>
+</section>
+</main>

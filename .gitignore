@@ -4,6 +4,10 @@
 # -----  don't allow any logs - CJH
 **/logs
 *.wpilog
+*.hoot
+**/videos/
+*.mp4
+*.npz
 
 # -----  in case we decide to store and serialize our own logs  - CJH
 *.pkl

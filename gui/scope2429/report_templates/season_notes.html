@@ -1,0 +1,26 @@
+<!-- Your own judgement, shown in the season report between the data and the method.  Edit freely; it is copied as is. -->
+<section>
+  <h2>Resolved, remaining, unknown</h2>
+  <p class="cap">Written by hand for the 2026 season. Update it after reading the numbers above.</p>
+  <div class="cols">
+    <div class="box"><span class="tag t-good">Resolved</span>
+      <ul>
+        <li>RF Kraken reboot (CASS Q27, Q32): none in the 9 matches that followed.</li>
+        <li>Quest running at 42 Hz at the start of CASS: normal from Q13.</li>
+        <li>Autonomous cut short at CAGLE: not seen since.</li>
+      </ul></div>
+    <div class="box"><span class="tag t-bad">Remaining</span>
+      <ul>
+        <li>Battery sag: Kraken supply under 7 V in most CASS matches, brownout faults in several.</li>
+        <li>Camera coprocessor NetworkTables drops.</li>
+        <li>Camera outages of 100 s or more (right camera).</li>
+        <li>Quest-vs-drive error larger and drifting since CASS.</li>
+      </ul></div>
+    <div class="box"><span class="tag t-dim">Cannot tell</span>
+      <ul>
+        <li>Whether brownouts happened before CASS (no Kraken data, roboRIO log too slow).</li>
+        <li>Why CAGLE autonomous ended early (no Driver Station logs for it).</li>
+        <li>CAN bus load (not logged).</li>
+      </ul></div>
+  </div>
+</section>
