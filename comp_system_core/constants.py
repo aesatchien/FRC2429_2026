@@ -258,7 +258,9 @@ class VisionConstants:
 
 class QuestConstants:
     k_counter_offset = next(_counter)
-    quest_to_robot = Transform2d(inches_to_meters(-14), inches_to_meters(-8), Rotation2d().from_degrees(280)) # +10 degree offset added 10/4/26
+    # Mount yaw of the Quest on the robot.  It was 270 until 10/4/26, when +10 degrees was added to correct a ~20 degree rotation of the
+    # Quest track seen in AdvantageScope; set back to 270 on 10/25/26 (before SoCal Showdown it had been 280).
+    quest_to_robot = Transform2d(inches_to_meters(-14), inches_to_meters(-8), Rotation2d().from_degrees(270))
 
     k_max_disconnected_count = 14  # number of cycles of lost quest before we call passthru
     k_allow_quest_auto_resync = True  # teleop tries to resync if certain conditions are met
