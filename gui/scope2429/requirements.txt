@@ -1,0 +1,12 @@
+# numpy, opencv-python and pyntcore are normally already installed with the 2429 robot / GUI environment
+# (robotpy brings pyntcore, the dashboard GUI brings numpy and opencv).
+numpy
+opencv-python
+pyntcore
+
+# For working with a match video.  Log-only and live-NetworkTables use work without them (the code imports
+# them lazily), but they are required here so a fresh install does not crash the first time a video is opened.
+#   yt-dlp          downloads the match video from YouTube (also needs Deno, see README)
+#   imageio-ffmpeg  a bundled ffmpeg for reading video, audio sync and rendering MP4 (not needed if ffmpeg is on your PATH)
+yt-dlp
+imageio-ffmpeg

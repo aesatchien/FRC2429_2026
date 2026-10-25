@@ -23,7 +23,26 @@ _counter = count(1)
 # Read every CAN bus once a second and publish utilization / bus-off / TX-full / error counts under can_prefix, which puts
 # them in the .wpilog (helpers/can_monitor.py).  Cheap; set False to turn it off.
 k_monitor_can = True
+# SHOP TESTING ONLY.  When True, four SysId commands appear on the dashboard under Command/SysId/ and the robot
+# will drive itself (all four drive motors, raw volts) while one runs, but only while enabled.  Leave False for
+# matches.  Procedure: gui/scope2429/SYSID_SHOP_GUIDE.md.  Ramp is V/s, step is V, timeout is s.
+k_enable_sysid = False
+k_sysid_ramp_rate = 1.0
+k_sysid_step_voltage = 4.0
+k_sysid_timeout = 6.0
+
+# Status-signal rate (Hz) of the drive Krakens' MotorVoltage, StatorCurrent, SupplyCurrent and Acceleration, so the
+# .hoot has enough samples for the Scope2429 drive feedforward fit (position and velocity are already 100 Hz).
+# 4 was the old quiet default.  The 4 drive Krakens are alone on can_s0, so 100 Hz is a small load.
+k_drive_hoot_rate_hz = 100
 k_enable_logging = True  # .wpilog / DS / .hoot logging - started by helpers/log_start.py, from robot_periodic()
+# Also save everything the program prints (our prints, robotpy INFO lines, native warnings such as the watchdog and loop
+# overruns) to console_<boot UTC>.log next to the .wpilog, stamped with the wpilog clock.  See helpers/console_log.py.
+# On the robot it redirects stdout and stderr at the OS level (so native C++ messages are caught; everything is forwarded
+# untouched to the console).  In the Windows simulator it wraps Python's sys.stdout / sys.stderr instead (redirecting the
+# descriptors crashes a Windows console), so the simulator's file has Python prints and logging but not native C++ messages.
+# Set False to turn the whole thing off.
+k_log_console = True
 # Where the SystemCore writes .wpilog and .hoot files.  The USB stick mounts at /U about 2-3 s AFTER the robot
 # program starts, so the log start waits for /U to be a mount point (up to DeferredLogStart.k_wait_s, then the
 # internal storage with a warning) - see helpers/log_start.py.  Checking once at startup was a race that the
@@ -262,7 +281,9 @@ class VisionConstants:
 
 class QuestConstants:
     k_counter_offset = next(_counter)
-    quest_to_robot = Transform2d(inches_to_meters(-14), inches_to_meters(-8), Rotation2d().from_degrees(280)) # +10 degree offset added 10/4/26
+    # Mount yaw of the Quest on the robot.  It was 270 until 10/4/26, when +10 degrees was added to correct a ~20 degree rotation of the
+    # Quest track seen in AdvantageScope; set back to 270 on 10/25/26 (before SoCal Showdown it had been 280).
+    quest_to_robot = Transform2d(inches_to_meters(-14), inches_to_meters(-8), Rotation2d().from_degrees(270))
 
     k_max_disconnected_count = 14  # number of cycles of lost quest before we call passthru
     k_allow_quest_auto_resync = True  # teleop tries to resync if certain conditions are met
