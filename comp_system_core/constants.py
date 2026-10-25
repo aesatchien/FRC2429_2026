@@ -21,6 +21,10 @@ _counter = count(1)
 
 # TODO - organize this better
 k_enable_logging = True  # .wpilog / DS / .hoot logging - started by helpers/log_start.py, from robot_periodic()
+# Also save everything the program prints (our prints, robotpy INFO lines, native warnings such as the watchdog and loop
+# overruns) to console_<boot UTC>.log next to the .wpilog, stamped with the wpilog clock.  See helpers/console_log.py.
+# It redirects stdout and stderr at the OS level (and forwards them untouched to the console); set False to turn that off.
+k_log_console = True
 # Where the SystemCore writes .wpilog and .hoot files.  The USB stick mounts at /U about 2-3 s AFTER the robot
 # program starts, so the log start waits for /U to be a mount point (up to DeferredLogStart.k_wait_s, then the
 # internal storage with a warning) - see helpers/log_start.py.  Checking once at startup was a race that the
