@@ -20,6 +20,9 @@ k_at_home = False  # used for intake calibration - True means we start with the 
 _counter = count(1)
 
 # TODO - organize this better
+# Read every CAN bus once a second and publish utilization / bus-off / TX-full / error counts under can_prefix, which puts
+# them in the .wpilog (helpers/can_monitor.py).  Cheap; set False to turn it off.
+k_monitor_can = True
 k_enable_logging = True  # .wpilog / DS / .hoot logging - started by helpers/log_start.py, from robot_periodic()
 # Where the SystemCore writes .wpilog and .hoot files.  The USB stick mounts at /U about 2-3 s AFTER the robot
 # program starts, so the log start waits for /U to be a mount point (up to DeferredLogStart.k_wait_s, then the
@@ -149,6 +152,7 @@ vision_prefix = r'/SmartDashboard/Vision'  # from the robot
 swerve_prefix = r'/SmartDashboard/Swerve'  # from the robot
 sim_prefix = r'/SmartDashboard/Sim'  # from the sim (still from the robot)
 auto_prefix = r'/SmartDashboard/Auto'  # one place for all of our auto goals and temp variables
+can_prefix = r'/SmartDashboard/CAN'  # CAN bus utilization and error counters, once a second (helpers/can_monitor.py)
 intake_prefix = r'/SmartDashboard/Intake'  # intake subsystem
 climber_prefix = r'/SmartDashboard/Climber' #climber subsystem
 command_prefix = r'Command'  # SPECIAL CASE: the SmartDashboard.putData auto prepends /SmartDashboard to the key\
