@@ -1,0 +1,32 @@
+# One file runs the whole thing:  copy .env.example to .env, fill it in, then   docker compose up -d --build
+#
+#   scope        the Scope2429 website.  Its port is NOT published: nothing on your home network can reach it directly.
+#   cloudflared  the Cloudflare Tunnel.  It dials OUT to Cloudflare, so the router needs no open ports.  In the Cloudflare dashboard the
+#                tunnel's public hostname (for example scope.yourteam.org) points at  http://scope:8000.
+services:
+  scope:
+    build:
+      context: ..
+      dockerfile: scope2429_web/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    # the logs, metadata and any MP4s: a dataset on the NAS, writable by user 1000 (or change `user:` to match the dataset's owner)
+    volumes:
+      - ${DATA_PATH:-./data}:/data
+    expose:
+      - "8000"
+    # a render uses every core it is given for minutes; leave the NAS room for its other jobs
+    deploy:
+      resources:
+        limits:
+          cpus: "${SCOPE_CPUS:-2}"
+          memory: 3g
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN}
+    depends_on:
+      - scope

@@ -1,0 +1,6 @@
+**/__pycache__
+**/*.pyc
+scope2429_web/.env
+scope2429_web/data
+scope2429_web/tests
+scope2429_web/.pytest_cache

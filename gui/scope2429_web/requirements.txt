@@ -1,0 +1,13 @@
+# The versions the test suite and a real-log check were run with (2026-10-26).  OpenCV and NumPy are the same pair Scope2429 itself
+# was developed on; OpenCV 5 / NumPy 2.5 install by default but have not been checked against the dashboard renderer.
+fastapi==0.162.0
+starlette==1.10.0
+uvicorn[standard]==0.54.0
+python-multipart==0.0.32
+PyJWT[crypto]==2.15.1
+boto3==1.43.118
+numpy==2.2.6
+opencv-python-headless==4.12.0.88
+# for the tests only
+pytest>=8
+httpx>=0.27

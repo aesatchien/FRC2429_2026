@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Scope2429 replay</title>
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <header class="bar"><a id="back" href="/">&larr; All matches</a><h1 id="title">Replay</h1></header>
+  <main>
+    <div class="layout">
+      <div>
+        <div class="card">
+          <div class="tabs">
+            <button class="on" data-pane="replay">Replay</button>
+            <button class="secondary" data-pane="report">Match report</button>
+            <button class="secondary" data-pane="video">MP4 video</button>
+          </div>
+          <div class="pane on" id="pane-replay">
+            <img id="stage" alt="Dashboard replay">
+            <div class="controls">
+              <button id="play">&#9654; Play</button>
+              <input id="slider" type="range" min="0" max="1" step="0.1" value="0">
+              <span id="clock" class="dim">0.0 s</span>
+              <select id="rate"><option value="0.5">0.5x</option><option value="1" selected>1x</option><option value="2">2x</option></select>
+              <select id="quality"><option value="960">Fast</option><option value="1280" selected>Normal</option><option value="1920">Sharp</option></select>
+            </div>
+          </div>
+          <div class="pane" id="pane-report"><iframe class="report" id="reportframe" title="Match report"></iframe></div>
+          <div class="pane" id="pane-video">
+            <div id="videobox" class="dim">No MP4 yet. Use <b>Render MP4</b> on the right.</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <h2>MP4</h2>
+          <div class="row"><button id="render">Render MP4</button><button id="cancel" class="secondary" hidden>Cancel</button></div>
+          <progress id="prog" max="1" value="0" hidden></progress>
+          <div class="msg dim" id="rendermsg"></div>
+        </div>
+        <div class="card">
+          <h2>Match video (YouTube)</h2>
+          <iframe id="yt" title="Match video" hidden allow="autoplay; encrypted-media" allowfullscreen></iframe>
+          <label for="yturl">YouTube link</label>
+          <input id="yturl" type="url" placeholder="https://www.youtube.com/watch?v=...">
+          <label for="ytoffset">Video time (seconds) at which the match starts</label>
+          <input id="ytoffset" type="number" step="0.1" value="0">
+          <div class="dim">The video follows the replay slider. Find the offset once by scrubbing the video to the moment autonomous starts.</div>
+        </div>
+        <div class="card">
+          <h2>Details</h2>
+          <label for="titlein">Title</label>
+          <input id="titlein" type="text">
+          <label><input id="redleft" type="checkbox"> Red alliance on the left (match the video)</label>
+          <div class="row"><button id="save">Save</button><span class="msg" id="savemsg"></span></div>
+          <div class="row"><button id="del" class="secondary">Delete this log</button></div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <script src="/static/viewer.js"></script>
+</body>
+</html>

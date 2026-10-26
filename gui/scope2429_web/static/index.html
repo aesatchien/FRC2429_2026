@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Scope2429 match replays</title>
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <header class="bar"><h1>Scope2429 &middot; match replays</h1><span class="dim" id="who"></span></header>
+  <main>
+    <section class="card">
+      <h2>Upload a match log</h2>
+      <div id="drop">Drop a <b>.wpilog</b> here, or <label class="btn" for="logfile">choose a file</label>
+        <input id="logfile" type="file" accept=".wpilog" hidden>
+        <div class="dim">Optional: the robot's <code>console_*.log</code> from the same run &nbsp;
+          <input id="consolefile" type="file" accept=".log"></div>
+      </div>
+      <div class="msg" id="upmsg"></div>
+    </section>
+    <section class="card">
+      <h2>Matches</h2>
+      <table>
+        <thead><tr><th>Match</th><th>Event</th><th>Alliance</th><th>Date</th><th>Length</th><th>Video</th><th></th></tr></thead>
+        <tbody id="rows"><tr><td colspan="7" class="dim">Loading&hellip;</td></tr></tbody>
+      </table>
+    </section>
+  </main>
+  <script src="/static/index.js"></script>
+</body>
+</html>
