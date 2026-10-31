@@ -1,0 +1,19 @@
+# Everything chairbot and its dashboard need.  Safe to rerun: it also brings an older robo2026 up to date.
+#
+# Make a new environment (conda works the same as mamba):
+#     mamba create -n robo2026 python=3.12 pip
+#     mamba activate robo2026
+#     python -m pip install -r requirements.txt
+#
+# Update an existing one:
+#     mamba activate robo2026
+#     python -m pip install -r requirements.txt
+#
+# [all] is here so an update also moves cscore, romi, xrp, etc. - the robotpy packages must all be the same version
+robotpy[all]==2026.2.2
+robotpy-rev==2026.0.1
+
+# Do NOT add pyqt6-tools: its last release (2023) stops at python 3.11 and needs PyQt6 6.4.2, so on 3.12 the install fails
+# For Qt Designer, optionally run this (not needed to run chairbot), then edit .ui files with pyside6-designer:
+#     python -m pip install PySide6-Essentials==6.10.2
+PyQt6==6.10.2

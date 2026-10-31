@@ -24,7 +24,7 @@ The workflow for adding a new widget (e.g., an indicator tile or a numeric displ
 
 ### 1. Update the UI Layout
 
--   Open `layout_2026.ui` in **Qt Designer** (or `pyqt6-tools designer`).
+-   Open `layout_2026.ui` in **Qt Designer** with `pyside6-designer layout_2026.ui`. If you don't have it yet, install it with `python -m pip install PySide6-Essentials==6.10.2`. Do not use `pyqt6-tools`: it no longer installs on Python 3.12.
 -   Add a new widget (e.g., a `QLabel`).
 -   In the **Property Editor**, give it a unique and descriptive `objectName` (e.g., `qlabel_my_new_indicator`).
 -   If the widget should be clickable or have custom behavior, promote it to the appropriate class from the `widgets/` directory (e.g., `ClickableQLabel`).
