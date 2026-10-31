@@ -3,7 +3,7 @@ from wpilib import SmartDashboard
 from subsystems.led import Led
 
 
-class LedModeToggle(commands2.CommandBase):
+class LedModeToggle(commands2.Command):
 
     counter = 0
 

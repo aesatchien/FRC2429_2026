@@ -4,7 +4,7 @@ from wpilib import SmartDashboard
 from subsystems.drivetrain import Drivetrain
 
 
-class MoveRobot(commands2.CommandBase):  # change the name for your command
+class MoveRobot(commands2.Command):  # change the name for your command
 
     def __init__(self, container, drive: Drivetrain) -> None:
         super().__init__()

@@ -1,17 +1,16 @@
 import math
 import wpilib
-from commands2 import SubsystemBase
+from commands2 import Subsystem
 from wpilib import SmartDashboard, DriverStation
 from ntcore import NetworkTableInstance
 import rev
-from rev import CANSparkMax, CANSparkFlex
 from wpimath.filter import SlewRateLimiter
 import ntcore
 
 import constants
 
 
-class Drivetrain(SubsystemBase):
+class Drivetrain(Subsystem):
     def __init__(self, container) -> None:
         super().__init__()
         self.setName('Drivetrain')
@@ -22,31 +21,21 @@ class Drivetrain(SubsystemBase):
         self.analog_pedal = wpilib.AnalogInput(0)
         self.steering_encoder = wpilib.DutyCycleEncoder(6)
         # motors
-        motor_type = rev.CANSparkMax.MotorType.kBrushless
-        self.drive_l1 = rev.CANSparkMax(1, motor_type)
-        self.drive_l2 = rev.CANSparkMax(2, motor_type)
-        self.drive_r1 = rev.CANSparkMax(3, motor_type)
-        self.drive_r2 = rev.CANSparkMax(4, motor_type)
+        motor_type = rev.SparkMax.MotorType.kBrushless
+        self.drive_l1 = rev.SparkMax(constants.k_CANID_l1, motor_type)
+        self.drive_l2 = rev.SparkMax(constants.k_CANID_l2, motor_type)
+        self.drive_r1 = rev.SparkMax(constants.k_CANID_r1, motor_type)
+        self.drive_r2 = rev.SparkMax(constants.k_CANID_r2, motor_type)
+
+        # no reset and no persist - anything not in our configs (idle mode, current limits) stays as flashed on the spark
+        motors_and_configs = [(self.drive_l1, constants.k_left_config), (self.drive_l2, constants.k_follower_config_l2),
+                              (self.drive_r1, constants.k_right_config), (self.drive_r2, constants.k_follower_config_r2)]
+        rev_errors = [motor.configure(config, rev.ResetMode.kNoResetSafeParameters, rev.PersistMode.kNoPersistParameters)
+                      for motor, config in motors_and_configs]
+        print(f'Initialized drivetrain sparkmaxes. Controller status: \n {rev_errors}')
 
         self.encoder_l = self.drive_l1.getEncoder()  # c.f. wpilib.Encoder(2, 3)
         self.encoder_r = self.drive_r1.getEncoder()
-        self.encoder_l.setPositionConversionFactor(constants.kDrivingEncoderPositionFactor)
-        self.encoder_l.setVelocityConversionFactor(constants.kDrivingEncoderVelocityFactor)
-        self.encoder_r.setPositionConversionFactor(constants.kDrivingEncoderPositionFactor)
-        self.encoder_r.setVelocityConversionFactor(constants.kDrivingEncoderVelocityFactor)
-
-
-        self.drive_l1.setInverted(True)  # need to see if + pwr moves motor clockwise and therefore robot fwd
-        self.drive_l2.setInverted(True)
-        self.drive_r1.setInverted(False)  # need to see if + pwr moves motor clockwise and therefore robot fwd
-        self.drive_r2.setInverted(False)
-
-        self.drive_l2.follow(self.drive_l1)  # sets 2 to follow 1
-        self.drive_r2.follow(self.drive_r1)
-
-        if wpilib.RobotBase.isSimulation():  # have to do this to get the sim to update velocities, etc
-            self.l1_drivingPIDController = self.drive_l1.getPIDController()
-            self.r1_drivingPIDController = self.drive_r1.getPIDController()
 
         # class variables
         self.counter = 0
@@ -87,14 +76,6 @@ class Drivetrain(SubsystemBase):
         # teleop is quite simple for this robot - just set the motors
         self.drive_l1.set(self.thrust + self.twist)
         self.drive_r1.set(self.thrust - self.twist)
-
-        if wpilib.RobotBase.isSimulation():
-            max_meters_per_second = 4
-            left_velocity = max_meters_per_second *  (self.thrust + self.twist)
-            right_velocity = max_meters_per_second * (self.thrust - self.twist)
-            self.l1_drivingPIDController.setReference(left_velocity, rev.CANSparkBase.ControlType.kVelocity)
-            self.r1_drivingPIDController.setReference(right_velocity, rev.CANSparkBase.ControlType.kVelocity)
-
 
     def drive_forward(self, power):
         self.drive_l1.set(power)
@@ -186,5 +167,4 @@ class Drivetrain(SubsystemBase):
             wpilib.SmartDashboard.putNumber('analog_pedal', self.analog_pedal.getVoltage())
             wpilib.SmartDashboard.putBoolean('forward_switch', self.forward_switch.get())
             wpilib.SmartDashboard.putBoolean('back_switch', self.back_switch.get())
-            wpilib.SmartDashboard.putNumber('steering_encoder_abs', self.steering_encoder.getAbsolutePosition())
             wpilib.SmartDashboard.putNumber('steering_encoder', self.steering_encoder.get())

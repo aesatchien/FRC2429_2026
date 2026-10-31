@@ -3,9 +3,11 @@ A place for the constant values in the code that may be used in more than one pl
 This offers a convenient resources to teams who need to make both quick and universal
 changes.
 
-2024 chairbot for team 2429 - the blockheads
+chairbot for team 2429 - the blockheads
 """
 import math
+
+from rev import SparkMaxConfig
 
 # configuration for chairbot driving
 k_thrust_limit = .25
@@ -32,3 +34,19 @@ kWheelCircumferenceMeters = kWheelDiameterMeters * math.pi
 kDrivingMotorReduction = 11.787  # 52/10 * 68/30
 kDrivingEncoderPositionFactor = (kWheelDiameterMeters * math.pi) / kDrivingMotorReduction  # meters
 kDrivingEncoderVelocityFactor = kDrivingEncoderPositionFactor / 60.0  # meters per second
+
+# --------------  SPARK MAX CONFIGURATION  ---------------
+k_CANID_l1, k_CANID_l2 = 1, 2  # left leader and follower
+k_CANID_r1, k_CANID_r2 = 3, 4  # right leader and follower
+
+k_left_config, k_right_config = SparkMaxConfig(), SparkMaxConfig()
+for config in [k_left_config, k_right_config]:
+    config.encoder.positionConversionFactor(kDrivingEncoderPositionFactor)
+    config.encoder.velocityConversionFactor(kDrivingEncoderVelocityFactor)
+k_left_config.inverted(True)  # need to see if + pwr moves motor clockwise and therefore robot fwd
+k_right_config.inverted(False)
+
+# followers mirror their leader's output, including its inversion
+k_follower_config_l2, k_follower_config_r2 = SparkMaxConfig(), SparkMaxConfig()
+k_follower_config_l2.follow(k_CANID_l1, invert=False)
+k_follower_config_r2.follow(k_CANID_r1, invert=False)

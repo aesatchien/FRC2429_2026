@@ -38,6 +38,9 @@ class RobotContainer:
         self.buttonY = JoystickButton(self.joystick, 4)
         self.buttonY.onTrue(LedModeToggle(container=self))
 
+    def get_autonomous_command(self):  # robot.py asks for this in autonomousInit - chairbot has no autonomous
+        return None
+
     def set_start_time(self):  # call in teleopInit and autonomousInit in the robot
         self.start_time = time.time()
 

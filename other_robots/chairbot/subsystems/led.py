@@ -8,7 +8,7 @@ from wpilib import Color, SmartDashboard
 import constants
 
 
-class Led(commands2.SubsystemBase):
+class Led(commands2.Subsystem):
     class Mode(enum.Enum):
         CONE = 'CONE'  # yellow
         CUBE = 'CUBE'  # purple

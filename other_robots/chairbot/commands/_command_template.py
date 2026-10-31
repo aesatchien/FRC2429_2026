@@ -2,7 +2,7 @@ import commands2
 from wpilib import SmartDashboard
 
 
-class CommandTemplate(commands2.CommandBase):  # change the name for your command
+class CommandTemplate(commands2.Command):  # change the name for your command
 
     def __init__(self, container, drive, degrees) -> None:
         super().__init__()

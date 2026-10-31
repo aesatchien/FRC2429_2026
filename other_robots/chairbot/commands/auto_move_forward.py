@@ -5,7 +5,7 @@ from wpilib import SmartDashboard, Joystick
 from subsystems.drivetrain import Drivetrain
 
 
-class AutoMoveForward(commands2.CommandBase):  # change the name for your command
+class AutoMoveForward(commands2.Command):  # change the name for your command
 
     def __init__(self, container, drive: Drivetrain, joystick: Joystick) -> None:
         super().__init__()

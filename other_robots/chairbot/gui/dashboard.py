@@ -1,6 +1,6 @@
-from PyQt5 import QtWidgets, uic
-from PyQt5.QtCore import QTimer, Qt
-from PyQt5.QtGui import QBrush, QPen, QColor
+from PyQt6 import QtWidgets, uic
+from PyQt6.QtCore import QTimer, Qt
+from PyQt6.QtGui import QBrush, QPen, QColor
 from ntcore import NetworkTableInstance
 from pathlib import Path
 from datetime import datetime
@@ -97,15 +97,8 @@ class Ui(QtWidgets.QMainWindow):
 if __name__ == "__main__":
     import sys
 
-    # attempt to set high dpi scaling if it is detected - possible fix for high-def laptop and destop displays
-    # if hasattr(QtCore.Qt, 'AA_EnableHighDpiScaling'):
-    #     QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
-    if hasattr(Qt, 'AA_UseHighDpiPixmaps'):
-        QtWidgets.QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
-
     app = QtWidgets.QApplication(sys.argv)
     MainWindow = QtWidgets.QMainWindow()
-    # compensate for dpi scaling way up above with the setAttribute calls - don't really need this now
     screen = app.screens()[0]
     dpi_logical = int(screen.logicalDotsPerInchX())
     if dpi_logical > 96:  # 150% scaling on AVIT North, vs 96 for unscaled
@@ -116,6 +109,6 @@ if __name__ == "__main__":
     ui = Ui()
 
     try:
-        sys.exit(app.exec_())
+        sys.exit(app.exec())
     except SystemExit:
         print('Still has garbage collection issues. Closing.')
