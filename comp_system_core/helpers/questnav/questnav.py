@@ -74,7 +74,22 @@ class QuestNav:
                 # Use frame.quest_pose_3d with pose estimator
                 pass
     """
-    
+
+    # --- clearing a stale pose reset off /QuestNav/request --------------------------------
+    # NT keeps the LAST value of /QuestNav/request.  If the QuestNav app restarts or resumes
+    # (a double-tap into passthrough, the GUI's adb restart), it reads that value again and
+    # re-applies the old POSE_RESET - teleporting the headset back to wherever we last synced,
+    # even though its own tracking was fine.  So once a reset has been delivered, the request
+    # is overwritten with a no-op (COMMAND_TYPE_UNSPECIFIED) and there is nothing to replay.
+    #
+    # NOT right after sending: NT only delivers the newest value each transmit cycle, so a
+    # clear sent too soon can replace the POSE_RESET before the headset ever receives it.
+    # The clear waits for the headset's response to that command, or k_clear_after_s.
+    # (The first try at this, Apr 2026 feat/quest_clear_cmd, cleared on the first frame after
+    # set_pose - possibly before the reset had left the robot.)
+    k_clear_command_id = 0xFFFF   # set_pose ids count up from 1 and never get here
+    k_clear_after_s = 0.5         # several NT transmit cycles: the reset has been delivered
+
     def __init__(self):
         """
         Creates a new QuestNav instance.
@@ -113,6 +128,8 @@ class QuestNav:
         self._frame_count = 0
         self._last_command_id = 0
         self._command_results = {}  # command_id -> success, from the headset's response topic
+        self._clear_pending_id = None  # pose reset whose request still needs clearing
+        self._clear_pending_since = 0.0
 
         # Queues for unread frames
         self._unread_frames: List[PoseFrame] = []
@@ -220,6 +237,8 @@ class QuestNav:
                         response = commands_pb2.ProtobufQuestNavCommandResponse()
                         response.ParseFromString(raw_data)
                         
+                        if response.command_id == self.k_clear_command_id:
+                            continue  # our own no-op (see clear_command) - the app may call it a failure
                         self._command_results[response.command_id] = response.success
                         if len(self._command_results) > 16:  # keep it small, only recent ids matter
                             self._command_results.pop(next(iter(self._command_results)))
@@ -303,6 +322,8 @@ class QuestNav:
             # Publish command
             serialized = command.SerializeToString()
             self.command_pub.set(serialized)
+            self._clear_pending_id = self._last_command_id  # see command_periodic
+            self._clear_pending_since = time.monotonic()
             return self._last_command_id
 
         except Exception as e:
@@ -407,10 +428,25 @@ class QuestNav:
                 self.questnav.command_periodic()
                 # ... other code
         """
-        # Command responses are processed in get_all_unread_pose_frames()
-        # This method is kept for API compatibility with Java questnav-lib
-        # but doesn't need to do anything extra in Python
-        pass
+        # Command responses are processed in get_all_unread_pose_frames().  The one job here:
+        # clear a delivered pose reset off /QuestNav/request (see k_clear_command_id above).
+        if self._clear_pending_id is None:
+            return
+        answered = self._command_results.get(self._clear_pending_id) is not None
+        if answered or time.monotonic() - self._clear_pending_since >= self.k_clear_after_s:
+            self.clear_command()
+
+    def clear_command(self):
+        """Overwrite /QuestNav/request with a no-op so a restarted or resumed QuestNav app has
+        no old POSE_RESET to re-apply.  Called by command_periodic once a reset is delivered."""
+        self._clear_pending_id = None
+        try:
+            command = commands_pb2.ProtobufQuestNavCommand()
+            command.type = commands_pb2.COMMAND_TYPE_UNSPECIFIED
+            command.command_id = self.k_clear_command_id
+            self.command_pub.set(command.SerializeToString())
+        except Exception as e:
+            print(f"QuestNav error clearing the pose reset request: {e}")
 
 
 __all__ = ['QuestNav', 'PoseFrame']
