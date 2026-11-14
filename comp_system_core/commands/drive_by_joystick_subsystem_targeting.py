@@ -17,8 +17,7 @@ from helpers.log_command import log_command
 @log_command(console=True, nt=False, print_init=True, print_end=False)
 class DriveByJoystickSubsystemTargeting(commands2.Command):
     def __init__(self, container, swerve: Swerve, targeting: Targeting,
-                 controller: CommandXboxController | CommandDualSenseController = None,
-                 button_box: CommandJoystick = None) -> None:
+                 controller: CommandXboxController | CommandDualSenseController = None) -> None:
         """controller is THE driver pad - an Xbox or a DualSense, whichever
         constants.k_controller_type chose in helpers/joysticks.py.  There used to be a
         separate ps5controller argument for a second pad on its own port; that pad is gone,
@@ -37,7 +36,6 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
         self.controller = controller
         # pick the axis reader once - the pad cannot change type while the robot runs
         self._read_pad = self.read_ps5 if isinstance(controller, CommandDualSenseController) else self.read_xbox
-        self.button_box: CommandJoystick = button_box
 
         # -----------------------------------------------------------
         # 2. Configuration & State
@@ -54,7 +52,6 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
         self.drive_limiter = SlewRateLimiter(rl.driver_translation_slew_rate)
         self.strafe_limiter = SlewRateLimiter(rl.driver_translation_slew_rate)
         self.turbo_limiter = SlewRateLimiter(rl.turbo_input_slew_rate)
-        self.afterburner_limiter = SlewRateLimiter(rl.afterburner_input_slew_rate)
 
         # Rotation limiters
         self.manual_rot_limiter = SlewRateLimiter(rl.driver_rotation_slew_rate)
@@ -121,26 +118,12 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
             # no pad: hold still rather than read stale or garbage axes
             left_y, left_x, right_x, right_trigger, robot_oriented = 0.0, 0.0, 0.0, 0.0, False
 
-        if self.button_box is not None:
-            # CommandJoystick.get_hid() returns a CommandGenericHID in a7; get_joystick()
-            # is the one that hands back the real wpilib.Joystick.
-            # KNOWN MISMATCH, LEFT FOR A DECISION (2026-11-14).  a7 numbers raw buttons from 0
-            # (2026 numbered them from 1), so index 3 is the box's button 4 - js.bbox_1_4, the
-            # brownout toggle - not button 3 as in comp_bot's getRawButton(3).  The index was
-            # not shifted in the port.  Moving it to 2 puts the afterburner back on button 3,
-            # which also runs SwerveTest after 0.2 s, so which button it belongs on is a
-            # driver decision.  See docs/CONTROLLERS.md.
-            after_burner = self.button_box.get_joystick().get_raw_button(3)
-        else:
-            after_burner = False
-
         # AUTONOMOUS: ignore the pad.  The autos run this command for its aiming
         # (autonomous/shoot_cycle.py), and the Driver Station sends stick data during auto, so a
         # bumped stick or a held trigger used to move the robot.  Tracking rotation comes from
         # Targeting, not the pad, so the aim is unchanged.
         if wpilib.RobotState.is_autonomous():
             left_y, left_x, right_x, right_trigger, robot_oriented = 0.0, 0.0, 0.0, 0.0, False
-            after_burner = False
 
         inputs = {
             'robot_pose': self.swerve.get_pose(),
@@ -148,7 +131,6 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
             'left_x': left_x,
             'right_x': right_x,
             'right_trigger': right_trigger,
-            'after_burner' : after_burner,
             'robot_oriented': robot_oriented,
             'tracking_on': self.container.targeting.get_tracking_state(),
             'alliance': wpilib.MatchState.get_alliance()
@@ -160,14 +142,11 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
         
         # --- Drive Mode & Multipliers ---
         turbo = min(1.0, self.turbo_limiter.calculate(inputs['right_trigger']**2))
-        afterburner = self.afterburner_limiter.calculate(inputs['after_burner'])
-
-        if (inputs['after_burner'] == False):
-            slowmode_multiplier = dc.kSlowModeCap + ((1 - dc.kSlowModeCap) * turbo)
-            angular_slowmode_multiplier = dc.kAngularSlowFloor + ((1 - dc.kAngularSlowFloor) * turbo)
-        else:
-            slowmode_multiplier = dc.kSlowModeCap + ((1 - dc.kSlowModeCap) * afterburner)
-            angular_slowmode_multiplier = dc.kAngularSlowFloor + ((1 - dc.kAngularSlowFloor) * afterburner)
+        # Full speed is the pad's trigger and nothing else.  There used to be an 'afterburner'
+        # read off a button-box button that did the same thing; it is gone (2026-11-14) - the
+        # button box does not change how the robot drives.
+        slowmode_multiplier = dc.kSlowModeCap + ((1 - dc.kSlowModeCap) * turbo)
+        angular_slowmode_multiplier = dc.kAngularSlowFloor + ((1 - dc.kAngularSlowFloor) * turbo)
 
         # --- Field Oriented Logic ---
         if self.robot_oriented_debouncer.calculate(inputs['robot_oriented']):

@@ -16,7 +16,7 @@ from helpers.log_command import log_command
 
 @log_command(console=True, nt=False, print_init=True, print_end=False)
 class DriveByJoystickSubsystemTargeting(commands2.Command):
-    def __init__(self, container, swerve: Swerve, targeting: Targeting, controller: CommandXboxController=None, ps5controller: CommandPS4Controller=None, button_box: CommandJoystick=None) -> None:
+    def __init__(self, container, swerve: Swerve, targeting: Targeting, controller: CommandXboxController=None, ps5controller: CommandPS4Controller=None) -> None:
         super().__init__()
         self.setName('drive_by_joystick_subsystem_targeting')
         
@@ -30,7 +30,6 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
 
         self.xbox_controller: CommandXboxController = controller
         self.ps5_controller: CommandPS4Controller = ps5controller
-        self.button_box: CommandJoystick = button_box
 
         # -----------------------------------------------------------
         # 2. Configuration & State
@@ -47,7 +46,6 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
         self.drive_limiter = SlewRateLimiter(rl.driver_translation_slew_rate)
         self.strafe_limiter = SlewRateLimiter(rl.driver_translation_slew_rate)
         self.turbo_limiter = SlewRateLimiter(rl.turbo_input_slew_rate)
-        self.afterburner_limiter = SlewRateLimiter(rl.afterburner_input_slew_rate)
 
         # Rotation limiters
         self.manual_rot_limiter = SlewRateLimiter(rl.driver_rotation_slew_rate)
@@ -109,18 +107,12 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
         else:
             left_y, left_x, right_x, right_trigger, robot_oriented = 0.0, 0.0, 0.0, 0.0, False  # cooked??? IDK - Trentan
 
-        if self.button_box is not None:
-            after_burner = self.button_box.getHID().getRawButton(3)
-        else:
-            after_burner = False
-
         # AUTONOMOUS: ignore the pad.  The autos run this command for its aiming
         # (autonomous/shoot_cycle.py), and the Driver Station sends stick data during auto, so a
         # bumped stick or a held trigger used to move the robot.  Tracking rotation comes from
         # Targeting, not the pad, so the aim is unchanged.
         if wpilib.RobotState.isAutonomous():
             left_y, left_x, right_x, right_trigger, robot_oriented = 0.0, 0.0, 0.0, 0.0, False
-            after_burner = False
 
         inputs = {
             'robot_pose': self.swerve.get_pose(),
@@ -128,7 +120,6 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
             'left_x': left_x,
             'right_x': right_x,
             'right_trigger': right_trigger,
-            'after_burner' : after_burner,
             'robot_oriented': robot_oriented,
             'tracking_on': self.container.targeting.get_tracking_state(),
             'alliance': wpilib.DriverStation.getAlliance()
@@ -140,14 +131,11 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
         
         # --- Drive Mode & Multipliers ---
         turbo = min(1.0, self.turbo_limiter.calculate(inputs['right_trigger']**2))
-        afterburner = self.afterburner_limiter.calculate(inputs['after_burner'])
-
-        if (inputs['after_burner'] == False):
-            slowmode_multiplier = dc.kSlowModeCap + ((1 - dc.kSlowModeCap) * turbo)
-            angular_slowmode_multiplier = dc.kAngularSlowFloor + ((1 - dc.kAngularSlowFloor) * turbo)
-        else:
-            slowmode_multiplier = dc.kSlowModeCap + ((1 - dc.kSlowModeCap) * afterburner)
-            angular_slowmode_multiplier = dc.kAngularSlowFloor + ((1 - dc.kAngularSlowFloor) * afterburner)
+        # Full speed is the pad's trigger and nothing else.  There used to be an 'afterburner'
+        # read off a button-box button that did the same thing; it is gone (2026-11-14) - the
+        # button box does not change how the robot drives.
+        slowmode_multiplier = dc.kSlowModeCap + ((1 - dc.kSlowModeCap) * turbo)
+        angular_slowmode_multiplier = dc.kAngularSlowFloor + ((1 - dc.kAngularSlowFloor) * turbo)
 
         # --- Field Oriented Logic ---
         if self.robot_oriented_debouncer.calculate(inputs['robot_oriented']):

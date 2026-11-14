@@ -163,7 +163,7 @@ Things a7 changed that the rename could not see, because no name changed.
   `get_raw_button(n)` both take the 0-based index, although the wpilib docstring still says
   "starting at 1". The button-box triggers in `helpers/joysticks.py` were shifted at the
   time; the one bare `get_raw_button(3)` in `drive_by_joystick_subsystem_targeting.py` (the
-  afterburner) was not, and still reads the brownout-toggle button (found 2026-11-14, left
-  for a driver decision - see `docs/CONTROLLERS.md`).
+  afterburner) was not, and read the brownout-toggle button until the afterburner was
+  removed on 2026-11-14.
   **Rule: never write a raw button index outside `helpers/joysticks.py`.**
 - **REV drive gains** — see section 6.

@@ -42,7 +42,7 @@ should ever contain that number.)
 | **1** | Tell the intake it is at the bottom (encoder := 0 degrees). Works disabled. | `intake.zero_intake()` |
 | **2** | Tell the intake it is at the top (encoder := 148 degrees). Works disabled. | `intake.set_angle_max()` |
 | **3** (hold) | Intake up with rollers and hopper off; and after 0.2 s **`SwerveTest` takes the drivetrain away from the driver** and runs one module at a time at 0.25 m/s until release. See the note below. | `Intake_Deploy('up')`, `SwerveTest` |
-| **4** | Toggle brownout mode: drive supply current limit 50 A <-> 40 A. LEDs flash red when it turns on, green when it turns off. Works disabled. **Also, while it is held, afterburner**: full speed whatever the trigger says. See the note below. | `swerve.set_brownout_mode()`; raw read in the drive command |
+| **4** | Toggle brownout mode: drive supply current limit 50 A <-> 40 A. LEDs flash red when it turns on, green when it turns off. Works disabled. | `swerve.set_brownout_mode()` |
 | **5** | Stop using the Quest for odometry. | `quest_enabled_toggle('off')` |
 | **6** | Use the Quest for odometry again. | `quest_enabled_toggle('on')` |
 | **7** | Unsync the Quest (its pose is ignored until the next sync). | `quest_unsync_odometry()` |
@@ -56,18 +56,12 @@ Nobody syncs the Quest from the button box on purpose: a sync should come from a
 AprilTag fix (the automatic sync while disabled, or the driver's long Y press), not from
 an operator's guess.
 
-**Buttons 3 and 4 need a decision.** Two things are wrong and they are tangled:
+**Button 3 also runs `SwerveTest`** after 0.2 s held, in both projects. It is a wheel test
+and it takes the drivetrain for as long as the button is held, so do not hold button 3
+in a match longer than a tap.
 
-- The afterburner is read as raw button index 3. In `comp_bot` (buttons numbered from 1)
-  that is button 3. In a7 (numbered from 0) it is button 4, the brownout toggle. The index
-  was not shifted in the port, so on this robot pressing the brownout toggle also gives
-  full speed for as long as it is held.
-- In both projects button 3 runs `SwerveTest` after 0.2 s, which takes the drivetrain from
-  the driver. So even where the afterburner is on button 3 (`comp_bot`), it lasts 0.2 s.
-
-Decide which button the afterburner belongs on and whether `SwerveTest` should be on a
-match button at all, then fix `get_raw_button(3)` in
-`commands/drive_by_joystick_subsystem_targeting.py` (use a `js.bbox_*` name, not a number).
+Full speed is the driver's trigger and nothing else. The button box used to have an
+"afterburner" that did the same thing; it was removed on 2026-11-14.
 
 ## Co-driver Xbox pad (port 1)
 

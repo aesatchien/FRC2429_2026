@@ -98,7 +98,6 @@ class RobotContainer:
               swerve=self.swerve,
               controller=js.driver_controller,   # Xbox or DualSense, per k_controller_type
               targeting=self.targeting,
-              button_box=js.bbox_1,
          ))
 
         # ----------  DASHBOARD & PATHPLANNER  ---------------

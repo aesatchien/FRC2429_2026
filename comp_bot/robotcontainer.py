@@ -94,7 +94,6 @@ class RobotContainer:
               swerve=self.swerve,
               controller=js.driver_controller,
               targeting=self.targeting,
-              button_box=js.bbox_1,
               ps5controller=js.play_station_controller  # ps5 is play station controller
          ))
 

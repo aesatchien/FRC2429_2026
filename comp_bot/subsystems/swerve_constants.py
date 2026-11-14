@@ -262,9 +262,6 @@ class RateLimiters:
     # Turbo trigger input smoothing — prevents a lurch when the trigger is squeezed quickly
     turbo_input_slew_rate = 10.0          # units/sec
 
-    # Afterburner button input smoothing
-    afterburner_input_slew_rate = 20.0    # units/sec
-
     # ═══════════════════════════════════════════════════════════════════════════
     # Section 2 — Default Rate Limiting (swerve.py fallback)
     # ═══════════════════════════════════════════════════════════════════════════

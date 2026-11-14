@@ -92,8 +92,6 @@ def shoot_cycle(container, timeout: float = ac.k_shooting_timeout, delay_cycles:
         aim_command = RotateToTarget(container, swerve=container.swerve,
                                      targeting=container.targeting, indent=indent)
     elif aim == 'joystick':
-        # button_box deliberately NOT passed: 21 of the 22 old copies left it None, which pins
-        # the afterburner off.  Only autonomous_shooting passed it, almost certainly by accident.
         aim_command = DriveByJoystickSubsystemTargeting(
             container, swerve=container.swerve, controller=js.driver_controller,
             targeting=container.targeting)
