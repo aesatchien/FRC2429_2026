@@ -1,0 +1,104 @@
+"""
+Can the simulated robot drive to a simulated vision target?  Runs the whole robot program
+headless through pyfrc's test harness, physics.py included, with nothing mocked:
+
+    simulation/vision_sim.py   sees a game piece from where the robot REALLY is and publishes
+                               targets/distance/rotation/strafe on /Cameras/..., the same
+                               topics the Raspberry Pis write
+    subsystems/vision.py       reads them back, exactly as it would from a Pi
+    the command                turns "2.6 m away, 4 deg right" into a field pose, drives there
+
+Both entry points are checked - the old AutoToPoseClean(use_vision=True) and
+DriveToPoseCustomControl fed by Vision.get_vision_target_pose.
+
+ONE test, for the reason tests/conftest.py gives: REV allows one robot per process.  This
+file shares nothing with conftest's `container` fixture - `robotpy test` runs each test in
+its own process, so the robot built here is the only one in it.
+
+comp_system_core/tests/test_simulation.py has the same scenario for the SystemCore project.
+"""
+
+import commands2
+import ntcore
+from wpimath.geometry import Pose2d
+
+import constants
+
+
+def test_drive_to_simulated_vision_target(control, robot):
+    # physics.py builds the camera sim in simulationInit, so this is in time
+    constants.SimConstants.k_disable_vision_sim = False
+    with control.run_robot():
+        from commands.auto_to_pose_clean import AutoToPoseClean
+        from commands.drive_to_pose_custom_control import DriveToPoseCustomControl
+        from simulation.gamepiece_sim import GamepieceSim
+
+        container = robot.container
+        swerve, vision = container.swerve, container.vision
+        camera = 'logi_front_hsv'
+        scheduler = commands2.CommandScheduler.getInstance()
+        # where the robot really is, published by physics.py
+        truth_sub = ntcore.NetworkTableInstance.getDefault().getStructTopic(
+            f"{constants.sim_prefix}/ground_truth", Pose2d).subscribe(Pose2d())
+        piece_spots = [gp['pos'] for gp in GamepieceSim(robot_field_stub()).gamepieces]
+
+        def teleop(seconds):
+            control.step_timing(seconds=seconds, autonomous=False, enabled=True)
+
+        def run(command, limit_s=10.0):
+            scheduler.schedule(command)
+            assert command.isScheduled(), f"{command.getName()} would not schedule - is the robot enabled?"
+            for _ in range(int(limit_s / 0.02)):
+                teleop(0.02)
+                if not command.isScheduled():
+                    return
+            raise AssertionError(f"{command.getName()} never finished")
+
+        def drive_to_vision_target(label, make_command):
+            print(f"=== vision: {label} drives onto a simulated game piece ===")
+            teleop(0.5)                                  # let the camera sim publish from here
+            assert vision.target_available(camera), \
+                "camera sim is publishing no targets - is SimConstants.k_disable_vision_sim True?"
+            start = truth_sub.get()
+            goal = vision.get_vision_target_pose(swerve.get_pose(), [camera])
+            assert goal is not None
+            assert min(goal.translation().distance(p) for p in piece_spots) < 0.05, \
+                f"vision put the target at {goal}, which is not on a game piece"
+            command = make_command()
+            run(command)
+            assert not command.abort, f"{label} aborted - it saw no target"
+            truth = truth_sub.get()
+            moved = truth.translation().distance(start.translation())
+            off = truth.translation().distance(goal.translation())
+            assert moved > 1.0, f"robot only moved {moved:.2f} m"
+            assert off < 0.10, f"robot stopped {off:.2f} m from the target at {goal}"
+            print(f"    drove {moved:.2f} m, stopped {off * 100:.1f} cm from the piece at "
+                  f"({goal.X():.2f}, {goal.Y():.2f})")
+
+        def creep(x, y, seconds):
+            """Drive field-relative at a fraction of full speed, as a driver would."""
+            run(commands2.cmd.run(
+                lambda: swerve.drive(x, y, 0, fieldRelative=True, rate_limited=False, keep_angle=False),
+                swerve).withTimeout(seconds))
+
+        control.step_timing(seconds=1.0, autonomous=False, enabled=False)
+        teleop(0.1)                                      # a command scheduled while disabled is dropped
+
+        # the pieces are 4.7 m from the start pose and the camera sim sees 4 m: close in first
+        creep(0.3, 0, 1.5)
+        drive_to_vision_target(
+            'AutoToPoseClean(use_vision=True)',
+            lambda: AutoToPoseClean(container, swerve, target_pose=None, use_vision=True, cameras=[camera]))
+
+        # back off and across, then do it again through the supplier-based command
+        creep(-0.3, 0.15, 1.5)
+        drive_to_vision_target(
+            'DriveToPoseCustomControl + get_vision_target_pose',
+            lambda: DriveToPoseCustomControl(
+                container, swerve, lambda: vision.get_vision_target_pose(swerve.get_pose(), [camera])))
+
+
+def robot_field_stub():
+    """GamepieceSim only needs somewhere to draw; this copy is just read for its piece list."""
+    import wpilib
+    return wpilib.Field2d()

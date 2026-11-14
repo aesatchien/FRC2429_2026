@@ -242,7 +242,12 @@ class SimConstants:
 
     k_print_config = True  # use for debugging the camera config
 
-    k_disable_vision_sim = True  # Hard disable.  Set to stop all vision simulation (e.g. ONLY using real coprocessors)
+    # False = the camera sim publishes targets/distance/rotation/strafe for every camera in
+    # CameraConstants.k_cameras, which is what AutoToPoseClean(use_vision=True) and friends
+    # drive to.  It was True from March to November 2026, which is why driving to a sim
+    # target quietly stopped working ('Vision target not found. Aborting.').  Set True only
+    # when REAL coprocessors are publishing the same /Cameras/... topics against the sim.
+    k_disable_vision_sim = False  # Hard disable.  Set to stop all vision simulation (e.g. ONLY using real coprocessors)
     k_draw_camera_fovs = True  # Set to draw camera FOV triangles - should always want this
     k_use_external_cameras = False  # override the vision sim to only take targets from real cams - squashes blink_test
     k_do_blink_test = False  # Set to test dashboard connection handling (e.g. dropping camera connections)

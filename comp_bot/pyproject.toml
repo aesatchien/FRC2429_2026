@@ -56,6 +56,12 @@ requires = [
 
 ]
 
+[tool.robotpy.pyfrc]
+# `robotpy test` only.  tests/test_simulation.py starts the whole robot program, and
+# robotInit takes longer than pyfrc's 2 s default - without this it fails with a bare
+# AssertionError in run_robot() before the test has done anything.
+init_timeout = 30
+
 # ---------------------------------------------------------------------------
 # DEV ENVIRONMENT MIRROR (DOCUMENTATION ONLY)
 #

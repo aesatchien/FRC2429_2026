@@ -129,7 +129,12 @@ class VisionSim:
                             continue
 
                     vec_to_target = target_pos - robot_pose.translation()
-                    
+                    # Sitting exactly on the target there is no direction to it: 2027a7's
+                    # Translation2d.angle() returns None for a zero vector (2026 logs an error
+                    # and returns 0), and a camera cannot see what is under the robot anyway.
+                    if vec_to_target.norm() < 1e-6:
+                        continue
+
                     angle_robot_relative = (vec_to_target.angle() - robot_pose.rotation()).degrees()
                     angle_robot_relative = (angle_robot_relative + 180) % 360 - 180
 

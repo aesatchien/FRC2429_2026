@@ -193,19 +193,15 @@ class AutoToPoseClean(commands2.Command):  #
         elif self.use_vision:
             # 3. Vision Mode
             # Vision is relative to the robot, so we return immediately (no mirroring needed)
-            relative_pose = self.container.vision.nearest_to_robot(self.cameras)
+            # Vision.get_vision_target_pose is the one place a camera's "distance and angle"
+            # becomes a field pose (current pose + robot-relative target + offset); the same
+            # call feeds DriveToPoseCustomControl.  The target is latched HERE, once - the
+            # command does not chase a target that moves or drops out of view.
+            target = self.container.vision.get_vision_target_pose(current_pose, self.cameras, self.offset)
 
-            if relative_pose is not None:
-                # Apply offset in robot frame if provided
-                if self.offset is not None:
-                    rx = relative_pose.x + self.offset.x
-                    ry = relative_pose.y + self.offset.y
-                    rrot = relative_pose.rotation() + self.offset.rotation()
-                    relative_pose = Pose2d(rx, ry, rrot)
-
-                rel_tf = Transform2d(relative_pose.translation(), relative_pose.rotation())
-                target = current_pose.transform_by(rel_tf)
-                print(f"AutoToPose Vision: Robot Rel Move -> X: {relative_pose.x:.2f}m, Y: {relative_pose.y:.2f}m, Rot: {relative_pose.rotation().degrees():.1f}°")
+            if target is not None:
+                move = target.relative_to(current_pose)
+                print(f"AutoToPose Vision: Robot Rel Move -> X: {move.x:.2f}m, Y: {move.y:.2f}m, Rot: {move.rotation().degrees():.1f}°")
                 return target
             else:
                 self.abort = True

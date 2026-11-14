@@ -64,6 +64,8 @@ def _set_track_button(pad, pressed: bool) -> None:
 
 
 def test_simulation_end_to_end(control, robot):
+    # the camera sim is built on the first simulation_periodic(), so this is in time
+    constants.SimConstants.k_disable_vision_sim = False
     with control.run_robot():
         container = robot.container
         swerve, shooter, intake, robot_state = container.swerve, container.shooter, container.intake, container.robot_state
@@ -195,3 +197,52 @@ def test_simulation_end_to_end(control, robot):
         after = sum(gp['active'] for gp in sim.gamepieces)
         assert after == before - 1, f"{before} pieces before, {after} after"
         print(f"    {before} -> {after} pieces on the floor")
+
+        # ------------------------------------------------------------------ drive to a vision target
+        # The whole chain, nothing mocked: the camera sim sees a game piece from GROUND TRUTH
+        # and publishes distance/rotation on /Cameras/..., Vision reads them back exactly as
+        # it would from a Pi, the command turns "1.9 m away, 4 deg left" into a field pose
+        # and drives there.  Both entry points - the old AutoToPoseClean(use_vision=True) and
+        # DriveToPoseCustomControl fed by Vision.get_vision_target_pose - must land on a piece.
+        import commands2
+        from commands.auto_to_pose_clean import AutoToPoseClean
+        from commands.drive_to_pose_custom_control import DriveToPoseCustomControl
+        vision = container.vision
+        camera = 'logi_front_hsv'
+        piece_spots = [gp['pos'] for gp in sim.gamepieces]
+
+        def drive_to_vision_target(label, start: Pose2d, make_command):
+            print(f"=== vision: {label} drives onto a simulated game piece ===")
+            # the robot and its odometry both start here, as they would after a pose reset
+            swerve.sim_set_ground_truth(start)
+            swerve.resetOdometry(start)
+            teleop(0.5)                                  # let the camera sim publish from the new spot
+            assert vision.target_available(camera), \
+                "camera sim is publishing no targets - is SimConstants.k_disable_vision_sim True?"
+            goal = vision.get_vision_target_pose(swerve.get_pose(), [camera])
+            assert goal is not None
+            assert min(goal.translation().distance(p) for p in piece_spots) < 0.05, \
+                f"vision put the target at {goal}, which is not on a game piece"
+            command = make_command()
+            commands2.CommandScheduler.get_instance().schedule(command)
+            for _ in range(500):                         # 10 s is far more than it needs
+                teleop(0.02)
+                if not command.is_scheduled():
+                    break
+            assert not command.is_scheduled(), f"{label} never finished"
+            assert not command.abort, f"{label} aborted - it saw no target"
+            truth = swerve.sim_get_ground_truth()
+            moved = truth.translation().distance(start.translation())
+            off = truth.translation().distance(goal.translation())
+            assert moved > 1.0, f"robot only moved {moved:.2f} m"
+            assert off < 0.10, f"robot stopped {off:.2f} m from the target at {goal}"
+            print(f"    drove {moved:.2f} m, stopped {off * 100:.1f} cm from the piece at "
+                  f"({goal.x:.2f}, {goal.y:.2f})")
+
+        drive_to_vision_target(
+            'AutoToPoseClean(use_vision=True)', Pose2d(5.5, 4.1, Rotation2d()),
+            lambda: AutoToPoseClean(container, swerve, target_pose=None, use_vision=True, cameras=[camera]))
+        drive_to_vision_target(
+            'DriveToPoseCustomControl + get_vision_target_pose', Pose2d(5.5, 3.1, Rotation2d.from_degrees(10)),
+            lambda: DriveToPoseCustomControl(
+                container, swerve, lambda: vision.get_vision_target_pose(swerve.get_pose(), [camera])))
