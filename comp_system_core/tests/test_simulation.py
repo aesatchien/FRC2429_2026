@@ -65,7 +65,7 @@ def _set_track_button(pad, pressed: bool) -> None:
 
 def test_simulation_end_to_end(control, robot):
     # the camera sim is built on the first simulation_periodic(), so this is in time
-    constants.SimConstants.k_disable_vision_sim = False
+    constants.SimConstants.k_camera_source = 'sim'
     with control.run_robot():
         container = robot.container
         swerve, shooter, intake, robot_state = container.swerve, container.shooter, container.intake, container.robot_state
@@ -218,7 +218,7 @@ def test_simulation_end_to_end(control, robot):
             swerve.resetOdometry(start)
             teleop(0.5)                                  # let the camera sim publish from the new spot
             assert vision.target_available(camera), \
-                "camera sim is publishing no targets - is SimConstants.k_disable_vision_sim True?"
+                "camera sim is publishing no targets - is SimConstants.k_camera_source 'sim'?"
             goal = vision.get_vision_target_pose(swerve.get_pose(), [camera])
             assert goal is not None
             assert min(goal.translation().distance(p) for p in piece_spots) < 0.05, \

@@ -109,7 +109,7 @@ The swerve drive is fully simulated to allow testing without a robot.
 -   **Inputs:** It listens to the `SwerveModuleState` targets set by the robot code.
 -   **Physics:** It uses `physics_controller.drive()` to calculate how the robot *would* move based on those states.
 -   **Feedback:** It updates the simulated Gyro (NavX) and Encoders so the robot code "thinks" it is moving.
--   **Live Tag Snapping:** If `k_use_live_tags_in_sim` is True, the simulation can snap the robot's position to match real-world AprilTag data, allowing for "Hardware-in-the-Loop" testing of vision algorithms.
+-   **Live Tag Snapping:** If `k_snap_to_real_sensors` is True, the simulation can snap the robot's position to match real-world AprilTag data, allowing for "Hardware-in-the-Loop" testing of vision algorithms.
 
 ---
 

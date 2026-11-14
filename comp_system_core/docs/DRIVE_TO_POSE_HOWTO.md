@@ -181,8 +181,8 @@ reach 2 cm, and without a timeout the rest of the auto never runs.
 
 ## Trying it in the simulator
 
-1. `constants.SimConstants.k_disable_vision_sim` must be `False` (it is by default). When
-   it is `True` the camera sim publishes no targets and every vision drive cancels.
+1. `constants.SimConstants.k_camera_source` must be `'sim'` (it is by default). When
+   it is `'real'` the camera sim publishes no targets and every vision drive cancels.
 2. From this directory, with the `robo2027_alpha` environment active:
    `python -m robotpy sim`
 3. Enable teleop and drive to within 4 m of the game pieces. They start at x = 7.5 m; the

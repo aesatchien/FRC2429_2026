@@ -120,9 +120,9 @@ simulation lives INSIDE the subsystem, the way Java and C++ teams have always do
     drift, skid and disagree with vision exactly as it does at competition.  Watching the
     `Robot` and `GroundTruth` objects separate is the feature.
 -   **Live Tag / Quest Snapping:** `simulation/hil_snap.py`, pumped from
-    `MyRobot.simulation_periodic()`.  If `k_use_live_tags_in_sim` is True (or a real Quest is
-    connected with `k_mock_questnav = False`) it teleports *ground truth* to what the real
-    hardware reports.  It does not touch the estimator - the estimator learns about it from
+    `MyRobot.simulation_periodic()`.  If `k_snap_to_real_sensors` is True it teleports *ground truth*
+    to what a real camera's AprilTag pose, or a real synced Quest (`k_quest_source = 'real'`),
+    reports.  It does not touch the estimator - the estimator learns about it from
     the vision measurements, as on the robot.
 
 ---

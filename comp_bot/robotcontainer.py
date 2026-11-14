@@ -188,7 +188,7 @@ class RobotContainer:
         # front / left camera sees (A and X, where these lived in January, are shooting now).
         # See docs/DRIVE_TO_POSE_HOWTO.md.
         # The hsv cameras only exist in CameraConstants.k_sim_cameras, and the targets only
-        # when SimConstants.k_disable_vision_sim is False.
+        # when SimConstants.k_camera_source is 'sim'.
         if wpilib.RobotBase.isSimulation() and not dpad_driving:
             js.driver_right.debounce(0.1).whileTrue(DriveToPoseCustomControl(self, self.swerve,
                 lambda: self.vision.get_vision_target_pose(self.swerve.get_pose(), ['logi_front_hsv'])))

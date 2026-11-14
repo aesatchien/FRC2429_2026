@@ -28,7 +28,7 @@ import constants
 
 def test_drive_to_simulated_vision_target(control, robot):
     # physics.py builds the camera sim in simulationInit, so this is in time
-    constants.SimConstants.k_disable_vision_sim = False
+    constants.SimConstants.k_camera_source = 'sim'
     with control.run_robot():
         from commands.drive_to_pose_custom_control import DriveToPoseCustomControl
         from simulation.gamepiece_sim import GamepieceSim
@@ -58,7 +58,7 @@ def test_drive_to_simulated_vision_target(control, robot):
             print(f"=== vision: {label} drives onto a simulated game piece ===")
             teleop(0.5)                                  # let the camera sim publish from here
             assert vision.target_available(camera), \
-                "camera sim is publishing no targets - is SimConstants.k_disable_vision_sim True?"
+                "camera sim is publishing no targets - is SimConstants.k_camera_source 'sim'?"
             start = truth_sub.get()
             goal = vision.get_vision_target_pose(swerve.get_pose(), [camera])
             assert goal is not None

@@ -39,7 +39,7 @@ Located in `simulation/vision_sim.py`. This is the "Virtual Coprocessor".
 ### How it works
 It takes the **Robot's Truth Pose** (from `/SmartDashboard/Sim/ground_truth`) and the list of **Active Gamepieces** (read off the field).
 
-Note `constants.SimConstants.k_disable_vision_sim`: while it is True (the default, for running real coprocessors against the sim) no camera targets are published at all - only the camera FOV triangles are drawn.
+Note `constants.SimConstants.k_camera_source`: while it is `'real'` (for running real coprocessors against the sim) no camera targets are published at all - only the camera FOV triangles are drawn.
 
 For each camera defined in `constants.CameraConstants.k_cameras`:
 1. **Geometry Check**: It calculates the vector from the robot to every gamepiece.
@@ -51,9 +51,8 @@ For each camera defined in `constants.CameraConstants.k_cameras`:
    - **Note**: It calculates "Strafe" (lateral offset) and "Rotation" relative to the camera, mimicking real vision processing.
 
 ### Visualization
-If `k_draw_camera_fovs` is True, it draws triangles on the Field2d widget representing the view cone of each camera.
+When a camera's `show_fov` toggle is on, it draws a triangle on the Field2d widget representing that camera's view cone.
 - **Triangle**: The camera sees targets inside this area.
-- **Empty**: If the triangle disappears (and `k_do_blink_test` is on), the camera connection is being simulated as "lost".
 
 ---
 
@@ -76,11 +75,18 @@ This is the code that runs on the real robot. It does **not** do any simulation 
 
 You can control the simulation behavior in `constants.py` under `SimConstants`.
 
-| Flag | Description |
-| :--- | :--- |
-| `k_disable_vision` | **True**: Stops the Vision Sim entirely. Use this when you have a real camera connected to the simulator (Hardware-in-the-Loop). |
-| `k_draw_camera_fovs` | **True**: Draws the blue FOV triangles on the field. Useful for debugging blind spots. |
-| `k_do_blink_test` | **True**: Randomly turns cameras on and off to test if your robot code handles connection failures gracefully. |
+There is one choice per sensor - where its data comes from - and the two are independent.
+
+| Setting | Value | What happens |
+| :--- | :--- | :--- |
+| `k_camera_source` | `'sim'` | The Vision Sim publishes what each camera would see. |
+| | `'real'` | The Vision Sim publishes nothing (it still draws FOVs), so real coprocessors own the `/Cameras/...` topics. Use this when a real camera is connected to the simulator (Hardware-in-the-Loop). |
+| | `'blink_test'` | Fake data that drops one camera at a time, to test how the dashboard handles lost cameras. |
+| `k_quest_source` | `'sim'` | The Quest subsystem fakes its pose from ground truth plus an error (the mock). |
+| | `'real'` | A real headset; with none connected the Quest is simply "not connected". |
+| `k_snap_to_real_sensors` | `True` | A real camera's AprilTag pose, or a real synced Quest, teleports the simulated robot to where it says. Does nothing without real hardware. |
+
+The FOV triangles are switched per camera from the dashboard (`<sim_prefix>/FOV/<camera>_show_fov`, see `commands/sim_show_fov.py`), not from a constant.
 
 ---
 

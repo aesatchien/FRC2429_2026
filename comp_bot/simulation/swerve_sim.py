@@ -73,14 +73,14 @@ class SwerveSim:
         # Update NavX
         self.navx_yaw.set(self.navx_yaw.get() - math.degrees(speeds.omega * tm_diff))
 
-        # --- Live Tag Snapping ---
-        if constants.SimConstants.k_use_live_tags_in_sim:
+        # --- Hardware in the loop: real sensors move the simulated robot ---
+        # Neither can fire without real hardware (see SimConstants.k_snap_to_real_sensors)
+        if constants.SimConstants.k_snap_to_real_sensors:
             self._snap_to_live_tags()
 
-        # Snap to real Quest hardware if we are doing hardware-in-the-loop testing
-        q_sys = self.robot.container.questnav
-        if (not constants.SimConstants.k_mock_questnav and q_sys.use_quest and q_sys.quest_has_synched and q_sys.is_pose_accepted()):
-            self._snap_to_quest()
+            q_sys = self.robot.container.questnav  # last, so a real Quest wins over a real tag
+            if not q_sys.mock_questnav and q_sys.use_quest and q_sys.quest_has_synched and q_sys.is_pose_accepted():
+                self._snap_to_quest()
 
     def _snap_to_live_tags(self):
         """

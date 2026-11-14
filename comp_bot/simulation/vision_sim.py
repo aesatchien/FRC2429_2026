@@ -12,6 +12,7 @@ class VisionSim:
         self.inst = ntcore.NetworkTableInstance.getDefault()
         
         # Configuration
+        self.source = constants.SimConstants.k_camera_source  # 'sim', 'real' or 'blink_test'
         self.cam_list = list(constants.CameraConstants.k_cameras.keys())
         self.physical_cameras = sorted(list(set(c['topic_name'] for c in constants.CameraConstants.k_cameras.values())))
 
@@ -29,11 +30,11 @@ class VisionSim:
             for key in self.cam_list
         }
 
-        # skip the rest of the publishers if we want real hardware to connect to the sim
-        if constants.SimConstants.k_disable_vision_sim:
+        # Real coprocessors own the /Cameras/... topics: make no publishers at all, so there
+        # is nothing of ours on those topics.  camera_dict stays empty and update() only draws FOVs.
+        if self.source == 'real':
             return
 
-        # note this will be skipped if we told it to disable vision - so update will loop through nothing
         for ix, (key, config) in enumerate(constants.CameraConstants.k_cameras.items()):
             cam_topic = config['topic_name']
             cam_type = config.get('label', config['type'])
@@ -73,19 +74,12 @@ class VisionSim:
     def update(self, robot_pose: Pose2d, gamepieces: list[dict]):
         now = wpilib.Timer.getFPGATimestamp()
 
-        # 1. Manual Override: Use External Cameras
-        # If True: Do not simulate targets, do not blink test. Just draw FOV.
-        if constants.SimConstants.k_use_external_cameras:
-            for key in self.cam_list:
-                self._update_fov_visualization(key, robot_pose, constants.CameraConstants.k_cameras[key], self.show_fov_subs[key].get())
-            return
-
-        # 2. Blink Test
-        if constants.SimConstants.k_do_blink_test:
+        if self.source == 'blink_test':
             self._run_blink_test(now)
             return
 
-        # 3. Normal Simulation
+        # 'sim' publishes what each camera would see; 'real' has no publishers (camera_dict is
+        # empty), so for it this loop only draws the FOVs
         for key in self.cam_list:
             config = constants.CameraConstants.k_cameras[key]
 
@@ -168,7 +162,7 @@ class VisionSim:
             self._update_fov_visualization(key, robot_pose, config, self.show_fov_subs[key].get())
 
     def _update_fov_visualization(self, key, robot_pose, config, show_fov):
-        if not constants.SimConstants.k_draw_camera_fovs or not show_fov:
+        if not show_fov:  # toggled per camera on <sim_prefix>/FOV/<camera>_show_fov (commands/sim_show_fov.py)
             self.fov_objects[key].setPoses([])
             return
 

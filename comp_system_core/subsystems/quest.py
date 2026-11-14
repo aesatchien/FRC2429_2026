@@ -76,15 +76,18 @@ class Questnav(Subsystem):
         # the double tap silo - a no-op unless qc.k_check_for_double_tap
         self.double_tap = DoubleTapWatch(qc.k_check_for_double_tap)
 
-        # Simulation override: True = use random walk sim, False = use real headset in sim
-        self.mock_questnav = wpilib.RobotBase.is_simulation() and getattr(constants.SimConstants, 'k_mock_questnav', True)
+        # In sim the Quest is either the mock (made up from ground truth) or a real headset on
+        # the network - SimConstants.k_quest_source.  On the robot it is always the real one.
+        sim = constants.SimConstants
+        self.mock_questnav = wpilib.RobotBase.is_simulation() and sim.k_quest_source == 'sim'
 
-        # Simulation variables
-        # Start with a large error to verify syncing works (e.g., Quest thinks world origin off by x=2, y=2)
-        self.sim_offset_from_truth = Transform2d(Translation2d(2, 2), Rotation2d.from_degrees(30))
-        # random walk - using uniform distribution, so sigma step ~ a/sqrt(3) and in n steps magnitude is sqrt n * sigma step
-        self.walk_xy = 0.005  # meters per loop, 0.005 per step at 50x/second should be 0.02 m/sec
-        self.walk_deg = 0.1  # degrees per loop
+        # The mock's error: where it thinks it is, relative to the truth.  Starts off badly
+        # wrong so that syncing visibly does something, then drifts by a random walk
+        # (uniform steps, so sigma per step ~ a/sqrt(3) and after n steps ~ sqrt(n) * sigma).
+        x, y, deg = sim.k_mock_quest_start_error
+        self.sim_offset_from_truth = Transform2d(Translation2d(x, y), Rotation2d.from_degrees(deg))
+        self.walk_xy = sim.k_mock_quest_walk_xy  # meters per loop
+        self.walk_deg = sim.k_mock_quest_walk_deg  # degrees per loop
 
         self._init_networktables()
 

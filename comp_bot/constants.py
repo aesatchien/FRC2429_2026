@@ -115,19 +115,43 @@ class SimConstants:
     k_cam_distance_limit = 4  # sim testing how far targets can be - usually 3 to 3.5m on the real cameras
     k_tag_visibility_angle = 60  # degrees, the angle from normal that the tag can be seen (90 means +/- 90 deg)
 
-    k_print_config = True  # use for debugging the camera config
+    # ---------------------------------------------------------------------------------
+    # WHERE DOES EACH SENSOR'S DATA COME FROM IN THE SIMULATOR?
+    # One choice per sensor.  'sim' = made up from where the simulated robot really is
+    # (ground truth).  'real' = actual hardware on the network, talking to the sim's NT
+    # server.  The two choices are independent: any camera source works with any Quest source.
+    # ---------------------------------------------------------------------------------
+    # 'sim'        the camera sim publishes targets/distance/rotation/strafe on /Cameras/...
+    #              for every camera in CameraConstants.k_cameras - what
+    #              Vision.get_vision_target_pose() and so DriveToPoseCustomControl drive to.
+    # 'real'       the camera sim publishes NOTHING (it still draws FOVs), so real
+    #              coprocessors own the /Cameras/... topics.  Use it whenever a real
+    #              coprocessor publishes a camera the sim also knows, or the two fight over
+    #              the same topics.  Driving to a sim target reports 'Vision target not found'.
+    # 'blink_test' fake data that drops one camera at a time, to test how the dashboard
+    #              handles lost cameras.  Not a simulation of anything on the field.
+    k_camera_source = 'sim'
+    # 'sim'   the Quest subsystem makes its pose from ground truth plus an error (the mock,
+    #         Questnav._update_pose_from_mock) - no headset needed.
+    #         NOTE: on this (roboRIO) project physics.py resets the pose estimator to ground
+    #         truth every loop, so the mock is drawn and synced but never moves the estimate.
+    # 'real'  a real headset.  With none connected the Quest is just "not connected", as on a
+    #         robot with the headset off, and nothing Quest-related happens.
+    k_quest_source = 'real'
+    # Real sensors move the SIMULATED ROBOT (simulation/swerve_sim.py): a fresh AprilTag pose from a
+    # real camera, or an accepted pose from a real, synced Quest, teleports ground truth to it.
+    # (Both at once: the Quest wins.)  It does nothing without real hardware - the camera sim
+    # never writes the tag 'poses' topics and the mock Quest is never snapped to - so it only
+    # needs to be False to drive the simulated robot around while real sensors are reporting.
+    k_snap_to_real_sensors = True
 
-    # False = the camera sim publishes targets/distance/rotation/strafe for every camera in
-    # CameraConstants.k_cameras, which is what Vision.get_vision_target_pose() and so
-    # DriveToPoseCustomControl drive to.  It was True from March to November 2026, which is why driving to a sim
-    # target quietly stopped working ('Vision target not found. Aborting.').  Set True only
-    # when REAL coprocessors are publishing the same /Cameras/... topics against the sim.
-    k_disable_vision_sim = False  # Hard disable.  Set to stop all vision simulation (e.g. ONLY using real coprocessors)
-    k_draw_camera_fovs = True  # Set to draw camera FOV triangles - should always want this
-    k_use_external_cameras = False  # override the vision sim to only take targets from real cams - squashes blink_test
-    k_do_blink_test = False  # Set to test dashboard connection handling (e.g. dropping camera connections)
-    k_use_live_tags_in_sim = True  # Set to True to snap the robot's swerve sim to live AprilTag data
-    k_mock_questnav = False  # Set to False to test real QuestNav hardware in Sim
+    # the mock Quest's error (k_quest_source = 'sim' only)
+    k_mock_quest_start_error = (2.0, 2.0, 30.0)  # m, m, deg off the truth until the first sync - proves syncing works
+    k_mock_quest_walk_xy = 0.005  # random walk, meters per loop (uniform): about 0.02 m/s of drift
+    k_mock_quest_walk_deg = 0.1  # random walk, degrees per loop
+
+    assert k_camera_source in ('sim', 'real', 'blink_test'), f"SimConstants.k_camera_source = {k_camera_source!r}"
+    assert k_quest_source in ('sim', 'real'), f"SimConstants.k_quest_source = {k_quest_source!r}"
 
 
 class VisionConstants:

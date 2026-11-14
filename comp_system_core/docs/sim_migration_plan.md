@@ -58,7 +58,7 @@ does it for the deploy arm. Anything new that re-zeroes a Spark encoder in sim n
 | **Climber** | `ElevatorSim` behind a `SparkMaxSim`. Pattern only — the subsystem is still half written and not constructed by `RobotContainer`. |
 | **Vision** | owns `simulation/vision_sim.py`, fed ground truth from NT. Reads the game pieces back off the field's `Gamepieces` object, so it depends on nothing but the shared Field2d. |
 | **RobotState** | owns `simulation/gamepiece_sim.py` (field state, not a mechanism), fed ground truth from NT. |
-| **Quest** | untouched; already self-contained behind `k_mock_questnav`. |
+| **Quest** | untouched; already self-contained behind `k_quest_source` (was `k_mock_questnav`). |
 | **LED / Targeting** | nothing to model. |
 
 `robot.py`'s `simulation_periodic()` pumps the two things that are not mechanisms:
@@ -103,8 +103,8 @@ pre-migration commit and never appears while the program is running.)
 
 - **`vision.py` sim branches.** `get_strafe()` still fakes "we are on tag 18" under
   `is_simulation()`, and `periodic()` publishes the FPGA time as match time in sim. Both
-  predate the vision sim and are independent of it; with `k_disable_vision_sim = True` by
-  default the camera sim publishes no targets, so the `get_strafe()` hack is the only thing
+  predate the vision sim and are independent of it; with `k_camera_source = 'real'` (then
+  `k_disable_vision_sim = True`, the default at the time) the camera sim publishes no targets, so the `get_strafe()` hack is the only thing
   keeping strafe-based commands alive in sim. Decide whether to flip the default and delete it.
 - **Plant numbers are guesses.** `SimConstants.k_*_moi` etc. Tune when something looks
   wrong on screen; nothing on the robot depends on them.

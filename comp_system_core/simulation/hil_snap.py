@@ -1,9 +1,10 @@
 """
 Hardware-in-the-loop: teleport the simulated robot to wherever REAL hardware says it is.
 
-Two sources, both optional:
-  * a real camera on the network reporting a real AprilTag (constants.SimConstants.k_use_live_tags_in_sim)
-  * a real Quest headset connected to the sim (constants.SimConstants.k_mock_questnav = False)
+Two sources, both optional, both switched by constants.SimConstants.k_snap_to_real_sensors:
+  * a real camera on the network reporting a real AprilTag
+  * a real Quest headset connected to the sim (SimConstants.k_quest_source = 'real')
+Neither can fire without real hardware, so it is safe to leave on.
 
 This does not fit the per-subsystem simulation model - it is not a mechanism, it is a way of
 using bench hardware to drive the sim - so it lives here and is pumped from
@@ -41,12 +42,13 @@ class HardwareInTheLoop:
                                   for cam in self.camera_names]
 
     def update(self) -> None:
-        if constants.SimConstants.k_use_live_tags_in_sim:
-            self._snap_to_live_tags()
+        if not constants.SimConstants.k_snap_to_real_sensors:
+            return
 
-        q = self.questnav
-        if (not constants.SimConstants.k_mock_questnav and q.use_quest and q.quest_has_synched
-                and q.is_pose_accepted()):
+        self._snap_to_live_tags()
+
+        q = self.questnav  # last, so a real Quest wins over a real tag
+        if not q.mock_questnav and q.use_quest and q.quest_has_synched and q.is_pose_accepted():
             self._snap_to_quest()
 
     def _snap_to_live_tags(self) -> None:

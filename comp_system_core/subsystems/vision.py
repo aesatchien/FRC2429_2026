@@ -244,9 +244,8 @@ class Vision(Subsystem):
     # The camera sim fakes the /Cameras/... topics this subsystem subscribes to, from where
     # the robot REALLY is (ground truth, published by Swerve.simulation_periodic()).  The
     # code above never knows whether a Pi or the sim wrote them.  Note
-    # constants.SimConstants.k_disable_vision_sim - when True (the default while real
-    # coprocessors are being used against the sim) this only draws camera FOVs and publishes
-    # no targets at all.
+    # constants.SimConstants.k_camera_source - when it is 'real' (real coprocessors are being
+    # used against the sim) this only draws camera FOVs and publishes no targets at all.
     def simulation_periodic(self) -> None:
         if self._sim is None:
             from simulation.vision_sim import VisionSim
