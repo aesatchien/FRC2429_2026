@@ -46,6 +46,8 @@ class VisionSim:
             return
 
         for ix, (key, config) in enumerate(constants.CameraConstants.k_cameras.items()):
+            if config.get('external'):
+                continue  # published from outside the robot program (see CameraConstants) - not ours
             cam_topic = config['topic_name']
             cam_type = config.get('label', config['type'])
             base = f'/Cameras/{cam_topic}/{cam_type}'
@@ -59,6 +61,10 @@ class VisionSim:
                 'strafe_pub': self.inst.get_double_topic(f"{base}/strafe").publish(),
                 'rotation_pub': self.inst.get_double_topic(f"{base}/rotation").publish()
             }
+            if config['type'] == 'tags':
+                # what a real tag camera sends for odometry: [tag id, x, y, z, rx, ry, rz] of the ROBOT
+                self.camera_dict[key]['pose_pub'] = self.inst.get_double_array_topic(
+                    f"/Cameras/{cam_topic}/poses/tag1").publish(PubSubOptions(keep_duplicates=True))
 
     def _init_field_objects(self):
         # Pre-fetch Field2d objects for FOV visualization
@@ -69,6 +75,7 @@ class VisionSim:
     def _init_apriltags(self):
         self.tag_translations = []
         self.tag_poses = []
+        self.tag_ids = []
         
         # Load tags from the layout utility
         for tag in apriltag_utils.layout.get_tags():
@@ -76,6 +83,7 @@ class VisionSim:
             if pose3d is not None:
                 pose2d = pose3d.to_pose2d()
                 self.tag_poses.append(pose2d)
+                self.tag_ids.append(tag.ID)
                 self.tag_translations.append(pose2d.translation())
         
         dashboard.field_object("AprilTags").set_poses(self.tag_poses)
@@ -112,9 +120,10 @@ class VisionSim:
                 # Determine candidates based on camera type
                 candidates = []
                 if config['type'] == 'hsv':
-                    candidates = [{'pos': gp['pos'], 'facing': None} for gp in gamepieces if gp['active']]
+                    candidates = [{'pos': gp['pos'], 'facing': None, 'id': None} for gp in gamepieces if gp['active']]
                 elif config['type'] == 'tags':
-                    candidates = [{'pos': p.translation(), 'facing': p.rotation()} for p in self.tag_poses]
+                    candidates = [{'pos': p.translation(), 'facing': p.rotation(), 'id': tag_id}
+                                  for p, tag_id in zip(self.tag_poses, self.tag_ids)]
 
                 # Unified detection logic
                 for candidate in candidates:
@@ -150,7 +159,7 @@ class VisionSim:
                     d = vec_to_target.norm()
                     if abs(angle_cam_relative) < (cam_fov / 2.0) and d < constants.SimConstants.k_cam_distance_limit:
                         s = d * math.sin(math.radians(angle_cam_relative))
-                        visible_targets.append({'dist': d, 'rot': angle_cam_relative, 'strafe': s})
+                        visible_targets.append({'dist': d, 'rot': angle_cam_relative, 'strafe': s, 'id': candidate['id']})
 
                 if visible_targets:
                     closest = min(visible_targets, key=lambda x: x['dist'])
@@ -166,10 +175,13 @@ class VisionSim:
                 cam_data['strafe_pub'].set(strafe)
                 cam_data['rotation_pub'].set(rot)
 
-                # NOTE: We do NOT publish to the 'poses' topic here with the other data.
-                # Two consumers listen for live tags on 'poses' - Swerve's vision measurements
-                # and simulation/hil_snap.py - and neither should mistake a simulated target
-                # for a real camera seeing a real tag.
+                # A tag camera with a tag in view also reports where the ROBOT is, which is
+                # what Swerve fuses.  A real camera works that out from the tag; we know the
+                # answer, so it is ground truth, with no noise.  hil_snap.py must never snap
+                # to this - it only listens to cameras we do not publish.
+                if visible_targets and 'pose_pub' in cam_data:
+                    cam_data['pose_pub'].set([closest['id'], robot_pose.x, robot_pose.y, 0.0,
+                                              0.0, 0.0, robot_pose.rotation().radians()])
 
             # 3. Update FOV Visualization
             self._update_fov_visualization(key, robot_pose, config, self.show_fov_subs[key].get())

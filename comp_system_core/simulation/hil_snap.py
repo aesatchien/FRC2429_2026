@@ -4,7 +4,10 @@ Hardware-in-the-loop: teleport the simulated robot to wherever REAL hardware say
 Two sources, both optional, both switched by constants.SimConstants.k_snap_to_real_sensors:
   * a real camera on the network reporting a real AprilTag
   * a real Quest headset connected to the sim (SimConstants.k_quest_source = 'real')
-Neither can fire without real hardware, so it is safe to leave on.
+Neither can fire on simulated data, so it is safe to leave on: the mock Quest is never
+snapped to, and with SimConstants.k_camera_source = 'sim' only the cameras marked 'external'
+in CameraConstants are listened to - the rest are the camera sim's own, and it publishes tag
+poses made from ground truth.
 
 This does not fit the per-subsystem simulation model - it is not a mechanism, it is a way of
 using bench hardware to drive the sim - so it lives here and is pumped from
@@ -34,8 +37,9 @@ class HardwareInTheLoop:
 
         # Live tag subscribers.  Same topics Swerve subscribes to; separate subscriptions so
         # the two consumers cannot interfere with each other's get_atomic() bookkeeping.
+        sim_owns_cameras = constants.SimConstants.k_camera_source == 'sim'
         self.camera_names = [config['topic_name'] for config in constants.CameraConstants.k_cameras.values()
-                             if config['type'] == 'tags']
+                             if config['type'] == 'tags' and (config.get('external') or not sim_owns_cameras)]
         self.pose_subscribers = [self.inst.get_double_array_topic(f"/Cameras/{cam}/poses/tag1").subscribe([0] * 7)
                                  for cam in self.camera_names]
         self.count_subscribers = [self.inst.get_double_topic(f"/Cameras/{cam}/tags/targets").subscribe(0)
@@ -60,9 +64,7 @@ class HardwareInTheLoop:
             atomic_data = pose_sub.get_atomic()
             tag_data = atomic_data.value
 
-            # Freshness.  This is ALSO what keeps us from snapping to our own simulated tags:
-            # vision_sim.py deliberately never writes the 'poses' topic, so a simulated camera
-            # leaves it stale and it is ignored here.
+            # Freshness - a camera that has stopped reporting must not hold the robot in place.
             # seconds via helpers.nt_time - a7 NT timestamps are nanoseconds
             if nt_age_seconds(atomic_data.time) >= self.k_max_tag_age_s:
                 continue

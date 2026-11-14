@@ -762,3 +762,11 @@ class Swerve (Subsystem):
         else, the estimator finds out the same way it would on the robot, through its vision
         measurements.  That is the whole reason to keep the two apart."""
         self._sim_ground_truth = pose
+
+    def sim_kick(self, dx: float, dy: float, ddeg: float) -> None:
+        """Sim only: shove the ROBOT by this much (field x, y in m, degrees) without odometry
+        noticing - a hit or a wheel slip.  The estimate is now wrong and has to be pulled back
+        by tags and the Quest.  See SimConstants.k_kick."""
+        truth = self.sim_get_ground_truth()
+        self.sim_set_ground_truth(Pose2d(truth.x + dx, truth.y + dy, truth.rotation() + Rotation2d.from_degrees(ddeg)))
+        print(f"Sim: kicked the robot by {dx:.2f} m, {dy:.2f} m, {ddeg:.0f} deg")

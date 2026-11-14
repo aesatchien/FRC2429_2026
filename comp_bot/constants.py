@@ -145,10 +145,10 @@ class SimConstants:
     # needs to be False to drive the simulated robot around while real sensors are reporting.
     k_snap_to_real_sensors = True
 
-    # the mock Quest's error (k_quest_source = 'sim' only)
-    k_mock_quest_start_error = (2.0, 2.0, 30.0)  # m, m, deg off the truth until the first sync - proves syncing works
-    k_mock_quest_walk_xy = 0.005  # random walk, meters per loop (uniform): about 0.02 m/s of drift
-    k_mock_quest_walk_deg = 0.1  # random walk, degrees per loop
+    # the mock Quest's error before its first sync (k_quest_source = 'sim' only) - m, m, deg.
+    # Big on purpose, so that a sync visibly does something.  A sync replaces it with whatever
+    # error the pose estimate has at that moment; it does not drift.
+    k_mock_quest_start_error = (2.0, 2.0, 30.0)
 
     assert k_camera_source in ('sim', 'real', 'blink_test'), f"SimConstants.k_camera_source = {k_camera_source!r}"
     assert k_quest_source in ('sim', 'real'), f"SimConstants.k_quest_source = {k_quest_source!r}"

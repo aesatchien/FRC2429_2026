@@ -230,9 +230,12 @@ class CameraConstants:
     k_cameras = k_comp_cameras
 
     # add local_tester.py's sim camera if in sim - allows for testing without pis
+    # 'external': something outside the robot program publishes this camera, even when
+    # SimConstants.k_camera_source is 'sim'.  The camera sim leaves its topics alone, and it is
+    # the only camera whose tags can move the simulated robot while the rest are simulated.
     if wpilib.RobotBase.is_simulation():
         k_cameras = k_sim_cameras
-        k_cameras.update({'front_sim': {'topic_name': 'LocalTest', 'type': 'tags', 'rotation': 0, 'fov': fov},})
+        k_cameras.update({'front_sim': {'topic_name': 'LocalTest', 'type': 'tags', 'rotation': 0, 'fov': fov, 'external': True},})
 
 
 class SimConstants:
@@ -248,7 +251,9 @@ class SimConstants:
     # ---------------------------------------------------------------------------------
     # 'sim'        the camera sim publishes targets/distance/rotation/strafe on /Cameras/...
     #              for every camera in CameraConstants.k_cameras - what
-    #              Vision.get_vision_target_pose() and so DriveToPoseCustomControl drive to.
+    #              Vision.get_vision_target_pose() and so DriveToPoseCustomControl drive to -
+    #              and, for a tag camera with a tag in view, the robot pose on poses/tag1,
+    #              which Swerve fuses into the pose estimate exactly as it does a real tag.
     # 'real'       the camera sim publishes NOTHING (it still draws FOVs), so real
     #              coprocessors own the /Cameras/... topics.  Use it whenever a real
     #              coprocessor publishes a camera the sim also knows, or the two fight over
@@ -257,23 +262,31 @@ class SimConstants:
     #              handles lost cameras.  Not a simulation of anything on the field.
     k_camera_source = 'sim'
     # 'sim'   the Quest subsystem makes its pose from ground truth plus an error (the mock,
-    #         Questnav._update_pose_from_mock) - no headset needed.  Its error is fused into
-    #         the pose estimate, and that is enough to fail tests/test_simulation.py's
-    #         drive-to-a-target checks (true before these were renamed, too).
+    #         Questnav._update_pose_from_mock) - no headset needed.  The error starts large
+    #         and a sync replaces it with whatever error the pose estimate has at that moment,
+    #         which is how a real headset gets its error too.
     # 'real'  a real headset.  With none connected the Quest is just "not connected", as on a
     #         robot with the headset off, and nothing Quest-related happens.
     k_quest_source = 'real'
     # Real sensors move the SIMULATED ROBOT (simulation/hil_snap.py): a fresh AprilTag pose from a
     # real camera, or an accepted pose from a real, synced Quest, teleports ground truth to it.
-    # (Both at once: the Quest wins.)  It does nothing without real hardware - the camera sim
-    # never writes the tag 'poses' topics and the mock Quest is never snapped to - so it only
-    # needs to be False to drive the simulated robot around while real sensors are reporting.
+    # (Both at once: the Quest wins.)  It cannot fire on simulated data - a camera the camera
+    # sim is publishing is never snapped to, and neither is the mock Quest - so it only needs to
+    # be False to drive the simulated robot around while real sensors are reporting.
     k_snap_to_real_sensors = True
 
-    # the mock Quest's error (k_quest_source = 'sim' only)
-    k_mock_quest_start_error = (2.0, 2.0, 30.0)  # m, m, deg off the truth until the first sync - proves syncing works
-    k_mock_quest_walk_xy = 0.005  # random walk, meters per loop (uniform): about 0.02 m/s of drift
-    k_mock_quest_walk_deg = 0.1  # random walk, degrees per loop
+    # ---- testing sensor fusion: kick something and watch the estimate recover ----
+    # Odometry in sim is perfect, so nothing ever disagrees on its own.  Two dashboard
+    # commands (sim only) create a disagreement on demand, each by this much (m, m, deg):
+    #   SimKickRobot  moves the ROBOT (ground truth) without telling odometry - a hit or a
+    #                 wheel slip.  Tags in view and the Quest are right; the estimate catches up.
+    #   SimKickQuest  moves the mock QUEST's idea of where it is - a tracking jump.  Now the
+    #                 Quest is the one that is wrong, and tags and odometry outvote it.
+    # On the field widget, Robot is the estimate and GroundTruth is where it really is.
+    k_kick = (0.5, 0.3, 10.0)
+    # the mock Quest's error before its first sync (k_quest_source = 'sim' only) - m, m, deg.
+    # Big on purpose, so that a sync visibly does something.
+    k_mock_quest_start_error = (2.0, 2.0, 30.0)
 
     assert k_camera_source in ('sim', 'real', 'blink_test'), f"SimConstants.k_camera_source = {k_camera_source!r}"
     assert k_quest_source in ('sim', 'real'), f"SimConstants.k_quest_source = {k_quest_source!r}"

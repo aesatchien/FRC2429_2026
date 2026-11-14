@@ -322,6 +322,11 @@ class RobotContainer:
         dashboard.SmartDashboard.put_data(f'{command_prefix}/LED Indicator', self.led_indicator_chooser)
 
         # set all subsystems - used on dash
+        if wpilib.RobotBase.is_simulation():
+            # testing sensor fusion - see SimConstants.k_kick
+            kick = constants.SimConstants.k_kick
+            dashboard.SmartDashboard.put_data(f'{command_prefix}/SimKickRobot', InstantCommand(lambda: self.swerve.sim_kick(*kick)).ignoring_disable(True))
+            dashboard.SmartDashboard.put_data(f'{command_prefix}/SimKickQuest', InstantCommand(lambda: self.questnav.sim_kick_quest(*kick)).ignoring_disable(True))
         dashboard.SmartDashboard.put_data(f'{command_prefix}/SetSuccess', SetLEDs(container=self, led=self.led, indicator=Led.Indicator.kSUCCESS))
         dashboard.SmartDashboard.put_data(f'{command_prefix}/IntakeStow', Intake_Deploy(intake=self.intake, position='up'))
         dashboard.SmartDashboard.put_data(f'{command_prefix}/IntakeDeploy', Intake_Deploy(intake=self.intake, position='down'))

@@ -1,5 +1,5 @@
 import wpilib
-import random
+import ntcore
 from commands2 import SubsystemBase, InstantCommand
 from wpilib import SmartDashboard, DriverStation, Timer
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d, Pose3d, Transform2d
@@ -80,12 +80,10 @@ class Questnav(SubsystemBase):
         self.mock_questnav = wpilib.RobotBase.isSimulation() and sim.k_quest_source == 'sim'
 
         # The mock's error: where it thinks it is, relative to the truth.  Starts off badly
-        # wrong so that syncing visibly does something, then drifts by a random walk
-        # (uniform steps, so sigma per step ~ a/sqrt(3) and after n steps ~ sqrt(n) * sigma).
+        # wrong so that syncing visibly does something.  After a sync it is whatever error the
+        # pose estimate had at that moment; sim_kick_quest() adds to it.  It does not drift.
         x, y, deg = sim.k_mock_quest_start_error
         self.sim_offset_from_truth = Transform2d(Translation2d(x, y), Rotation2d.fromDegrees(deg))
-        self.walk_xy = sim.k_mock_quest_walk_xy  # meters per loop
-        self.walk_deg = sim.k_mock_quest_walk_deg  # degrees per loop
 
         self._init_networktables()
 
@@ -232,15 +230,11 @@ class Questnav(SubsystemBase):
         # _check_pending_reset) - sending the command is not the same as it being applied
         self.pending_reset_marks_synced = True
 
-        if self.mock_questnav:
-            # In Sim, "Sync" means agree with Ground Truth (remove all drift/error)
-            self.set_quest_pose(self.ground_truth_sub.get())
-        else:
-            # In Real life, "Sync" means agree with the Robot's Odometry
-            # Although, really, the swerve sim is basically serving that same sim ground truth
-
+        # "Sync" means agree with the robot's pose estimate - for the mock as well, so it
+        # inherits the estimate's error at this moment exactly as a real headset does.
+        if not self.mock_questnav:
             print("Sync command sent to questnav, waiting for the headset to apply it")
-            self.set_quest_pose(self.drive_pose_sub.get())
+        self.set_quest_pose(self.drive_pose_sub.get())
 
         print(f'  syncing quest to {self.drive_pose_sub.get()} (quest was at {self.quest_pose})')
 
@@ -402,24 +396,31 @@ class Questnav(SubsystemBase):
 
     def _update_pose_from_mock(self) -> None:
         """Sim without a headset: ground truth from the physics sim plus the mock's drift/error."""
-        # Add a random walk to the error to simulate drift
-        self.sim_offset_from_truth = Transform2d(
-            self.sim_offset_from_truth.X() + (random.random() - 0.5) * 2 * self.walk_xy,
-            self.sim_offset_from_truth.Y() + (random.random() - 0.5) * 2 * self.walk_xy,
-            Rotation2d.fromDegrees(
-                self.sim_offset_from_truth.rotation().degrees() + (random.random() - 0.5) * 2 * self.walk_deg)
-        )
-
-        ground_truth_atomic = self.ground_truth_sub.getAtomic()
-        ground_truth: Pose2d = ground_truth_atomic.value
+        ground_truth: Pose2d = self.ground_truth_sub.get()
         # Apply the offset field-relatively (simple addition), not robot-relatively (transformBy)
         self.quest_pose = Pose2d(
             ground_truth.X() + self.sim_offset_from_truth.X(),
             ground_truth.Y() + self.sim_offset_from_truth.Y(),
             ground_truth.rotation() + self.sim_offset_from_truth.rotation()
         )
-        self.quest_pose_timestamp = ground_truth_atomic.time / 1_000_000.0
-        self.was_tracking = True  # Sim never loses tracking
+        # NOW, in NT seconds - not the time ground truth last CHANGED.  NT
+        # does not restamp a value that is set again unchanged, so a robot standing still used
+        # to hand Swerve an older and older pose until the estimator threw it away as stale.
+        self.quest_pose_timestamp = ntcore._now() / 1e6
+        self.was_tracking = True  # the mock never loses tracking ...
+        self.missed_frame_count = 0  # ... or a frame
+
+    def sim_kick_quest(self, dx: float, dy: float, ddeg: float) -> None:
+        """Sim only: the mock Quest's tracking jumps by this much (field x, y in m, degrees).
+        Nothing calls this here: comp_system_core has the SimKickQuest dashboard command, but on
+        this project physics.py resets the estimator to ground truth every loop, so a kick shows nothing."""
+        if not self.mock_questnav:
+            print("SimKickQuest does nothing: the Quest is not the mock (SimConstants.k_quest_source)")
+            return
+        old = self.sim_offset_from_truth
+        self.sim_offset_from_truth = Transform2d(Translation2d(old.X() + dx, old.Y() + dy),
+                                                 old.rotation() + Rotation2d.fromDegrees(ddeg))
+        print(f"Sim: kicked the mock Quest by {dx:.2f} m, {dy:.2f} m, {ddeg:.0f} deg")
 
     def _update_acceptance(self, is_connected: bool, is_tracking: bool) -> None:
         # If we missed >5 frames (100ms), we missed an NT heartbeat. Suspend immediately.

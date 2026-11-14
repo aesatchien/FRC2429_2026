@@ -48,6 +48,7 @@ For each camera defined in `constants.CameraConstants.k_cameras`:
    - **Field of View (FOV)**: Is the angle to the gamepiece within the camera's view cone? (Taking into account the camera's mounting rotation on the robot).
 3. **Selection**: It picks the *closest* valid gamepiece.
 4. **Publishing**: It writes the target details to NetworkTables topics (e.g., `/Cameras/LogitechReef/hsv/distance`).
+   - **Tag cameras** with a tag in view also publish the robot's pose on `/Cameras/<camera>/poses/tag1` (ground truth, no noise). Swerve fuses it into the pose estimate exactly as it does a real tag pose.
    - **Note**: It calculates "Strafe" (lateral offset) and "Rotation" relative to the camera, mimicking real vision processing.
 
 ### Visualization
@@ -85,6 +86,7 @@ There is one choice per sensor - where its data comes from - and the two are ind
 | `k_quest_source` | `'sim'` | The Quest subsystem fakes its pose from ground truth plus an error (the mock). |
 | | `'real'` | A real headset; with none connected the Quest is simply "not connected". |
 | `k_snap_to_real_sensors` | `True` | A real camera's AprilTag pose, or a real synced Quest, teleports the simulated robot to where it says. Does nothing without real hardware. |
+| `k_kick` | `(m, m, deg)` | How far the sim-only dashboard commands `SimKickRobot` and `SimKickQuest` move the robot (without odometry noticing) or the mock Quest's tracking. Odometry in sim is perfect, so this is how to make the sensors disagree and watch the estimate (`Robot`) recover toward `GroundTruth`. |
 
 The FOV triangles are switched per camera from the dashboard (`<sim_prefix>/FOV/<camera>_show_fov`, see `commands/sim_show_fov.py`), not from a constant.
 

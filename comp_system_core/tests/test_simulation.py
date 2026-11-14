@@ -272,3 +272,80 @@ def test_simulation_end_to_end(control, robot):
         turn_off = abs((truth.rotation() - goal.rotation()).degrees())
         assert off < 0.10 and turn_off < 5, f"stopped {off:.2f} m and {turn_off:.1f} deg from {goal}"
         print(f"    stopped {off * 100:.1f} cm and {turn_off:.1f} deg from the shooting pose")
+
+        # ------------------------------------------------------------------ sensor fusion
+        # Odometry in sim is perfect, so nothing disagrees until something is kicked
+        # (SimConstants.k_kick).  Each step makes one thing wrong and checks who wins.
+        from wpimath import Translation2d
+        questnav = container.questnav
+
+        def error_m():
+            return swerve.get_pose().translation().distance(swerve.sim_get_ground_truth().translation())
+
+        def idle(seconds):
+            control.step_timing(seconds=seconds, autonomous=False, enabled=False)
+
+        def place(pose):
+            swerve.sim_set_ground_truth(pose)
+            swerve.resetOdometry(pose)
+            idle(0.5)                                    # let the camera sim publish from the new spot
+
+        def tags_in_view():
+            return any(sub.get() > 0 for sub in swerve.count_subscribers)
+
+        print("=== fusion: robot kicked in view of a tag, the tag pulls the estimate back ===")
+        # 2 m out from a tag and looking straight at it (arducam_right points where the robot does)
+        facing_a_tag = None
+        for tag in vision._sim.tag_poses:
+            spot = Pose2d(tag.translation() + Translation2d(2.0, 0.0).rotate_by(tag.rotation()),
+                          tag.rotation() + Rotation2d.from_degrees(180))
+            if 1.5 < spot.x < constants.FieldConstants.k_field_length - 1.5 and 1.5 < spot.y < constants.FieldConstants.k_field_width - 1.5:
+                facing_a_tag = spot
+                break
+        assert facing_a_tag is not None
+        place(facing_a_tag)
+        assert tags_in_view(), "the camera sim sees no tag from 2 m in front of one"
+        assert error_m() < 0.02
+        swerve.sim_kick(0.3, 0.2, 5.0)
+        kicked = error_m()
+        assert kicked > 0.3, f"the kick only moved the robot {kicked:.2f} m off its estimate"
+        idle(2.0)
+        assert error_m() < 0.05, f"2 s after the kick the estimate is still {error_m():.2f} m off, with a tag in view"
+        print(f"    estimate {kicked:.2f} m off after the kick, {error_m() * 100:.1f} cm off 2 s later")
+
+        print("=== fusion: robot kicked with no tag in view, the Quest pulls the estimate back ===")
+        questnav.mock_questnav = True                    # the rest of this test ran with no Quest at all
+        nowhere = None
+        for heading in range(0, 360, 15):
+            place(Pose2d(constants.FieldConstants.k_field_length / 2, constants.FieldConstants.k_field_width / 2,
+                         Rotation2d.from_degrees(heading)))
+            if not tags_in_view():
+                nowhere = heading
+                break
+        assert nowhere is not None, "no heading at midfield without a tag in view"
+        questnav.quest_sync_odometry()
+        idle(0.2)
+        assert questnav.quest_has_synched and questnav.is_pose_accepted()
+        swerve.sim_kick(0.3, 0.2, 5.0)
+        kicked = error_m()
+        assert not tags_in_view(), "the kick brought a tag into view - this step is about the Quest alone"
+        idle(5.0)
+        assert error_m() < 0.05, f"5 s after the kick the estimate is still {error_m():.2f} m off, with the Quest fused"
+        print(f"    estimate {kicked:.2f} m off after the kick, {error_m() * 100:.1f} cm off 5 s later")
+
+        print("=== fusion: the QUEST is wrong and nothing else can see - the estimate follows it ===")
+        # not what anyone wants, but what the robot does: with no tag in view a Quest that is a
+        # little wrong is the only thing with an opinion.  This is the case to watch on the field widget.
+        questnav.sim_kick_quest(0.4, 0.0, 0.0)
+        idle(3.0)
+        assert 0.2 < error_m() < 0.45, f"estimate is {error_m():.2f} m off after the Quest jumped 0.4 m"
+        print(f"    Quest jumped 0.4 m, estimate followed it {error_m():.2f} m")
+
+        print("=== fusion: a Quest that is wildly wrong is ignored ===")
+        questnav.sim_kick_quest(6.0, 0.0, 0.0)           # Swerve only fuses a Quest within 4 m of the estimate
+        before = swerve.get_pose()
+        idle(3.0)
+        moved = swerve.get_pose().translation().distance(before.translation())
+        assert moved < 0.02, f"the estimate moved {moved:.2f} m toward a Quest that is 6 m off"
+        print(f"    Quest jumped 6 m, estimate moved {moved * 100:.1f} cm")
+        questnav.mock_questnav = False
