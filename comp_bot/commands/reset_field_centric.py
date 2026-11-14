@@ -10,6 +10,14 @@ from helpers.log_command import log_command
 
 @log_command(console=True, nt=False, print_init=True, print_end=False)
 class ResetFieldCentric(commands2.Command):
+    """Driver Y: the "everything is lost" recovery, NOT a heading-only reset.
+
+    The driver parks in front of our hub - 3.2 m out from our alliance wall, on the field
+    centreline, facing away from the wall - and presses Y.  The pose estimate is set to
+    exactly that spot and the Quest is unsynced, which leaves the robot close to field
+    calibrated.  The `angle` argument is not used.  The name is historical; the dashboard
+    looks the command up by it, so it stays.
+    """
 
     def __init__(self, container, swerve: Swerve, angle: float=0, indent=0) -> None:
         super().__init__()

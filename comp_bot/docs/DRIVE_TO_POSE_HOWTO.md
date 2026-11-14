@@ -40,6 +40,7 @@ Two consequences worth remembering:
 | `swerve` | The swerve subsystem. The command requires it, so it interrupts driving. |
 | `target_pose_supplier` | Function with no arguments returning a field `Pose2d`, or `None` to abort. |
 | `tolerance_type` | `'exact'` (default) or `'fast'`, see below. |
+| `stop_at_end` | `False` (default): leave the wheels as they are for the next step. `True`: command zero once as it ends. |
 | `indent` | Only affects console log indentation inside auto groups. |
 
 The pose is always a **field pose in blue-origin coordinates**: x along the field from the
@@ -154,9 +155,13 @@ The exact tolerances are `AutoConstantsSwerve.k_translation_tolerance_meters` an
 
 It also finishes at once if the supplier returned `None`.
 
-However it ends (arrived, timed out, button released, no target) it **commands the
-drivetrain to stop**. Before November 2026 it did not: inside an auto group the wheels
-kept the last speed they were given through the next non-driving step.
+**It does not stop the robot when it ends**, unless you pass `stop_at_end=True`. It leaves
+the wheels at their last command so the next step of an auto can take over on the move.
+Inside an auto group nothing else commands the swerve between steps, so if the next step
+does not drive (a shot, a wait), the robot keeps rolling at whatever this command last
+asked for, including after a timeout. Use `stop_at_end=True` for the last move before a
+non-driving step. It sends one zero command as the command ends; it does not wait for
+the robot to come to rest, so it costs no time.
 
 **Always add `.withTimeout(...)` in an auto.** A robot pushed against something will never
 reach 2 cm, and without a timeout the rest of the auto never runs.

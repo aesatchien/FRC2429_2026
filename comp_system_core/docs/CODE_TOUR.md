@@ -154,7 +154,10 @@ Copy `commands/_logged_command_template.py`. Fill in:
 - `initialize()`: once, when it starts.
 - `execute()`: every loop while it runs.
 - `is_finished()`: `True` ends it (one-shot commands return `True`).
-- `end(interrupted)`: leave the mechanism safe. **If you moved something, stop it here.**
+- `end(interrupted)`: leave the mechanism the way the next step needs it. Motors keep
+  their last command after a command ends, so either stop them here or leave them running
+  on purpose and say so (`DriveToPoseCustomControl` does the second by default, so an auto
+  can hand off on the move; `stop_at_end=True` makes it stop).
 
 For a one-liner, `InstantCommand(lambda: ...)` in `robotcontainer.py` is enough.
 
@@ -241,7 +244,8 @@ tuning. Say where a change was tested: `robotpy test`, the simulator, or the rob
 - **Strings passed to `getattr()`** (`k_imu_yaw_getter`) are invisible to any rename tool.
 - **A command group owns its subsystems for its whole length**, so the default drive
   command does not run between the steps of an auto. A driving command that does not stop
-  the wheels in `end()` leaves them running.
+  the wheels in `end()` leaves them running into the next step: useful for a moving
+  hand-off, a surprise if the next step is a shot.
 - **`Targeting` runs all the time** and `robot_state` / `led` indicators persist until
   replaced. "Why is it still doing that" is usually state nobody cleared.
 

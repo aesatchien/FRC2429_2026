@@ -23,13 +23,13 @@ setting) or `"XBOX"`. The same `js.driver_*` names work for both, matched by pos
 | **A / Cross** (hold) | Shoot at the RPM targeting computes from distance. Intake rollers drop to 500 RPM, the shooter spins up and feeds; the intake lifts to 75 degrees after 1 s and to 105 degrees after 2 s to push balls in. Release: shooter stops, intake goes down, rollers back to 5000 RPM. | `ShootingCommand` + `Intake_Deploy('shoot' / 'shoot2')` |
 | **X / Square** (hold) | The same cycle at a fixed 3300 RPM. | `ShootingCommand(rpm=3300)` |
 | **B / Circle** (hold) | Feed (lob) at 5800 RPM with the indexer at 5600 RPM. Same intake sequence and release as A. | `ShootingFeedingCommand(rpm=k_shooter_max_speed)` |
-| **Y / Triangle** | **Resets the whole pose, not just the heading**: the estimate jumps to 3.2 m out from our alliance wall on the field centreline, facing away from the wall, and the Quest is unsynced. Hold 0.5 s to also sync the Quest to the pose estimate. Works while disabled. | `ResetFieldCentric`, `quest_sync_odometry()` |
+| **Y / Triangle** | **Recovery when the pose is lost. Park in front of our hub first**: 3.2 m out from our alliance wall, on the field centreline, facing away from the wall. Y sets the pose estimate to exactly that spot and unsyncs the Quest, so the robot is close to field calibrated. (It is not a heading-only reset.) Hold 0.5 s to also sync the Quest to the pose estimate. Works while disabled. | `ResetFieldCentric`, `quest_sync_odometry()` |
 | **LT / L2** (hold) | X-lock the wheels. | `SwerveSetX` |
 | **D-pad up** | Intake up (148 degrees). | `Intake_Deploy('up')` |
 | **D-pad down** | Intake down, rollers on at 5000 RPM. | `Intake_Deploy('down')`, `Intake_Set_RPM` |
 | **D-pad left / right** | Simulation only: hold to drive onto the game piece the left / front camera sees. | `DriveToPoseCustomControl` |
 | **View / Create** (left small button) | Intake rollers off. | `Intake_Set_RPM(0)` |
-| **Menu / Options** (right small button) | Eject: intake down, rollers at -2500 RPM, hopper at -5000 RPM. **It is a press, not a hold** - nothing stops on release. Stop it with View/Create and by shooting or `HopperOff`. | `Intake_Deploy('down')`, `Intake_Set_RPM(-k_intake_default_rpm)`, `set_hopper_rpm` |
+| **Menu / Options** (right small button, hold) | Eject: intake down, rollers at -2500 RPM, hopper at -5000 RPM. Release stops the rollers and the hopper; the intake stays down. | `Intake_Deploy('down')`, `Intake_Set_RPM(-k_intake_default_rpm)`, `set_hopper_rpm`; `on_false` stops both |
 
 ## Button box (port 2)
 
@@ -83,7 +83,7 @@ shooter on / off / reverse, LED choosers, `CANStatus`, the Quest commands (from
 ## Words used above
 
 - **Hold** (`while_true`): starts on press, is cancelled on release. A command that finishes
-  by itself (an `Intake_Deploy`, an `InstantCommand`) is not undone on release - that is why
-  Menu/Options is a press.
+  by itself (an `Intake_Deploy`, an `InstantCommand`) is not undone on release, so a hold
+  built from those needs an `on_false` that undoes it, as Menu/Options has.
 - **Press** (`on_true`): fires once.
 - **Works disabled**: the command has `.ignoring_disable(True)`.

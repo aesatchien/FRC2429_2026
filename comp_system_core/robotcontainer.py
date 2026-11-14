@@ -179,7 +179,9 @@ class RobotContainer:
         js.driver_lb.on_true(Intake_Set_RPM(intake=self.intake, rpm=ic.k_intake_teleop_rpm, led=self.led))
         js.driver_l_trigger.while_true(SwerveSetX(container=self, swerve=self.swerve))
         js.driver_back.on_true(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
-        js.driver_start.while_true(Intake_Deploy(self.intake, "down").and_then(Intake_Set_RPM(self.intake, -constants.IntakeConstants.k_intake_default_rpm).along_with(InstantCommand(lambda: self.shooter.set_hopper_rpm(-constants.ShooterConstants.k_hopper_rpm)))))
+        # eject while held; the commands are all one-shots, so release needs its own stop
+        js.driver_start.on_true(Intake_Deploy(self.intake, "down").and_then(Intake_Set_RPM(self.intake, -constants.IntakeConstants.k_intake_default_rpm).along_with(InstantCommand(lambda: self.shooter.set_hopper_rpm(-constants.ShooterConstants.k_hopper_rpm)))))
+        js.driver_start.on_false(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led).along_with(InstantCommand(lambda: self.shooter.stop_hopper())))
 
 
         # js.driver_l_trigger.while_true(Intake_Set(intake=self.intake, rpm=2500))

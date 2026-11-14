@@ -23,7 +23,7 @@ class DriveToPoseCustomControl(commands2.Command):
     """
 
     def __init__(self, container, swerve: Swerve, target_pose_supplier: typing.Callable[[], typing.Optional[Pose2d]], 
-                 indent=0, tolerance_type='exact') -> None:
+                 indent=0, tolerance_type='exact', stop_at_end=False) -> None:
         super().__init__()
         self.set_name('DriveToPoseCustomControl')
         
@@ -36,6 +36,7 @@ class DriveToPoseCustomControl(commands2.Command):
         # --- Configuration ---
         self.target_pose_supplier = target_pose_supplier
         self.tolerance_type = tolerance_type
+        self.stop_at_end = stop_at_end  # see end()
         # PID tuning trace to the console, 5 lines a second while the command runs.  OFF by
         # default - it used to be hard-coded True, so it printed on the real robot and in
         # every sim run whether anyone was tuning or not.  Set True while tuning.  The
@@ -227,12 +228,15 @@ class DriveToPoseCustomControl(commands2.Command):
         return self.tolerance_counter > 10
 
     def end(self, interrupted: bool) -> None:
-        # Stop.  The modules hold the last velocity they were given until something else
-        # commands them, and inside an auto group nothing else does: the group requires the
-        # swerve for its whole length, so the default (joystick) command never runs between
-        # steps.  Without this, a timed-out or 'fast' drive kept rolling at up to 0.45 of max
-        # speed through whatever non-driving step came next.
-        self.swerve.drive(0, 0, 0, fieldRelative=True, rate_limited=False, keep_angle=False)
+        # By default this does NOT stop the robot: it leaves the wheels at their last command so
+        # the next step of an auto can take over on the move.  Know what that means - inside an
+        # auto group nothing else commands the swerve between steps, so if the next step does
+        # not drive, the robot keeps rolling at whatever this command last asked for (also
+        # after a timeout).  Pass stop_at_end=True where this is the last move before a
+        # non-driving step.  That sends ONE zero command; it does not wait for the robot to
+        # stop and costs no time.
+        if self.stop_at_end:
+            self.swerve.drive(0, 0, 0, fieldRelative=True, rate_limited=False, keep_angle=False)
         if wpilib.RobotBase.is_simulation(): self.auto_active_pub.set(False)
         indicator = Led.Indicator.kFAILUREFLASH if (interrupted or self.abort) else Led.Indicator.kSUCCESSFLASH
         commands2.CommandScheduler.get_instance().schedule(self.container.led.set_indicator_with_timeout(indicator, 2))

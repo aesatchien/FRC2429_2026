@@ -176,7 +176,9 @@ class RobotContainer:
         js.driver_lb.onTrue(Intake_Set_RPM(intake=self.intake, rpm=ic.k_intake_teleop_rpm, led=self.led))
         js.driver_l_trigger.whileTrue(SwerveSetX(container=self, swerve=self.swerve))
         js.driver_back.onTrue(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
-        js.driver_start.whileTrue(Intake_Deploy(self.intake, "down").andThen(Intake_Set_RPM(self.intake, -constants.IntakeConstants.k_intake_default_rpm).alongWith(InstantCommand(lambda: self.shooter.set_hopper_rpm(-constants.ShooterConstants.k_hopper_rpm)))))
+        # eject while held; the commands are all one-shots, so release needs its own stop
+        js.driver_start.onTrue(Intake_Deploy(self.intake, "down").andThen(Intake_Set_RPM(self.intake, -constants.IntakeConstants.k_intake_default_rpm).alongWith(InstantCommand(lambda: self.shooter.set_hopper_rpm(-constants.ShooterConstants.k_hopper_rpm)))))
+        js.driver_start.onFalse(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led).alongWith(InstantCommand(lambda: self.shooter.stop_hopper())))
 
 
         # js.driver_l_trigger.whileTrue(Intake_Set(intake=self.intake, rpm=2500))
@@ -376,7 +378,9 @@ class RobotContainer:
                 Intake_Deploy(intake=self.intake, position='down')))
         js.ps_l2.whileTrue(SwerveSetX(container=self, swerve=self.swerve))
         # js.ps_share.onTrue(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led))
-        js.ps_options.whileTrue(Intake_Deploy(self.intake, "down").andThen(Intake_Set_RPM(self.intake, -constants.IntakeConstants.k_intake_default_rpm).alongWith(InstantCommand(lambda: self.shooter.set_hopper_rpm(-constants.ShooterConstants.k_hopper_rpm)))))
+        # eject while held; the commands are all one-shots, so release needs its own stop
+        js.ps_options.onTrue(Intake_Deploy(self.intake, "down").andThen(Intake_Set_RPM(self.intake, -constants.IntakeConstants.k_intake_default_rpm).alongWith(InstantCommand(lambda: self.shooter.set_hopper_rpm(-constants.ShooterConstants.k_hopper_rpm)))))
+        js.ps_options.onFalse(Intake_Set_RPM(intake=self.intake, rpm=0, led=self.led).alongWith(InstantCommand(lambda: self.shooter.stop_hopper())))
 
 
 
