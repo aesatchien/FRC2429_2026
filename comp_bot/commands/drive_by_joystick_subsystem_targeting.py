@@ -114,6 +114,14 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
         else:
             after_burner = False
 
+        # AUTONOMOUS: ignore the pad.  The autos run this command for its aiming
+        # (autonomous/shoot_cycle.py), and the Driver Station sends stick data during auto, so a
+        # bumped stick or a held trigger used to move the robot.  Tracking rotation comes from
+        # Targeting, not the pad, so the aim is unchanged.
+        if wpilib.RobotState.isAutonomous():
+            left_y, left_x, right_x, right_trigger, robot_oriented = 0.0, 0.0, 0.0, 0.0, False
+            after_burner = False
+
         inputs = {
             'robot_pose': self.swerve.get_pose(),
             'left_y': left_y,

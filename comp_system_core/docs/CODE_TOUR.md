@@ -65,7 +65,7 @@ After that the rest is the same shapes repeated.
 | `swerve.py` (+ `swervemodule_2429.py`, `motors.py`, `swerve_constants.py`) | drivetrain, gyro, pose estimate, field view | `SWERVE_PRIMER.md` |
 | `quest.py` | the QuestNav headset: sync state, pose acceptance, stream-loss recovery | `Swerve` is handed this object and asks it for poses |
 | `vision.py` | reads `/Cameras/...` game-piece targets from NetworkTables | tag *poses* are read by `Swerve`, not here |
-| `targeting.py` | no hardware: hub aim angle, shot distance, shooter RPM | runs every loop whether or not anyone is tracking |
+| `targeting.py` | no hardware: hub aim angle, shot distance, shooter RPM | computes every loop whether or not anyone is tracking; draws the ghost only while tracking |
 | `shooter.py` | flywheel, roller, indexer, hopper | |
 | `intake.py` | intake rollers and the deploy arm (profiled PID + arm feedforward in `periodic()`) | |
 | `led.py` | LED strip | `LED_PRIMER.md` |

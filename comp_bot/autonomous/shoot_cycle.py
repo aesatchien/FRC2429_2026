@@ -54,6 +54,8 @@ k_intake_modes = ('two_stage', 'one_stage', 'none')
 #                data during auto.  Kept as the default so this refactor changes nothing today.
 #   'rotate'   - RotateToTarget.  Same aiming, cannot read a joystick.  Flip this one word when
 #                you have had a chance to test it, and all 22 call sites change with it.
+# 2026-11-14: the joystick command now zeroes the pad while the robot is in autonomous, so
+# 'joystick' no longer lets a bumped stick move the robot.  'rotate' is still untested.
 k_default_aim = 'joystick'
 
 

@@ -45,7 +45,7 @@ class ShootingCommand(commands2.Command):  # change the name for your command
             rpm = self.rpm
         else:
             rpm = self.targeting.get_target_rpm()
-        self.shooter.set_shooter_rpm(rpm if rpm <= 5600 else sc.k_shooter_max_speed)
+        self.shooter.set_shooter_rpm(min(rpm, sc.k_shooter_max_speed))  # a plain ceiling; was 'above 5600 -> jump to max'
 
         # maintain a timer - need to implement this for auto time out and for delay time instead of cycles
         self.timer.reset()
@@ -69,7 +69,7 @@ class ShootingCommand(commands2.Command):  # change the name for your command
         # This is the jankiest part of the code.  TODO - make this robust
         # Leo's spinup boost: turn off the 150 RPM boost if we are at speed or past the initial delay window
         rpm_target = rpm if (at_speed or self.counter > self.delay_cycles + 10) else rpm + 150
-        self.shooter.set_shooter_rpm(rpm_target if rpm_target <= 5600 else sc.k_shooter_max_speed)
+        self.shooter.set_shooter_rpm(min(rpm_target, sc.k_shooter_max_speed))
 
         # Latch the start of the feeding sequence
         if self.indexer_started_cycle < 0 and (at_speed or self.counter > self.delay_cycles):

@@ -112,7 +112,7 @@ The FOV triangles are switched per camera from the dashboard (`<sim_prefix>/FOV/
      - **Gamepieces**: Small icons (usually boxes) at specific locations.
      - **FOV Cones**: Triangles projecting from the robot.
      - **GroundTruth**: Where the simulated robot really is; `Robot` is the pose estimate.
-     - **Ghost Robot**: A translucent robot at `<auto_prefix>/goal_pose` (`simulation/ghost_robot.py`). `Targeting` writes its hub aim point there every loop, so that is what you see; a drive-to-pose goal is overwritten one loop after it is published.
+     - **Ghost Robot**: A translucent robot at `<auto_prefix>/goal_pose` (`simulation/ghost_robot.py`): the drive-to-pose goal while one is running, or the hub aim point while tracking is on.
 
 3. **Drive**:
    - Use the joysticks to drive the robot.

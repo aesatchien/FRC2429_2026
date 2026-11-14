@@ -256,20 +256,23 @@ class Targeting(Subsystem):
         self.update_tracked_values()
 
         # --- Publishing ---
-        is_active = True
+        # The goal pose, the shot line and robot_in_auto (which shows the ghost robot in the sim
+        # and on the dashboard) go out ONLY WHILE TRACKING.  DriveToPoseCustomControl publishes
+        # its goal on the same topics; this used to write them every loop, tracking or not, so
+        # a drive-to-pose goal was overwritten one loop after it appeared.  RPM, distance and
+        # ok-to-shoot below are published all the time, as before.
+        is_active = self.robot_is_tracking
 
         if is_active:
             self.auto_active_pub.set(True)
             self.goal_pose_pub.set(Pose2d(self.debug_future_pose, self.debug_future_rotation))
             self.shot_line_pub.set([self.last_robot_pose, self.debug_shot_end])
             self.was_active = True
-            self.goal_rpm_pub.set(self.get_target_rpm())
         elif self.was_active:
             self.auto_active_pub.set(False)
             self.shot_line_pub.set([])
-            self.is_ok_to_shoot_pub.set(False)
-            self.shot_error_pub.set(999.0)
             self.was_active = False
+        self.goal_rpm_pub.set(self.get_target_rpm())
 
         # Publish debug data periodically
         if self.counter % 10 == 0:
@@ -283,11 +286,6 @@ class Targeting(Subsystem):
                 self.shot_error
             ])
             
-            if is_active:
-                self.is_ok_to_shoot_pub.set(self.is_ok_to_shoot())
-                self.shot_error_pub.set(self.shot_error)
-                self.shot_distance_pub.set(self.effective_distance)
-            else:
-                self.shot_distance_pub.set(0)
-                self.is_ok_to_shoot_pub.set(False)
-                self.shot_error_pub.set(999.0)
+            self.is_ok_to_shoot_pub.set(self.is_ok_to_shoot())
+            self.shot_error_pub.set(self.shot_error)
+            self.shot_distance_pub.set(self.effective_distance)

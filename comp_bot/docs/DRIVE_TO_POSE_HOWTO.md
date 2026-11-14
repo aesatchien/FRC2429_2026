@@ -170,11 +170,9 @@ reach 2 cm, and without a timeout the rest of the auto never runs.
 
 - **LEDs:** polka pattern while driving, success flash on arrival, failure flash if it was
   interrupted or had no target.
-- **Sim:** the goal is published to `<auto_prefix>/goal_pose`, the topic the ghost robot
-  on the field is drawn from. Be aware that `Targeting.periodic()` publishes its hub aim
-  point to the same topic every loop, so the ghost shows the aim point again one loop
-  later. To see where a drive is going, read the `target ...` line the command logs when
-  it starts, or `x_commanded` / `y_commanded` under `auto_prefix`.
+- **Sim and dashboard:** the goal is published to `<auto_prefix>/goal_pose` and drawn as the
+  ghost robot, so you can see where it thinks it is going. While hub tracking is on,
+  `Targeting` writes its aim point to the same topic and the ghost shows that instead.
 - **Tuning:** set `self.print_debug = True` in the command for a console trace 5 times a
   second. In sim, setpoint and measured values also go to NetworkTables under `auto_prefix`.
 
