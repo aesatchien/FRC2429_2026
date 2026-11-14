@@ -119,8 +119,12 @@ controllers now report **raw motor rotations and RPM**. The scaling moved into
 degrees, so gains must be multiplied by the conversion factor to produce the same output for
 the same physical error:
 
-- `swerve_constants.k_drive_kp_rev_raw` — only live when `drive_vendor == 'rev'`; the comp
-  bot is `'ctre'`, so this is unexercised.
+- `swerve_constants.k_drive_kp_rev_raw` and the drive `kV` — only live when
+  `drive_vendor == 'rev'` (`'comp_vortex'`, `'practice'`); the comp bot is `'ctre'`.
+  **This rescale was written down here but not applied until 2026-11-14**: the config kept
+  the m/s gains, and a simulated REV drive ran at full output for any nonzero speed. Fixed
+  and covered by `tests/test_rev_drive_gains.py` (simulation only — still not run on a real
+  REV drive).
 - **`constants.IntakeConstants` deploy loop — this one IS live.** The on-Spark slot gains
   (`k_deploy_config.closed_loop.pid`) now see error in motor rotations, roughly 8× per unit.
   The WPILib `ProfiledPIDController` that actually runs the arm still sees degrees: the sim
@@ -130,9 +134,10 @@ the same physical error:
 
 ## 7. Environments
 
-- `robo2027_a7` mamba env — a7 (this branch); it began as the venv `C:\FRC\2026\venv_a7`.
-  `robotpy test` → 13/13 (12 plus the end-to-end simulation test added with the sim migration).
-- `robo2027_alpha` mamba env — still a6, untouched, so `main` stays deployable.
+- `robo2027_alpha` mamba env — **a7** (`wpilib.__version__` is `2027.0.0a7`, checked
+  2026-11-14). This is the environment for this project. `python -m robotpy test` → 69 passed.
+- At migration time a7 lived in a separate `robo2027_a7` env and `robo2027_alpha` was still
+  a6; that split is gone. If in doubt, print `wpilib.__version__`.
 
 ## 8. What is verified, and what is not
 
@@ -143,3 +148,22 @@ tunables; the auto chooser publishes `default`/`options`; physics and the sim ri
 **Not verified:** anything on real hardware. No Kraken has spun, no Spark has moved, the
 deploy gains are arithmetic rather than measured, and the phoenix6 shim has only been
 exercised in simulation. Bench it before it drives.
+
+(That was the state on 2026-09-13. The robot has driven on a7 since; the comments in
+`swerve_constants.py` and `constants.py` record what was measured on it and when.)
+
+## 9. Found after the migration
+
+Things a7 changed that the rename could not see, because no name changed.
+
+- **NetworkTables timestamps are nanoseconds** (were microseconds). `helpers/nt_time.py`.
+- **OnboardIMU Euler axes moved**: yaw is `get_angle_z` on a7 (was X on a6).
+  `swerve_constants.k_imu_yaw_getter`.
+- **Raw joystick buttons are numbered from 0** (2026 numbered them from 1). `button(n)` and
+  `get_raw_button(n)` both take the 0-based index, although the wpilib docstring still says
+  "starting at 1". The button-box triggers in `helpers/joysticks.py` were shifted at the
+  time; the one bare `get_raw_button(3)` in `drive_by_joystick_subsystem_targeting.py` (the
+  afterburner) was not, and still reads the brownout-toggle button (found 2026-11-14, left
+  for a driver decision - see `docs/CONTROLLERS.md`).
+  **Rule: never write a raw button index outside `helpers/joysticks.py`.**
+- **REV drive gains** — see section 6.

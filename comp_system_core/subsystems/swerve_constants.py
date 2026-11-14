@@ -393,11 +393,18 @@ class ModuleConstants:
     # ==========================================
     k_driving_config = DriveConstants.ACTIVE_CONFIG['config_cls']()
     k_driving_config.inverted(DriveConstants.swerve_motor_inversions['drive_motors_inverted'])
-    k_driving_config.closed_loop.pid(p=0.02, i=0, d=0)
-    # 2027: REV removed pidf()'s ff term.  kV is in VOLTS per wheel-rps; the old ff was
-    # duty cycle per wheel-rps, so the same gain is ff * 12.  This is the identical
-    # conversion motors.py already does for the Kraken's k_v.
-    k_driving_config.closed_loop.feed_forward.v(12.0 / kDriveWheelFreeSpeedRps)
+    # THE REV DRIVE LOOP WORKS IN MOTOR RPM (2027a7 deleted the conversion factors - see the
+    # UNIT CONVERSION note below), so both gains are per motor RPM, not per m/s:
+    #   kP  duty per RPM of error = the old 0.02 duty per (m/s) * (m/s per RPM)
+    #   kV  volts per RPM         = 12 V at the motor's free speed
+    # These were left in m/s units after the a7 port (p=0.02, v=12/free m/s).  Against an RPM
+    # setpoint that is ~1270x too much of both, and the drive sat at full output for ANY
+    # nonzero speed - measured in sim: asked 0.5 m/s, got 5.2.  It went unnoticed because the
+    # comp bot's drive is 'ctre'; only 'comp_vortex' and 'practice' build this config.
+    # tests/test_rev_drive_gains.py drives a simulated one.  NOT YET RUN ON A REAL REV DRIVE.
+    k_drive_kp_rev_raw = 0.02 * kDrivingEncoderVelocityFactor
+    k_driving_config.closed_loop.pid(p=k_drive_kp_rev_raw, i=0, d=0)
+    k_driving_config.closed_loop.feed_forward.v(12.0 / NeoMotorConstants.kFreeSpeedRpm)
     k_driving_config.closed_loop.min_output(-0.96)
     k_driving_config.closed_loop.max_output(0.96)
     k_driving_config.closed_loop.i_zone(0.001)
@@ -422,14 +429,8 @@ class ModuleConstants:
     k_drive_position_factor = (kWheelDiameterMeters * math.pi) / kDrivingMotorReduction        # m per motor rot
     k_drive_velocity_factor = (kWheelDiameterMeters * math.pi) / (kDrivingMotorReduction * 60) # m/s per motor RPM
 
-    # GAIN RESCALE THAT COMES WITH IT.  The REV closed loop now sees error in motor RPM, not
-    # m/s.  error_mps == error_rpm * k_drive_velocity_factor, so to keep the SAME duty cycle
-    # for the same physical error the gains must be multiplied by that factor.  Skipping this
-    # would leave the drive PID ~1270x too hot.
-    #     UNVERIFIED ON HARDWARE - this path only runs when drive_vendor == 'rev', and the
-    #     comp bot is 'ctre'.  Bench it before trusting it on an all-REV robot.
-    k_drive_kp_rev_raw = 0.02 * k_drive_velocity_factor
-    # k_driving_config.closedLoop.pid(0, 0, 0); feedForward.kV(0.12)
+    # The gain rescale that comes with it (k_drive_kp_rev_raw and the per-RPM kV) is applied
+    # where the config is built, above.
 
     # note: we don't use any spark pid or ff for turning
     k_turning_config = DriveConstants.ACTIVE_CONFIG['config_cls']()
@@ -446,7 +447,7 @@ class ModuleConstants:
     k_turn_velocity_factor = math.tau / (k_turning_motor_gear_ratio * 60)     # rad/s per motor RPM
 
     # ==========================================
-    # Kraken X60 / TalonFX Configuration  (drive only, for k_swerve_config = "comp_kraken")
+    # Kraken X60 / TalonFX Configuration  (drive only, for k_swerve_config = "comp")
     # ==========================================
     # Built unconditionally so the numbers are readable and diffable even on an all-REV robot;
     # nothing constructs a TalonFX unless a config actually says drive_vendor='ctre'.
@@ -495,9 +496,9 @@ class ModuleConstants:
     #
     # Valid SystemCore names are 'can_s0'..'can_s4' (CANBus.systemcore(0..4) builds them).
     # NOTE Phoenix's own default, CANBus(''), resolves to can_s1, NOT can_s0 - so if the
-    # Krakens still fail to connect on can_s0, can_s1 is the next thing to try.  Whether
-    # REV's integer bus 0 is the same physical bus as Phoenix's can_s0 is not documented
-    # anywhere we can find; REV bus 0 is definitely the one the Sparks answer on.
+    # Krakens still fail to connect on can_s0, can_s1 is the next thing to try.  REV's bus N
+    # and Phoenix's "can_sN" are the same connector (wpilib.CANPort - see the CAN BUS
+    # ASSIGNMENT note in constants.py).
     # int() because k_can_bus_drive is a wpilib.CANPort now, not a bare int (2027a7).
     k_kraken_canbus = f'can_s{int(constants.k_can_bus_drive)}'   # no CANivore yet
 

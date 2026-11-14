@@ -24,7 +24,7 @@ whenever the code is running in simulation (see `docs/sim_migration_plan.md`).
 Located in `simulation/gamepiece_sim.py`.
 
 ### Responsibilities
-- **Spawning**: Creates a list of gamepieces (Coral/Algae) at specific field coordinates defined in `__init__`.
+- **Spawning**: Creates a grid of gamepieces (fuel) between x = 7.5 m and 9.0 m, defined in `__init__`.
 - **Consumption**: In every simulation step, it checks the distance between the robot and every active gamepiece.
   - If the robot drives over a gamepiece (distance < threshold), it is marked as "consumed" (inactive) and disappears.
 - **Reset**: If all gamepieces are consumed, they automatically reset to their starting positions.
@@ -47,7 +47,7 @@ For each camera defined in `constants.CameraConstants.k_cameras`:
    - **Distance**: Is the gamepiece closer than `k_cam_distance_limit`?
    - **Field of View (FOV)**: Is the angle to the gamepiece within the camera's view cone? (Taking into account the camera's mounting rotation on the robot).
 3. **Selection**: It picks the *closest* valid gamepiece.
-4. **Publishing**: It writes the target details to NetworkTables topics (e.g., `/Cameras/LogitechReef/hsv/distance`).
+4. **Publishing**: It writes the target details to NetworkTables topics, `/Cameras/<topic_name>/<label or type>/...` (e.g. `/Cameras/LogitechFront/yellow/distance`, `/Cameras/ArducamRight/tags/targets`).
    - **Tag cameras** with a tag in view also publish the robot's pose on `/Cameras/<camera>/poses/tag1` (ground truth, no noise). Swerve fuses it into the pose estimate exactly as it does a real tag pose.
    - **Note**: It calculates "Strafe" (lateral offset) and "Rotation" relative to the camera, mimicking real vision processing.
 
@@ -66,9 +66,15 @@ This is the code that runs on the real robot. It does **not** do any simulation 
 ### Key Methods
 - `target_available(camera_key)`: Checks if the camera sees a target AND if the data timestamp is fresh.
 - `get_distance(...)`, `get_strafe(...)`: Returns the raw numbers from NetworkTables.
-- `nearest_to_cam(...)`: Converts the camera-relative data (Distance/Rotation) back into a **Field-Relative Pose** or **Robot-Relative Pose** so the robot knows where to drive.
+- `nearest_to_cam(camera_key)`: Converts one camera's distance and rotation into a **robot-relative** `Pose2d` of its nearest target.
+- `nearest_to_robot(camera_list)`: The nearest of those over several cameras.
+- `get_vision_target_pose(current_pose, cameras, offset)`: The same target as a **field** pose, or `None`. This is what `DriveToPoseCustomControl` is given (see `docs/DRIVE_TO_POSE_HOWTO.md`).
+
+AprilTag **poses** do not come through this subsystem. `Swerve` subscribes to `/Cameras/<camera>/poses/tag1` itself and feeds them to the pose estimator (`docs/SWERVE_PRIMER.md`, section 2).
 
 > **Crucial Concept**: The subsystem uses the `CameraConstants.k_cameras` dictionary in `constants.py` to know which NetworkTables topics to listen to. This configuration is the "Source of Truth" for both the Sim and the Real Robot.
+>
+> The real robot has only the two tag cameras (`k_comp_cameras`). In simulation `k_cameras` is `k_sim_cameras`, which adds the two `hsv` (game piece) cameras and the external `front_sim` test camera.
 
 ---
 
@@ -96,17 +102,20 @@ The FOV triangles are switched per camera from the dashboard (`<sim_prefix>/FOV/
 
 1. **Run the Simulator**:
    ```bash
-   python robot.py sim
+   python -m robotpy sim
    ```
+   from `comp_system_core/`, with the `robo2027_alpha` environment active.
 2. **Open the Dashboard (Glass)**:
    - Add the **Field** widget.
    - You will see:
      - **Robot**: The main robot icon.
      - **Gamepieces**: Small icons (usually boxes) at specific locations.
      - **FOV Cones**: Triangles projecting from the robot.
-     - **Ghost Robot**: A translucent robot showing the autonomous target pose (if Auto is running).
+     - **GroundTruth**: Where the simulated robot really is; `Robot` is the pose estimate.
+     - **Ghost Robot**: A translucent robot at `<auto_prefix>/goal_pose` (`simulation/ghost_robot.py`). `Targeting` writes its hub aim point there every loop, so that is what you see; a drive-to-pose goal is overwritten one loop after it is published.
 
 3. **Drive**:
    - Use the joysticks to drive the robot.
    - Drive into a gamepiece -> It disappears (Consumed).
-   - Point a camera at a gamepiece -> The dashboard LEDs for that camera should light up (Target Found).
+   - Point a camera at a gamepiece -> `/SmartDashboard/Vision/<camera>_targets_exist` goes true (the camera indicators on the team dashboard).
+   - Hold D-pad right / left -> the robot drives onto the piece the front / left camera sees.

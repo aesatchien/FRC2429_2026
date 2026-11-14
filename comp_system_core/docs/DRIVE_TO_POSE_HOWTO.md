@@ -154,6 +154,10 @@ The exact tolerances are `AutoConstantsSwerve.k_translation_tolerance_meters` an
 
 It also finishes at once if the supplier returned `None`.
 
+However it ends (arrived, timed out, button released, no target) it **commands the
+drivetrain to stop**. Before November 2026 it did not: inside an auto group the wheels
+kept the last speed they were given through the next non-driving step.
+
 **Always add `.with_timeout(...)` in an auto.** A robot pushed against something will never
 reach 2 cm, and without a timeout the rest of the auto never runs.
 
@@ -161,8 +165,11 @@ reach 2 cm, and without a timeout the rest of the auto never runs.
 
 - **LEDs:** polka pattern while driving, success flash on arrival, failure flash if it was
   interrupted or had no target.
-- **Sim:** the goal is published to `<auto_prefix>/goal_pose` and drawn as the ghost robot
-  on the field, so you can see where it thinks it is going before it gets there.
+- **Sim:** the goal is published to `<auto_prefix>/goal_pose`, the topic the ghost robot
+  on the field is drawn from. Be aware that `Targeting.periodic()` publishes its hub aim
+  point to the same topic every loop, so the ghost shows the aim point again one loop
+  later. To see where a drive is going, read the `target ...` line the command logs when
+  it starts, or `x_commanded` / `y_commanded` under `auto_prefix`.
 - **Tuning:** set `self.print_debug = True` in the command for a console trace 5 times a
   second. In sim, setpoint and measured values also go to NetworkTables under `auto_prefix`.
 

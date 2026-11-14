@@ -379,7 +379,8 @@ class Swerve (Subsystem):
 
     def set_brownout_mode(self, enabled: bool) -> None:
         """Toggle reduced drive motor current limits to protect a weak battery.
-        Normal: mc.kDrivingMotorCurrentLimit (60A).  Brownout: mc.kDrivingMotorBrownoutCurrentLimit (40A).
+        Normal: mc.kDrivingMotorCurrentLimit.  Brownout: mc.kDrivingMotorBrownoutCurrentLimit.
+        On a Kraken this moves the SUPPLY limit; the stator limit stays where it was.
         """
         self.brownout_mode = enabled
         self.brownout_mode_pub.set(self.brownout_mode)

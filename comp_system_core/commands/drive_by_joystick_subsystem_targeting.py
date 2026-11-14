@@ -124,6 +124,12 @@ class DriveByJoystickSubsystemTargeting(commands2.Command):
         if self.button_box is not None:
             # CommandJoystick.get_hid() returns a CommandGenericHID in a7; get_joystick()
             # is the one that hands back the real wpilib.Joystick.
+            # KNOWN MISMATCH, LEFT FOR A DECISION (2026-11-14).  a7 numbers raw buttons from 0
+            # (2026 numbered them from 1), so index 3 is the box's button 4 - js.bbox_1_4, the
+            # brownout toggle - not button 3 as in comp_bot's getRawButton(3).  The index was
+            # not shifted in the port.  Moving it to 2 puts the afterburner back on button 3,
+            # which also runs SwerveTest after 0.2 s, so which button it belongs on is a
+            # driver decision.  See docs/CONTROLLERS.md.
             after_burner = self.button_box.get_joystick().get_raw_button(3)
         else:
             after_burner = False

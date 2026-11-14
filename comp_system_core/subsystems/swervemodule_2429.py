@@ -16,10 +16,10 @@ class SwerveModule:
     One MK4i module.
 
     The drive and turn motors come from subsystems/motors.py and may be different vendors -
-    the comp_kraken config runs a Kraken X60 on the drive and a SparkFlex on the turn.  This
+    the 'comp' config runs a Kraken X60 on the drive and a SparkFlex on the turn.  This
     file names no vendor and imports neither `rev` nor `phoenix6`.
 
-    Turning is closed on the roboRIO against an AnalogPotentiometer absolute encoder, so the
+    Turning is closed in robot code (the PID below) against an AnalogPotentiometer absolute encoder, so the
     turn motor only ever receives a duty cycle.  That is why the vendor seam is so small.
     """
 

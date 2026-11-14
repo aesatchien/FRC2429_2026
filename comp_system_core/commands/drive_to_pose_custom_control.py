@@ -227,6 +227,12 @@ class DriveToPoseCustomControl(commands2.Command):
         return self.tolerance_counter > 10
 
     def end(self, interrupted: bool) -> None:
+        # Stop.  The modules hold the last velocity they were given until something else
+        # commands them, and inside an auto group nothing else does: the group requires the
+        # swerve for its whole length, so the default (joystick) command never runs between
+        # steps.  Without this, a timed-out or 'fast' drive kept rolling at up to 0.45 of max
+        # speed through whatever non-driving step came next.
+        self.swerve.drive(0, 0, 0, fieldRelative=True, rate_limited=False, keep_angle=False)
         if wpilib.RobotBase.is_simulation(): self.auto_active_pub.set(False)
         indicator = Led.Indicator.kFAILUREFLASH if (interrupted or self.abort) else Led.Indicator.kSUCCESSFLASH
         commands2.CommandScheduler.get_instance().schedule(self.container.led.set_indicator_with_timeout(indicator, 2))

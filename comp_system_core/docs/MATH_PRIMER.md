@@ -1,84 +1,97 @@
 # A Primer on Robot Geometry and Math
 
-This document explains the core math concepts used in this codebase for robot navigation, particularly those from the `wpimath.geometry` library. Understanding these is key to writing effective autonomous and vision-guided code.
+The geometry classes the navigation code is built on, with the names they have in this
+project (2027a7: everything is imported flat from `wpimath`, methods are snake_case, and
+coordinates are properties). `comp_bot/docs/MATH_PRIMER.md` has the 2026 spellings.
 
-## 1. Coordinate Systems
+```python
+from wpimath import Pose2d, Rotation2d, Translation2d, Transform2d
+```
 
-Everything in FRC happens on a 2D plane. We use two main coordinate systems:
+## 1. Coordinate systems
 
-### Field Coordinate System (The "World Frame")
-- This is the unchanging, global map of the field.
-- The origin `(0, 0)` is located at the corner of the **Blue Alliance wall** at the center of the field.
-- **+X** points "downfield" away from the Blue Alliance wall.
-- **+Y** points to the "left" when you are standing at the Blue Alliance driver station.
-- **Angles** are measured counter-clockwise (CCW), with 0 degrees pointing straight downfield along the +X axis.
+### Field frame
+- Fixed to the field. All poses from the pose estimator are in it, whichever alliance we
+  are on ("blue origin").
+- The origin `(0, 0)` is the corner of the field on the **right-hand end of the Blue
+  Alliance wall**, as seen by a blue driver.
+- **+X** points downfield, away from the Blue Alliance wall.
+- **+Y** points to the left, as seen by a blue driver.
+- **Angles** are counter-clockwise; 0 degrees points along +X.
+- The field is 16.54 m by 8.07 m (`constants.FieldConstants`).
 
-> All of the robot's `Pose2d` objects from the pose estimator are in this coordinate system.
+### Robot frame
+- Moves with the robot. The origin is the robot's centre.
+- **+X** is forward, **+Y** is to the robot's left, angles are counter-clockwise.
+- Camera targets (distance, rotation) and robot-oriented driving are in this frame.
 
-### Robot Coordinate System (The "Robot Frame")
-- This coordinate system moves with the robot.
-- The origin `(0, 0)` is the robot's rotational center.
-- **+X** points directly **forward** from the front of the robot.
-- **+Y** points directly to the **left** of the robot.
-- **Angles** are measured counter-clockwise (CCW), with 0 degrees being straight ahead.
-
-> Joystick inputs and vision target data (distance, strafe, rotation) are often calculated in this frame.
-
----
-
-## 2. Core WPILib Geometry Objects
-
-These objects are the building blocks for all our navigation math.
+## 2. The objects
 
 ### `Translation2d(x, y)`
-- Represents a **point** or a **vector** in 2D space.
-- It's just a pair of (X, Y) coordinates.
-- **Vector Math:** You can add and subtract them. This is incredibly useful.
-  - `C = B - A` gives you a new `Translation2d` that is the vector pointing **from point A to point B**.
+A point, or a vector. `b - a` is the vector **from a to b**.
 
-### `Rotation2d.fromDegrees(angle)`
-- Represents an **angle**.
-- It's more powerful than just a number because it correctly handles wrapping around 360 degrees. Subtracting 350° from 10° correctly gives 20°, not -340°.
+| You want | Write |
+| :--- | :--- |
+| the coordinates | `t.x`, `t.y` (properties, no parentheses) |
+| its length | `t.norm()` |
+| distance to another point | `a.distance(b)` |
+| its direction | `t.angle()` (a `Rotation2d`) |
+| the same vector turned | `t.rotate_by(rotation)` |
 
-### `Pose2d(translation, rotation)`
-- This is the robot's complete **position and heading**.
-- It combines a `Translation2d` (where the robot is on the field) and a `Rotation2d` (where the robot is facing).
+### `Rotation2d`
+An angle that wraps correctly: 10 degrees minus 350 degrees is 20 degrees, not -340.
 
----
-
-## 3. Key Calculations Explained
-
-Here are the most common geometric operations you'll see in the code.
-
-### Finding the Vector to a Target
-To figure out how to get from the robot to a gamepiece:
 ```python
-# robot_pos and target_pos are Translation2d objects
-vector_to_target = target_pos - robot_pos
+r = Rotation2d.from_degrees(90)     # or Rotation2d(math.pi / 2), in radians
+r.degrees(), r.radians()            # these two are methods
 ```
-`vector_to_target` is now a `Translation2d` that represents the direction and distance from the robot to the target.
 
-### Finding the Angle to a Target (Robot-Relative)
-This is the core of aiming. We need to know "how many degrees do I need to turn to face the target?"
+### `Pose2d(x, y, rotation)`
+Where the robot is and which way it faces.
+
 ```python
-world_angle_to_target = vector_to_target.angle()  # Angle in the Field Coordinate System
-
-angle_robot_needs_to_turn = world_angle_to_target - robot_heading
+pose = swerve.get_pose()
+pose.x, pose.y                      # properties
+pose.translation(), pose.rotation() # methods
 ```
-By subtracting the robot's current heading from the target's world angle, we get the error that a PID controller can use to turn the robot.
 
-### Converting a World Vector to a Robot-Relative Vector
-This is useful for calculating things like "strafe". If we have a vector in the world frame, how do we see it from the robot's perspective?
+### `Transform2d(translation, rotation)`
+"From here, go this far and turn this much", in the frame of the pose it is applied to.
+`pose.transform_by(t)` is how a robot-frame offset becomes a field pose.
+
+## 3. The calculations you will meet
+
+### The vector to a target
 ```python
-# world_vector is a Translation2d in the field frame
-# robot_heading is a Rotation2d
-robot_relative_vector = world_vector.rotateBy(-robot_heading)
+vector_to_target = target_pos - robot_pos          # Translation2d
+distance = vector_to_target.norm()
 ```
-We rotate the world vector by the **negative** of the robot's heading. This transforms it into the robot's coordinate system.
 
-**Example: Calculating Strafe**
+### The angle to turn
 ```python
-vec_to_gp_robot_frame = (gamepiece_pos - robot_pos).rotateBy(-robot_heading)
-strafe_distance = vec_to_gp_robot_frame.Y()
+field_angle_to_target = vector_to_target.angle()            # in the field frame
+angle_to_turn = field_angle_to_target - pose.rotation()     # what a rotation PID works on
 ```
-The `Y` component of this new robot-relative vector is the lateral distance (strafe) to the target. A positive value means the target is to the robot's left; negative means to the right.
+`subsystems/targeting.py` does exactly this to aim at the hub, with the robot's position
+moved ahead by its velocity times the ball's time of flight.
+
+### A field vector seen from the robot
+Rotate by the **negative** of the robot's heading:
+```python
+robot_relative = field_vector.rotate_by(-pose.rotation())
+strafe = robot_relative.y      # positive: target is to the robot's left
+```
+The other direction (robot frame to field frame) rotates by the heading itself;
+`targeting.py` does that to turn the measured chassis velocity into a field velocity.
+
+### A camera target as a field pose
+`Vision.get_vision_target_pose()` builds the target in the robot frame from the camera's
+distance and angle, then calls `current_pose.transform_by(...)`.
+
+### The other alliance
+`helpers/apriltag_utils.py` has the two operations, and they are different:
+
+- `mirror_for_alliance(pose)` rotates a blue pose 180 degrees about the field centre when
+  we are red. This is the alliance flip.
+- `auto_reflect_pose(...)` also reflects about the field's long centreline when the robot
+  is in the top half, so one auto works from either side.

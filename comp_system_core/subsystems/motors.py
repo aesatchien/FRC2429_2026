@@ -334,9 +334,9 @@ class RevDriveMotor:
         return self._plant.update(dt, vbus)
 
     def set_velocity_mps(self, mps: float) -> None:
-        # The controller wants motor RPM now, not m/s.  The matching gain rescale lives in
-        # swerve_constants.k_drive_kp_rev_raw - change one without the other and the drive
-        # PID is off by the same 1/velocity_factor.
+        # The controller wants motor RPM now, not m/s.  The gains in swerve_constants'
+        # k_driving_config are per RPM to match (k_drive_kp_rev_raw, kV = 12 / free rpm) -
+        # change one without the other and the drive loop is off by 1/velocity_factor.
         self.controller.set_setpoint(mps / self.velocity_factor,
                                      rev.SparkLowLevel.ControlType.VELOCITY)
 

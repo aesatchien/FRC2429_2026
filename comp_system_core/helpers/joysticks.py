@@ -166,7 +166,11 @@ copilot_l_trigger = copilot_controller.left_trigger(axis_trigger_threshold)
 copilot_r_trigger = copilot_controller.right_trigger(axis_trigger_threshold)
 
 """
-Remember - buttons are 1-indexed, not zero
+a7: raw buttons are numbered from ZERO - button(0) is the first button.  2026 (comp_bot)
+numbered them from 1, so every index here is one less than comp_bot's.  The names keep the
+1-based labels printed on the box: bbox_1_3 is the third button, index 2.
+(The wpilib docstring for get_raw_button() still says "starting at 1"; it is wrong.
+Measured in sim: DriverStationSim.set_joystick_button(stick, 3) reads back on get_raw_button(3).)
 """
 # Button box contains two controllers, we make them joysticks 2 and 3
 bbox_1 = commands2.button.CommandJoystick(constants.k_bbox_1_port)  # port 2
