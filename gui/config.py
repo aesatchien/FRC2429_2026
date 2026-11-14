@@ -96,7 +96,8 @@ COMMAND_LIST = ['IntakeStow', 'IntakeDeploy', 'IntakeShoot', 'IntakeCalStow', 'I
                 'HopperOn', 'HopperOff', 'HopperReverse',
                 'IndexerOn', 'IndexerOff', 'IndexerReverse',
                 'ShooterOn', 'ShooterOff', 'ShooterReverse',
-                'CanStatus', 'ResetFlex','GyroReset']
+                'CanStatus', 'ResetFlex','GyroReset',
+                'SimKickRobot', 'SimKickQuest']  # sim only - comp_system_core SimConstants.k_kick, on the Tuning tab
 
 # this config will be used to bind the NT topics to entries we can use later
 # todo - somehow make the camera names all update from a config file, but that means ui and robot code need to know

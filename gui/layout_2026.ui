@@ -2318,6 +2318,81 @@ background-color:rgb(127, 127, 127);
        </rect>
       </property>
      </widget>
+     <widget class="QLabel" name="label_sim_kick">
+      <property name="geometry">
+       <rect>
+        <x>190</x>
+        <y>124</y>
+        <width>540</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Simulator only: make the sensors disagree and watch the estimate recover</string>
+      </property>
+     </widget>
+     <widget class="ClickableQLabel" name="qlabel_sim_kick_robot_indicator">
+      <property name="geometry">
+       <rect>
+        <x>190</x>
+        <y>146</y>
+        <width>120</width>
+        <height>28</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <family>MS Shell Dlg 2</family>
+        <pointsize>10</pointsize>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="toolTip">
+       <string>Simulator only (SimConstants.k_kick in comp_system_core)</string>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">border: 7px;
+border-radius: 7px;
+background-color:rgb(180,180,180);</string>
+      </property>
+      <property name="text">
+       <string>KICK ROBOT</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
+     </widget>
+     <widget class="ClickableQLabel" name="qlabel_sim_kick_quest_indicator">
+      <property name="geometry">
+       <rect>
+        <x>320</x>
+        <y>146</y>
+        <width>120</width>
+        <height>28</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <family>MS Shell Dlg 2</family>
+        <pointsize>10</pointsize>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="toolTip">
+       <string>Simulator only (SimConstants.k_kick in comp_system_core)</string>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">border: 7px;
+border-radius: 7px;
+background-color:rgb(180,180,180);</string>
+      </property>
+      <property name="text">
+       <string>KICK QUEST</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
+     </widget>
      <widget class="QGroupBox" name="groupBox_5">
       <property name="geometry">
        <rect>
