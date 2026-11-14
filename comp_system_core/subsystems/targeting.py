@@ -99,7 +99,7 @@ class Targeting(Subsystem):
 
         self.targeting_debug_pub = self.inst.get_double_array_topic(f"{status_prefix}/targeting_debug").publish()
         
-        # Match AutoToPoseClean publishing for Physics/Sim visualization
+        # Match DriveToPoseCustomControl publishing for Physics/Sim visualization
         self.auto_active_pub = self.inst.get_boolean_topic(f"{auto_prefix}/robot_in_auto").publish()
         self.goal_pose_pub = self.inst.get_struct_topic(f"{auto_prefix}/goal_pose", Pose2d).publish()
         self.shot_line_pub = self.inst.get_struct_array_topic(f"{auto_prefix}/shot_line", Pose2d).publish()

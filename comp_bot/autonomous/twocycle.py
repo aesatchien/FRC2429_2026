@@ -1,14 +1,17 @@
+import wpilib
 import commands2
 
 import constants
+from constants import AutoConstants as ac
 from commands.drive_by_velocity_swerve import DriveByVelocitySwerve
 from commands.drive_by_joystick_subsystem_targeting import DriveByJoystickSubsystemTargeting
 from commands.intake_deploy import Intake_Deploy
 from commands.intake_set_rpm import Intake_Set_RPM
 from autonomous.shoot_cycle import shoot_cycle
-from commands.auto_to_pose_clean import AutoToPoseClean
+from commands.drive_to_pose_custom_control import DriveToPoseCustomControl
 
 from helpers import joysticks as js
+from helpers.apriltag_utils import auto_reflect_pose
 from wpimath.geometry import Pose2d
 
 class TwoCycle(commands2.SequentialCommandGroup):
@@ -33,14 +36,14 @@ class TwoCycle(commands2.SequentialCommandGroup):
 
         self.addCommands(commands2.ParallelCommandGroup(
             commands2.WaitCommand(0.5).andThen(Intake_Deploy(intake=container.intake, position='down', indent=1)),
-            AutoToPoseClean(container=self.container, swerve=self.container.swerve, target_pose=None,
-                            mode="ball_pickup", control_type='not_pathplanner')
+            DriveToPoseCustomControl(container=self.container, swerve=self.container.swerve,
+                target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_first_ball_pickup_pose, wpilib.DriverStation.getAlliance(), is_shooting=False))
         ))
 
         # flight simulator rules - y axis is reversed, so negative numbers go forward on field relative
         #self.addCommands(DriveByVelocitySwerve(self.container, self.container.swerve, Pose2d(-0.25, 0, 0), field_relative=True, indent=1, timeout=2))
-        self.addCommands(AutoToPoseClean(container=self.container, swerve=self.container.swerve, target_pose=None,
-                            mode="shooting", control_type='not_pathplanner')
+        self.addCommands(DriveToPoseCustomControl(container=self.container, swerve=self.container.swerve,
+            target_pose_supplier=lambda: auto_reflect_pose(self.container.swerve.get_pose(), ac.k_shooting_pose, wpilib.DriverStation.getAlliance(), is_shooting=True))
 
         )
 

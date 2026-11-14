@@ -4,7 +4,6 @@ from commands.drive_by_velocity_swerve import DriveByVelocitySwerve
 from commands.drive_by_joystick_subsystem_targeting import DriveByJoystickSubsystemTargeting
 from commands.intake_deploy import Intake_Deploy
 from autonomous.shoot_cycle import shoot_cycle
-from commands.auto_to_pose_clean import AutoToPoseClean
 
 from helpers import joysticks as js
 from wpimath.geometry import Pose2d
@@ -30,7 +29,6 @@ class AutoShootingGroup(commands2.SequentialCommandGroup):
 
         # flight simulator rules - y axis is reversed, so negative numbers go forward on field relative
         #self.addCommands(DriveByVelocitySwerve(self.container, self.container.swerve, Pose2d(-0.25, 0, 0), field_relative=True, indent=1, timeout=2))
-        # self.addCommands(AutoToPoseClean(self, self.swerve, target_pose=None, nearest=True, from_robot_state=True,control_type='not_pathplanner'))
 
         self.addCommands(commands2.PrintCommand(f"{'    ' * indent}** Finished {self.getName()} **"))
 

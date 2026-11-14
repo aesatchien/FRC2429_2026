@@ -45,7 +45,7 @@ from autonomous.one_meter import OneMeter
 
 # 2429 commands
 from commands.can_status import CANStatus
-from commands.auto_to_pose_clean import AutoToPoseClean
+from commands.drive_to_pose_custom_control import DriveToPoseCustomControl
 from commands.drive_by_velocity_swerve import DriveByVelocitySwerve
 from commands.drive_by_joystick_subsystem_targeting import DriveByJoystickSubsystemTargeting
 from commands.reset_field_centric import ResetFieldCentric
@@ -187,15 +187,16 @@ class RobotContainer:
 
         # --- Vision & Automation ---
         # Align to Pose (Front/Left)
-        #js.driver_a.debounce(0.1).while_true(AutoToPoseClean(self, self.swerve, target_pose=None, use_vision=True, cameras=['logi_front_hsv'], control_type='not_pathplanner'))
-        #js.driver_x.debounce(0.1).while_true(AutoToPoseClean(self, self.swerve, target_pose=None, use_vision=True, cameras=['logi_left_hsv'], control_type='not_pathplanner'))
         # SIM ONLY: hold D-pad right / left to drive onto the nearest game piece the simulated
         # front / left camera sees (A and X, where these lived in January, are shooting now).
+        # See docs/DRIVE_TO_POSE_HOWTO.md.
         # The hsv cameras only exist in CameraConstants.k_sim_cameras, and the targets only
         # when SimConstants.k_disable_vision_sim is False.
         if wpilib.RobotBase.is_simulation() and not dpad_driving:
-            js.driver_right.debounce(0.1).while_true(AutoToPoseClean(self, self.swerve, target_pose=None, use_vision=True, cameras=['logi_front_hsv']))
-            js.driver_left.debounce(0.1).while_true(AutoToPoseClean(self, self.swerve, target_pose=None, use_vision=True, cameras=['logi_left_hsv']))
+            js.driver_right.debounce(0.1).while_true(DriveToPoseCustomControl(self, self.swerve,
+                lambda: self.vision.get_vision_target_pose(self.swerve.get_pose(), ['logi_front_hsv'])))
+            js.driver_left.debounce(0.1).while_true(DriveToPoseCustomControl(self, self.swerve,
+                lambda: self.vision.get_vision_target_pose(self.swerve.get_pose(), ['logi_left_hsv'])))
         
         # Track Target
         #js.driver_b.debounce(0.1).while_true(AutoTrackVisionTarget(self, camera_key='logi_front_hsv', target_distance=0.40))

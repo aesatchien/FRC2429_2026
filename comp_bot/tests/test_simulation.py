@@ -8,8 +8,9 @@ headless through pyfrc's test harness, physics.py included, with nothing mocked:
     subsystems/vision.py       reads them back, exactly as it would from a Pi
     the command                turns "2.6 m away, 4 deg right" into a field pose, drives there
 
-Both entry points are checked - the old AutoToPoseClean(use_vision=True) and
-DriveToPoseCustomControl fed by Vision.get_vision_target_pose.
+The command is DriveToPoseCustomControl fed by Vision.get_vision_target_pose.  It is then
+run the way the autos feed it (auto_reflect_pose), since that is what auto_shoot_and_pickup,
+twocycle and through_trench_pickup run now that AutoToPoseClean is retired.
 
 ONE test, for the reason tests/conftest.py gives: REV allows one robot per process.  This
 file shares nothing with conftest's `container` fixture - `robotpy test` runs each test in
@@ -29,7 +30,6 @@ def test_drive_to_simulated_vision_target(control, robot):
     # physics.py builds the camera sim in simulationInit, so this is in time
     constants.SimConstants.k_disable_vision_sim = False
     with control.run_robot():
-        from commands.auto_to_pose_clean import AutoToPoseClean
         from commands.drive_to_pose_custom_control import DriveToPoseCustomControl
         from simulation.gamepiece_sim import GamepieceSim
 
@@ -86,16 +86,33 @@ def test_drive_to_simulated_vision_target(control, robot):
 
         # the pieces are 4.7 m from the start pose and the camera sim sees 4 m: close in first
         creep(0.3, 0, 1.5)
-        drive_to_vision_target(
-            'AutoToPoseClean(use_vision=True)',
-            lambda: AutoToPoseClean(container, swerve, target_pose=None, use_vision=True, cameras=[camera]))
+        def vision_command():
+            return DriveToPoseCustomControl(
+                container, swerve, lambda: vision.get_vision_target_pose(swerve.get_pose(), [camera]))
 
-        # back off and across, then do it again through the supplier-based command
+        drive_to_vision_target('straight ahead', vision_command)
+
+        # back off and across, then do it again from an angle
         creep(-0.3, 0.15, 1.5)
-        drive_to_vision_target(
-            'DriveToPoseCustomControl + get_vision_target_pose',
-            lambda: DriveToPoseCustomControl(
-                container, swerve, lambda: vision.get_vision_target_pose(swerve.get_pose(), [camera])))
+        drive_to_vision_target('off to one side', vision_command)
+
+        print("=== auto: DriveToPoseCustomControl + auto_reflect_pose reaches the shooting pose ===")
+        import wpilib
+        from constants import AutoConstants
+        from helpers.apriltag_utils import auto_reflect_pose
+        goal = auto_reflect_pose(swerve.get_pose(), AutoConstants.k_shooting_pose,
+                                 wpilib.DriverStation.getAlliance(), is_shooting=True)
+        command = DriveToPoseCustomControl(
+            container=container, swerve=swerve,
+            target_pose_supplier=lambda: auto_reflect_pose(
+                swerve.get_pose(), AutoConstants.k_shooting_pose, wpilib.DriverStation.getAlliance(), is_shooting=True),
+            tolerance_type='exact')
+        run(command, limit_s=15.0)
+        truth = truth_sub.get()
+        off = truth.translation().distance(goal.translation())
+        turn_off = abs((truth.rotation() - goal.rotation()).degrees())
+        assert off < 0.10 and turn_off < 5, f"stopped {off:.2f} m and {turn_off:.1f} deg from {goal}"
+        print(f"    stopped {off * 100:.1f} cm and {turn_off:.1f} deg from the shooting pose")
 
 
 def robot_field_stub():

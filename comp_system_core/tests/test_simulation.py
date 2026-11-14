@@ -202,10 +202,10 @@ def test_simulation_end_to_end(control, robot):
         # The whole chain, nothing mocked: the camera sim sees a game piece from GROUND TRUTH
         # and publishes distance/rotation on /Cameras/..., Vision reads them back exactly as
         # it would from a Pi, the command turns "1.9 m away, 4 deg left" into a field pose
-        # and drives there.  Both entry points - the old AutoToPoseClean(use_vision=True) and
-        # DriveToPoseCustomControl fed by Vision.get_vision_target_pose - must land on a piece.
+        # and drives there.  Then the same command fed the way the autos feed it
+        # (auto_reflect_pose), since that is what auto_shoot_and_pickup, twocycle and
+        # through_trench_pickup run now that AutoToPoseClean is retired.
         import commands2
-        from commands.auto_to_pose_clean import AutoToPoseClean
         from commands.drive_to_pose_custom_control import DriveToPoseCustomControl
         vision = container.vision
         camera = 'logi_front_hsv'
@@ -239,10 +239,36 @@ def test_simulation_end_to_end(control, robot):
             print(f"    drove {moved:.2f} m, stopped {off * 100:.1f} cm from the piece at "
                   f"({goal.x:.2f}, {goal.y:.2f})")
 
-        drive_to_vision_target(
-            'AutoToPoseClean(use_vision=True)', Pose2d(5.5, 4.1, Rotation2d()),
-            lambda: AutoToPoseClean(container, swerve, target_pose=None, use_vision=True, cameras=[camera]))
-        drive_to_vision_target(
-            'DriveToPoseCustomControl + get_vision_target_pose', Pose2d(5.5, 3.1, Rotation2d.from_degrees(10)),
-            lambda: DriveToPoseCustomControl(
-                container, swerve, lambda: vision.get_vision_target_pose(swerve.get_pose(), [camera])))
+        def vision_command():
+            return DriveToPoseCustomControl(
+                container, swerve, lambda: vision.get_vision_target_pose(swerve.get_pose(), [camera]))
+
+        drive_to_vision_target('straight ahead', Pose2d(5.5, 4.1, Rotation2d()), vision_command)
+        drive_to_vision_target('off to one side', Pose2d(5.5, 3.1, Rotation2d.from_degrees(10)), vision_command)
+
+        print("=== auto: DriveToPoseCustomControl + auto_reflect_pose reaches the shooting pose ===")
+        import wpilib
+        from constants import AutoConstants
+        from helpers.apriltag_utils import auto_reflect_pose
+        start = Pose2d(5.0, 2.0, Rotation2d())
+        swerve.sim_set_ground_truth(start)
+        swerve.resetOdometry(start)
+        teleop(0.2)
+        goal = auto_reflect_pose(swerve.get_pose(), AutoConstants.k_shooting_pose,
+                                 wpilib.MatchState.get_alliance(), is_shooting=True)
+        command = DriveToPoseCustomControl(
+            container=container, swerve=swerve,
+            target_pose_supplier=lambda: auto_reflect_pose(
+                swerve.get_pose(), AutoConstants.k_shooting_pose, wpilib.MatchState.get_alliance(), is_shooting=True),
+            tolerance_type='exact')
+        commands2.CommandScheduler.get_instance().schedule(command)
+        for _ in range(500):
+            teleop(0.02)
+            if not command.is_scheduled():
+                break
+        assert not command.is_scheduled(), "the drive to the shooting pose never finished"
+        truth = swerve.sim_get_ground_truth()
+        off = truth.translation().distance(goal.translation())
+        turn_off = abs((truth.rotation() - goal.rotation()).degrees())
+        assert off < 0.10 and turn_off < 5, f"stopped {off:.2f} m and {turn_off:.1f} deg from {goal}"
+        print(f"    stopped {off * 100:.1f} cm and {turn_off:.1f} deg from the shooting pose")

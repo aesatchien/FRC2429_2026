@@ -325,8 +325,7 @@ class RateLimiters:
     # ═══════════════════════════════════════════════════════════════════════════
     # Section 3 — Autonomous Driving
     # ═══════════════════════════════════════════════════════════════════════════
-    # Used in: commands/auto_to_pose_clean.py            (x, y, and rot limiters)
-    #          commands/drive_to_pose_custom_control.py  (x, y, and rot limiters)
+    # Used in: commands/drive_to_pose_custom_control.py  (x, y, and rot limiters)
     # These commands call swerve.drive(rate_limited=False), so Section 2 does NOT apply.
     # Stricter than teleop (2.0 vs 3.0): PID outputs can be large step inputs that
     # would cause brownouts if not limited before reaching the motors.
