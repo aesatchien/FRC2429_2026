@@ -137,3 +137,63 @@ def test_frames_are_read_before_the_tracking_flag_is_checked(quest):
     quest.periodic()
     assert quest.quest_pose.translation().distance(TARGET.translation()) < 1e-6
     assert quest.was_tracking
+
+
+# ---------------------------------------------------------------------------------------
+# Losing the pose stream, and the double tap switch (helpers/quest_double_tap.py)
+# ---------------------------------------------------------------------------------------
+
+class FakePub:
+    def __init__(self): self.value = None
+    def set(self, value): self.value = value
+
+
+def lose_stream(q):
+    """Track for a loop, then no frames for long enough to call the stream lost."""
+    q.double_tap.in_passthrough_pub = FakePub()
+    q.double_tap.count_pub = FakePub()
+    feed(q, TARGET)
+    q.periodic()
+    for _ in range(q.k_max_missed_frames + 1):
+        q.periodic()
+    assert not q.was_tracking
+
+
+def test_lost_stream_asks_for_the_adb_fix_when_double_taps_are_possible(quest):
+    quest.double_tap.enabled = True
+    lose_stream(quest)
+    assert quest.double_tap.in_passthrough_pub.value is True
+    assert quest.double_tap.count == 1
+
+    feed(quest, TARGET)                         # the app is back
+    quest.periodic()
+    assert quest.double_tap.in_passthrough_pub.value is False
+    assert quest.was_tracking
+
+
+def test_lost_stream_is_just_a_lost_stream_with_the_double_tap_switch_off(quest):
+    quest.double_tap.enabled = False
+    lose_stream(quest)
+    assert quest.double_tap.in_passthrough_pub.value is not True, "nothing may ask the dashboard for adb"
+    assert quest.double_tap.count == 0
+    assert not quest.is_pose_accepted()         # ... but the pose is still cut off
+
+
+@pytest.mark.parametrize("double_tap", [True, False])
+def test_short_outage_soft_resyncs_either_way(quest, double_tap):
+    quest.double_tap.enabled = double_tap
+    quest.quest_has_synched = True
+    lose_stream(quest)
+    quest.quest_unsync_odometry()               # what the connection watchdog does in a real outage
+    feed(quest, TARGET)                         # back where it was, well inside k_max_resync_time
+    quest.periodic()
+    assert quest.quest_has_synched
+
+
+def test_outage_that_comes_back_somewhere_else_does_not_soft_resync(quest):
+    quest.quest_has_synched = True
+    lose_stream(quest)
+    quest.quest_unsync_odometry()
+    feed(quest, Pose2d(TARGET.x + 3.0, TARGET.y, TARGET.rotation()))
+    quest.periodic()
+    assert not quest.quest_has_synched

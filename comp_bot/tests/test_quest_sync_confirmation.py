@@ -1,0 +1,196 @@
+"""
+Pin that the Quest subsystem only calls itself synced once the headset has SHOWN the new pose.
+
+WHY THIS EXISTS
+---------------
+quest_sync_odometry() used to set quest_has_synched = True the moment it sent the reset.  When the
+reset never reached the headset (the `quat.W()` bug) the robot believed it was aligned to the
+field and fused a pose that was off by metres.  It also accepted the first frames after a reset,
+which can still carry the pre-reset pose, and cached is_tracking/is_connected before reading the
+frames that update them.
+
+These tests drive Questnav.periodic() with a fake headset client so each case is deterministic.
+"""
+
+import pytest
+from wpimath.geometry import Pose2d, Pose3d, Rotation2d
+
+from helpers.questnav.questnav import PoseFrame
+from subsystems.quest import Questnav
+
+TARGET = Pose2d(5.0, 4.0, Rotation2d.fromDegrees(30))   # where the robot "is" for a sync
+STALE = Pose2d(1.0, 1.0, Rotation2d.fromDegrees(0))     # what the headset says before the reset lands
+
+
+class FakeHeadset:
+    """Just enough of helpers.questnav.QuestNav for Questnav.periodic()."""
+
+    def __init__(self):
+        self.frames = []
+        self.read_yet = False          # tracking only becomes known once the frames are read
+        self.connected = True
+        self.send_ok = True            # False: set_pose() reports nothing was sent
+        self.result = None             # what get_command_result() answers
+        self.sent = []
+
+    def command_periodic(self): pass
+    def get_all_unread_pose_frames(self):
+        self.read_yet = True
+        frames, self.frames = self.frames, []
+        return frames
+    def is_connected(self): return self.connected and self.read_yet
+    def is_tracking(self): return self.read_yet
+    def set_pose(self, pose):
+        self.sent.append(pose)
+        return 7 if self.send_ok else None
+    def get_command_result(self, command_id): return self.result
+    def get_battery_percent(self): return 80
+    def get_latency(self): return 5.0
+    def get_tracking_lost_counter(self): return 0
+    def get_frame_count(self): return 1
+
+
+class FakeSub:
+    def __init__(self, pose): self.pose = pose
+    def get(self): return self.pose
+
+
+@pytest.fixture
+def quest():
+    q = Questnav()
+    q.mock_questnav = False                     # the real-headset code path, whatever constants say
+    q.questnav = FakeHeadset()
+    q.drive_pose_sub = FakeSub(TARGET)
+    return q
+
+
+def feed(q, robot_pose):
+    """Queue one frame showing the headset at the Quest pose that corresponds to robot_pose."""
+    q.questnav.frames.append(PoseFrame(
+        quest_pose_3d=Pose3d(robot_pose.transformBy(q.quest_to_robot.inverse())),
+        data_timestamp=0.0, app_timestamp=0.0, frame_count=1))
+
+
+def test_sync_is_not_claimed_until_the_headset_shows_the_new_pose(quest):
+    feed(quest, STALE)
+    quest.periodic()
+    quest.quest_sync_odometry()
+    assert not quest.quest_has_synched, "sending the command must not mean synced"
+
+    feed(quest, STALE)                          # headset still on the old pose
+    quest.periodic()
+    assert not quest.quest_has_synched
+    assert not quest.is_pose_accepted(), "a pose that may predate the reset must not be fused"
+
+    feed(quest, TARGET)                         # headset applied it
+    quest.periodic()
+    assert quest.quest_has_synched
+    assert quest.pending_reset_id is None
+
+
+def test_sync_that_never_lands_gives_up_and_stays_unsynced(quest):
+    quest.k_reset_timeout = -1.0                # already expired
+    feed(quest, STALE)
+    quest.periodic()
+    quest.quest_sync_odometry()
+    feed(quest, STALE)
+    quest.periodic()
+    assert not quest.quest_has_synched
+    assert quest.pending_reset_id is None       # free to try again
+
+
+def test_headset_reporting_failure_fails_the_sync(quest):
+    feed(quest, STALE)
+    quest.periodic()
+    quest.quest_sync_odometry()
+    quest.questnav.result = False
+    feed(quest, STALE)
+    quest.periodic()
+    assert not quest.quest_has_synched
+    assert quest.pending_reset_id is None
+
+
+def test_a_command_that_could_not_be_sent_is_not_a_sync(quest):
+    feed(quest, STALE)
+    quest.periodic()
+    quest.questnav.send_ok = False
+    quest.quest_sync_odometry()
+    assert not quest.quest_has_synched
+    assert quest.pending_reset_id is None
+
+
+def test_second_sync_while_one_is_in_flight_is_ignored(quest):
+    feed(quest, STALE)
+    quest.periodic()                            # lets the fake headset report connected
+    quest.quest_sync_odometry()
+    quest.quest_sync_odometry()
+    assert len(quest.questnav.sent) == 1
+
+
+def test_frames_are_read_before_the_tracking_flag_is_checked(quest):
+    # The fake only knows it is tracking once the frames have been read.  With the flags cached
+    # first, this frame would be dropped as "not tracking" and the pose would never update.
+    feed(quest, TARGET)
+    quest.periodic()
+    assert quest.quest_pose.translation().distance(TARGET.translation()) < 1e-6
+    assert quest.was_tracking
+
+
+# ---------------------------------------------------------------------------------------
+# Losing the pose stream, and the double tap switch (helpers/quest_double_tap.py)
+# ---------------------------------------------------------------------------------------
+
+class FakePub:
+    def __init__(self): self.value = None
+    def set(self, value): self.value = value
+
+
+def lose_stream(q):
+    """Track for a loop, then no frames for long enough to call the stream lost."""
+    q.double_tap.in_passthrough_pub = FakePub()
+    q.double_tap.count_pub = FakePub()
+    feed(q, TARGET)
+    q.periodic()
+    for _ in range(q.k_max_missed_frames + 1):
+        q.periodic()
+    assert not q.was_tracking
+
+
+def test_lost_stream_asks_for_the_adb_fix_when_double_taps_are_possible(quest):
+    quest.double_tap.enabled = True
+    lose_stream(quest)
+    assert quest.double_tap.in_passthrough_pub.value is True
+    assert quest.double_tap.count == 1
+
+    feed(quest, TARGET)                         # the app is back
+    quest.periodic()
+    assert quest.double_tap.in_passthrough_pub.value is False
+    assert quest.was_tracking
+
+
+def test_lost_stream_is_just_a_lost_stream_with_the_double_tap_switch_off(quest):
+    quest.double_tap.enabled = False
+    lose_stream(quest)
+    assert quest.double_tap.in_passthrough_pub.value is not True, "nothing may ask the dashboard for adb"
+    assert quest.double_tap.count == 0
+    assert not quest.is_pose_accepted()         # ... but the pose is still cut off
+
+
+@pytest.mark.parametrize("double_tap", [True, False])
+def test_short_outage_soft_resyncs_either_way(quest, double_tap):
+    quest.double_tap.enabled = double_tap
+    quest.quest_has_synched = True
+    lose_stream(quest)
+    quest.quest_unsync_odometry()               # what the connection watchdog does in a real outage
+    feed(quest, TARGET)                         # back where it was, well inside k_max_resync_time
+    quest.periodic()
+    assert quest.quest_has_synched
+
+
+def test_outage_that_comes_back_somewhere_else_does_not_soft_resync(quest):
+    quest.quest_has_synched = True
+    lose_stream(quest)
+    quest.quest_unsync_odometry()
+    feed(quest, Pose2d(TARGET.X() + 3.0, TARGET.Y(), TARGET.rotation()))
+    quest.periodic()
+    assert not quest.quest_has_synched

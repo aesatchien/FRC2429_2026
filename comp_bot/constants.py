@@ -144,10 +144,18 @@ class QuestConstants:
     k_counter_offset = next(_counter)
     quest_to_robot = Transform2d(inchesToMeters(-14), inchesToMeters(-8), Rotation2d().fromDegrees(270))
 
-    k_max_disconnected_count = 14  # number of cycles of lost quest before we call passthru
+    # Can a double tap (or a bump) still drop this headset into passthrough?  True: a lost pose
+    # stream raises /QuestNav/quest_in_passthrough so the dashboard runs its adb fix, and the
+    # LEDs show DTAP.  False (double tap disabled on the headset): none of that happens.
+    # Everything else - unsync, soft resync, auto resync - is the same either way.
+    # See helpers/quest_double_tap.py.  The dashboard follows this over NT.
+    k_check_for_double_tap = True
+
+    k_max_missed_frames = 14  # loops with no new frame (while tracking) before we call the pose stream lost
+    k_max_disconnected_count = 14  # loops of no connection (after the 200 ms NT timeout) before we unsync
     k_allow_quest_auto_resync = True  # teleop tries to resync if certain conditions are met
-    k_max_resync_time = 1.5  # if we have not fixed the dtap in this many seconds, don't soft resync
-    k_max_passthru_distance = 2.0  # meters we can move in passthru before rejecting soft resync
+    k_max_resync_time = 1.5  # an outage longer than this many seconds does not get a soft resync
+    k_max_outage_distance = 2.0  # meters the quest pose can move across an outage before rejecting soft resync
 
 
 class LedConstants:

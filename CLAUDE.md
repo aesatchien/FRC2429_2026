@@ -113,9 +113,15 @@ near-identical, differing mainly in the a6→a7 API surface — see below):
     TalonFX) without the rest of the code knowing which. `subsystems/swerve_constants.py`'s
     `ACTIVE_CONFIG` (selected by `constants.k_swerve_config`, e.g. `"comp"` vs
     `"comp_vortex"`) picks the vendor/gearing/CAN-ID set per robot build.
-- **QuestNav** (headset-based odometry) is also split in two:
+- **QuestNav** (headset-based odometry) is also split up:
   - `subsystems/quest.py` — robot-side subsystem: sync/resync state machine, strict pose
-    acceptance criteria, passthrough/double-tap recovery, dashboard publishing.
+    acceptance criteria, lost-stream recovery (soft resync), dashboard publishing.
+  - `helpers/quest_double_tap.py` — the double-tap silo, switched by
+    `QuestConstants.k_check_for_double_tap`. It only raises `/QuestNav/quest_in_passthrough`
+    (the dashboard's cue to run its adb fix, `gui/quest_double_tap.py`) and counts taps.
+    Stream-loss detection, unsync, soft resync and auto-resync are NOT double-tap code and
+    run either way. The GUI follows the robot's setting over
+    `/QuestNav/check_for_double_tap`; it has no flag of its own.
   - `helpers/questnav/questnav.py` — low-level NT4 client that parses the Quest headset's
     own protobuf topics (`frameData`, `deviceData`, command `response`) into `PoseFrame`
     objects. Protobuf schema classes are generated under

@@ -2,13 +2,10 @@
 
 import time
 import numpy as np
-import os
-import subprocess
-import threading
 import wpimath.geometry as geo
 import ntcore
 import config
-from quest_address import quest_ip, ADB_PORT
+from quest_double_tap import QuestDoubleTapFixer
 from PyQt6 import QtGui, QtCore
 
 class UIUpdater:
@@ -42,12 +39,9 @@ class UIUpdater:
         self.ui = ui
         self.drive_pose = geo.Pose2d()  # Store pose for other calculations
         self.flash_on = False
-        self.dtap_start_time = 0.0
-        self.dtap_last_fix_time = 0.0
-        self.dtap_retries = 0
         self.start_time = time.time()
-        # who is connected to the robot's NT server - the Quest's real IP is in here (see quest_address.py)
-        self.nt_clients_sub = ntcore.NetworkTableInstance.getDefault().getRawTopic("$clients").subscribe("msgpack", b"")
+        # the adb fix for a double-tapped Quest - does nothing unless the robot asks for it (quest_double_tap.py)
+        self.quest_double_tap = QuestDoubleTapFixer(ui)
 
         # Map update styles from config to specific update functions
         self.updaters = {
@@ -77,7 +71,7 @@ class UIUpdater:
         self._update_pose_and_field()  # Must be called first to get latest pose
         self._update_camera_indicators()  # Check camera connection states
         self._update_shot_calculations()  # Depends on pose data
-        self._check_questnav_passthrough_issue()
+        self.quest_double_tap.update()
 
         # Use the dispatcher for all other standard widgets based on their update style
         for widget_props in self.ui.widget_dict.values():
@@ -137,95 +131,6 @@ class UIUpdater:
                     props['selected_tune_publisher'] = self.ui.ntinst.getStringTopic(props['selected_tune_topic']).publish()
 
         self._last_connection_state = is_connected
-
-    def _check_questnav_passthrough_issue(self):
-        """Monitors QuestNav passthrough state and restarts app via adb if stuck."""
-        dtap_props = self.ui.widget_dict.get('qlabel_questnav_dtap_indicator')
-        if not dtap_props:
-            return
-
-        sub = dtap_props.get('subscriber')
-        if not sub:
-            return
-
-        is_in_passthrough = sub.get()
-        current_time = self.get_elapsed_time()
-
-        if is_in_passthrough:
-            # Start the timer if it just became True
-            if self.dtap_start_time == 0.0:
-                self.dtap_start_time = current_time
-                print(f"[{time.strftime('%H:%M:%S')}] We have detected a QuestNav passthru condition.", flush=True)
-
-            # If True for more than threshoold
-            if (current_time - self.dtap_start_time) > config.QUESTNAV_PASSTHRU_ADB_DELAY:
-                # Check cooldown of ~ 2 second since last fix
-                if (current_time - self.dtap_last_fix_time) > config.QUESTNAV_ADB_COOLDOWN_S:
-                    if self.dtap_retries < config.QUESTNAV_ADB_MAX_RETRIES:
-                        self.dtap_retries += 1
-                        print(f"[{time.strftime('%H:%M:%S')}] QuestNav has been in passthrough for > {config.QUESTNAV_PASSTHRU_ADB_DELAY:.2f}s. Attempting ADB fix ({self.dtap_retries}/{config.QUESTNAV_ADB_MAX_RETRIES}).", flush=True)
-                        
-                        address = self._quest_adb_address()
-                        threading.Thread(target=self._run_adb_fix, args=(address,), daemon=True).start()
-                        print(f"[{time.strftime('%H:%M:%S')}] ADB fix sent to {address}. Waiting for cooldown...", flush=True)
-                    elif self.dtap_retries == config.QUESTNAV_ADB_MAX_RETRIES:
-                        print(f"[{time.strftime('%H:%M:%S')}] QuestNav ADB fix max retries ({config.QUESTNAV_ADB_MAX_RETRIES}) reached. Giving up.", flush=True)
-                        self.dtap_retries += 1  # Increment once more so we don't spam the 'Giving up' message
-
-                    self.dtap_last_fix_time = current_time
-                    self.dtap_start_time = current_time  # Reset the start time so it requires another full second to trigger again if it remains True
-        else:
-            self.dtap_start_time = 0.0
-            if self.dtap_retries > 0:
-                print(f"[{time.strftime('%H:%M:%S')}] QuestNav passthru resolved.", flush=True)
-                self.dtap_retries = 0
-
-    def _quest_adb_address(self):
-        """The Quest's adb address RIGHT NOW: its IP as the robot's NT server sees it, falling back to
-        config (hard-coded, or whatever the last Ping Quest found) only if the Quest is not connected.
-        This used to be config alone, so a changed DHCP address meant adb went to the old one."""
-        ip = quest_ip(self.nt_clients_sub.get())
-        if ip is None:
-            return config.QUESTNAV_ADB_ADDRESS
-        address = f"{ip}:{ADB_PORT}"
-        if address != config.QUESTNAV_ADB_ADDRESS:
-            print(f"[{time.strftime('%H:%M:%S')}] Quest is at {address} (from the robot's NT client list), "
-                  f"not {config.QUESTNAV_ADB_ADDRESS} - using {address}", flush=True)
-            config.QUESTNAV_ADB_ADDRESS = address  # so Ping Quest and the test button agree
-        return address
-
-    @staticmethod
-    def _run_adb_fix(address):
-        """Background thread: connect first (`adb -s` does not connect, and the adb server may only
-        know the OLD address), then bring QuestNav back to the front.  Prints adb's answers so a
-        failure is visible instead of a silent Popen."""
-        adb_path = os.path.join(os.path.dirname(__file__), "adb", "adb.exe")
-        creationflags = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
-        for cmd in ([adb_path, "connect", address],
-                    [adb_path, "-s", address, "shell", "am", "start", "-n",
-                     "gg.QuestNav.QuestNav/com.unity3d.player.UnityPlayerGameActivity"]):
-            try:
-                res = subprocess.run(cmd, capture_output=True, text=True, timeout=5, creationflags=creationflags)
-                out = (res.stdout + res.stderr).strip().replace("\n", " | ")
-                print(f"[{time.strftime('%H:%M:%S')}] adb {cmd[1]} {address}: {out or res.returncode}", flush=True)
-            except Exception as e:
-                print(f"[{time.strftime('%H:%M:%S')}] adb {cmd[1]} {address} failed: {e}", flush=True)
-                return
-
-    def _test_questnav_dtap(self):
-        """Fires an ADB command to simulate/test Quest passthrough by returning to the Home screen.
-        None of these do what they are supposed to - the HOME actually kills and restarts (seriously messes up the quest), and the FocusPlaceholderActivity doesn't work
-        """
-        current_time = self.get_elapsed_time()
-        print(f"[{time.strftime('%H:%M:%S')}] Testing QuestNav DTAP (Home Intent)...", flush=True)
-        
-        try:
-            adb_path = os.path.join(os.path.dirname(__file__), "adb", "adb.exe")
-            # cmd = [adb_path, "-s", config.QUESTNAV_ADB_ADDRESS, "shell", "am", "start", "-a", "android.intent.action.MAIN", "-c", "android.intent.category.HOME"]
-            cmd = [adb_path, "-s", self._quest_adb_address(), "shell", "am", "start", "-n", "com.oculus.vrshell/.FocusPlaceholderActivity"]
-            subprocess.Popen(cmd)
-        except Exception as e:
-            print(f"[{time.strftime('%H:%M:%S')}] Failed to execute QuestNav DTAP test: {e}", flush=True)
 
     def _update_pose_and_field(self):
         """Updates the robot and quest pose on the field graphic."""

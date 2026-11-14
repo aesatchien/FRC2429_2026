@@ -2,14 +2,13 @@ import wpilib
 from helpers.nt_time import nt_to_seconds
 import random
 from commands2 import Subsystem, InstantCommand
-from wpilib import Alliance, Field2d, MatchState, Timer
+from wpilib import Alliance, MatchState, Timer
 from helpers.dashboard import SmartDashboard  # 2027a7: wpilib's was removed
-from wpimath.units import inches_to_meters
-from wpimath import Pose2d, Rotation2d, Translation2d, Pose3d, Rotation3d, Translation3d, Transform2d, Transform3d
+from wpimath import Pose2d, Rotation2d, Translation2d, Pose3d, Transform2d
 from ntcore import NetworkTableInstance
 
 from helpers.questnav.questnav import QuestNav as Metaquestnav
-from wpilib import DataLogManager
+from helpers.quest_double_tap import DoubleTapWatch
 
 import constants
 from constants import FieldConstants as fc, QuestConstants as qc
@@ -41,23 +40,22 @@ class Questnav(Subsystem):
             self.quest_pose = Pose2d(-10, -10, Rotation2d.from_degrees(0)) # initial pose if not connected / tracking
         else:
             self.quest_pose = Pose2d(2, 6, Rotation2d.from_degrees(180))
-        self.quest_pose_new = self.quest_pose
-        self.quest_pose_old = self.quest_pose
         self.quest_pose_timestamp = 0.0
 
-        # --- TIMEOUTS & RECOVERY (CRITICAL ORDERING) ---
-        # 1. missed_frame_count (k_max_missed_frames below): Fires the ADB recovery script.
+        # --- WATCHDOGS (CRITICAL ORDERING) ---
+        # 1. missed_frame_count (qc.k_max_missed_frames): the pose STREAM is lost.  Remembers
+        #    where we were for the soft resync and, if double taps are possible, asks the
+        #    dashboard for the adb fix (helpers/quest_double_tap.py).
         #    Must be >= 10 loops to absorb normal 100ms NT4 network batching and wake-up stutters.
-        # 2. disconnected_count (qc.k_max_disconnected_count): Fires the hard Odometry Unsync.
-        #    Because disconnected_count only starts ticking AFTER the 200ms network timeout, 
-        #    the ADB script gets a crucial head-start to save the day before we wipe the field sync.
+        # 2. disconnected_count (qc.k_max_disconnected_count): the hard odometry unsync.
+        #    Because disconnected_count only starts ticking AFTER the 200ms network timeout,
+        #    whatever is bringing the stream back gets a head start before we wipe the field sync.
         self.missed_frame_count = 0
-        self.k_max_missed_frames = 14  # loops with no new frames before we call it a passthru (raised from 10 - see note above)
+        self.k_max_missed_frames = qc.k_max_missed_frames
         self.was_tracking = False
         self.was_connected = False
         self.disconnected_count = 0  # count how many frames we've been disconnected to avoid ping-ponging in and out of sync
         self.out_of_bounds_count = 0
-        self.dtap_count = 0  # count how many times we've double-tapped to track the issue in sim and real
         self.k_max_disconnected_count = qc.k_max_disconnected_count  # lost iterations before we say we are disconnected
         # A pose reset we sent but the headset has not proven it applied yet.  Until a frame
         # lands near the target (or it fails / times out) the pose is NOT accepted, because
@@ -70,9 +68,13 @@ class Questnav(Subsystem):
         self.k_reset_tolerance_m = 0.5  # how close a frame must be to the target to count as applied
         self.k_reset_tolerance_deg = 30.0
         self.error_pose = Pose2d(0,0,0)  # difference between robot and quest
-        self.passthru_start_time = 0.0
-        self.synced_before_passthru = False
-        self.pre_passthru_pose = Pose2d()
+        # what we knew when the pose stream was lost, for the soft resync when it comes back
+        self.outage_start_time = 0.0
+        self.synced_before_outage = False
+        self.pre_outage_pose = Pose2d()
+
+        # the double tap silo - a no-op unless qc.k_check_for_double_tap
+        self.double_tap = DoubleTapWatch(qc.k_check_for_double_tap)
 
         # Simulation override: True = use random walk sim, False = use real headset in sim
         self.mock_questnav = wpilib.RobotBase.is_simulation() and getattr(constants.SimConstants, 'k_mock_questnav', True)
@@ -118,9 +120,7 @@ class Questnav(Subsystem):
         self.quest_lost_count_pub = self.inst.get_double_topic(f"{quest_prefix}/quest_tracking_lost_count").publish()
         self.quest_frame_count_pub = self.inst.get_double_topic(f"{quest_prefix}/quest_frame_count").publish()
         
-        # Entry for external ADB script to monitor and clear
-        self.quest_passthrough_entry = self.inst.get_boolean_topic(f"{quest_prefix}/quest_in_passthrough").get_entry(False)
-        self.quest_passthrough_count_entry = self.inst.get_double_topic(f"{quest_prefix}/quest_dtap_count").publish()
+        # quest_in_passthrough / quest_dtap_count / check_for_double_tap: helpers/quest_double_tap.py
 
         # ------------- Subscribers -------------
         # Subscribe to the drive_pose published by Swerve (now a Struct)
@@ -132,9 +132,6 @@ class Questnav(Subsystem):
         # ------------- Initial Values & Buttons -------------
         self.quest_synched_pub.set(self.quest_has_synched)
         self.quest_in_use_pub.set(self.use_quest)
-        self.quest_passthrough_entry.set(False)
-        self.quest_passthrough_count_entry.set(self.dtap_count)
-
 
         # note - may not want these buried one deeper.  Also, we may want to put them in robotcontainer instead of here
         command_prefix = constants.command_prefix
@@ -304,93 +301,13 @@ class Questnav(Subsystem):
 
         self.questnav.command_periodic()
 
-        # Read the frames FIRST: reading is what updates the headset's connected/tracking state,
-        # so caching the flags before it acted on the previous loop's state.  The mock has no
-        # headset, so it is always connected and tracking.
-        frames = [] if self.mock_questnav else self.questnav.get_all_unread_pose_frames()
-        is_connected = True if self.mock_questnav else self.questnav.is_connected()
-        is_tracking = True if self.mock_questnav else self.questnav.is_tracking()
+        frames, is_connected, is_tracking = self._read_headset()
+        self._watch_connection(is_connected)
 
-        if not is_connected:
-            self.disconnected_count += 1
-            if self.disconnected_count > self.k_max_disconnected_count and self.was_connected:
-                print(f"*** QuestNav connection dropped for  {self.disconnected_count / 50:.2f}s at {wpilib.Timer.get_timestamp():.2f}s. ***")
-                self.quest_unsync_odometry()
-                self.was_connected = False
-        else:
-            self.disconnected_count = 0
-            self.was_connected = True
-
-        if not self.mock_questnav:  # True for Real Robot, or Sim when hardware-in-the-loop is enabled
-            # FIX: Exception Fall-Through. Only process if actively tracking AND frames exist.
-            if is_tracking and frames:
-                self.missed_frame_count = 0  # Reset watchdog
-                frame_last = frames[-1]  # only read the last frame if multiple are available
-
-                try:
-                    self.quest_pose_new = frame_last.quest_pose_3d.to_pose2d().transform_by(self.quest_to_robot)
-
-                    self.quest_pose = self.quest_pose_new
-                    self.quest_pose_timestamp = frame_last.data_timestamp
-                    
-                    if not self.was_tracking:
-                        print(f"  Quest tracking restored at {wpilib.Timer.get_timestamp():.2f}s ... ")
-                        # Defensively clear the flag when tracking successfully resumes
-                        self.quest_passthrough_entry.set(False)
-                        
-                        time_in_passthru = wpilib.Timer.get_timestamp() - self.passthru_start_time
-                        if time_in_passthru < constants.QuestConstants.k_max_resync_time and self.synced_before_passthru and not self.quest_has_synched:
-                            distance_moved = self.quest_pose.translation().distance(self.pre_passthru_pose.translation())
-                            if distance_moved < constants.QuestConstants.k_max_passthru_distance:
-                                print(f"  Quest recovered in {time_in_passthru:.2f}s. Soft resyncing. Robot pose delta of {self.error_pose.x:.2f}, {self.error_pose.y:.2f}, {self.error_pose.rotation().degrees():.1f}°.")
-                                self.quest_soft_resync()
-                            else:
-                                print(f"  Quest recovered but moved too far ({distance_moved:.2f}m > {constants.QuestConstants.k_max_passthru_distance}m). Skipping soft resync.")
-                                print(f"    Old Pose: X={self.pre_passthru_pose.x:.2f}, Y={self.pre_passthru_pose.y:.2f} | New Pose: X={self.quest_pose.x:.2f}, Y={self.quest_pose.y:.2f}")
-                        
-                    self.was_tracking = True  # Successfully processed a valid tracking frame
-
-                except Exception as e:
-                    # print(f"Error converting QuestNav Pose3d to Pose2d: {e}")
-                    print(f"Error processing Quest frame: {e}")
-                    self.was_tracking = False  # Actively flag blackout state on exception
-            else:
-                # Blackout / Passthrough occurred due to bump or actual tracking loss.
-                self.missed_frame_count += 1
-                if self.missed_frame_count > self.k_max_missed_frames and self.was_tracking:
-                    self.was_tracking = False
-                    self.passthru_start_time = wpilib.Timer.get_timestamp()
-                    self.synced_before_passthru = self.quest_has_synched
-                    self.pre_passthru_pose = self.quest_pose
-                    # Trigger the external ADB script
-                    self.quest_passthrough_entry.set(True)
-                    self.dtap_count += 1
-                    self.quest_passthrough_count_entry.set(self.dtap_count)
-                    # Optional: Print a warning to the driver station that the data stream is dead
-                    print(f"Detecting a lost QuestNav at FPGA timestamp: {wpilib.Timer.get_timestamp():.2f}s")
-
-
-        else:  # simulate a pose read ground truth from sim and apply the current "drift/error" of the Quest
-
-            # Add a random walk to the error to simulate drift
-            self.sim_offset_from_truth = Transform2d(
-                self.sim_offset_from_truth.x + (random.random() - 0.5) * 2 * self.walk_xy,
-                self.sim_offset_from_truth.y + (random.random() - 0.5) * 2 * self.walk_xy,
-                Rotation2d.from_degrees(
-                    self.sim_offset_from_truth.rotation().degrees() + (random.random() - 0.5) * 2 * self.walk_deg)
-            )
-
-            ground_truth_atomic = self.ground_truth_sub.get_atomic()
-            ground_truth: Pose2d = ground_truth_atomic.value
-            # Apply the offset (Transform) to the ground truth Pose
-            # FIX: Apply offset field-relatively (simple addition) instead of robot-relatively (transformBy)
-            self.quest_pose = Pose2d(
-                ground_truth.x + self.sim_offset_from_truth.x,
-                ground_truth.y + self.sim_offset_from_truth.y,
-                ground_truth.rotation() + self.sim_offset_from_truth.rotation()
-            )
-            self.quest_pose_timestamp = nt_to_seconds(ground_truth_atomic.time)  # NT seconds, see helpers/nt_time.py
-            self.was_tracking = True  # Sim never loses tracking
+        if self.mock_questnav:
+            self._update_pose_from_mock()
+        else:  # real robot, or sim with a real headset (hardware-in-the-loop)
+            self._update_pose_from_frames(frames, is_tracking)
 
         if self.pending_reset_id is not None:
             newest = self.quest_pose if (is_tracking and frames and not self.mock_questnav) else None
@@ -399,7 +316,111 @@ class Questnav(Subsystem):
         # calculate pose error
         self.error_pose = self.quest_pose.relative_to(self.drive_pose_sub.get())
 
-        # FIX: Move acceptance logic OUT of the % 5 loop so Swerve gets instant cutoffs.
+        # NOT throttled: Swerve needs the cutoff the moment the data goes bad
+        self._update_acceptance(is_connected, is_tracking)
+
+        if self.counter % 5 == 0:
+            self._publish(is_connected, is_tracking)
+
+        # ping the quest every few seconds in sim to check to get a connection to physical hardware
+        if wpilib.RobotBase.is_simulation() and not self.mock_questnav and self.counter % 200 == 0 and not is_connected:
+            self._ping_connection()
+
+    # ------------------------------------------------------------------------------------
+    # periodic(), one step at a time
+    # ------------------------------------------------------------------------------------
+
+    def _read_headset(self):
+        """-> (frames, is_connected, is_tracking).
+
+        Read the frames FIRST: reading is what updates the headset's connected/tracking state,
+        so caching the flags before it acted on the previous loop's state.  The mock has no
+        headset, so it is always connected and tracking."""
+        if self.mock_questnav:
+            return [], True, True
+        frames = self.questnav.get_all_unread_pose_frames()
+        return frames, self.questnav.is_connected(), self.questnav.is_tracking()
+
+    def _watch_connection(self, is_connected: bool) -> None:
+        """Connection watchdog: gone for longer than k_max_disconnected_count loops -> unsync."""
+        if is_connected:
+            self.disconnected_count = 0
+            self.was_connected = True
+            return
+        self.disconnected_count += 1
+        if self.disconnected_count > self.k_max_disconnected_count and self.was_connected:
+            print(f"*** QuestNav connection dropped for  {self.disconnected_count / 50:.2f}s at {wpilib.Timer.get_timestamp():.2f}s. ***")
+            self.quest_unsync_odometry()
+            self.was_connected = False
+
+    def _update_pose_from_frames(self, frames, is_tracking: bool) -> None:
+        """Stream watchdog: take the newest frame, and notice the stream stopping and restarting."""
+        # Only process if actively tracking AND frames exist.
+        if is_tracking and frames:
+            self.missed_frame_count = 0  # Reset watchdog
+            frame_last = frames[-1]  # only read the last frame if multiple are available
+            try:
+                self.quest_pose = frame_last.quest_pose_3d.to_pose2d().transform_by(self.quest_to_robot)
+                self.quest_pose_timestamp = frame_last.data_timestamp
+                if not self.was_tracking:
+                    self._on_stream_restored()
+                self.was_tracking = True  # Successfully processed a valid tracking frame
+            except Exception as e:
+                print(f"Error processing Quest frame: {e}")
+                self.was_tracking = False  # Actively flag blackout state on exception
+        else:
+            # no usable frame this loop: app suspended, tracking lost, wifi, headset off ...
+            self.missed_frame_count += 1
+            if self.missed_frame_count > self.k_max_missed_frames and self.was_tracking:
+                self.was_tracking = False
+                self._on_stream_lost()
+
+    def _on_stream_lost(self) -> None:
+        self.outage_start_time = wpilib.Timer.get_timestamp()
+        self.synced_before_outage = self.quest_has_synched
+        self.pre_outage_pose = self.quest_pose
+        self.double_tap.on_stream_lost()
+        print(f"Detecting a lost QuestNav at FPGA timestamp: {wpilib.Timer.get_timestamp():.2f}s")
+
+    def _on_stream_restored(self) -> None:
+        """First good frame after an outage (self.quest_pose is already that frame)."""
+        print(f"  Quest tracking restored at {wpilib.Timer.get_timestamp():.2f}s ... ")
+        self.double_tap.on_stream_restored()
+
+        # Soft resync: a short outage that cost us the sync, where the headset comes back about
+        # where it was, kept its own tracking the whole time - so the old sync is still good.
+        outage_time = wpilib.Timer.get_timestamp() - self.outage_start_time
+        if outage_time < qc.k_max_resync_time and self.synced_before_outage and not self.quest_has_synched:
+            distance_moved = self.quest_pose.translation().distance(self.pre_outage_pose.translation())
+            if distance_moved < qc.k_max_outage_distance:
+                print(f"  Quest recovered in {outage_time:.2f}s. Soft resyncing. Robot pose delta of {self.error_pose.x:.2f}, {self.error_pose.y:.2f}, {self.error_pose.rotation().degrees():.1f}°.")
+                self.quest_soft_resync()
+            else:
+                print(f"  Quest recovered but moved too far ({distance_moved:.2f}m > {qc.k_max_outage_distance}m). Skipping soft resync.")
+                print(f"    Old Pose: X={self.pre_outage_pose.x:.2f}, Y={self.pre_outage_pose.y:.2f} | New Pose: X={self.quest_pose.x:.2f}, Y={self.quest_pose.y:.2f}")
+
+    def _update_pose_from_mock(self) -> None:
+        """Sim without a headset: ground truth from the physics sim plus the mock's drift/error."""
+        # Add a random walk to the error to simulate drift
+        self.sim_offset_from_truth = Transform2d(
+            self.sim_offset_from_truth.x + (random.random() - 0.5) * 2 * self.walk_xy,
+            self.sim_offset_from_truth.y + (random.random() - 0.5) * 2 * self.walk_xy,
+            Rotation2d.from_degrees(
+                self.sim_offset_from_truth.rotation().degrees() + (random.random() - 0.5) * 2 * self.walk_deg)
+        )
+
+        ground_truth_atomic = self.ground_truth_sub.get_atomic()
+        ground_truth: Pose2d = ground_truth_atomic.value
+        # Apply the offset field-relatively (simple addition), not robot-relatively (transform_by)
+        self.quest_pose = Pose2d(
+            ground_truth.x + self.sim_offset_from_truth.x,
+            ground_truth.y + self.sim_offset_from_truth.y,
+            ground_truth.rotation() + self.sim_offset_from_truth.rotation()
+        )
+        self.quest_pose_timestamp = nt_to_seconds(ground_truth_atomic.time)  # NT seconds, see helpers/nt_time.py
+        self.was_tracking = True  # Sim never loses tracking
+
+    def _update_acceptance(self, is_connected: bool, is_tracking: bool) -> None:
         # If we missed >5 frames (100ms), we missed an NT heartbeat. Suspend immediately.
         data_is_fresh = self.missed_frame_count <= 5
         in_bounds = 0 < self.quest_pose.x < fc.k_field_length and 0 < self.quest_pose.y < fc.k_field_width
@@ -420,29 +441,22 @@ class Questnav(Subsystem):
         # 3. is_tracking: The headset's internal SLAM algorithms are confident.
         # 4. self.was_tracking: We didn't just throw an exception on the last frame.
         # 5. data_is_fresh: We unpacked a new frame in the last 5 loops (100ms).
-        #    *Why both 2 & 5?* If the Quest double-taps to passthrough, the app suspends.
-        #    `is_connected` stays True for 200ms, but `data_is_fresh` fails instantly at 100ms,
-        #    killing odometry updates twice as fast during a blackout to prevent pose drift.
-        #    (and no reset pending - frames right after a reset can still carry the old pose)
-        if (in_bounds and is_connected and is_tracking and self.was_tracking and data_is_fresh
-                and self.pending_reset_id is None):
-            self.quest_pose_accepted = True
-        else:
-            self.quest_pose_accepted = False
+        #    *Why both 2 & 5?* When the pose stream stops (the app suspended by a double tap,
+        #    or anything else), `is_connected` stays True for 200ms, but `data_is_fresh` fails
+        #    at 100ms, killing odometry updates twice as fast to prevent pose drift.
+        # 6. no reset pending - frames right after a reset can still carry the old pose
+        self.quest_pose_accepted = (in_bounds and is_connected and is_tracking and self.was_tracking
+                                    and data_is_fresh and self.pending_reset_id is None)
 
-        if self.counter % 5 == 0:
-            # poses used in gui and advantagescope
-            self.quest_pose_pub.set(self.quest_pose)
-            self.quest_error_pose_pub.set(self.error_pose)  # the deltas between robot and quest
-            self.quest_accepted_pub.set(self.quest_pose_accepted)  # GUI uses as VALID
-            self.quest_connected_pub.set(is_connected)  # GUI uses as heartbeat
-            self.quest_tracking_pub.set(is_tracking)  # GUI follows to see if tracking
+    def _publish(self, is_connected: bool, is_tracking: bool) -> None:
+        # poses used in gui and advantagescope
+        self.quest_pose_pub.set(self.quest_pose)
+        self.quest_error_pose_pub.set(self.error_pose)  # the deltas between robot and quest
+        self.quest_accepted_pub.set(self.quest_pose_accepted)  # GUI uses as VALID
+        self.quest_connected_pub.set(is_connected)  # GUI uses as heartbeat
+        self.quest_tracking_pub.set(is_tracking)  # GUI follows to see if tracking
 
-            self.quest_battery_pub.set(self.questnav.get_battery_percent())
-            self.quest_latency_pub.set(self.questnav.get_latency())
-            self.quest_lost_count_pub.set(self.questnav.get_tracking_lost_counter())
-            self.quest_frame_count_pub.set(self.questnav.get_frame_count())
-
-        # ping the quest every few seconds in sim to check to get a connection to physical hardware
-        if wpilib.RobotBase.is_simulation() and not self.mock_questnav and self.counter % 200 == 0 and not is_connected:
-            self._ping_connection()
+        self.quest_battery_pub.set(self.questnav.get_battery_percent())
+        self.quest_latency_pub.set(self.questnav.get_latency())
+        self.quest_lost_count_pub.set(self.questnav.get_tracking_lost_counter())
+        self.quest_frame_count_pub.set(self.questnav.get_frame_count())
