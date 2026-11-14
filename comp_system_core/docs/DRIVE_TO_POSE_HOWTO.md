@@ -1,7 +1,7 @@
 # How to drive to a pose: `DriveToPoseCustomControl`
 
 This is the one command for "drive the robot to this spot and stop there". It replaces
-`AutoToPoseClean`, which is deprecated (see the last section for what is left to migrate).
+`AutoToPoseClean`, which is retired (see the last section).
 
 This copy is written for **comp_system_core** (2027a7, snake_case). `comp_bot/docs` has the
 same howto in the 2026 camelCase API. The command behaves identically in both projects.
@@ -192,19 +192,14 @@ reach 2 cm, and without a timeout the rest of the auto never runs.
 
 Headless, the same thing runs as part of `python -m robotpy test`.
 
-## Finishing the deprecation of `AutoToPoseClean`
+## `AutoToPoseClean` is retired
 
-"Deprecated" should mean nobody calls it. These are the callers left, in both `comp_bot`
-and `comp_system_core`:
+Nothing calls `AutoToPoseClean` any more. The file is kept for reference in
+`commands/deprecated/auto_to_pose_clean.py`; do not import it in new code. The same was done
+in both `comp_bot` and `comp_system_core`.
 
-| File | Calls | What they pass |
-|---|---|---|
-| `autonomous/auto_shoot_and_pickup.py` | 2 | `mode="ball_pickup"` |
-| `autonomous/twocycle.py` | 2 | `mode="ball_pickup"`, `mode="shooting"` |
-| `autonomous/through_trench_pickup.py` | 4 | `ball_pickup`, `ball_pickup++`, `shooting`, with `tolerance_type` and timeouts |
-| `robotcontainer.py` | 2 | the sim-only D-pad vision bindings |
-
-Every one of them translates mechanically:
+If you find an old call (in a branch, or in `other_robots/`, which still has its own
+copies), this is the translation:
 
 | Old | New supplier |
 |---|---|
@@ -215,20 +210,12 @@ Every one of them translates mechanically:
 | `target_pose=p` | `lambda: mirror_for_alliance(p)` |
 
 Drop `target_pose=None` and `control_type=...`; keep `tolerance_type` and the timeout.
-`autonomous/fill_shoot_fill_bump.py` is already written this way and is the model to copy.
 
-Then:
+**The autos that were migrated have not been re-run on a robot.** `auto_shoot_and_pickup`,
+`twocycle` and `through_trench_pickup` switched commands in November 2026 and were checked
+in simulation only. The two commands differ in three ways, so expect to re-tune:
 
-1. Move `commands/auto_to_pose_clean.py` to `commands/deprecated/`.
-2. Remove its imports from the three autos, `robotcontainer.py` and
-   `autonomous/autonomous_shooting.py` (which imports it only for a commented-out line).
-3. Switch the `AutoToPoseClean` scenario in `tests/test_simulation.py` to the new command.
-4. Run `python -m robotpy test` in both projects.
-
-**The migration is not behaviour-neutral.** The two commands differ in three ways, so the
-three autos must be re-run (sim first, then a robot) before they are trusted:
-
-| | `AutoToPoseClean` | `DriveToPoseCustomControl` |
+| | `AutoToPoseClean` (old) | `DriveToPoseCustomControl` (now) |
 |---|---|---|
 | Overshoot detection | error got *bigger* than last loop | error changed *sign* |
 | Translation clamp | 0.40 | 0.45 |
@@ -236,8 +223,8 @@ three autos must be re-run (sim first, then a robot) before they are trusted:
 
 The first is the real improvement: the old test tripped on any odometry jump (a vision or
 QuestNav correction mid-drive), which removed the stiction floor and could leave the robot
-stalled short of the target. The `'fast'` change is the one most likely to alter auto
-timing: the new rule ends the move sooner and further from the target.
+stalled short of the target. The `'fast'` change is the one most likely to alter timing in
+`through_trench_pickup`: the new rule ends the move sooner and further from the target.
 
-`AutoToPoseClean` also had a `control_type='pathplanner'` mode. Nothing uses it, and the
+`AutoToPoseClean` also had a `control_type='pathplanner'` mode. Nothing used it, and the
 new command does not have it.

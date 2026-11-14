@@ -148,4 +148,4 @@ All tuning parameters are located in `subsystems/swerve_constants.py`.
     -   Check if one module is dragging (mechanical issue) or has a reversed motor.
 -   **"Crazy Path" in Auto:**
     -   Often caused by Vision Latency. If the robot sees a target, moves, and *then* processes the old image, it calculates the wrong target location.
-    -   Check `AutoToPoseClean` debug prints for large jumps in target pose.
+    -   Check `DriveToPoseCustomControl` debug prints (`print_debug = True`) for large jumps in target pose.
