@@ -1,6 +1,8 @@
 # AI / ML models on the Orange Pi 5 Pro / Max: groundwork
 
 Status: **research notes, nothing built or measured by us yet.** Written 2026-11-14.
+The install and conversion steps (tasks T1, T2 and T4 below) are written out command by
+command in the vision repo: `vision/2026/docs/rknn.md`.
 Every number below comes from a vendor or community page (linked at the end), not from our
 hardware. Section 9 is the task list for whoever picks this up next.
 
@@ -184,7 +186,9 @@ height and tilt to intersect the floor plane. That needs no assumed size and is 
 use for bumpers.
 
 **Every detection, not just the nearest** (added 2026-11-14; robot side built and tested
-in simulation only, nothing on a coprocessor publishes it yet). The robot's
+in simulation only). The vision repo's HSV detector now publishes it as well
+(`vision/field_targets.py`, tested on a PC with a private NetworkTables server, not yet on
+a coprocessor or a robot); an ML detector should fill in the same list. The robot's
 `DriveThroughTargets` command drives one path through several game pieces, and reads them
 from one more topic per camera and label:
 

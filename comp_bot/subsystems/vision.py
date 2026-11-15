@@ -228,7 +228,9 @@ class Vision(SubsystemBase):
                 continue
             atomic = entry.getAtomic()
             if atomic.time == 0 or (ntcore._now() - atomic.time) / 1e6 > max_age:
-                continue  # never published, or the camera has gone quiet
+                # time 0: never published - or an EMPTY list, which robotpy reads back as the
+                # default with time 0.  Either way there is nothing to drive to.
+                continue  # (or too old: the camera has gone quiet)
             for position in atomic.value:
                 if all(position.distance(seen) > merge_radius for seen in targets):
                     targets.append(position)

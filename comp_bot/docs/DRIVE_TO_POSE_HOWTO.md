@@ -221,8 +221,10 @@ DriveThroughTargets(self, self.swerve, lambda: self.vision.get_field_targets())
 - **Where the targets come from.** `Vision.get_field_targets()` reads
   `/Cameras/<Camera>/<label>/field_positions`, a `Translation2d[]` of everything that camera
   sees, already in field coordinates. The five classic topics only describe the nearest
-  target. In the simulator the camera sim publishes this list; **no real coprocessor
-  publishes it yet** (see `comp_system_core/docs/ORANGE_PI_ML_MODELS.md`, section 5).
+  target. In the simulator the camera sim publishes this list. On a real coprocessor the
+  HSV detector in the vision repo publishes it too (`vision/field_targets.py` there), for
+  every colour a camera looks for - written 2026-11-14 and **not yet run on a robot**. See
+  `comp_system_core/docs/ORANGE_PI_ML_MODELS.md`, section 5.
 - **Which targets, in what order.** `helpers/target_path.py`: nearest first, never through
   a blocked cell, at most `k_target_path_max_targets` stops, and a target the intake passes
   over on the way to another one gets no stop of its own. All the knobs are
