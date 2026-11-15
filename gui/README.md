@@ -15,6 +15,7 @@ The application is now broken into several specialized Python modules:
 -   `nt_tree.py`: Manages the UI and logic for the interactive NetworkTables tree viewer.
 -   `widgets/`: A directory containing custom PyQt widget classes like `ClickableQLabel` and `WarningLabel`.
 -   `layout_2026.ui`: The Qt Designer UI file that defines the visual layout of the dashboard.
+-   `dashboard.sh`: Git Bash launcher. It finds the `robo2026` conda/mamba environment (set `ROBO_ENV` to use another one), puts it on PATH and runs `main.py`. Run `bash gui/dashboard.sh --install` once to put a "2429 Dashboard" shortcut with the blockhead icon on your desktop. Same pattern as `other_robots/chairbot/gui/chairbot_dashboard.sh`.
 
 ---
 
