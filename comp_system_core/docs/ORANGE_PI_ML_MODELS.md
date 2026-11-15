@@ -183,8 +183,34 @@ method for things on the floor: use the **bottom centre of the box** and the cam
 height and tilt to intersect the floor plane. That needs no assumed size and is the one to
 use for bumpers.
 
-Later, if "nearest target" is not enough, add an array topic with every detection
-(`x`, `y`, `class`, `confidence`), in field coordinates. Do not start there.
+**Every detection, not just the nearest** (added 2026-11-14; robot side built and tested
+in simulation only, nothing on a coprocessor publishes it yet). The robot's
+`DriveThroughTargets` command drives one path through several game pieces, and reads them
+from one more topic per camera and label:
+
+```
+/Cameras/<Camera>/<label>/field_positions    Translation2d[]  (struct array)
+```
+
+The contract, which `simulation/vision_sim.py` in both robot projects already follows:
+
+- **Field coordinates, metres**, blue-origin, the same frame as the robot pose. The
+  coprocessor already subscribes to `/SmartDashboard/Swerve/drive_pose` (`vision/network.py`);
+  place each detection with it: `robot.translation() + robot_relative.rotateBy(robot.rotation())`.
+- The robot-relative position needs the **camera's mount** (position and yaw on the robot),
+  not just distance and bearing from the lens.
+- Use the **floor-plane method** above for distance. The box-width method is wrong for a
+  ball cut off by the image edge or touching its neighbour, and a field of balls is mostly
+  that.
+- **Nearest first.** Publish with `keepDuplicates=True` so the timestamp advances while the
+  list is unchanged, and publish an **empty list** when nothing is seen. The robot ignores a
+  list older than 1 s.
+- The robot merges duplicates from two cameras (within 15 cm) and decides the order and the
+  path itself, from `deploy/pathplanner/navgrid.json`. The coprocessor only reports where
+  things are.
+- Latency: the pose used should be the one from when the frame was captured. Using the
+  latest pose is fine while driving straight and wrong by (turn rate x latency) while
+  turning; measure before trusting it at speed.
 
 ## 6. Tracking, for defense
 

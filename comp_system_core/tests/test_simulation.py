@@ -246,6 +246,66 @@ def test_simulation_end_to_end(control, robot):
         drive_to_vision_target('straight ahead', Pose2d(5.5, 4.1, Rotation2d()), vision_command)
         drive_to_vision_target('off to one side', Pose2d(5.5, 3.1, Rotation2d.from_degrees(10)), vision_command)
 
+        # ------------------------------------------------------------------ a path through several targets
+        # Same chain, but the camera sim's LIST of everything in view (field_positions)
+        # instead of the nearest one, and PathPlanner following a path built on the spot.
+        print("=== vision: DriveThroughTargets drives one path through the pieces the camera sees ===")
+        from wpimath import Translation2d
+        from commands.drive_through_targets import DriveThroughTargets, build_target_path
+        from helpers.target_path import NavGrid
+        sim.reset_gamepieces()
+        start = Pose2d(5.5, 4.1, Rotation2d())
+        swerve.sim_set_ground_truth(start)
+        swerve.resetOdometry(start)
+        teleop(0.5)
+        seen = vision.get_field_targets()
+        assert len(seen) >= 3, f"the camera sim listed {len(seen)} targets - expected a field full"
+        for target in seen:
+            assert min(target.distance(p) for p in piece_spots) < 0.05, f"{target} is not on a game piece"
+        assert len(seen) == len({(round(t.x, 2), round(t.y, 2)) for t in seen}), "the same target is listed twice"
+
+        before = sum(gp['active'] for gp in sim.gamepieces)
+        command = DriveThroughTargets(container, swerve, vision.get_field_targets)
+        commands2.CommandScheduler.get_instance().schedule(command)
+        teleop(0.02)
+        assert command.is_scheduled() and not command.abort, "DriveThroughTargets found nothing to drive to"
+        stops = list(command.stops)
+        grid = NavGrid()
+        assert len(stops) >= 2, f"only {len(stops)} stop planned from {len(seen)} targets"
+        assert grid.points_clear([point.position for point in command.path.getAllPathPoints()])
+        for _ in range(1000):                            # 20 s
+            teleop(0.02)
+            if not command.is_scheduled():
+                break
+        assert not command.is_scheduled(), "DriveThroughTargets never finished"
+        truth = swerve.sim_get_ground_truth()
+        off = truth.translation().distance(stops[-1])
+        assert off < 0.15, f"finished {off:.2f} m from the last stop {stops[-1]}"
+        for stop in stops:
+            assert not any(gp['active'] and gp['pos'].distance(stop) < 0.05 for gp in sim.gamepieces), \
+                f"the piece at {stop} was a stop on the path and is still on the floor"
+        after = sum(gp['active'] for gp in sim.gamepieces)
+        assert before - after >= len(stops)
+        print(f"    {len(seen)} seen, {len(stops)} stops, {before - after} pieces collected, "
+              f"finished {off * 100:.1f} cm from the last stop")
+
+        # a target in a blocked cell is never a stop, and the path stays out of blocked cells
+        blocked_cell = next((c, r) for r in range(grid.rows) for c in range(grid.cols)
+                            if grid.grid[r][c] and 6 < c * grid.node_size < 10 and 1 < r * grid.node_size < 7) \
+            if any(grid.grid[r][c] and 6 < c * grid.node_size < 10 and 1 < r * grid.node_size < 7
+                   for r in range(grid.rows) for c in range(grid.cols)) else None
+        inside = (Translation2d((blocked_cell[0] + 0.5) * grid.node_size, (blocked_cell[1] + 0.5) * grid.node_size)
+                  if blocked_cell else Translation2d(-1.0, 4.0))   # off the field counts as blocked too
+        path, planned = build_target_path(Pose2d(7.0, 4.0, Rotation2d()),
+                                          [inside, Translation2d(8.0, 3.0), Translation2d(8.6, 5.0)], grid)
+        assert path is not None and inside not in planned and len(planned) == 2
+        assert build_target_path(Pose2d(7.0, 4.0, Rotation2d()), [inside], grid) == (None, [])
+        # nothing seen at all: the command ends at once instead of driving anywhere
+        command = DriveThroughTargets(container, swerve, lambda: [])
+        commands2.CommandScheduler.get_instance().schedule(command)
+        teleop(0.1)
+        assert command.abort and not command.is_scheduled()
+
         print("=== auto: DriveToPoseCustomControl + auto_reflect_pose reaches the shooting pose ===")
         import wpilib
         from constants import AutoConstants

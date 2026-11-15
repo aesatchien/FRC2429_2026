@@ -46,6 +46,7 @@ from autonomous.one_meter import OneMeter
 # 2429 commands
 from commands.can_status import CANStatus
 from commands.drive_to_pose_custom_control import DriveToPoseCustomControl
+from commands.drive_through_targets import DriveThroughTargets
 from commands.drive_by_velocity_swerve import DriveByVelocitySwerve
 from commands.drive_by_joystick_subsystem_targeting import DriveByJoystickSubsystemTargeting
 from commands.reset_field_centric import ResetFieldCentric
@@ -328,6 +329,12 @@ class RobotContainer:
             kick = constants.SimConstants.k_kick
             dashboard.SmartDashboard.put_data(f'{command_prefix}/SimKickRobot', InstantCommand(lambda: self.swerve.sim_kick(*kick)).ignoring_disable(True))
             dashboard.SmartDashboard.put_data(f'{command_prefix}/SimKickQuest', InstantCommand(lambda: self.questnav.sim_kick_quest(*kick)).ignoring_disable(True))
+            # SIM ONLY for now: intake down and on, then one path through every game piece the
+            # cameras see.  No button is bound to it.  See docs/DRIVE_TO_POSE_HOWTO.md.
+            dashboard.SmartDashboard.put_data(f'{command_prefix}/DriveThroughTargets',
+                Intake_Deploy(intake=self.intake, position='down')
+                .and_then(Intake_Set_RPM(intake=self.intake, rpm=ic.k_intake_teleop_rpm, led=self.led))
+                .and_then(DriveThroughTargets(self, self.swerve, lambda: self.vision.get_field_targets())))
         dashboard.SmartDashboard.put_data(f'{command_prefix}/SetSuccess', SetLEDs(container=self, led=self.led, indicator=Led.Indicator.kSUCCESS))
         dashboard.SmartDashboard.put_data(f'{command_prefix}/IntakeStow', Intake_Deploy(intake=self.intake, position='up'))
         dashboard.SmartDashboard.put_data(f'{command_prefix}/IntakeDeploy', Intake_Deploy(intake=self.intake, position='down'))

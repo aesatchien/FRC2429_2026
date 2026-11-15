@@ -96,6 +96,55 @@ def test_drive_to_simulated_vision_target(control, robot):
         creep(-0.3, 0.15, 1.5)
         drive_to_vision_target('off to one side', vision_command)
 
+        # ------------------------------------------------------------------ a path through several targets
+        # Same chain, but the camera sim's LIST of everything in view (field_positions)
+        # instead of the nearest one, and PathPlanner following a path built on the spot.
+        print("=== vision: DriveThroughTargets drives one path through the pieces the camera sees ===")
+        from wpimath.geometry import Rotation2d, Translation2d
+        from commands.drive_through_targets import DriveThroughTargets, build_target_path
+        from helpers.target_path import NavGrid
+        creep(-0.3, 0, 1.5)                              # back off so the camera has a field of pieces in view
+        teleop(0.5)
+        seen = vision.get_field_targets()
+        assert len(seen) >= 3, f"the camera sim listed {len(seen)} targets - expected several"
+        for target in seen:
+            assert min(target.distance(p) for p in piece_spots) < 0.05, f"{target} is not on a game piece"
+        assert len(seen) == len({(round(t.X(), 2), round(t.Y(), 2)) for t in seen}), "the same target is listed twice"
+
+        command = DriveThroughTargets(container, swerve, vision.get_field_targets)
+        scheduler.schedule(command)
+        teleop(0.02)
+        assert command.isScheduled() and not command.abort, "DriveThroughTargets found nothing to drive to"
+        stops = list(command.stops)
+        grid = NavGrid()
+        assert len(stops) >= 2, f"only {len(stops)} stop planned from {len(seen)} targets"
+        assert grid.points_clear([point.position for point in command.path.getAllPathPoints()])
+        closest = [float('inf')] * len(stops)            # how near the robot really came to each stop
+        for _ in range(1000):                            # 20 s
+            teleop(0.02)
+            here = truth_sub.get().translation()
+            closest = [min(c, here.distance(stop)) for c, stop in zip(closest, stops)]
+            if not command.isScheduled():
+                break
+        assert not command.isScheduled(), "DriveThroughTargets never finished"
+        assert max(closest) < 0.25, f"missed a stop by {max(closest):.2f} m: {list(zip(stops, closest))}"
+        off = truth_sub.get().translation().distance(stops[-1])
+        assert off < 0.15, f"finished {off:.2f} m from the last stop {stops[-1]}"
+        print(f"    {len(seen)} seen, {len(stops)} stops, passed within {max(closest) * 100:.0f} cm of every one, "
+              f"finished {off * 100:.1f} cm from the last")
+
+        # a target the robot may not reach is never a stop (off the field counts as blocked)
+        outside = Translation2d(-1.0, 4.0)
+        path, planned = build_target_path(Pose2d(7.0, 4.0, Rotation2d()),
+                                          [outside, Translation2d(8.0, 3.0), Translation2d(8.6, 5.0)], grid)
+        assert path is not None and outside not in planned and len(planned) == 2
+        assert build_target_path(Pose2d(7.0, 4.0, Rotation2d()), [outside], grid) == (None, [])
+        # nothing seen at all: the command ends at once instead of driving anywhere
+        command = DriveThroughTargets(container, swerve, lambda: [])
+        scheduler.schedule(command)
+        teleop(0.1)
+        assert command.abort and not command.isScheduled()
+
         print("=== auto: DriveToPoseCustomControl + auto_reflect_pose reaches the shooting pose ===")
         import wpilib
         from constants import AutoConstants

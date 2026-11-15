@@ -508,6 +508,16 @@ class AutoConstantsSwerve:
             nominalVoltage=12,
     )
 
+    # driving through a list of vision targets with the intake down
+    # (commands/drive_through_targets.py) - gentler than pathfinding, the path is all curves
+    k_target_path_constraints = PathConstraints(
+            maxVelocityMps=2,
+            maxAccelerationMpsSq=3,
+            maxAngularVelocityRps=2*math.pi,
+            maxAngularAccelerationRpsSq=4*math.pi,
+            nominalVoltage=12,
+    )
+
     # used as end conditions in auto to pose / pid to point
     k_rotation_tolerance = Rotation2d(math.radians(2))
     k_translation_tolerance_meters = 2 / 100

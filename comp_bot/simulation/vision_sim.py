@@ -35,6 +35,10 @@ class VisionSim:
         if self.source == 'real':
             return
 
+        # A coprocessor turns "1.9 m away, 4 degrees left" into a field position with the pose
+        # the ROBOT reports, not the true one - it has no other.  So do we.
+        self.robot_estimate_sub = self.inst.getStructTopic(f"{constants.swerve_prefix}/drive_pose", Pose2d).subscribe(Pose2d())
+
         for ix, (key, config) in enumerate(constants.CameraConstants.k_cameras.items()):
             cam_topic = config['topic_name']
             cam_type = config.get('label', config['type'])
@@ -49,6 +53,11 @@ class VisionSim:
                 'strafe_pub': self.inst.getDoubleTopic(f"{base}/strafe").publish(),
                 'rotation_pub': self.inst.getDoubleTopic(f"{base}/rotation").publish()
             }
+            if config['type'] == 'hsv':
+                # EVERY target in view, in field coordinates - what a detector that reports
+                # more than the nearest one publishes (see Vision.get_field_targets)
+                self.camera_dict[key]['field_positions_pub'] = self.inst.getStructArrayTopic(
+                    f"{base}/field_positions", Translation2d).publish(PubSubOptions(keepDuplicates=True))
 
     def _init_field_objects(self):
         # Pre-fetch Field2d objects for FOV visualization
@@ -138,7 +147,8 @@ class VisionSim:
                     d = vec_to_target.norm()
                     if abs(angle_cam_relative) < (cam_fov / 2.0) and d < constants.SimConstants.k_cam_distance_limit:
                         s = d * math.sin(math.radians(angle_cam_relative))
-                        visible_targets.append({'dist': d, 'rot': angle_cam_relative, 'strafe': s})
+                        visible_targets.append({'dist': d, 'rot': angle_cam_relative, 'strafe': s,
+                                                'robot_relative': vec_to_target.rotateBy(-robot_pose.rotation())})
 
                 if visible_targets:
                     closest = min(visible_targets, key=lambda x: x['dist'])
@@ -153,6 +163,13 @@ class VisionSim:
                 cam_data['distance_pub'].set(dist)
                 cam_data['strafe_pub'].set(strafe)
                 cam_data['rotation_pub'].set(rot)
+
+                if 'field_positions_pub' in cam_data:
+                    # nearest first, placed on the field from the robot's own pose estimate
+                    estimate = self.robot_estimate_sub.get()
+                    cam_data['field_positions_pub'].set([
+                        estimate.translation() + t['robot_relative'].rotateBy(estimate.rotation())
+                        for t in sorted(visible_targets, key=lambda t: t['dist'])])
 
                 # NOTE: We do NOT publish to the 'poses' topic here with the other data.
                 # This ensures that swerve_sim.py (which listens for live tags) doesn't

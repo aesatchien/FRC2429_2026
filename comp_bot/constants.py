@@ -429,3 +429,14 @@ class AutoConstants:
     k_shooting_pose = Pose2d(3.0, 2.3, 44 * math.pi / 180)  # bottom left position for shooting in auto
     k_first_ball_pickup_pose = Pose2d(FieldConstants.k_field_length/2 -0.3, 2.2, 0)
     k_second_ball_pickup_pose = Pose2d(FieldConstants.k_field_length/2 -0.3, 2.6, 0)
+
+    # ---- driving a path through several vision targets (commands/drive_through_targets.py) ----
+    k_target_path_max_targets = 8      # most stops in one path
+    k_target_path_max_leg_m = 4.0      # longest single hop between stops
+    k_target_path_min_leg_m = 0.3      # a target closer than this to the robot is under it already
+    # a target this close to the line between two stops is swept up in passing and gets no
+    # stop of its own - roughly half the intake's width
+    k_target_path_swath_half_width_m = 0.3
+    # which way the robot faces while it drives: the direction of travel plus this.  0 = the
+    # FRONT of the robot leads.  Set it to where the intake is (180 if it is on the back).
+    k_target_path_intake_heading_deg = 0

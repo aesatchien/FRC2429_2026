@@ -45,6 +45,10 @@ class VisionSim:
         if self.source == 'real':
             return
 
+        # A coprocessor turns "1.9 m away, 4 degrees left" into a field position with the pose
+        # the ROBOT reports, not the true one - it has no other.  So do we.
+        self.robot_estimate_sub = self.inst.get_struct_topic(f"{constants.swerve_prefix}/drive_pose", Pose2d).subscribe(Pose2d())
+
         for ix, (key, config) in enumerate(constants.CameraConstants.k_cameras.items()):
             if config.get('external'):
                 continue  # published from outside the robot program (see CameraConstants) - not ours
@@ -61,6 +65,11 @@ class VisionSim:
                 'strafe_pub': self.inst.get_double_topic(f"{base}/strafe").publish(),
                 'rotation_pub': self.inst.get_double_topic(f"{base}/rotation").publish()
             }
+            if config['type'] == 'hsv':
+                # EVERY target in view, in field coordinates - what a detector that reports
+                # more than the nearest one publishes (see Vision.get_field_targets)
+                self.camera_dict[key]['field_positions_pub'] = self.inst.get_struct_array_topic(
+                    f"{base}/field_positions", Translation2d).publish(PubSubOptions(keep_duplicates=True))
             if config['type'] == 'tags':
                 # what a real tag camera sends for odometry: [tag id, x, y, z, rx, ry, rz] of the ROBOT
                 self.camera_dict[key]['pose_pub'] = self.inst.get_double_array_topic(
@@ -159,7 +168,8 @@ class VisionSim:
                     d = vec_to_target.norm()
                     if abs(angle_cam_relative) < (cam_fov / 2.0) and d < constants.SimConstants.k_cam_distance_limit:
                         s = d * math.sin(math.radians(angle_cam_relative))
-                        visible_targets.append({'dist': d, 'rot': angle_cam_relative, 'strafe': s, 'id': candidate['id']})
+                        visible_targets.append({'dist': d, 'rot': angle_cam_relative, 'strafe': s, 'id': candidate['id'],
+                                                'robot_relative': vec_to_target.rotate_by(-robot_pose.rotation())})
 
                 if visible_targets:
                     closest = min(visible_targets, key=lambda x: x['dist'])
@@ -174,6 +184,13 @@ class VisionSim:
                 cam_data['distance_pub'].set(dist)
                 cam_data['strafe_pub'].set(strafe)
                 cam_data['rotation_pub'].set(rot)
+
+                if 'field_positions_pub' in cam_data:
+                    # nearest first, placed on the field from the robot's own pose estimate
+                    estimate = self.robot_estimate_sub.get()
+                    cam_data['field_positions_pub'].set([
+                        estimate.translation() + t['robot_relative'].rotate_by(estimate.rotation())
+                        for t in sorted(visible_targets, key=lambda t: t['dist'])])
 
                 # A tag camera with a tag in view also reports where the ROBOT is, which is
                 # what Swerve fuses.  A real camera works that out from the tag; we know the

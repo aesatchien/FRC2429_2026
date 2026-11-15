@@ -69,6 +69,10 @@ class Vision(SubsystemBase):
             self.camera_dict[key]['strafe_entry'] = self.inst.getDoubleTopic(f"{base_topic}/strafe").subscribe(0)
             self.camera_dict[key]['rotation_entry'] = self.inst.getDoubleTopic(f"{base_topic}/rotation").subscribe(0)
             self.camera_dict[key]['frames_entry'] = self.inst.getDoubleTopic(f"{table_path}/_frames").subscribe(0)
+            if config['type'] != 'tags':
+                # every target this camera sees, in field coordinates (see get_field_targets)
+                self.camera_dict[key]['field_positions_entry'] = self.inst.getStructArrayTopic(
+                    f"{base_topic}/field_positions", Translation2d).subscribe([])
 
         # Subscribe to Swerve drive_y for simulation logic
         self.drive_y_sub = self.inst.getDoubleTopic(f"{constants.swerve_prefix}/drive_y").subscribe(0)
@@ -198,6 +202,37 @@ class Vision(SubsystemBase):
             return current_pose.transformBy(rel_tf)  # Vision is relative to robot, no field mirroring needed
             
         return None
+
+    def get_field_targets(self, cameras: list[str] = None, max_age: float = 1.0, merge_radius: float = 0.15) -> list[Translation2d]:
+        """Every floor target the cameras see right now, as field positions.  Empty if none.
+
+        The five classic topics (targets/distance/rotation/strafe/id) describe only the
+        NEAREST target.  A detector that can report all of them also publishes
+
+            /Cameras/<Camera>/<label>/field_positions     Translation2d[] (struct array)
+
+        already in field coordinates - the coprocessor reads our pose from
+        <swerve_prefix>/drive_pose to place them.  It must publish with keepDuplicates so the
+        timestamp keeps moving while the list does not change, and publish an EMPTY list when
+        it sees nothing; a list older than max_age seconds is ignored here.
+
+        Two cameras that see the same target report it twice, a few centimetres apart, so
+        anything within merge_radius of a target already in the list is dropped.
+        """
+        if cameras is None:
+            cameras = list(self.camera_dict.keys())
+        targets = []
+        for key in cameras:
+            entry = self.camera_dict.get(key, {}).get('field_positions_entry')
+            if entry is None:
+                continue
+            atomic = entry.getAtomic()
+            if atomic.time == 0 or (ntcore._now() - atomic.time) / 1e6 > max_age:
+                continue  # never published, or the camera has gone quiet
+            for position in atomic.value:
+                if all(position.distance(seen) > merge_radius for seen in targets):
+                    targets.append(position)
+        return targets
 
     def set_training_box(self, data: list[float]) -> None:
         """Update the training box parameters on the coprocessor."""

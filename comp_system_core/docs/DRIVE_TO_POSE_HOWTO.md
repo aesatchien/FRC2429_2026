@@ -202,6 +202,46 @@ reach 2 cm, and without a timeout the rest of the auto never runs.
 
 Headless, the same thing runs as part of `python -m robotpy test`.
 
+## Several targets in one go: `DriveThroughTargets`
+
+`DriveToPoseCustomControl` goes to ONE pose and slows into it. To sweep up several game
+pieces, use `commands/drive_through_targets.py` instead. It is a different kind of command:
+
+| | `DriveToPoseCustomControl` | `DriveThroughTargets` |
+|---|---|---|
+| Goes to | one pose | every target in a list, in an order it picks |
+| How | PID on position, no path | builds a PathPlanner path, PathPlanner follows it |
+| Speed | clamped to 0.45, slows into the target | `AutoConstantsSwerve.k_target_path_constraints`, does not stop between targets |
+| Obstacles | knows nothing about them | stays out of blocked cells in `deploy/pathplanner/navgrid.json` |
+
+```python
+DriveThroughTargets(self, self.swerve, lambda: self.vision.get_field_targets())
+```
+
+- **Where the targets come from.** `Vision.get_field_targets()` reads
+  `/Cameras/<Camera>/<label>/field_positions`, a `Translation2d[]` of everything that camera
+  sees, already in field coordinates. The five classic topics only describe the nearest
+  target. In the simulator the camera sim publishes this list; **no real coprocessor
+  publishes it yet** (see `comp_system_core/docs/ORANGE_PI_ML_MODELS.md`, section 5).
+- **Which targets, in what order.** `helpers/target_path.py`: nearest first, never through
+  a blocked cell, at most `k_target_path_max_targets` stops, and a target the intake passes
+  over on the way to another one gets no stop of its own. All the knobs are
+  `AutoConstants.k_target_path_*`.
+- **Which way the robot faces.** Along the path, plus
+  `AutoConstants.k_target_path_intake_heading_deg`. It is 0 (front leads): set it to where
+  the intake is.
+- **It plans once.** The path is built when the command starts and is not re-planned. A
+  target that appears afterwards is ignored until the command is run again.
+- **It does not run the intake.** Put it after the intake commands, as the dashboard
+  command below does.
+- **Nothing seen, or nothing reachable:** it ends at once with the failure flash.
+
+Trying it: in the simulator, drive to within 4 m of the pieces and press
+`Command/DriveThroughTargets` on the dashboard. That command exists only in simulation and
+no button is bound to it. The planned path is drawn on the field widget as `TargetPath`. The console line at the start
+says how many stops it chose and how long planning took - watch that number on a real
+controller, the trajectory is generated in Python.
+
 ## `AutoToPoseClean` is retired
 
 Nothing calls `AutoToPoseClean` any more. The file is kept for reference in
