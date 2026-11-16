@@ -149,13 +149,44 @@ def match_token(log_path):
     return m[1].upper() if m else None
 
 
+BOOT_FOLDER = re.compile(r"\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}")   # 2026-11-15_14-03-27: comp_system_core/helpers/log_start.py
+HOOT_WPILOG = ".hoot.wpilog"                                       # what "Convert hoot to wpilog" writes: not a robot log
+
+
+def robot_logs(folder):
+    """The robot's own .wpilog files in `folder` (not below it), sorted.  A hoot converted to wpilog is not one."""
+    folder = Path(folder)
+    if not folder.is_dir():
+        return []
+    return sorted(p for p in folder.glob("*.wpilog") if not p.name.endswith(HOOT_WPILOG))
+
+
+def logs_in(folder):
+    """Every robot log to offer for a logs folder: the ones in it and the ones one level down, because the robot now writes each
+    boot into its own dated folder (logs/2026-11-15_14-03-27/...).  Sorted by file name."""
+    folder = Path(folder)
+    if not folder.is_dir():
+        return []
+    found = robot_logs(folder)
+    for sub_folder in sorted(p for p in folder.iterdir() if p.is_dir()):
+        found += robot_logs(sub_folder)
+    return sorted(found, key=lambda p: p.name)
+
+
+def is_boot_folder(folder) -> bool:
+    """True for a folder the robot made for ONE boot: named with the date and time, holding exactly one robot log.  Only then
+    does everything else in the folder (the .hoot, the console log) belong to that log without a further check; any other
+    folder with a single .wpilog in it is just a folder, and may hold other boots' hoots."""
+    folder = Path(folder)
+    return bool(BOOT_FOLDER.fullmatch(folder.name)) and len(robot_logs(folder)) == 1
+
+
 def find_hoots_for_log(log_path, search_root=None, depth=3):
-    """Hoot files that belong to a robot log: found under the log's folder (or `search_root`) when the file or its
-    folder name contains the log's event + match (CAEL_Q13).  One hoot per CAN bus, so there can be several."""
-    # A folder the robot made for one boot (comp_system_core/helpers/log_start.py: 2026-11-15_14-03-27/ holding the .hoot, the
-    # .wpilog and the console log) holds exactly one .wpilog: every .hoot in it, or in Phoenix's folder inside it, is that log's.
+    """Hoot files that belong to a robot log: every .hoot in the log's own one-boot folder (is_boot_folder), otherwise the ones
+    under the log's folder (or `search_root`) whose file or folder name contains the log's event + match (CAEL_Q13).  One hoot per
+    CAN bus, so there can be several."""
     own = Path(log_path).parent
-    if own.is_dir() and len(list(own.glob("*.wpilog"))) == 1:
+    if is_boot_folder(own):
         mine = sorted(str(p) for p in own.glob("*.hoot")) + sorted(str(p) for p in own.glob("*/*.hoot"))
         if mine:
             return mine

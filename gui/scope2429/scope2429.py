@@ -483,10 +483,13 @@ class App(tk.Tk):
             per = s.setdefault("per_log", {})
             rec = per.setdefault(Path(self.ml.path).name, {})
             rec.update(url=self.url_var.get(), offset=self._offset(), video=self.video_path, title=self.title_var.get(),
-                       hoot=list(self.hoot_paths), clip_ver=self._clip_ver(self.video_path), battery=self.battery_var.get().strip())
-            b = self.battery_var.get().strip()
+                       hoot=list(self.hoot_paths), clip_ver=self._clip_ver(self.video_path),
+                       battery=self.battery_var.get().strip().upper())      # upper case, as the robot logs it: '2026-c' is 2026-C
+            b = self.battery_var.get().strip().upper()
             if b and b not in self._batteries():           # a new battery id typed in: offer it for the next logs too
-                s["batteries"] = sorted(set(self._batteries()) | {b})
+                import battery
+                s["batteries_extra"] = sorted((set(self._batteries()) | {b}) - set(battery.DEFAULT_BATTERIES))
+                s.pop("batteries", None)
                 self.battery_cb["values"] = self._batteries()
         core.save_settings(s)
 
@@ -502,8 +505,25 @@ class App(tk.Tk):
             self.battery_src_lbl.configure(foreground="#1a7f37")
 
     def _batteries(self):
+        """The robot's batteries (battery.DEFAULT_BATTERIES) plus any id typed in here.  Only the extra ids are kept in the settings,
+        so a change to the list reaches every PC."""
         import battery
-        return list(self.settings.get("batteries") or battery.DEFAULT_BATTERIES)
+        old = [b for b in self.settings.get("batteries") or [] if b not in battery.DEFAULT_BATTERIES]     # the pre-2026-11 key
+        extra = [b for b in self.settings.get("batteries_extra") or old if b not in battery.DEFAULT_BATTERIES]
+        return list(battery.DEFAULT_BATTERIES) + sorted(set(extra))
+
+    @staticmethod
+    def _battery_of(rec, path) -> str:
+        """The battery of a log: the one picked here, else the one the robot logged for that boot (its console log), else ''.
+        Slow the first time (reads the log's clock), so call it from a worker."""
+        bat = (rec or {}).get("battery", "")
+        if not bat:
+            try:
+                import console_file
+                bat = console_file.battery_for_log(str(path))
+            except Exception:  # noqa - a console log that cannot be read just means no battery from it
+                bat = ""
+        return bat
 
     # ---------------------------------------------------------------- logs
     def _browse_folder(self):
@@ -530,7 +550,8 @@ class App(tk.Tk):
         d = self.folder_var.get()
         if not os.path.isdir(d):
             return
-        self.log_files = sorted(Path(d).glob("*.wpilog"))
+        import hoot
+        self.log_files = hoot.logs_in(d)             # this folder and the dated one-boot folders in it
         per = self.settings.get("per_log", {})
         for f in self.log_files:
             mark = "✓ " if per.get(f.name, {}).get("rendered") else "   "
@@ -1401,7 +1422,8 @@ class App(tk.Tk):
             out = []
             for i, f in enumerate(fs):
                 self._progress_cb(i / len(fs), f"Converting {Path(f).name} with owlet…")
-                dst = Path(f).with_suffix(".wpilog")
+                # .hoot.wpilog, not .wpilog: a plain .wpilog here would count as a second robot log of this boot folder
+                dst = Path(f).with_suffix(hoot.HOOT_WPILOG)
                 w, info = hoot.convert_hoot(f, out=dst, owlet_path=owlet, force=True)
                 out.append((w, info["warnings"]))
             return out
@@ -1438,7 +1460,7 @@ class App(tk.Tk):
                 if self.cancel_flag:
                     break
                 rec = per.setdefault(f.name, {})
-                bat = rec.get("battery", "")
+                bat = self._battery_of(rec, f)
                 self._progress_cb(n / len(picked), f"[{n + 1}/{len(picked)}] {f.name}: battery numbers")
                 cache = rec.get("battery_stats") or {}
                 if cache.get("ver") == br.STATS_VER and cache.get("mtime") == f.stat().st_mtime and cache.get("record"):
@@ -1634,7 +1656,7 @@ class App(tk.Tk):
                             rl = seen
                     job = core.RenderJob(ml, vp, off, str(out_dir / (f.stem + ("_sidebyside.mp4" if vp else "_dashboard.mp4"))), field_obj,
                                          quest, drive, height, crf=crf, trends=trends, thresholds=thr, hoot=hl,
-                                         style=core.RenderStyle(red_left=rl, title=title, battery=rec.get("battery", "")))
+                                         style=core.RenderStyle(red_left=rl, title=title, battery=self._battery_of(rec, f)))
                     core.render(job, lambda fr, msg: pf(0.35 + 0.65 * fr, msg), lambda: self.cancel_flag)
                     rec.update(url=url or "", video=vp, offset=off, title=title, rendered=True, clip_ver=self._clip_ver(vp))
                     core.save_settings(self.settings)
@@ -1665,7 +1687,7 @@ class App(tk.Tk):
                 rec = self.settings.get("per_log", {}).get(f.name, {})
                 flux = core.cached_flux(ml, rec.get("video"), float(rec.get("offset") or 0.0), bool(self.settings.get("red_left")),
                                         compute=True)          # usually cached by the render just before; else read once (~1.5 min)
-                r = rp.build_report(tel, ml, thr, hl, battery=rec.get("battery", ""), flux=flux)
+                r = rp.build_report(tel, ml, thr, hl, battery=self._battery_of(rec, f), flux=flux)
                 out_dir.mkdir(parents=True, exist_ok=True)
                 cv2.imwrite(str(png), report_image.render_image(r))
                 (out_dir / (f.stem + "_report.html")).write_text(r.to_html(), encoding="utf-8")

@@ -352,7 +352,7 @@ class DashRenderer:
         if self._every("driver", t, 2.0):
             self._update_driver_view(t)
         if self._every("shots", t, 1.5):
-            self.hub_active, self.hub_from = T.hub_windows(self.tel, self.ml)
+            self.hub_active, self.hub_from = T.hub_windows(self.tel, self.ml, None, not self.ml.is_blue)
             self.shots = T.ShotModel(self.tel, self.hub_active)
             self.score = self.shots
 
@@ -998,7 +998,7 @@ class DashRenderer:
             cv2.line(im, (cx, self.STRIP_Y[0]), (cx, self.STRIP_Y[-1] + self.STRIP_H), (255, 255, 255), 1)
         wh = g("pdh_wh")
         pv_ = self.plots["pdh_v"]
-        put(im, "" if wh is None else f"{wh:.1f} Wh used", pv_.x + pv_.w, 202, 0.42, DIM, anchor="r")
+        put(im, "" if wh is None else f"{wh:.1f} Wh used", 110, pv_.y + 13, 0.42, DIM)   # beside the "volts" label, off the trace
         if not self.live:                                   # the battery and its match numbers, next to the panel title
             st = self.battery_stats()
             if st is not None:

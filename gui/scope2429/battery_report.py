@@ -41,8 +41,11 @@ def summarize(records):
     by = {}
     for r in records:
         by.setdefault(r.get("battery") or "?", []).append(r)
-    fleet_r = _med([r["stats"].get("r_step_mohm") for r in records])
-    fleet_fit = _med([r["stats"].get("fit_r_mohm") for r in records])
+    # The fleet value is the median over BATTERIES (each one's own median), not over matches: over matches, the battery used
+    # most would set the baseline it is compared with.  Matches with no battery recorded ("?") are left out of it.
+    known = [[r["stats"] for r in rs] for b, rs in by.items() if b != "?"]
+    fleet_r = _med([_med([x.get("r_step_mohm") for x in s]) for s in known])
+    fleet_fit = _med([_med([x.get("fit_r_mohm") for x in s]) for s in known])
     out = []
     for b, rs in sorted(by.items()):
         s = [r["stats"] for r in rs]
@@ -316,7 +319,7 @@ a { color:inherit; }
 
 
 # ---------------------------------------------------------------------------------------------------- command line / desktop
-STATS_VER = 3      # bump when battery.analyze changes, so cached numbers are worked out again
+STATS_VER = 4      # bump when battery.analyze changes, so cached numbers are worked out again
 
 
 def analyze_log(path, battery_id="", hoot_search=None):
@@ -360,13 +363,19 @@ def main():
     import core
     folder = sys.argv[1]
     out = sys.argv[2] if len(sys.argv) > 2 else os.path.join(folder, "Battery_Report.html")
+    import console_file
+    import hoot
     per = core.load_settings().get("per_log", {})
     recs = []
-    for name in sorted(os.listdir(folder)):
-        if not name.endswith(".wpilog"):
+    for path in hoot.logs_in(folder):                # this folder and the dated one-boot folders in it
+        name = path.name
+        # picked in the desktop app, else what the robot logged for that boot
+        bat = per.get(name, {}).get("battery", "") or console_file.battery_for_log(str(path))
+        try:
+            ml, st = analyze_log(str(path), bat)
+        except Exception as e:  # noqa - one unreadable log is left out, not the whole report
+            print(f"{name}: skipped ({e})")
             continue
-        bat = per.get(name, {}).get("battery", "")
-        ml, st = analyze_log(os.path.join(folder, name), bat)
         recs.append(record(ml, st))
         print(f"{name}: {bat or '?'}  min {_f(st.v_min)} V  @150A {_f(st.v_at_ref)} V  step R {_f(st.r_step_mohm, '{:.1f}')} mOhm")
     with open(out, "w", encoding="utf-8") as f:

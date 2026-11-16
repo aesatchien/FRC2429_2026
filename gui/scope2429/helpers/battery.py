@@ -35,6 +35,7 @@ STEP_A = 45.0              # an internal-resistance step must change the current
 STEP_S = 0.02              # ... within this time (two 10 ms Kraken frames)
 FAST_DT = 0.025            # median sample spacing that is fast enough for the step method
 DRIVE_KRAKENS = ("TalonFX-21", "TalonFX-23", "TalonFX-25", "TalonFX-27")
+# keep the same as RobotStateConstants.k_batteries in comp_bot/constants.py and comp_system_core/constants.py (the robot's list)
 DEFAULT_BATTERIES = tuple(f"2026-{c}" for c in "ABCDEFGHI")
 R_NEW_BATTERY = (11, 15)   # mOhm, a new battery by itself
 R_ROBOT_PATH = (20, 25)    # mOhm, battery + breaker + leads + connectors, typical
@@ -142,7 +143,9 @@ def _rest(tv, ti, a, b):
 def analyze(tel, ml, hoot=None, battery: str = "", brownout_v: float = BROWNOUT_V, ref_a: float = REF_A) -> BatteryStats:
     st = BatteryStats(battery=battery or "", brownout_v=float(brownout_v), ref_a=float(ref_a))
     a = float(ml.t_ref)
-    b = a + float(ml.match_len) if ml.has_match else float(ml.t_last)
+    # never past the last record: a log that stops mid-match (brownout, reboot) must not have its last sample held to the
+    # nominal end of the match, which would count the rest of the match as time at that voltage and current
+    b = min(a + float(ml.match_len), float(ml.t_last)) if ml.has_match else float(ml.t_last)
     b = max(b, a + 1.0)
     st.window = (a, b)
     a0 = float(getattr(tel, "a0", a))

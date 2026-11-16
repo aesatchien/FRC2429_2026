@@ -113,7 +113,8 @@ def battery_for_log(log_path) -> str:
         if not path:
             return ""
         folder = os.path.dirname(os.path.abspath(log_path))
-        one_boot_folder = len(glob.glob(os.path.join(folder, "*.wpilog"))) == 1
+        import hoot
+        one_boot_folder = hoot.is_boot_folder(folder)
         if not one_boot_folder:
             try:
                 import webcast

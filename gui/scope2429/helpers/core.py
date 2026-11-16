@@ -21,6 +21,7 @@ import shutil
 import struct
 import subprocess
 import sys
+import threading
 import urllib.request
 import zipfile
 from dataclasses import dataclass, field
@@ -69,10 +70,26 @@ def load_settings() -> dict:
     return d
 
 
+_SAVE_LOCK = threading.Lock()
+
+
 def save_settings(d: dict):
+    """Written to a temporary file and then swapped in, one writer at a time: a worker thread and the window can both save, and a
+    half-written settings.json reads as empty on the next start, which would lose every log's offset, video and battery."""
     try:
         APP_DIR.mkdir(parents=True, exist_ok=True)
-        SETTINGS_FILE.write_text(json.dumps(d, indent=2, ensure_ascii=False), encoding="utf-8")
+        with _SAVE_LOCK:
+            for _ in range(3):                       # another thread may add a log's entry while this one is being serialised
+                try:
+                    text = json.dumps(d, indent=2, ensure_ascii=False)
+                    break
+                except RuntimeError:
+                    continue
+            else:
+                return
+            tmp = SETTINGS_FILE.with_name(SETTINGS_FILE.name + ".tmp")
+            tmp.write_text(text, encoding="utf-8")
+            os.replace(tmp, SETTINGS_FILE)
     except Exception:
         pass
 
