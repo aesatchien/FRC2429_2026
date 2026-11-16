@@ -3,7 +3,7 @@ Battery report: the battery numbers of many matches side by side, one self-conta
 
     python battery_report.py "C:/Users/<you>/Documents/WPILOG_2026/2026DAL" [out.html]      # logs with a battery picked in Scope2429
 
-The desktop app (Battery report... button) and the web archive (/batteries) call `render(records)` with one record per match:
+The desktop app (Battery report... button) and the web archive (a separate project, not in this repo) call `render(records)` with one record per match:
     {"label": "DALY Q13", "when": "2026-04-30 14:40", "battery": "2026-C", "stats": battery.BatteryStats.to_dict(), "href": optional link}
 
 What it answers:
@@ -319,17 +319,21 @@ a { color:inherit; }
 
 
 # ---------------------------------------------------------------------------------------------------- command line / desktop
-STATS_VER = 4      # bump when battery.analyze changes, so cached numbers are worked out again
+STATS_VER = 5      # bump when battery.analyze changes, so cached numbers are worked out again
 
 
 def analyze_log(path, battery_id="", hoot_search=None):
-    """battery.BatteryStats of one log (with its hoot, when one is found next to it)."""
+    """battery.BatteryStats of one log (with its hoot, when one is found next to it).  Without a `battery_id` (none picked in the
+    desktop app) the stats carry the battery the robot logged, or ''."""
     import battery
+    import console_file
     import core
     import hoot as H
     import telemetry as T
     ml = core.load_match_log(str(path), [])
     tel = T.Telemetry(str(path), ml)
+    if not battery_id:                       # here, where the log is already loaded, so that finding it does not read the log again
+        battery_id = console_file.battery_for_log(str(path), ml, tel)
     hl = None
     try:
         hs = H.find_hoots_for_log(str(path), hoot_search or os.path.dirname(str(path)))
@@ -342,15 +346,16 @@ def analyze_log(path, battery_id="", hoot_search=None):
 
 
 def record(ml, stats, href=None):
-    when = ""
-    if getattr(ml, "log_utc", None):
-        when = time.strftime("%Y-%m-%d %H:%M", time.localtime(ml.log_utc))
-    else:
-        import re
-        m = re.search(r"(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})", os.path.basename(ml.path))
-        if m:
-            when = "{}-{}-{} {}:{}".format(*m.groups()[:5])
     import re
+    when = ""
+    m = re.search(r"(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})", os.path.basename(ml.path))      # UTC, when the robot made the file
+    if m:
+        when = "{}-{}-{} {}:{}".format(*m.groups()[:5])
+    else:                # no date in the name (a robot that had no clock yet): the file's own date, also UTC, so it still sorts in time
+        try:
+            when = time.strftime("%Y-%m-%d %H:%M", time.gmtime(os.path.getmtime(ml.path)))
+        except OSError:
+            pass
     lab = getattr(ml, "match_label", "") or ""
     if re.fullmatch(r"[PQE]\d+", lab):
         lab = f"{getattr(ml, 'event_code', '') or ''} {lab}".strip()          # Q7 alone does not say which event
@@ -363,21 +368,18 @@ def main():
     import core
     folder = sys.argv[1]
     out = sys.argv[2] if len(sys.argv) > 2 else os.path.join(folder, "Battery_Report.html")
-    import console_file
     import hoot
     per = core.load_settings().get("per_log", {})
     recs = []
     for path in hoot.logs_in(folder):                # this folder and the dated one-boot folders in it
         name = path.name
-        # picked in the desktop app, else what the robot logged for that boot
-        bat = per.get(name, {}).get("battery", "") or console_file.battery_for_log(str(path))
-        try:
-            ml, st = analyze_log(str(path), bat)
+        try:                                         # picked in the desktop app, else what the robot logged (analyze_log finds it)
+            ml, st = analyze_log(str(path), per.get(name, {}).get("battery", ""))
         except Exception as e:  # noqa - one unreadable log is left out, not the whole report
             print(f"{name}: skipped ({e})")
             continue
         recs.append(record(ml, st))
-        print(f"{name}: {bat or '?'}  min {_f(st.v_min)} V  @150A {_f(st.v_at_ref)} V  step R {_f(st.r_step_mohm, '{:.1f}')} mOhm")
+        print(f"{name}: {st.battery or '?'}  min {_f(st.v_min)} V  @150A {_f(st.v_at_ref)} V  step R {_f(st.r_step_mohm, '{:.1f}')} mOhm")
     with open(out, "w", encoding="utf-8") as f:
         f.write(render(recs))
     print("wrote", out)

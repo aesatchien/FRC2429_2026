@@ -48,7 +48,7 @@ class BatteryStats:
     v_min: float | None = None
     v_min_t: float | None = None        # seconds after time zero
     v_min_fast: float | None = None     # the drive Krakens' input at 100 Hz (catches dips the 5 Hz PDH misses)
-    below: dict = field(default_factory=dict)   # "9 V" / "8 V" / "brownout (6.75 V)" -> seconds
+    below: dict = field(default_factory=dict)   # "9 V" / "8 V" / "brownout 6.75 V" -> seconds
     brownout_v: float = BROWNOUT_V
     v_rest_start: float | None = None
     v_rest_end: float | None = None
@@ -232,11 +232,14 @@ def _step(st: BatteryStats, hoot, a, b):
     if not sigs:
         st.r_step_why = "the hoot has no drive-Kraken SupplyVoltage / SupplyCurrent"
         return
-    t_ref = np.asarray(sigs[0][0].t, float)
-    m = (t_ref >= a) & (t_ref <= b)
-    t_ref = t_ref[m]
-    if len(t_ref) < 100 or float(np.median(np.diff(t_ref))) > FAST_DT:
-        dt = float(np.median(np.diff(np.asarray(sigs[0][0].t, float)))) if len(sigs[0][0]) > 1 else 0.0
+    t_all = np.asarray(sigs[0][0].t, float)
+    t_ref = t_all[(t_all >= a) & (t_all <= b)]
+    dt = float(np.median(np.diff(t_ref))) if len(t_ref) > 1 else 0.0
+    if len(t_ref) < 100 and dt <= FAST_DT:                   # not the logging rate: the hoot is from another time than the window
+        st.r_step_why = (f"the hoot does not cover the analysed part of the log: only {len(t_ref)} of its {len(t_all)} supply-voltage "
+                         f"samples are inside it (the hoot of another match or boot, or its clock was not lined up with the log's)")
+        return
+    if dt > FAST_DT:
         st.r_step_why = (f"the hoot logs the Krakens' supply voltage and current every {dt * 1000:.0f} ms; the step method needs "
                          f"{FAST_DT * 1000:.0f} ms or faster (the robot code has logged them at 100 Hz since 2026-10-25)")
         return

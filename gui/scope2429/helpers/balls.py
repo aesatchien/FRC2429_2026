@@ -16,7 +16,7 @@ import numpy as np
 
 import scorebug
 
-VERSION = 4
+VERSION = 5                                          # 5: times no longer early when the video begins under 3 s before the match
 OCR_EVERY = 2                                        # read the counter on every n-th frame (the others are only skipped)
 
 
@@ -59,8 +59,11 @@ def measure(video, offset, alliance="Red", t_from=-3.0, t_to=168.0, cache_path=N
     fps = cap.get(cv2.CAP_PROP_FPS) or 60.0
     plain = _is_plain(cap, offset, t_from, t_to, left_is_red is not False)
     reader = scorebug.read_plain if plain else scorebug.read
+    # a video that begins less than -t_from before the match: a seek to a negative time lands on its first frame, so the times are
+    # counted from there (they were counted from t_from, which made every reading early)
+    t_from = max(t_from, -offset)
     cap.set(cv2.CAP_PROP_POS_MSEC, (offset + t_from) * 1000.0)
-    n = int((t_to - t_from) * fps)
+    n = max(0, int((t_to - t_from) * fps))
     ts, ctr = [], []
     last = -1
     for i in range(n):
@@ -75,7 +78,7 @@ def measure(video, offset, alliance="Red", t_from=-3.0, t_to=168.0, cache_path=N
         ts.append(t_from + i / fps)
         ctr.append(last)
         if progress and i % 300 == 0:
-            progress(i / n, "Reading the match video (fuel counter)…")
+            progress(i / max(n, 1), "Reading the match video (fuel counter)…")
     cap.release()
     out = {"t": np.array(ts), "ctr": np.array(ctr), "plain": np.array(float(plain))}
     if cache_path is not None:

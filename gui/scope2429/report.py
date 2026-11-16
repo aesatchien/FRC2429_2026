@@ -1017,7 +1017,7 @@ def _console(tel, ml, win, rel):
     otherwise only ever seen on the Driver Station console, which is gone after the match."""
     import console_file as CF
     sec = Section("Robot console")
-    path = CF.find_for_log(ml.path)
+    path = CF.find_for_log(ml.path, ml)
     if path is None:
         sec.add("info", "no console_*.log from this boot was found next to the log (the robot only saves one since "
                         "2026-10-25; it is written in the same folder as the .wpilog)")

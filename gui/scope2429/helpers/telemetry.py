@@ -71,6 +71,7 @@ for _bus, _ in CAN_BUSES:
                         ("rxerr", "rx_errors"), ("txerr", "tx_errors")):
         SCALARS[f"{_bus}_{_key}"] = SD + f"CAN/{_bus}/{_name}"
 SCALARS["can_phx_util"] = SD + "CAN/can_s0/phoenix_utilization_raw"      # Phoenix's own number for can_s0, as it returns it
+SCALARS["battery_id"] = SD + "RobotStatus/battery/active"                # a string, '?' until picked (console_file.battery_for_log)
 
 
 def can_util_scale(tel) -> float:

@@ -648,6 +648,8 @@ def ensure_decodable(path: str, progress=None) -> str:
         raise RuntimeError("converting the video to H.264 took more than 20 minutes and was stopped")
     if not tmp.exists() or tmp.stat().st_size < 100_000:
         tmp.unlink(missing_ok=True)
+        if p.resolve().parent == CACHE_DIR.resolve():         # a damaged download: left in the cache it would be found again before any new
+            p.unlink(missing_ok=True)                         # download and fail here every time.  Only ever a file of our own cache folder.
         raise RuntimeError("the video is in a format this computer cannot decode (probably AV1) and ffmpeg could not convert it")
     if out != p:
         p.unlink(missing_ok=True)

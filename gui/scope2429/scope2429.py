@@ -482,16 +482,34 @@ class App(tk.Tk):
         if self.ml and self.mode == LOG:
             per = s.setdefault("per_log", {})
             rec = per.setdefault(Path(self.ml.path).name, {})
+            b = self.battery_var.get().strip().upper()                       # upper case, as the robot logs it: '2026-c' is 2026-C
+            # Only a battery picked or typed here is stored.  While the box still shows what the robot logged, nothing is: stored,
+            # it would count as picked by hand from then on, and the 'from the robot' note would be gone at the next load.
             rec.update(url=self.url_var.get(), offset=self._offset(), video=self.video_path, title=self.title_var.get(),
                        hoot=list(self.hoot_paths), clip_ver=self._clip_ver(self.video_path),
-                       battery=self.battery_var.get().strip().upper())      # upper case, as the robot logs it: '2026-c' is 2026-C
-            b = self.battery_var.get().strip().upper()
-            if b and b not in self._batteries():           # a new battery id typed in: offer it for the next logs too
-                import battery
-                s["batteries_extra"] = sorted((set(self._batteries()) | {b}) - set(battery.DEFAULT_BATTERIES))
-                s.pop("batteries", None)
-                self.battery_cb["values"] = self._batteries()
+                       battery="" if b == self._battery_from_robot.upper() else b)
+            # The ids offered besides the robot's own are the typed-in ones some log still uses: a new one is offered for the next
+            # logs too, and a mistyped one is gone from the list once the log it was typed for has been corrected.
+            import battery
+            s["batteries_extra"] = sorted({r.get("battery") or "" for r in per.values()} - {""} - set(battery.DEFAULT_BATTERIES))
+            s.pop("batteries", None)
+            self.battery_cb["values"] = self._batteries()
         core.save_settings(s)
+
+    def _apply_day_cal(self, cal):
+        """Store the day videos' clock errors and save, on the Tk thread.  `cal` is a COPY of self.day_cal made by whoever last
+        changed it (the clip workers fill self.day_cal in), so a worker adding to self.day_cal later is not changing the settings."""
+        self.settings["day_cal_v3"] = cal
+        core.save_settings(self.settings)
+
+    def _apply_per_log(self, changes):
+        """Merge {log file name: {key: value}} into the settings and save them.  Always on the Tk thread: a worker hands its results
+        over (the `done` of _run, or a ("call", self._apply_per_log, changes) on the queue) and never writes self.settings itself,
+        so the window's own _save cannot meet a half-made change."""
+        per = self.settings.setdefault("per_log", {})
+        for name, upd in changes.items():
+            per.setdefault(name, {}).update(upd)
+        core.save_settings(self.settings)
 
     def _battery_source_check(self):
         """'from the robot' beside the Battery box while it still shows what the robot logged; gone once it is changed here."""
@@ -513,14 +531,14 @@ class App(tk.Tk):
         return list(battery.DEFAULT_BATTERIES) + sorted(set(extra))
 
     @staticmethod
-    def _battery_of(rec, path) -> str:
-        """The battery of a log: the one picked here, else the one the robot logged for that boot (its console log), else ''.
-        Slow the first time (reads the log's clock), so call it from a worker."""
+    def _battery_of(rec, path, ml=None, tel=None) -> str:
+        """The battery of a log: the one picked here, else the one the robot logged (in the .wpilog, else in that boot's console
+        log), else ''.  Reads the log unless `tel` (its Telemetry) is given, so call it from a worker, with the `ml` / `tel` at hand."""
         bat = (rec or {}).get("battery", "")
         if not bat:
             try:
                 import console_file
-                bat = console_file.battery_for_log(str(path))
+                bat = console_file.battery_for_log(str(path), ml, tel)
             except Exception:  # noqa - a console log that cannot be read just means no battery from it
                 bat = ""
         return bat
@@ -563,11 +581,25 @@ class App(tk.Tk):
         sel = self.logs.curselection()
         if not sel:
             return
+        if self.busy:
+            # The click cannot load anything now.  Put the highlight back on the log that IS loaded: the Battery box, the title and
+            # _save all still belong to that one, and a battery typed under the wrong highlight would be saved for the wrong match.
+            self._highlight_loaded()
+            return self._run(None)                   # (busy: only says "Please wait")
         if self.ml:
             self._save()
         path = str(self.log_files[sel[0]])
         self.info_var.set("Loading " + Path(path).name + " …")
         self._load_log(path)
+
+    def _highlight_loaded(self):
+        """Make the list show the log that is loaded (setting the selection from here does not fire <<ListboxSelect>>)."""
+        self.logs.selection_clear(0, "end")
+        want = self.ml.path if self.ml else None
+        for i, f in enumerate(self.log_files):
+            if str(f) == want:
+                self.logs.selection_set(i)
+                self.logs.see(i)
 
     def _load_log(self, path):
         poses = [self.drive_var.get(), self.quest_var.get()]
@@ -577,11 +609,15 @@ class App(tk.Tk):
             ml = core.load_match_log(path, poses)
             ml.pose_entries = pose_names
             self.log_numeric = numeric
+            # the battery the robot logged: looked up here because it reads the log once more (seconds on a long one), which
+            # must not happen on the Tk thread in _log_loaded
+            ml.robot_battery = self._battery_of(None, path, ml)
             return ml
         self._run(work, self._log_loaded, "Reading log…")
 
     def _log_loaded(self, ml: core.MatchLog):
         self.ml = ml
+        self._highlight_loaded()                     # a click on another log while this one was loading was refused
         self._trend_choices()
         name = Path(ml.path).name
         if ml.has_match:
@@ -605,16 +641,9 @@ class App(tk.Tk):
         self.url_cb["values"] = []
         self.offset_var.set(round(per.get("offset", 0.0), 3))
         self.title_var.set(per.get("title") or self._default_title(ml))
-        bat = per.get("battery", "")
-        from_robot = ""
-        if not bat:                                  # not picked here yet: the one picked on the driver dashboard, from the console log
-            try:
-                import console_file
-                bat = from_robot = console_file.battery_for_log(ml.path)
-            except Exception:  # noqa - a console log that cannot be read just means no battery from it
-                bat = ""
-        self._battery_from_robot = from_robot
-        self.battery_var.set(bat)
+        # picked here, else the one picked on the driver dashboard, which _load_log's worker read from the log (or its console log)
+        self._battery_from_robot = getattr(ml, "robot_battery", "")
+        self.battery_var.set(per.get("battery", "") or self._battery_from_robot)
         self._battery_source_check()
         self._event_for_log(ml)
         vp = per.get("video")
@@ -1326,8 +1355,7 @@ class App(tk.Tk):
                                       cal=self.day_cal)
 
         def done(c):
-            self.settings["day_cal_v3"] = self.day_cal
-            core.save_settings(self.settings)
+            self._apply_day_cal({k: list(v) for k, v in self.day_cal.items()})
             if self.ml is None or self.ml.path != path:
                 return
             self.video_path = c.path
@@ -1448,39 +1476,48 @@ class App(tk.Tk):
         if self.ml:
             self._save()
         picked = list(getattr(self, "log_files", []) or [])
-        per = self.settings.setdefault("per_log", {})
+        per = self.settings.get("per_log", {})           # only read by the worker; what it works out goes back through done()
         if not picked:
             return messagebox.showinfo("Battery report", "There are no logs in this folder.")
         folder = self.folder_var.get()
 
         def work():
             import battery_report as br
-            recs = []
+            import hoot
+            recs, fresh = [], {}
             for n, f in enumerate(picked):
                 if self.cancel_flag:
                     break
-                rec = per.setdefault(f.name, {})
-                bat = self._battery_of(rec, f)
+                rec = per.get(f.name) or {}
                 self._progress_cb(n / len(picked), f"[{n + 1}/{len(picked)}] {f.name}: battery numbers")
+                # the hoots that go with the log are part of the key: one copied in later gives the step resistance the cached
+                # numbers do not have
+                try:
+                    hoots = sorted(Path(h).name for h in hoot.find_hoots_for_log(str(f), folder or None))
+                except OSError:
+                    hoots = []
                 cache = rec.get("battery_stats") or {}
-                if cache.get("ver") == br.STATS_VER and cache.get("mtime") == f.stat().st_mtime and cache.get("record"):
+                if cache.get("ver") == br.STATS_VER and cache.get("mtime") == f.stat().st_mtime and cache.get("hoots") == hoots \
+                        and cache.get("record"):
                     r = dict(cache["record"])
                 else:
                     try:
-                        ml, st = br.analyze_log(f, bat, folder)
+                        ml, st = br.analyze_log(f, "", folder)      # "": the cached record carries the battery the ROBOT logged
                     except Exception:  # noqa - a log that cannot be read is left out, not the whole report
                         continue
                     r = br.record(ml, st)
-                    rec["battery_stats"] = {"ver": br.STATS_VER, "mtime": f.stat().st_mtime, "record": r}
-                r["battery"] = bat                              # the pick may have changed since the numbers were cached
+                    fresh[f.name] = {"battery_stats": {"ver": br.STATS_VER, "mtime": f.stat().st_mtime, "hoots": hoots, "record": dict(r)}}
+                bat = rec.get("battery") or r.get("battery") or ""  # picked here (it may have changed since the numbers were cached), else the robot's
+                r["battery"] = bat
                 r["stats"] = {**r["stats"], "battery": bat}
                 recs.append(r)
-            core.save_settings(self.settings)
             out = Path(folder) / "Battery_Report.html"
             out.write_text(br.render(recs, f"Battery report: {Path(folder).name}"), encoding="utf-8")
-            return out
+            return out, fresh
 
-        def done(out):
+        def done(res):
+            out, fresh = res
+            self._apply_per_log(fresh)
             import webbrowser
             webbrowser.open(Path(out).as_uri())
             self.status_var.set(f"Battery report: {out}")
@@ -1558,7 +1595,8 @@ class App(tk.Tk):
         crf = QUALITY.get(self.qual_var.get(), 27)
         field_obj = self.field_obj or core.synthetic_field()
         out_dir = Path(self.folder_var.get()) / "videos"
-        per = self.settings.setdefault("per_log", {})
+        per = self.settings.get("per_log", {})           # only read by the worker: its results go to the Tk thread (_apply_per_log)
+        mine = {}                                        # what this batch found per log (the Tk thread may not have merged it yet)
         trends = list(self.trends)
         thr = self._thr()
         folder = self.folder_var.get() or None
@@ -1571,7 +1609,7 @@ class App(tk.Tk):
             for i, f in enumerate(files):
                 if self.cancel_flag:
                     break
-                rec = per.setdefault(f.name, {})
+                rec = per.get(f.name) or {}
                 has_file = any((out_dir / (f.stem + tag)).exists() for tag in ("_sidebyside.mp4", "_dashboard.mp4"))
                 if rec.get("rendered") and has_file and not self._stale(rec):      # (a deleted or moved video is made again)
                     continue
@@ -1601,13 +1639,12 @@ class App(tk.Tk):
                 clips = webcast.clip_matches(need, days, self.day_cal, lambda fr, msg: self._progress_cb(0.2 + 0.3 * fr, msg),
                                              cancel=lambda: self.cancel_flag,
                                              calib_items=[(str(f), v[0]) for f, v in plan.items()])
-                self.settings["day_cal_v3"] = self.day_cal
-                core.save_settings(self.settings)
+                self.q.put(("call", self._apply_day_cal, {k: list(v) for k, v in self.day_cal.items()}))
             # ---- 3. sync (TBA videos) and render each
             for n, (f, (ml, url, key)) in enumerate(plan.items()):
                 if self.cancel_flag:
                     break
-                rec = per.setdefault(f.name, {})
+                rec = per.get(f.name) or {}
                 pf = lambda fr, msg, n=n, f=f: self._progress_cb(0.5 + 0.4 * (n + fr) / len(plan), f"[{n + 1}/{len(plan)}] {f.name}: {msg}")
                 try:
                     src = "match video"
@@ -1656,10 +1693,10 @@ class App(tk.Tk):
                             rl = seen
                     job = core.RenderJob(ml, vp, off, str(out_dir / (f.stem + ("_sidebyside.mp4" if vp else "_dashboard.mp4"))), field_obj,
                                          quest, drive, height, crf=crf, trends=trends, thresholds=thr, hoot=hl,
-                                         style=core.RenderStyle(red_left=rl, title=title, battery=self._battery_of(rec, f)))
+                                         style=core.RenderStyle(red_left=rl, title=title, battery=self._battery_of(rec, f, ml)))
                     core.render(job, lambda fr, msg: pf(0.35 + 0.65 * fr, msg), lambda: self.cancel_flag)
-                    rec.update(url=url or "", video=vp, offset=off, title=title, rendered=True, clip_ver=self._clip_ver(vp))
-                    core.save_settings(self.settings)
+                    mine[f.name] = dict(url=url or "", video=vp, offset=off, title=title, rendered=True, clip_ver=self._clip_ver(vp))
+                    self.q.put(("call", self._apply_per_log, {f.name: mine[f.name]}))     # saved after every render, by the Tk thread
                     flag = "" if good else "   ⚠ CHECK SYNC"
                     report.append(f"{f.name}: {src}, offset {off:.2f}s, confidence {conf:.1f}{flag}")
                 except Exception as e:  # noqa
@@ -1684,10 +1721,10 @@ class App(tk.Tk):
                         hl = hoot.load_many([w for w, _ in conv], str(f))
                 except Exception:  # noqa
                     hl = None
-                rec = self.settings.get("per_log", {}).get(f.name, {})
+                rec = {**(per.get(f.name) or {}), **mine.get(f.name, {})}
                 flux = core.cached_flux(ml, rec.get("video"), float(rec.get("offset") or 0.0), bool(self.settings.get("red_left")),
                                         compute=True)          # usually cached by the render just before; else read once (~1.5 min)
-                r = rp.build_report(tel, ml, thr, hl, battery=self._battery_of(rec, f), flux=flux)
+                r = rp.build_report(tel, ml, thr, hl, battery=self._battery_of(rec, f, ml, tel), flux=flux)
                 out_dir.mkdir(parents=True, exist_ok=True)
                 cv2.imwrite(str(png), report_image.render_image(r))
                 (out_dir / (f.stem + "_report.html")).write_text(r.to_html(), encoding="utf-8")

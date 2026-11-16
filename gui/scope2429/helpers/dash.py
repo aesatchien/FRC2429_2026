@@ -776,7 +776,18 @@ class DashRenderer:
     # ------------------------------------------------- failures against the battery voltage
     def _motor_intervals(self, t0, t1):
         """[(a, b, names)] in [t0, t1] while a mechanism motor was over STRIP_RPM from its command (not while off or ramping to a
-        new command), or a drive wheel over STRIP_WHEEL from its command, for at least MOTOR_MIN_S."""
+        new command), or a drive wheel over STRIP_WHEEL from its command, for at least MOTOR_MIN_S.
+
+        Worked out once for the whole plotted span and cut to [t0, t1] for each caller (the strip and FAILURES vs VOLTS both ask, and
+        again when the bases are redrawn): it steps through the log every 0.1 s, 12 s on a one-hour shop log.  The log does not
+        change under a DashRenderer; the rpm limit, which decides what counts as ramping, can, so it is the key."""
+        rpm = self.thr["rpm"]
+        if getattr(self, "_motor_iv", (None,))[0] != rpm:
+            self._motor_iv = (rpm, self._motor_intervals_of(self.a0 + self.t_lo, self.a0 + self.t_hi))
+        cut = [(max(a, t0), min(b, t1), who) for a, b, who in self._motor_iv[1]]
+        return [(a, b, who) for a, b, who in cut if b - a >= self.MOTOR_MIN_S]      # as before: at least MOTOR_MIN_S inside [t0, t1]
+
+    def _motor_intervals_of(self, t0, t1):
         out = []
         ts = np.arange(t0, t1, 0.1)
         for label, set_key, act_key in MOTORS:
@@ -831,7 +842,8 @@ class DashRenderer:
     def _failures(self):
         """What FAILURES vs VOLTS shows, worked out once: [(strip label, [(onset, volts there, colour)])], the voltage of every
         moment of the match, and the bins of time spent at each voltage.  The voltage of a moment is the lowest within 1 s either
-        side (the frame counter says when a camera stopped only to 0.5 s).  None when the log has no battery voltage."""
+        side (the frame counter says when a camera stopped only to 0.5 s).  None when the log has no battery voltage, or too little
+        of it (under 10 samples, or under 2 s) to compare anything with."""
         if getattr(self, "_failure_data", None) is not None:
             return self._failure_data or None
         self._failure_data = False
@@ -880,7 +892,8 @@ class DashRenderer:
         put(im, "FAILURES vs VOLTS", x, 22, 0.5, CYAN)
         data = self._failures()
         if data is None:
-            put(im, "no battery voltage in this log", x, 44, 0.36, DIM)
+            sv = self.tel.by_key.get("pdh_v")        # a few samples are plotted beside this, so do not say there are none
+            put(im, "no battery voltage in this log" if sv is None or not len(sv) else "too little battery voltage to compare", x, 44, 0.36, DIM)
             return
         rows, cv, _ = data
         share = float(np.mean(cv < self.LOW_V))

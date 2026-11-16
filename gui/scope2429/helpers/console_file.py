@@ -54,31 +54,62 @@ def epoch0(lines) -> float | None:
     return offs[len(offs) // 2] if offs else None
 
 
-def find_for_log(log_path):
-    """Path of the console log that goes with this wpilog, or None.  Looks in the log's folder (that is where the robot
-    writes it) and picks the file from the same boot."""
+def _log_span(log_path, ml=None):
+    """(first, last) record time of the wpilog in seconds on the robot clock, or None.  From `ml` (core.MatchLog) when the caller
+    has one, because finding it otherwise reads the whole log."""
+    if ml is not None:
+        return float(ml.t_first), float(ml.t_last)
+    try:
+        import core
+        span = []
+        core.read_wpilog(log_path, lambda n: False, span)
+        return span[0] / 1e6, span[1] / 1e6
+    except Exception:  # noqa - a log that cannot be read has no console log to go with
+        return None
+
+
+def _find(log_path, ml=None):
+    """(path of the console log of this wpilog or None, True when it was matched to the log by the wall clock)."""
     folder = os.path.dirname(os.path.abspath(log_path))
     candidates = sorted(glob.glob(os.path.join(folder, "console_*.log")))
     if not candidates:
-        return None
+        return None, False
     try:
         import webcast
         want = webcast.log_epoch0(log_path)
     except Exception:  # noqa
         want = None
+    span = False                                     # the wpilog's (first, last) record time, read only when a file gets that far
     best, best_d = None, None
     for c in candidates:
         try:
-            e = epoch0(parse(c))
+            lines = parse(c)
         except OSError:
             continue
+        e = epoch0(lines)
         if want is None:
             d = 0.0 if len(candidates) == 1 else None
         else:
             d = abs(e - want) if e is not None else None
+            if d is not None and d <= SAME_BOOT_S:
+                # Boot times that agree are not enough: two boots can start within SAME_BOOT_S of each other (a power cycle),
+                # and when this boot's own file is missing the other boot's would be taken.  The two files of one boot were
+                # written at the same time, so on the wall clock (each file's own) the console's first..last line must overlap
+                # the log's first..last record.  Another boot's file ended before this log began, or began after it ended.
+                if span is False:
+                    span = _log_span(log_path, ml)
+                if span is None or e + lines[-1].t < want + span[0] or e + lines[0].t > want + span[1]:
+                    d = None
         if d is not None and d <= SAME_BOOT_S and (best_d is None or d < best_d):
             best, best_d = c, d
-    return best
+    return best, best is not None and want is not None
+
+
+def find_for_log(log_path, ml=None):
+    """Path of the console log that goes with this wpilog, or None.  Looks in the log's folder (that is where the robot
+    writes it) and picks the file from the same boot: its boot time agrees with the log's and the two were being written
+    at the same time.  Pass `ml` (the log's core.MatchLog) when there is one; without it the log is read once more."""
+    return _find(log_path, ml)[0]
 
 
 # ---------------------------------------------------------------------------------------- what is worth a look
@@ -88,42 +119,78 @@ _WARN = re.compile(r"\bWarning\b|overrun|Watchdog|not found|disconnect|dropped|\
 _SKIP = re.compile(r"Override me!|^\s+at |^\tat |^\s*$")      # the default-RobotPeriodic notice, native stack-trace lines, blanks
 
 
-BATTERY_LINE = re.compile(r"^BATTERY: ([A-Za-z0-9][A-Za-z0-9 _.-]{0,23})(?:\s{2,}\(was .*\))?\s*$")
+# An id has no space in it ('2026-C', or whatever the robot's list holds next year), so a sentence that happens to start with
+# 'BATTERY:' ('BATTERY: voltage low') is not taken for one.  '   (was 2026-C)' is what the robot adds when the pick changed.
+BATTERY_LINE = re.compile(r"^BATTERY: ([A-Za-z0-9][A-Za-z0-9_.-]{0,23})(?:\s{2,}\(was .*\))?\s*$")
+BATTERY_TOPIC = "NT:/SmartDashboard/RobotStatus/battery/active"      # the same pick as a string in the .wpilog; '?' until picked
 
 
-def battery(lines) -> str:
+def battery(lines, t_end=None) -> str:
     """The battery picked on the driver dashboard for this boot ('2026-C'), from the robot's 'BATTERY: <id>' lines
-    (subsystems/robot_state.py: _check_battery), or ''.  The last one counts: a wrong pick corrected before the match wins."""
+    (subsystems/robot_state.py: _check_battery), or ''.  The last one counts: a wrong pick corrected before the match wins.
+    Lines after `t_end` (robot time) are left out: the next battery picked in the pit with the robot still on is not the
+    one the match was played on."""
     found = ""
     for ln in lines:
+        if t_end is not None and ln.t > t_end:
+            continue
         m = BATTERY_LINE.match(ln.text.strip())
         if m:
             found = m[1].strip()
     return found
 
 
-def battery_for_log(log_path) -> str:
-    """battery() of the console log of THIS boot, or '' (no console log, no battery picked, or not sure the file is this boot's).
+def battery_in_wpilog(log_path, tel=None, t_end=None) -> str:
+    """The last battery id the robot published on BATTERY_TOPIC at or before `t_end` (the whole log when None), or '' ('?' and
+    an empty string mean not picked).  From `tel` (telemetry.Telemetry of this log, key 'battery_id') when the caller has one,
+    because reading it from the file goes through the whole log."""
+    if tel is not None:
+        sig = tel.by_key.get("battery_id")
+        rows = zip(sig.t, sig.v) if sig is not None else []
+    else:
+        try:
+            import core
+            _e, recs = core.read_wpilog(log_path, {BATTERY_TOPIC})
+        except (OSError, ValueError):
+            return ""
+        rows = [(t / 1e6, p.decode("utf-8", "replace")) for t, p in recs.get(BATTERY_TOPIC) or []]
+    found = ""
+    for t, v in rows:
+        v = str(v).strip()
+        if (t_end is None or t <= t_end) and v and v != "?":
+            found = v
+    return found
+
+
+def battery_for_log(log_path, ml=None, tel=None) -> str:
+    """The battery the robot recorded for this log, or '' (none picked, or not sure).  First the log itself (battery_in_wpilog:
+    it cannot belong to another boot, and comp_bot on a roboRIO has no console log), then, for logs from before the robot
+    published the topic, battery() of the console log of THIS boot.  With a match, only what was picked up to the end of the
+    match counts.  Pass `ml` (core.MatchLog) and `tel` (telemetry.Telemetry) when they are already loaded: without them the log
+    is read again, seconds on a long log, so never call it bare on the Tk thread.
 
     A battery is never taken from another boot: each boot's battery is picked on the dashboard for that boot alone.  So the console
     file must be shown to be this log's: either its wall clock matches the log's (find_for_log), or the folder is the robot's
     one-boot folder (comp_system_core/helpers/log_start.py: one .wpilog, its .hoot and its console log together)."""
+    if ml is None:
+        try:
+            import core
+            ml = core.load_match_log(str(log_path), [])
+        except Exception:  # noqa - no match times: the whole log counts
+            ml = None
+    t_end = ml.t_ref + ml.match_len if ml is not None and ml.has_match else None
+    found = battery_in_wpilog(log_path, tel, t_end)
+    if found:
+        return found
     try:
-        path = find_for_log(log_path)
+        path, matched = _find(log_path, ml)                             # matched: its boot time agrees with the log's
         if not path:
             return ""
         folder = os.path.dirname(os.path.abspath(log_path))
         import hoot
-        one_boot_folder = hoot.is_boot_folder(folder)
-        if not one_boot_folder:
-            try:
-                import webcast
-                matched = webcast.log_epoch0(log_path) is not None      # find_for_log only accepts a file whose boot time matches
-            except Exception:  # noqa
-                matched = False
-            if not matched:
-                return ""                                               # several logs and no way to tell which boot: never guess
-        return battery(parse(path))
+        if not matched and not hoot.is_boot_folder(folder):
+            return ""                                                   # several logs and no way to tell which boot: never guess
+        return battery(parse(path), t_end)
     except OSError:
         return ""
 
