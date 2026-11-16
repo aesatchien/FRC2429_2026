@@ -8,6 +8,26 @@ These apply to every folder in this repo and to everyone who commits here, with 
 assistant. They exist because features kept arriving as a new file, a new call in `robot_periodic`
 and a new protocol, written without reading the code that was already there.
 
+### 0. This is a mature code base. Read it before you write
+
+This code carries several seasons of the team's competition experience. Most of what looks odd,
+slow or missing is a deliberate choice, usually learned the hard way on a field, and the reason is
+normally in a comment right next to it: the rates in each `periodic()`, chooser publishers closed
+on disconnect, `textActivated` instead of `currentTextChanged`, prints that fire once instead of
+every loop.
+
+- **Read the code first, not just this file.** Before designing anything, search for how the repo
+  already does the same kind of thing and read that code end to end: the owner file from rule 1,
+  the nearest existing feature of the same shape, and BOTH ends if it crosses the robot/dashboard
+  boundary.
+- **Then copy the pattern you found.** A new mechanism is justified only when you can name the
+  existing one and say specifically why it cannot do the job.
+- **Assume your problem has been met before.** Stale values after a reboot, log disk, loop time, a
+  dashboard echoing its own value back: each is already handled somewhere here. Find where before
+  solving it again.
+- **Do not route around existing code, and do not "improve" it in passing.** If it looks wrong or
+  in the way, say what you found and ask.
+
 ### 1. Find the owner before you write a file
 
 Nearly everything already has a home. Extend it; do not build a second one next to it.
