@@ -152,6 +152,13 @@ def match_token(log_path):
 def find_hoots_for_log(log_path, search_root=None, depth=3):
     """Hoot files that belong to a robot log: found under the log's folder (or `search_root`) when the file or its
     folder name contains the log's event + match (CAEL_Q13).  One hoot per CAN bus, so there can be several."""
+    # A folder the robot made for one boot (comp_system_core/helpers/log_start.py: 2026-11-15_14-03-27/ holding the .hoot, the
+    # .wpilog and the console log) holds exactly one .wpilog: every .hoot in it, or in Phoenix's folder inside it, is that log's.
+    own = Path(log_path).parent
+    if own.is_dir() and len(list(own.glob("*.wpilog"))) == 1:
+        mine = sorted(str(p) for p in own.glob("*.hoot")) + sorted(str(p) for p in own.glob("*/*.hoot"))
+        if mine:
+            return mine
     tok = match_token(log_path)
     root = Path(search_root or Path(log_path).parent)
     if not tok or not root.is_dir():

@@ -88,6 +88,45 @@ _WARN = re.compile(r"\bWarning\b|overrun|Watchdog|not found|disconnect|dropped|\
 _SKIP = re.compile(r"Override me!|^\s+at |^\tat |^\s*$")      # the default-RobotPeriodic notice, native stack-trace lines, blanks
 
 
+BATTERY_LINE = re.compile(r"^BATTERY: ([A-Za-z0-9][A-Za-z0-9 _.-]{0,23})(?:\s{2,}\(was .*\))?\s*$")
+
+
+def battery(lines) -> str:
+    """The battery picked on the driver dashboard for this boot ('2026-C'), from the robot's 'BATTERY: <id>' lines
+    (comp_system_core/helpers/battery_id.py), or ''.  The last one counts: a wrong pick corrected before the match wins."""
+    found = ""
+    for ln in lines:
+        m = BATTERY_LINE.match(ln.text.strip())
+        if m:
+            found = m[1].strip()
+    return found
+
+
+def battery_for_log(log_path) -> str:
+    """battery() of the console log of THIS boot, or '' (no console log, no battery picked, or not sure the file is this boot's).
+
+    A battery is never taken from another boot: each boot's battery is picked on the dashboard for that boot alone.  So the console
+    file must be shown to be this log's: either its wall clock matches the log's (find_for_log), or the folder is the robot's
+    one-boot folder (comp_system_core/helpers/log_start.py: one .wpilog, its .hoot and its console log together)."""
+    try:
+        path = find_for_log(log_path)
+        if not path:
+            return ""
+        folder = os.path.dirname(os.path.abspath(log_path))
+        one_boot_folder = len(glob.glob(os.path.join(folder, "*.wpilog"))) == 1
+        if not one_boot_folder:
+            try:
+                import webcast
+                matched = webcast.log_epoch0(log_path) is not None      # find_for_log only accepts a file whose boot time matches
+            except Exception:  # noqa
+                matched = False
+            if not matched:
+                return ""                                               # several logs and no way to tell which boot: never guess
+        return battery(parse(path))
+    except OSError:
+        return ""
+
+
 def severity(text: str):
     """'bad', 'warn' or None.  Native multi-line messages: only their first line is judged (the indented 'at ...' lines are skipped)."""
     if _SKIP.search(text):

@@ -42,6 +42,7 @@ class Section:
     rows: list = field(default_factory=list)
     note: str = ""
     kpis: list = field(default_factory=list)       # (label, value text, sev): the headline numbers of the one-page image
+    stats: object = None                            # the section's measurements, when another tool keeps them (battery.BatteryStats)
 
     def add(self, sev, msg, t=None, event=False):
         self.items.append(Item(t, sev, msg, event))
@@ -343,6 +344,56 @@ def _health(tel, ml, win, rel, hoot=None):
     return s
 
 
+# ------------------------------------------------------------------------------------------ battery
+def _battery(tel, ml, win, rel, hoot=None, battery_id="", brownout_v=None):
+    """Battery performance (battery.py): to compare batteries between matches, with the numbers that say how hard the match was."""
+    import battery as B
+    st = B.analyze(tel, ml, hoot, battery_id, brownout_v or B.BROWNOUT_V)
+    s = Section(f"Battery {battery_id}" if battery_id else "Battery (which one was not recorded)")
+    sv = B.severity(st)
+    f = lambda x, fmt="{:.2f}": "--" if x is None else fmt.format(x)
+    if st.v_min is not None:
+        s.add(sv["v_min"], f"lowest {st.v_min:.2f} V (PDH, about 5 Hz)" +
+              (f"; the drive Krakens' input dipped to {st.v_min_fast:.2f} V (100 Hz)" if st.v_min_fast is not None else ""),
+              st.v_min_t)
+        s.add("info", "time below " + ", ".join(f"{k}: {v:.1f} s" for k, v in st.below.items()))
+    if st.v_at_ref is not None:
+        s.add(sv["v_at_ref"], f"{st.v_at_ref:.2f} V at {st.ref_a:g} A, from the fit V = {st.fit_v0:.2f} V - {st.fit_r_mohm:.1f} mOhm x I "
+                              f"over {st.fit_n} samples (takes out how hard this match pushed)")
+    if st.rest_drop is not None:
+        s.add(sv["rest_drop"], f"resting {st.v_rest_start:.2f} V before, {st.v_rest_end:.2f} V after ({st.rest_drop:+.2f} V drop)")
+    if st.i_peak is not None:
+        s.add("info", f"current peak {st.i_peak:.0f} A, RMS {f(st.i_rms, '{:.0f}')} A, average {f(st.i_mean, '{:.0f}')} A, "
+                      f"{f(st.ah, '{:.2f}')} Ah drawn: how hard the match was")
+    if st.r_step_mohm is not None:
+        s.add(sv["r_step"], f"internal resistance {st.r_step_mohm:.1f} mOhm (median of {st.r_step_n} current steps, middle half "
+                            f"{st.r_step_q[0]:.0f}-{st.r_step_q[1]:.0f} mOhm)")
+    else:
+        s.add("info", "internal resistance (step response) not measured: " + st.r_step_why)
+    for n in st.notes:
+        s.add("info", n)
+    if not battery_id:
+        s.add("warn", "pick the battery for this log (Battery selector) so it can be compared with the other matches on that battery")
+    s.columns = ["Measure", "Value"]
+    s.rows = [["Battery", battery_id or "?"], ["Lowest voltage", f(st.v_min) + " V"],
+              *[[f"Time below {k}", f"{v:.1f} s"] for k, v in st.below.items()],
+              [f"Voltage at {st.ref_a:g} A (fit)", f(st.v_at_ref) + " V"], ["Fit resistance", f(st.fit_r_mohm, "{:.1f}") + " mOhm"],
+              ["Step resistance", (f(st.r_step_mohm, "{:.1f}") + f" mOhm (n={st.r_step_n})") if st.r_step_mohm is not None else "--"],
+              ["Resting before / after", f"{f(st.v_rest_start)} / {f(st.v_rest_end)} V"],
+              ["Peak / RMS current", f"{f(st.i_peak, '{:.0f}')} / {f(st.i_rms, '{:.0f}')} A"]]
+    s.kpi("Battery", battery_id or "?", "warn" if not battery_id else "info")
+    if st.v_at_ref is not None:
+        s.kpi(f"V @ {st.ref_a:g} A", f"{st.v_at_ref:.1f} V", sv["v_at_ref"])
+    if st.r_step_mohm is not None:
+        s.kpi("Battery R", f"{st.r_step_mohm:.0f} mOhm", sv["r_step"])
+    s.note = (f"Step resistance includes the main breaker, the 6 AWG leads, the SB50 and the wiring to the drive Krakens: compare it between "
+              f"batteries on the same robot. A new battery alone is {B.R_NEW_BATTERY[0]}-{B.R_NEW_BATTERY[1]} mOhm and the whole path is "
+              f"often {B.R_ROBOT_PATH[0]}-{B.R_ROBOT_PATH[1]} mOhm; a battery several mOhm above the fleet median is wearing out, and every "
+              f"battery jumping at once points to a loose lug or a bad breaker. The battery report compares matches.")
+    s.stats = st
+    return s
+
+
 # ------------------------------------------------------------------------------------------ swerve
 def _can(tel, ml, win, rel):
     """CAN bus health from the robot's once-a-second readings (comp_system_core/helpers/can_monitor.py): how busy each bus
@@ -593,9 +644,10 @@ def _odometry(tel, ml, win, rel):
 
 
 # ------------------------------------------------------------------------------------------ cycles
-def _cycles(tel, ml, win, rel):
+def _cycles(tel, ml, win, rel, flux=None):
     s = Section("Cycles (shooting bursts from the alliance zone)")
-    sm = T.ShotModel(tel)
+    active, active_from = T.hub_windows(tel, ml, flux, not ml.is_blue)
+    sm = T.ShotModel(tel, active)
     if not sm.available:
         s.add("info", "shooter data (indexer_on / flywheel rpm) is not in this log")
         return s
@@ -670,6 +722,19 @@ def _cycles(tel, ml, win, rel):
         last = x
     for x, n in groups:
         s.add("info", f"fed {n} ball(s) from outside the alliance zone (a pass, cannot score)", x)
+    # balls fired while the hub is inactive: feeding (fuel put out for later), not shots
+    fgroups, last = [], -99.0
+    for x in sorted(sm.feeds):
+        if x - last > 2.5:
+            fgroups.append([x, 0])
+        fgroups[-1][1] += 1
+        last = x
+    for x, n in fgroups:
+        s.add("info", f"fed {n} ball(s) while the hub was inactive (feeding, not counted as shots)", x)
+    if active is None:
+        s.add("info", f"feeding is not told apart from shooting: {active_from}")
+    elif not active_from.startswith("fuel counter"):
+        s.add("info", f"hub shifts from the {active_from}")
     if cyc:
         s.kpi("First shot", f"{cyc[0]['a']:+.0f} s")
         s.kpi("Bursts / balls", f"{len(cyc)} / {sum(c['balls'] for c in cyc)}")
@@ -681,8 +746,81 @@ def _cycles(tel, ml, win, rel):
     n_pass = sum(n for _, n in groups)
     s.kpi("Passes (balls)", str(n_pass) if n_pass else "none")
     s.note = ("A burst is a run of flywheel-rpm dips while the indexer runs (balls fired), merged when less than 2.5 s apart. "
+              "Balls fired while 2429's hub is inactive are feeding and are not in the bursts. "
               "Cycle = start of this burst minus start of the previous one; collect = gap between the end of the previous "
               "burst and the start of this one.")
+    return s
+
+
+# ------------------------------------------------------------------------------------------ shooting accuracy
+def _shooting(tel, ml, win, rel, flux=None):
+    """2429's shots against the fuel it scored, per burst (telemetry.VideoShotModel): the alliance fuel counter's ticks after
+    each burst, shared among the alliance robots scoring then, at most what 2429 fired."""
+    s = Section("Shooting accuracy and score (fuel counter)")
+    active, active_from = T.hub_windows(tel, ml, flux, not ml.is_blue)
+    sm = T.ShotModel(tel, active)
+    if not sm.available:
+        s.add("info", "shooter data (indexer_on / flywheel rpm) is not in this log")
+        s.kpi("Est. score (2429)", "--")
+        return s
+    fired_all = sum(len(b["dips"]) for b in sm.bursts)
+    tele0 = rel(ml.teleop_start) if (ml.has_match and ml.teleop_start is not None) else 20.0
+    vm = T.VideoShotModel(tel, sm, flux, not ml.is_blue) if flux and ml.has_match else None
+    if vm is None or not vm.available:
+        why = ("this log is not a match" if not ml.has_match else
+               "the fuel counter could not be read from the match video" if flux else
+               "it needs the fuel counter from the match video (Scope2429: pick the match video before the report; "
+               "web: render the MP4 with the match video)")
+        # the score without the counter: the shots times assumed hit rates (ShotModel), a rough guess and labelled so
+        end = rel(win[1])
+        est, est_auto = sm.points(end), sm.points(tele0)
+        s.add("info", f"estimated score {est} fuel points ({est_auto} auto, {est - est_auto} teleop) from {fired_all} shots and "
+                      f"assumed hit rates ({T.ShotModel.AUTO_HIT:.0%} auto, {T.ShotModel.TELE_HIT:.0%} teleop): a guess, "
+                      f"not measured; {why}")
+        s.kpi("Est. score (2429)", f"{est} pts (assumed)")
+        s.kpi("Accuracy", "--")
+        s.kpi("Shots fired", str(fired_all))
+        s.kpi("Fed, hub inactive", str(len(sm.feeds)) if sm.feeds else "none")
+        if not active_from.startswith("fuel counter"):
+            s.add("info", f"hub shifts from the {active_from}")
+        s.note = ("Score = fuel points 2429 scored (1 per fuel in an active hub; tower points are not in the log). Accuracy = "
+                  "fuel scored / shots fired, from the broadcast's fuel counter; feeding is not counted as shots.")
+        return s
+    rows = vm.summary
+    fired = sum(r["fired"] for r in rows)
+    scored = sum(r["scored"] for r in rows)
+    scored_auto = sum(r["scored"] for r in rows if r["a"] < tele0)
+    alone = [r for r in rows if r["shooters"] == 1]
+    s.columns = ["#", "start", "shots", "counter ticks", "robots scoring", "2429 scored", "accuracy"]
+    for k, r in enumerate(rows):
+        s.rows.append([k + 1, f"{r['a']:+.1f} s", r["fired"], f"{r['counter']:.0f}", r["shooters"], f"{r['scored']:.1f}",
+                       f"{r['scored'] / r['fired']:.0%}" if r["fired"] else "--"])
+    assumed = vm.mode == "score"
+    s.add("info", f"estimated score {scored:.0f} fuel points ({scored_auto:.0f} auto, {scored - scored_auto:.0f} teleop)"
+                  + (" (assumed hit rates: playoff broadcasts show only the alliance score)" if assumed else ""))
+    s.kpi("Est. score (2429)", f"{scored:.0f} pts" + (" (assumed)" if assumed else ""))
+    if assumed:
+        s.add("info", "playoff broadcast: only the alliance score is shown, so 2429's points are bounded by assumed hit rates "
+                      f"({T.ShotModel.TELE_HIT:.0%} teleop, {T.ShotModel.AUTO_HIT:.0%} auto); the accuracy is not measured")
+        s.kpi("Accuracy (assumed)", f"{scored / fired:.0%}" if fired else "--")
+    elif fired:
+        s.add("info", f"2429 scored about {scored:.0f} of {fired} shots ({scored / fired:.0%}); {len(rows) - len(alone)} of "
+                      f"{len(rows)} bursts shared with partners scoring at the same time, {len(alone)} with 2429 alone")
+        s.kpi("Accuracy", f"{scored / fired:.0%}")
+        fa = sum(r["fired"] for r in alone)
+        s.kpi("Accuracy, 2429 alone", f"{sum(r['scored'] for r in alone) / fa:.0%} ({len(alone)} burst{'s' if len(alone) > 1 else ''})"
+              if fa else "no burst")
+    s.kpi("Shots fired", str(fired_all))
+    s.kpi("Fed, hub inactive", str(len(sm.feeds)) if sm.feeds else "none")
+    if not active_from.startswith("fuel counter"):
+        s.add("info", f"hub shifts from the {active_from}")
+    s.note = ("Est. score = fuel points 2429 scored, the sum of its share of each burst (1 point per fuel in an active hub; tower "
+              "points are not in the log). "
+              "Shots = flywheel-rpm dips while 2429 shoots from its alliance zone with its hub active (balls fired while the hub "
+              "is inactive are feeding, not shots). Counter ticks = the alliance fuel counter's rise in the window after each "
+              f"burst (the measured delay, {vm.lag:.1f} s). Robots scoring = at least 2 when the ticks exceed 2429's shots, 3 "
+              "when they exceed twice that (a partner scoring less than 2429 alongside it is not seen); 2429 scored = ticks / "
+              "robots scoring, at most its shots. Accuracy, 2429 alone = the bursts no partner scored in: the cleanest number.")
     return s
 
 
@@ -941,7 +1079,11 @@ def _correlate(rep, window=2.0):
 
 
 # ------------------------------------------------------------------------------------------ entry point
-def build_report(tel: "T.Telemetry", ml: "core.MatchLog", thr: dict | None = None, hoot=None) -> Report:
+def build_report(tel: "T.Telemetry", ml: "core.MatchLog", thr: dict | None = None, hoot=None, battery: str = "",
+                 brownout_v: float | None = None, flux: dict | None = None) -> Report:
+    """`battery` is the battery id picked for this log (e.g. 2026-C); `brownout_v` the robot's brownout level (roboRIO 2 default 6.75 V);
+    `flux` the broadcast fuel counter read from the match video (balls.measure, core.cached_flux): the hub shifts (so feeding is
+    told from shooting) and the fuel 2429 scored."""
     thr = {"rpm": 500.0, "speed": 0.3, "angle": 10.0, **(thr or {})}
     win = _window(ml)
     a0 = tel.a0
@@ -950,8 +1092,10 @@ def build_report(tel: "T.Telemetry", ml: "core.MatchLog", thr: dict | None = Non
     rep = Report(title, win)
     if hoot is not None:                      # the CTRE section goes after the swerve section
         pass
-    for fn in (lambda: _health(tel, ml, win, rel, hoot), lambda: _can(tel, ml, win, rel), lambda: _swerve(tel, ml, win, rel, thr),
-               lambda: _odometry(tel, ml, win, rel), lambda: _cycles(tel, ml, win, rel),
+    for fn in (lambda: _health(tel, ml, win, rel, hoot), lambda: _battery(tel, ml, win, rel, hoot, battery, brownout_v),
+               lambda: _can(tel, ml, win, rel), lambda: _swerve(tel, ml, win, rel, thr),
+               lambda: _odometry(tel, ml, win, rel), lambda: _cycles(tel, ml, win, rel, flux),
+               lambda: _shooting(tel, ml, win, rel, flux),
                *([lambda: _hoot_section(tel, ml, win, rel, hoot), lambda: _ff_section(tel, ml, win, rel, hoot)] if hoot is not None else []),
                lambda: _console(tel, ml, win, rel)):
         try:
@@ -963,3 +1107,8 @@ def build_report(tel: "T.Telemetry", ml: "core.MatchLog", thr: dict | None = Non
     except Exception:  # noqa
         pass
     return rep
+
+
+def battery_stats(rep: Report):
+    """The battery.BatteryStats the report measured (None if its section failed)."""
+    return next((s.stats for s in rep.sections if s.stats is not None and s.title.startswith("Battery")), None)

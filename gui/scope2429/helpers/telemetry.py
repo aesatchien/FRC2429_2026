@@ -540,13 +540,17 @@ class ShotModel:
     BUMPER_M = 0.5              # G407: a shot scores only while the bumpers are at least partly inside the zone, i.e. the
                                 # robot centre is within about this far of the zone line
 
-    def __init__(self, tel: Telemetry):
+    def __init__(self, tel: Telemetry, active: list | None = None):
+        """`active`: match-relative windows when 2429's hub is active (hub_windows); a ball that would reach the hub outside
+        them is feeding (fuel put out for later, on purpose), not a shot.  None: hub shifts unknown, every ball is a shot."""
         a0 = tel.a0
         ind, rpm, tgt, drive = (tel.by_key.get(k) for k in ("indexer_on", "shooter_rpm", "shooter_target", "drive"))
         self.times = np.zeros(0)
         self.weights = np.zeros(0)
         self.bursts = []        # counted indexer bursts: dict(a, b, dips=[match-rel dip times of shots from the alliance zone])
         self.passes = []        # match-rel times of balls fed from outside the alliance zone (G407: they cannot score)
+        self.feeds = []         # match-rel times of balls fired while the hub is inactive (feeding: not shots)
+        self.active = active
         self.blue = tel.ml.is_blue
         self.available = ind is not None and rpm is not None and len(rpm) > 2
         if not self.available:
@@ -573,6 +577,9 @@ class ShotModel:
                     if not self.in_zone(drive, a0 + tt[i]):
                         self.passes.append(float(tt[i]))
                         continue
+                    if active is not None and not any(x <= tt[i] + self.LAG <= y for x, y in active):
+                        self.feeds.append(float(tt[i]))
+                        continue
                     ev.append((tt[i] + self.LAG, w))
                     dips.append(float(tt[i]))
             if dips:
@@ -597,6 +604,10 @@ class ShotModel:
         """balls fed from outside the alliance zone so far (G407 passes, not scoring attempts)"""
         return int(np.searchsorted(np.sort(self.passes), t_rel, side="right"))
 
+    def fed(self, t_rel):
+        """balls fired into the inactive hub so far (feeding, not scoring attempts)"""
+        return int(np.searchsorted(np.sort(self.feeds), t_rel, side="right"))
+
     def points(self, t_rel):
         i = self.fired(t_rel)
         return int(round(self.weights[i - 1])) if i else 0
@@ -609,7 +620,7 @@ class ShotModel:
 def active_windows(ml: core.MatchLog, game_data: str, red: bool = True):
     """Match-relative windows during which the given alliance's hub is active, extended by the 3 s
     scoring grace period.  Auto, transition and endgame count for both; the four shifts alternate
-    ('R' = red won auto, so red's hub is inactive first)."""
+    ('R' = red's hub is inactive first).  Use hub_windows, which checks the letter against the fuel counter."""
     ts = (ml.teleop_start - ml.auto_start) if ml.teleop_start is not None else 23.2
     te = (ml.teleop_end - ml.auto_start) if ml.teleop_end is not None else ts + 140
     win = [(0.0, ts + 10.0 + 3.0), (te - 30.0, te + 3.0)]
@@ -624,6 +635,37 @@ def active_windows(ml: core.MatchLog, game_data: str, red: bool = True):
     return win
 
 
+def hub_windows(tel: Telemetry, ml: core.MatchLog, flux: dict | None = None, red: bool = True):
+    """(active windows of this alliance's hub, where they came from) for ShotModel; (None, why) when unknown.
+
+    The broadcast's fuel counter (flux, balls.py) is trusted first: it stays still through the alliance's two inactive shifts,
+    so the pair of shifts with (almost) no ticks is the inactive one.  The game data in the log is the fallback, and only
+    that: in the 2026 season logs (Daly, CASCMP, CAGLE) its letter disagreed with the counter in 7 of 12 matches (it agreed in
+    all 8 off-season CAEL logs)."""
+    if not ml.has_match or ml.teleop_start is None:
+        return None, "no match timing in the log"
+    ts = ml.teleop_start - ml.auto_start
+    us, them = ("R", "B") if red else ("B", "R")
+    ctr = flux.get("ctr") if flux else None
+    if ctr is not None and len(ctr) > 10 and float((ctr < 0).mean()) < 0.5:
+        F, t = scorebug.clean(ctr), flux["t"]
+
+        def ticks(a, b):
+            i0, i1 = min(np.searchsorted(t, a), len(F) - 1), min(np.searchsorted(t, b), len(F) - 1)
+            return float(F[i1] - F[i0])
+        # each shift without its first 3 s (the grace period still scores the shift before)
+        sh = [ticks(ts + 10 + 25 * k + 3, ts + 10 + 25 * (k + 1)) for k in range(4)]
+        odd, even = sh[0] + sh[2], sh[1] + sh[3]
+        if max(odd, even) >= 10 and min(odd, even) <= 0.25 * max(odd, even):     # a misread counter leaves a few ticks
+            first = us if odd < even else them          # whose hub is inactive in the first shift
+            return active_windows(ml, first, red), "fuel counter"
+    gd = tel.by_key.get("game_data")
+    g = [v for v in (gd.v if gd is not None else []) if v in ("R", "B")]
+    if g:
+        return active_windows(ml, g[-1], red), "game data (not checked against the counter)"
+    return None, "hub shifts unknown (no fuel counter, no game data)"
+
+
 class VideoShotModel:
     """2429's points, taken from the broadcast's official fuel counter only (scorebug.py, "71 / 240" in the corner box).
 
@@ -634,32 +676,42 @@ class VideoShotModel:
       1. one delay is measured from this match's data: log flywheel dip -> the counter ticking (correlation, 0.5 to 4 s).
       2. for each indexer burst, D = the counter ticks in the window that follows it (the burst start + delay to its end
          + delay, a little wider each side).
-      3. 2429 scored = D, capped at the shots 2429 fired in that burst (it cannot score more than it shot).
+      3. D is shared among the alliance robots scoring in that window: 2429 scored = D / n, capped at the shots 2429 fired
+         in that burst (it cannot score more than it shot).
+
+    n, the robots scoring, comes from `shooters(a, b)` when given (e.g. partners seen in their alliance zone in the video);
+    otherwise from the counter itself: D more than 2429 fired means someone else scored too (n >= 2), more than twice as
+    much, all three (n = 3).  That is a lower bound on n (a partner that scores less than 2429 hides inside D), so 2429's
+    share can still be high when a partner scored a little alongside it.  Before this split every burst a partner also
+    scored in counted as 100% (Daly Q13: 6 of 11 bursts), which pulled the match accuracy to about 100%.
 
     Ticks outside those windows (a partner shooting while 2429 is not, tower points) are not 2429's and are not counted.
-    Partners shooting in the same window ARE counted, since the video cannot tell the balls apart, so this is an upper bound.
+    Balls fired into the inactive hub are feeding (ShotModel.feeds), not shots, and are not in the bursts.
     Each burst's points are spread over the counter ticks inside its window, so the number moves with the broadcast.
     Not available (so the score is 0, never a guess) when the counter cannot be read.  Same interface as ShotModel."""
     WIN_PRE, WIN_POST = 0.4, 0.8      # counter window around the expected tick time of a burst (s)
     LAG_RANGE = (0.5, 4.0)            # s from a flywheel dip to the counter ticking that is searched
     DEFAULT_LAG = 1.5                 # used when there are too few dips or ticks to measure it
 
-    def __init__(self, tel: Telemetry, shots: ShotModel, flux: dict, red: bool = True):
+    def __init__(self, tel: Telemetry, shots: ShotModel, flux: dict, red: bool = True, shooters=None):
         self.available = False
+        self.shooters = shooters           # (a, b) -> robots of the alliance scoring in that match-rel window, or None
         self.times = np.zeros(0)
         self.weights = np.zeros(0)
         self.summary = []
         self.shots = shots
         self.lag = self.DEFAULT_LAG
-        self.mode = "none"                 # "counter" once the broadcast fuel counter was read
+        self.mode = "none"                 # "counter" once the broadcast fuel counter was read, "score" for a playoff corner score
         self.delays = None
+        self._tick_due = np.zeros(0)
         ctr = flux.get("ctr") if flux else None
         if ctr is None or len(ctr) < 10 or not len(shots.bursts):
             return
         F = scorebug.clean(ctr)
         if F[-1] < 5 or float((ctr < 0).mean()) >= 0.5:      # nothing scored yet, or it was unreadable for half the match
             return
-        self.available, self.mode = True, "counter"
+        self.available = True
+        self.mode = "score" if flux.get("plain") is not None and float(flux["plain"]) else "counter"
         self._init_counter(tel, shots, flux["t"], F)
 
     # -------------------------------------------------------------- helpers
@@ -716,6 +768,7 @@ class VideoShotModel:
         else:
             L = self.DEFAULT_LAG
         self.lag, self.delays = L, (L,)
+        self._tick_due = np.sort(dips + L) if len(dips) else np.zeros(0)
 
         # ---- per burst: the counter ticks in its window, no more than the shots fired
         ev_t, ev_w = [], []
@@ -723,9 +776,22 @@ class VideoShotModel:
             w0, w1 = b["a"] + L - self.WIN_PRE, b["b"] + L + self.WIN_POST
             D = tick(w0, w1)
             fired = len(b["dips"])
-            hits = float(min(D, fired))
+            n, src = None, "counter"
+            if self.shooters is not None:
+                n = self.shooters(b["a"], b["b"])
+                src = "given"
+            if n is None:
+                n, src = (1 if D <= fired else 2 if D <= 2 * fired else 3) if fired else 1, "counter"
+            n = int(min(3, max(1, n)))
+            hits = float(min(D / n, fired))
+            if self.mode == "score":
+                # the corner score is the whole alliance (partners, tower), so D is usually more than 2429's shots and the cap above
+                # would call every burst a 100% one.  The assumed hit rate bounds what 2429 can have scored; the score only lowers it.
+                rate = ShotModel.AUTO_HIT if (b["a"] + b["b"]) / 2 < 21.5 else ShotModel.TELE_HIT
+                hits = min(float(D), fired * rate)
             self.summary.append({"a": b["a"], "b": b["b"], "fired": fired, "odo_m": self._odo(tel, b["a"], b["b"]),
-                                 "q": hits / fired if fired else 0.0, "scored": hits, "counter": D})
+                                 "q": hits / fired if fired else 0.0, "scored": hits, "counter": D, "shooters": n,
+                                 "shooters_from": src})
             if D > 0 and hits > 0:
                 m = (t >= w0) & (t <= w1) & (inc > 0)
                 for i in np.nonzero(m)[0]:
@@ -738,10 +804,15 @@ class VideoShotModel:
     def fired(self, t_rel):
         return self.shots.fired(t_rel)
 
+    def fired_scored(self, t_rel):
+        """Shots as seen by the counter: a shot counts once its score tick is due (flywheel dip + the measured delay), so
+        points / shots does not sag while the ticks are still on their way."""
+        return int(np.searchsorted(self._tick_due, t_rel, side="right"))
+
     def points(self, t_rel):
         i = int(np.searchsorted(self.times, t_rel, side="right"))
         return int(round(self.weights[i - 1])) if i else 0
 
     def accuracy(self, t_rel):
-        k = self.fired(t_rel)
+        k = self.fired_scored(t_rel)
         return min(1.0, self.points(t_rel) / k) if k else None

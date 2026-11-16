@@ -2,7 +2,8 @@
 What the broadcast video tells us about scoring, measured in one pass over the match:
 
   * ctr      the alliance's fuel counter ("71 / 240" in the corner box, see scorebug.py): the official count of the
-             fuel the whole alliance has scored so far, and the only thing the points estimate is built on.
+             fuel the whole alliance has scored so far, and the only thing the points estimate is built on.  In playoff
+             broadcasts the corner box shows the alliance score alone ("125"); plain=1 marks that (it includes tower points).
 
 This module used to also count yellow fuel flying over the hub in the field camera and the hub close-up camera.  That
 depended on where the cameras were pointed, which changes from one event to the next, and it confused the estimate (2026dal
@@ -15,8 +16,21 @@ import numpy as np
 
 import scorebug
 
-VERSION = 3
+VERSION = 4
 OCR_EVERY = 2                                        # read the counter on every n-th frame (the others are only skipped)
+
+
+def _is_plain(cap, offset, t_from, t_to, left_is_red, n=10):
+    """Playoff broadcasts show only the alliance score in the corner box (no "N / tier"): True when a sample of frames
+    reads as that and never as the qualification counter."""
+    plain = fuel = 0
+    for k in range(n):
+        cap.set(cv2.CAP_PROP_POS_MSEC, (offset + t_from + (t_to - t_from) * (k + 0.5) / n) * 1000.0)
+        ok, f = cap.read()
+        if ok:
+            fuel += scorebug.read(f, "Red", left_is_red) is not None or scorebug.read(f, "Blue", left_is_red) is not None
+            plain += scorebug.read_plain(f, "Red", left_is_red) is not None or scorebug.read_plain(f, "Blue", left_is_red) is not None
+    return fuel == 0 and plain >= 2
 
 
 def measure(video, offset, alliance="Red", t_from=-3.0, t_to=168.0, cache_path=None, progress=None, compute=True,
@@ -34,7 +48,7 @@ def measure(video, offset, alliance="Red", t_from=-3.0, t_to=168.0, cache_path=N
         try:
             d = np.load(cache_path)
             if d["key"].shape == key.shape and np.allclose(d["key"], key):
-                return {k: d[k] for k in ("t", "ctr")}
+                return {k: d[k] for k in ("t", "ctr", "plain")}
         except Exception:
             pass
     if not compute:
@@ -43,6 +57,8 @@ def measure(video, offset, alliance="Red", t_from=-3.0, t_to=168.0, cache_path=N
     if not cap.isOpened():
         return None
     fps = cap.get(cv2.CAP_PROP_FPS) or 60.0
+    plain = _is_plain(cap, offset, t_from, t_to, left_is_red is not False)
+    reader = scorebug.read_plain if plain else scorebug.read
     cap.set(cv2.CAP_PROP_POS_MSEC, (offset + t_from) * 1000.0)
     n = int((t_to - t_from) * fps)
     ts, ctr = [], []
@@ -52,8 +68,8 @@ def measure(video, offset, alliance="Red", t_from=-3.0, t_to=168.0, cache_path=N
             ok, f = cap.read()
             if not ok:
                 break
-            r = scorebug.read(f, alliance, left_is_red is not False)
-            last = -1 if r is None else r[0]
+            r = reader(f, alliance, left_is_red is not False)
+            last = -1 if r is None else (r if plain else r[0])
         elif not cap.grab():                          # skipped frames are not decoded to an image, which is faster
             break
         ts.append(t_from + i / fps)
@@ -61,7 +77,7 @@ def measure(video, offset, alliance="Red", t_from=-3.0, t_to=168.0, cache_path=N
         if progress and i % 300 == 0:
             progress(i / n, "Reading the match video (fuel counter)…")
     cap.release()
-    out = {"t": np.array(ts), "ctr": np.array(ctr)}
+    out = {"t": np.array(ts), "ctr": np.array(ctr), "plain": np.array(float(plain))}
     if cache_path is not None:
         try:
             cache_path.parent.mkdir(parents=True, exist_ok=True)
