@@ -73,3 +73,20 @@ var/
 # Phoenix 6 sim scratch dir (recreated every sim run)
 ctre_sim/
 *.hoot
+
+# Python virtual environments (scope2429_web/.venv alone is ~180 MB)
+.venv/
+venv/
+
+# The web servers: kept out of git for now (gear and scout also have their own catch-all .gitignore)
+gui/scope2429_web/
+gui/gear2429_web/
+gui/scout2429_web/
+gui/portal2429_web/
+
+# Local-only notes (server addresses, paths): never public
+*.local.md
+
+# Temporary upload archives (scp / tar of the web apps for the server)
+*.tar
+*.tgz
