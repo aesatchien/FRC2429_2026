@@ -2,6 +2,112 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## House rules - read these before adding anything
+
+These apply to every folder in this repo and to everyone who commits here, with or without an AI
+assistant. They exist because features kept arriving as a new file, a new call in `robot_periodic`
+and a new protocol, written without reading the code that was already there.
+
+### 0. This is a mature code base. Read it before you write
+
+This code carries several seasons of the team's competition experience. Most of what looks odd,
+slow or missing is a deliberate choice, usually learned the hard way on a field, and the reason is
+normally in a comment right next to it: the rates in each `periodic()`, chooser publishers closed
+on disconnect, `textActivated` instead of `currentTextChanged`, prints that fire once instead of
+every loop.
+
+- **Read the code first, not just this file.** Before designing anything, search for how the repo
+  already does the same kind of thing and read that code end to end: the owner file from rule 1,
+  the nearest existing feature of the same shape, and BOTH ends if it crosses the robot/dashboard
+  boundary.
+- **Then copy the pattern you found.** A new mechanism is justified only when you can name the
+  existing one and say specifically why it cannot do the job.
+- **Assume your problem has been met before.** Stale values after a reboot, log disk, loop time, a
+  dashboard echoing its own value back: each is already handled somewhere here. Find where before
+  solving it again.
+- **Do not route around existing code, and do not "improve" it in passing.** If it looks wrong or
+  in the way, say what you found and ask.
+
+### 1. Find the owner before you write a file
+
+Nearly everything already has a home. Extend it; do not build a second one next to it.
+
+| What you are adding | Where it goes |
+|---|---|
+| Robot-wide state or health: power, battery, FMS, brownouts, "what is the robot doing" | `subsystems/robot_state.py` |
+| Something the drive team should SEE on the robot | an `Indicator` in `subsystems/led.py` |
+| A mechanism's sensors, motors, telemetry | that mechanism's subsystem, in its `periodic()` |
+| Per-motor amps / RPM | `helpers/utilities.py` `init_motor_monitors()` / `update_motor_monitors()` |
+| A value someone wants in the log | publish it to NT from its owner. `DataLogManager` already writes every NT value to the `.wpilog`; that IS the logging. |
+| A console message for a condition that can persist | `helpers/condition_log.py` (`ConditionLog`), never a print in a loop |
+| Starting / locating log files, the console file, CAN bus health | `helpers/log_start.py`, `helpers/console_log.py`, `helpers/can_monitor.py`. These three are the whole logging layer. Ask before adding a fourth. |
+| An NT topic name | built from the prefixes in `constants.py`, never a literal path in two files |
+| A number someone may want to change | `constants.py`, in the class of the subsystem that uses it |
+| A dashboard widget | an entry in `gui/config.py` `WIDGET_CONFIG` with an existing `update_style`. A new method in `dashboard_2026.py` is the last resort. |
+| Anything in `robot.py` | No. `robot.py` starts things. `robot_periodic` / `robotPeriodic` is closed: `tests/test_robot_periodic_is_closed.py` fails if something new is called from it. |
+
+If you cannot find the owner, ask the mentor who owns the repo before inventing one.
+
+### 2. The robot loop is a budget, not a free 50 Hz timer
+
+Every line in a `periodic()` runs 50 times a second, forever, next to the swerve.
+
+- Each block in a `periodic()` says how often it runs: `if self.counter % N == 0:` with the rate in
+  the comment. Nothing new runs every loop unless it is closing a control loop.
+- Pick the rate from who consumes the result. A person looking at a dashboard needs 2-10 Hz. A
+  thing that happens once per boot, or at the speed a human clicks, belongs in an existing 1-2 s
+  block.
+- Only do it when it can happen. A battery, an alliance color or an auto choice cannot change
+  while enabled, so those checks run only while disabled.
+- Reuse a block that already runs at the rate you need (the 2 s FMS block in `RobotState`, the
+  2 s and 10 s blocks in `disabled_periodic`) instead of adding a counter.
+- Every NT value costs log disk as well as CPU. Publish on change or throttled; print events
+  once, not states repeatedly.
+
+### 3. The robot and the dashboard already know how to talk
+
+There are three patterns. Use one of them; do not design a fourth.
+
+- **Status**: the robot publishes a topic, a `WIDGET_CONFIG` entry displays it (`indicator`,
+  `monitor`, `lcd`).
+- **Button**: a command published with `putData`; the dashboard writes `<Command>/running`
+  (`command_topic`).
+- **Chooser**: the robot publishes `options` (string array) and `active` (what it actually has),
+  and reads `selected`; the dashboard side is `update_style: 'combo'`. The robot is the source of
+  truth and the dashboard shows `active`. The dashboard closes its `selected` publishers when the
+  link drops, so a restarted robot is never handed a stale choice. That problem is solved; do not
+  solve it again with ids, tokens or composite strings.
+
+The lists (auto routines, batteries) live on the robot, in `constants.py`. The dashboard has no
+copy.
+
+### 4. Small, single-purpose changes
+
+- One feature per commit and per PR. A battery picker, a log-folder change and an analysis tool
+  are three PRs.
+- Count before you write. A dashboard-to-robot setting should cost about 20 robot lines and one
+  config entry. If the plan needs a new module, a new call in `robot.py` and 100+ dashboard lines,
+  the plan missed something that already exists; go back to rule 1.
+- Do not add configurability, validation layers, fallbacks or protocols for cases nobody has
+  seen. Do not rewrite code you were not asked to touch.
+- Worked example, the battery picker (2026-11): the first version was a new `helpers/battery_id.py`
+  polled every loop from `robot_periodic`, a random boot id with a `"<battery>@<boot id>"` wire
+  format over three new topics, and 144 lines of hand-built Qt with its own timer and popup. What
+  is in the repo is one `_check_battery()` in `RobotState` on its existing 2 s block, disabled
+  only, three chooser-shaped topics, one `WIDGET_CONFIG` entry and a status-bar combo box.
+
+### 5. You are the author of what you submit
+
+An AI assistant may write the code. The person opening the PR must have read every line of the
+diff, be able to say why each new file and each new periodic call is needed, and have run it. The
+PR template asks for exactly that. A PR whose author cannot answer those questions gets closed,
+not reviewed.
+
+If you are the AI assistant: before writing, read the owner file from rule 1 and the nearest
+existing example of the same pattern, and say in your summary which existing code you reused and
+what now runs per loop and at what rate. If the request cannot be met without breaking a rule
+above, stop and say so instead of working around it.
+
 ## Repo layout
 
 This is a monorepo of **independent FRC robot projects** (team 2429), each a self-contained
@@ -113,6 +219,10 @@ near-identical, differing mainly in the a6→a7 API surface — see below):
     TalonFX) without the rest of the code knowing which. `subsystems/swerve_constants.py`'s
     `ACTIVE_CONFIG` (selected by `constants.k_swerve_config`, e.g. `"comp"` vs
     `"comp_vortex"`) picks the vendor/gearing/CAN-ID set per robot build.
+- **Battery picker**: `RobotState` publishes `<status_prefix>/battery/options` and `/active` and reads
+  `/selected` (the chooser pattern), checked every 2 s while disabled. `active` is `?` on every boot
+  until someone picks one in the dashboard's status bar. A pick prints `BATTERY: <id>`, the line Scope2429's
+  battery report looks for in the console log; the list is `RobotStateConstants.k_batteries`.
 - **QuestNav** (headset-based odometry) is also split up:
   - `subsystems/quest.py` — robot-side subsystem: sync/resync state machine, strict pose
     acceptance criteria, lost-stream recovery (soft resync), dashboard publishing.

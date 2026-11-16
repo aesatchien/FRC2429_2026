@@ -259,6 +259,14 @@ class Ui(QtWidgets.QMainWindow):
         self.qlabel_quest.raise_()
         self.qlabel_robot.raise_()
 
+        # Battery picker, in the status bar.  Only the widget is made here: its topics are the
+        # 'qcombobox_battery' entry in config.py and the 'combo' updater does the rest.
+        self.qcombobox_battery = QtWidgets.QComboBox()
+        self.qcombobox_battery.setMinimumWidth(90)
+        self.qcombobox_battery.setToolTip("Which battery is in the robot.  Red until one is picked for this boot.")
+        self.statusBar().addPermanentWidget(QtWidgets.QLabel("Battery"))
+        self.statusBar().addPermanentWidget(self.qcombobox_battery)
+
         # Build the runtime dictionaries from the static config
         self.widget_dict = self.build_widget_dict()
         self.camera_dict = self.build_camera_dict()
@@ -293,6 +301,7 @@ class Ui(QtWidgets.QMainWindow):
         # robot will fire the signal, causing the GUI to instantly write its own value back to the robot, 
         # overwriting the robot's intended state and creating a race condition/feedback loop.
         self.qcombobox_autonomous_routines.textActivated.connect(self.update_routines)
+        self.qcombobox_battery.textActivated.connect(lambda text: self.combo_picked('qcombobox_battery', text))
         self.qt_text_entry_filter.installEventFilter(self)
         self.qt_text_new_value.installEventFilter(self)
 
@@ -431,12 +440,18 @@ class Ui(QtWidgets.QMainWindow):
         return camera_dict
 
     def update_routines(self, text):
-        props = self.widget_dict['qcombobox_autonomous_routines']
+        self.combo_picked('qcombobox_autonomous_routines', text)
+
+    def combo_picked(self, key, text):
+        """A person picked `text` in the 'combo' widget `key`: send it to the robot."""
+        props = self.widget_dict[key]
         # 2026 SendableChooser reads 'selected'; 2027a7 Selectable reads 'selected/tune'.  We don't know which
         # robot is on the other end, so write both - the one it doesn't read is just an unused topic.
         for pub in (props.get('selected_publisher'), props.get('selected_tune_publisher')):
             if pub:
                 pub.set(text)
+        # keep showing the pick until the robot echoes it (ui_updater._update_combo), instead of snapping back
+        props['pending'] = (text, time.time())
         self.ntinst.flush()
 
     def update_auto_delay(self, text):
