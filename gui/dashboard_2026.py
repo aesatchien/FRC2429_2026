@@ -276,6 +276,7 @@ class Ui(QtWidgets.QMainWindow):
 
         self.initialize_widgets()
         self.initialize_apriltags()
+        self.build_battery_selector()
 
         # Connections for the NT Tree are now managed by the NTTreeManager
         self.qaction_show_hide.triggered.connect(self.nt_tree_manager.toggle_network_tables)
@@ -438,6 +439,149 @@ class Ui(QtWidgets.QMainWindow):
             if pub:
                 pub.set(text)
         self.ntinst.flush()
+
+    # ------------------------------------------------------------------ battery
+    BATTERY_TOPIC = "/SmartDashboard/Battery/selected"   # read by comp_system_core/helpers/battery_id.py: "<battery>@<boot id>"
+    BOOT_TOPIC = "/SmartDashboard/Battery/boot"          # the robot's id for its current boot, new every time it starts
+    CONFIRM_TOPIC = "/SmartDashboard/Battery/in_robot"   # what the robot has written to its console log this boot
+    BATTERIES = [f"2026-{c}" for c in "ABCDEFG"]
+
+    def build_battery_selector(self):
+        """Battery picker in the status bar: one of 2026-A..G, or a typed id.  The robot logs it as 'BATTERY: <id>' in the console
+        log of that boot, where Scope2429 reads it.  A choice is sent for ONE boot ("2026-C@<boot id>"): when the robot restarts, its
+        boot id changes, the box clears, and the old choice is ignored by the robot, so every boot needs its battery picked again."""
+        bar = self.statusBar()
+        bar.addPermanentWidget(QtWidgets.QLabel(" Battery:"))
+        cb = QtWidgets.QComboBox()
+        cb.setEditable(True)
+        cb.setInsertPolicy(QtWidgets.QComboBox.InsertPolicy.NoInsert)
+        cb.addItems(self.BATTERIES)
+        cb.setCurrentIndex(-1)
+        cb.lineEdit().setPlaceholderText("pick or type")
+        cb.lineEdit().setMaxLength(24)
+        cb.setMinimumWidth(110)
+        cb.setToolTip("Which battery is in the robot.  Pick one, or type an id and press Enter.  It is saved in the robot's console log.")
+        font = cb.font(); font.setPointSize(11); font.setBold(True); cb.setFont(font)
+        # textActivated, not currentTextChanged: only a person's choice is sent (see the auto routines box above)
+        cb.textActivated.connect(self.publish_battery)
+        cb.lineEdit().returnPressed.connect(lambda: self.publish_battery(cb.currentText()))
+        bar.addPermanentWidget(cb)
+        self.battery_status = QtWidgets.QLabel("")
+        bar.addPermanentWidget(self.battery_status)
+        self.qcombobox_battery = cb
+        self.battery_pub = self.ntinst.getStringTopic(self.BATTERY_TOPIC).publish()
+        self.battery_confirm_sub = self.ntinst.getStringTopic(self.CONFIRM_TOPIC).subscribe("")
+        self.battery_boot_sub = self.ntinst.getStringTopic(self.BOOT_TOPIC).subscribe("")
+        self._battery_boot = ""                          # the boot the box's choice was made for
+        self.battery_dialog = None                       # the reminder, shown once per robot boot
+        self._battery_was_connected = False
+        self._battery_error_until = 0.0
+        self.battery_timer = QTimer(self)
+        self.battery_timer.timeout.connect(self.update_battery_status)
+        self.battery_timer.start(500)
+        self.update_battery_status()
+
+    def show_battery_reminder(self):
+        """A non-blocking window asking which battery is in the robot: a button per team battery, a box for any other id, and Later.
+        The rest of the dashboard keeps running behind it."""
+        if self.battery_dialog is not None:
+            self.battery_dialog.close()
+        dlg = QtWidgets.QDialog(self)
+        dlg.setWindowTitle("Battery")
+        dlg.setModal(False)
+        dlg.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        lay = QtWidgets.QVBoxLayout(dlg)
+        head = QtWidgets.QLabel("Which battery is in the robot?")
+        f = head.font(); f.setPointSize(14); f.setBold(True); head.setFont(f)
+        lay.addWidget(head)
+        lay.addWidget(QtWidgets.QLabel("The robot just started.  Pick its battery so this boot's logs say which one it was."))
+        grid = QtWidgets.QGridLayout()
+        for i, bid in enumerate(self.BATTERIES):
+            b = QtWidgets.QPushButton(bid)
+            b.setMinimumHeight(44)
+            bf = b.font(); bf.setPointSize(12); bf.setBold(True); b.setFont(bf)
+            b.clicked.connect(lambda _=False, bid=bid: self._battery_from_dialog(bid))
+            grid.addWidget(b, i // 4, i % 4)
+        lay.addLayout(grid)
+        row = QtWidgets.QHBoxLayout()
+        other = QtWidgets.QLineEdit()
+        other.setPlaceholderText("another battery id")
+        other.setMaxLength(24)
+        other.returnPressed.connect(lambda: self._battery_from_dialog(other.text()))
+        ok = QtWidgets.QPushButton("Use this")
+        ok.clicked.connect(lambda: self._battery_from_dialog(other.text()))
+        row.addWidget(other, 1)
+        row.addWidget(ok)
+        lay.addLayout(row)
+        later = QtWidgets.QPushButton("Later  (the status bar at the bottom stays red until it is picked)")
+        later.clicked.connect(dlg.close)
+        lay.addWidget(later)
+        self.battery_dialog = dlg
+        dlg.destroyed.connect(lambda *_: setattr(self, "battery_dialog", None))
+        dlg.show()
+        dlg.raise_()
+        dlg.activateWindow()
+
+    def _battery_from_dialog(self, text):
+        self.publish_battery(text)
+        if self.battery_dialog is not None and self.qcombobox_battery.currentText().strip().upper() == (text or "").strip().upper() \
+                and (text or "").strip():
+            self.battery_dialog.close()
+
+    def publish_battery(self, text):
+        bid = (text or "").strip().upper()
+        if not bid or len(bid) > 24 or not all(ch.isalnum() or ch in " _.-" for ch in bid) or not bid[0].isalnum():
+            self.battery_status.setText("  letters, digits, - _ . only")
+            self.battery_status.setStyleSheet("color: #c0392b; font-weight: bold;")
+            self._battery_error_until = time.time() + 3.0      # long enough to read before the status replaces it
+            return
+        boot = self.battery_boot_sub.get("") if self.ntinst.isConnected() else ""
+        if not boot:
+            self.battery_status.setText("  connect to the robot first")
+            self.battery_status.setStyleSheet("color: #c0392b; font-weight: bold;")
+            self._battery_error_until = time.time() + 3.0
+            return
+        self.qcombobox_battery.setCurrentText(bid)
+        self._battery_boot = boot
+        self.battery_pub.set(f"{bid}@{boot}")          # for this boot only
+        self.ntinst.flush()
+        print(f"[{time.strftime('%H:%M:%S')}] battery sent to the robot: {bid} (boot {boot})")
+        self.update_battery_status()
+
+    def update_battery_status(self):
+        """Shows whether the robot has logged the battery picked here.  When the robot restarts, clears the choice: every boot is '?'
+        until its battery is picked."""
+        connected = self.ntinst.isConnected()
+        boot = self.battery_boot_sub.get("") if connected else ""
+        # A restarted robot has a new boot id (even after a quick code restart): the box's choice was for the old boot, so it is
+        # cleared and must be picked again.  A Wi-Fi blip keeps the boot id, and with it the choice.
+        if connected and boot and boot != self._battery_boot:
+            self.battery_pub.set("")
+            self.qcombobox_battery.setCurrentIndex(-1)
+            self.qcombobox_battery.setEditText("")
+            self._battery_boot = boot
+            if not self.battery_confirm_sub.get(""):     # a new boot with no battery: remind the driver, once for this boot
+                self.show_battery_reminder()
+        if self.battery_dialog is not None and self.battery_dialog.isVisible() and (
+                not connected or self.battery_confirm_sub.get("")):
+            self.battery_dialog.close()                  # picked (here or in the status bar), or the robot went away
+        self._battery_was_connected = connected
+        if time.time() < self._battery_error_until:
+            return
+        picked = self.qcombobox_battery.currentText().strip().upper()
+        logged = self.battery_confirm_sub.get("") if connected else ""
+        if not connected:
+            text, color = "  robot not connected", "#888888"
+        elif not picked and not logged:
+            text, color = "  ? not picked for this boot", "#c0392b"
+        elif logged and logged == picked:
+            text, color = f"  ✓ logged by the robot", "#1a7f37"
+        elif logged:
+            text, color = f"  robot has {logged}", "#b35900"
+        else:
+            text, color = "  waiting for the robot…", "#b35900"
+        self.battery_status.setText(text)
+        self.battery_status.setStyleSheet(f"color: {color}; font-weight: bold;")
 
     def update_auto_delay(self, text):
         """Publishes the selected auto delay value to NetworkTables."""

@@ -14,6 +14,7 @@ from wpimath.units import inches_to_meters
 from helpers import dashboard, log_command
 from helpers.can_monitor import CanMonitor
 from helpers import console_log
+from helpers.battery_id import BatteryId
 from helpers.log_start import DeferredLogStart
 from robotcontainer import RobotContainer
 from subsystems.led import Led  # allows indexing of LED colors
@@ -61,6 +62,7 @@ class MyRobot(commands2.TimedCommandRobot):
         super().__init__()
         # First, so its clock starts at boot: the datalog waits for the USB stick (see helpers/log_start.py)
         self.log_start = DeferredLogStart()
+        self.battery_id = BatteryId()   # the battery picked on the dashboard, written to the console log (helpers/battery_id.py)
         self.can_monitor = CanMonitor() if constants.k_monitor_can else None
         # Instantiate our RobotContainer.  This will perform all our button bindings, and put our
         # autonomous chooser on the dashboard.
@@ -270,6 +272,7 @@ class MyRobot(commands2.TimedCommandRobot):
 
         # starts the .wpilog / DS / .hoot logs once the USB stick is mounted; no-op after that
         self.log_start.poll()
+        self.battery_id.poll()
 
         # CAN bus utilization and error counters, once a second (helpers/can_monitor.py)
         if self.can_monitor is not None:
