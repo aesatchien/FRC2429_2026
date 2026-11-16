@@ -111,6 +111,7 @@ class UIUpdater:
                     # 2. Reset the internal state caches to prevent stale comparisons on reconnect.
                     props['last_value'] = []
                     props['last_selected_value'] = ""
+                    props['pending'] = None
 
                     # 3. CRITICAL: Close the publisher to erase its cached value from the NT4 client's memory.
                     # This is the key step that prevents the GUI from forcing its old selection on a newly rebooted robot.
@@ -124,9 +125,11 @@ class UIUpdater:
             print(f"[{time.strftime('%H:%M:%S')}] Network reconnected. Re-creating chooser publisher to allow user input.")
             # 4. Re-create the publisher on reconnect so the user can make selections again.
             # The GUI now has no cached value to send and will wait for the robot's broadcast.
-            props = self.ui.widget_dict.get('qcombobox_autonomous_routines')
-            if props and props.get('selected_topic'):
-                props['selected_publisher'] = self.ui.ntinst.getStringTopic(props['selected_topic']).publish()
+            for props in self.ui.widget_dict.values():  # every chooser, not only the auto routines
+                if props.get('update_style') != 'combo':
+                    continue
+                if props.get('selected_topic'):
+                    props['selected_publisher'] = self.ui.ntinst.getStringTopic(props['selected_topic']).publish()
                 if props.get('selected_tune_topic'):
                     props['selected_tune_publisher'] = self.ui.ntinst.getStringTopic(props['selected_tune_topic']).publish()
 
@@ -449,8 +452,11 @@ class UIUpdater:
             props['last_value'] = value
             widget.set_value(value)
 
+    COMBO_PICK_HOLD_S = 4.0  # how long a person's pick stays on screen waiting for the robot to echo it
+    STYLE_COMBO_UNSET = "background-color: rgb(192, 57, 43); color: white; font-weight: bold;"
+
     def _update_combo(self, props):
-        """ At the moment this is just for the autonomous routines combo box but it could be for any dropdown """
+        """ Any chooser the robot publishes as options / active / selected: the autonomous routines, the battery """
         sub, widget = props.get('subscriber'), props.get('widget')
         # print(f'found combo on {props.get("widget_name")} at {self.ui.counter} with sub {sub} and widget {widget}')
         # there is a problem with using shortcut checks for validity - the combobox is not True if it is empty (len 0)
@@ -471,7 +477,8 @@ class UIUpdater:
             if current_text in new_list:
                 widget.setCurrentText(current_text)
             widget.blockSignals(False)
-            self.ui.autonomous_list = new_list
+            if props.get('widget_name') == 'qcombobox_autonomous_routines':
+                self.ui.autonomous_list = new_list
 
         # SendableChooser publishes actual state to 'active', and reads requests from 'selected'
         active_sub = props.get('active_subscriber')
@@ -483,6 +490,21 @@ class UIUpdater:
         if not robot_routine:
             value_sub, default_sub = props.get('selected_value_subscriber'), props.get('default_subscriber')
             robot_routine = (value_sub.get() if value_sub else "") or (default_sub.get() if default_sub else "")
+
+        # red while the robot still reports "nobody has chosen" (config: unset_value)
+        if 'unset_value' in props:
+            style = self.STYLE_COMBO_UNSET if robot_routine == props['unset_value'] else ""
+            if style != props.get('last_style'):
+                props['last_style'] = style
+                widget.setStyleSheet(style)
+
+        # A pick the robot has not echoed yet stays on screen; the robot may only look every couple of seconds.
+        pending = props.get('pending')
+        if pending:
+            if robot_routine != pending[0] and time.time() - pending[1] < self.COMBO_PICK_HOLD_S:
+                return
+            props['pending'] = None
+
         if robot_routine:
             if list_changed or robot_routine != widget.currentText():
                 widget.blockSignals(True)

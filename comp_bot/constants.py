@@ -194,6 +194,9 @@ class RobotStateConstants:
 
     k_counter_offset = next(_counter)
     k_nt_debugging = False  # print extra values to NT for debugging
+    # The batteries a driver can pick on the dashboard.  RobotState publishes this list and the dashboard shows
+    # whatever the robot publishes, so this is the ONLY place a battery is added or renamed.
+    k_batteries = ['2026-A', '2026-B', '2026-C', '2026-D', '2026-E', '2026-F', '2026-G']
 
 class DrivetrainConstants:
 

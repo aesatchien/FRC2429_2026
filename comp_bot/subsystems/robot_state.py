@@ -30,9 +30,12 @@ class RobotState(commands2.Subsystem):
         CLIMBING = {'name': 'climbing', 'lit_leds': -3 + 3 * LedConstants.k_led_count // 8, 'mode': 'none'}
         NONE = {'name': 'NONE', 'lit_leds': LedConstants.k_led_count, 'mode': 'none'}
 
+    k_no_battery = '?'  # what every boot starts with, until someone picks a battery on the dashboard
+
     def __init__(self):
         super().__init__()
         self.setName('RobotState')
+        self.battery = self.k_no_battery
         # try to start all the subsystems on a different count so they don't all do the periodic updates at the same time
         self.counter = constants.RobotStateConstants.k_counter_offset
 
@@ -81,6 +84,14 @@ class RobotState(commands2.Subsystem):
         self.pdh_min_voltage_pub = self.inst.getDoubleTopic(f"{constants.status_prefix}/_pdh_min_voltage").publish()
         self.pdh_max_current_pub = self.inst.getDoubleTopic(f"{constants.status_prefix}/_pdh_max_current").publish()
         self.rio_browned_out_pub = self.inst.getBooleanTopic(f"{constants.status_prefix}/_rio_browned_out").publish()
+        # Battery picker: the same three topics a SendableChooser has (options / active / selected), so the
+        # dashboard's ordinary 'combo' widget drives it with no code of its own.  See _check_battery().
+        battery = f"{constants.status_prefix}/battery"
+        self.battery_options_pub = self.inst.getStringArrayTopic(f"{battery}/options").publish()
+        self.battery_options_pub.set([self.k_no_battery] + constants.RobotStateConstants.k_batteries)
+        self.battery_active_pub = self.inst.getStringTopic(f"{battery}/active").publish()
+        self.battery_active_pub.set(self.k_no_battery)
+        self.battery_selected_sub = self.inst.getStringTopic(f"{battery}/selected").subscribe("")
 
     # put in a callback so the logic to LED is not circular
     def register_callback(self, callback):
@@ -152,3 +163,24 @@ class RobotState(commands2.Subsystem):
                 self.fms_pub.set(False)
 
             self._last_fms = fms
+
+            # same 2 s tick: a battery only changes with the robot off, so nobody picks one while enabled
+            if DriverStation.isDisabled():
+                self._check_battery()
+
+    def _check_battery(self):
+        """Take the battery picked on the dashboard, and say so once.
+
+        Every boot starts at '?': a reboot is usually a battery swap, so the last boot's battery is never
+        carried over.  Nothing here has to enforce that - the dashboard already closes its chooser
+        publishers when the link drops (gui/ui_updater.py), so it has no old pick to re-send to a robot
+        that restarted.
+
+        'active' is an NT value, so the pick is in the .wpilog with no logging code.  The printed line is
+        the same one comp_system_core prints, where it lands in the console log for Scope2429's battery
+        report - keep the 'BATTERY: <id>' format."""
+        picked = self.battery_selected_sub.get()
+        if picked != self.battery and picked in constants.RobotStateConstants.k_batteries:
+            was, self.battery = self.battery, picked
+            self.battery_active_pub.set(picked)
+            print(f'BATTERY: {picked}' + (f'   (was {was})' if was != self.k_no_battery else ''))

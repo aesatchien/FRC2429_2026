@@ -36,6 +36,9 @@ Each widget property dictionary can contain the following keys:
     - 'pose': For updating the robot's position on the field view.
     - 'position': For displaying the robot's arm/mechanism configuration.
 
+- unset_value (str, optional): For a 'combo' widget, the value the robot reports while nobody has
+  chosen yet (e.g. '?').  The box is drawn red while the robot reports it.
+
 - style_on (str, optional): A custom CSS string for an 'indicator' widget when its
   state is ON (True). If not provided, a default green style is used.
 
@@ -147,6 +150,12 @@ WIDGET_CONFIG = {
                                       'selected_value_topic': rf'{base_prefix}/autonomous routines/selected/value',
                                       'default_topic': rf'{base_prefix}/autonomous routines/default',
                                       'update_style': 'combo'},
+    # Which battery is in the robot.  The robot's RobotState publishes the list and what it has; '?' until someone picks.
+    # The box is made in dashboard_2026.py (status bar), everything else is the ordinary 'combo' updater.
+    'qcombobox_battery': {'widget_name': 'qcombobox_battery', 'nt_topic': f'{status_prefix}/battery/options',
+                          'active_topic': f'{status_prefix}/battery/active',
+                          'selected_topic': f'{status_prefix}/battery/selected',
+                          'unset_value': '?', 'update_style': 'combo'},
     'qcombobox_auto_delay': {'widget_name': 'qcombobox_auto_delay', 'nt_topic': f'{auto_prefix}/auto_delay', 'update_style': 'numeric_combo'},
     'qlabel_nt_connected': {'widget_name': 'qlabel_nt_connected', 'update_style': 'connection'},
     'qlabel_fms_connected': {'widget_name': 'qlabel_fms_connected_indicator', 'nt_topic': f'{status_prefix}/_fms_attached', 'update_style': 'indicator'},
