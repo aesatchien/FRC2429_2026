@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+**The House rules in [`../../CLAUDE.md`](../../CLAUDE.md) apply here too, and to anything this tool needs the robot or the dashboard to do: read them first. If Scope2429 needs a new value from the robot, it is published by the subsystem that owns it, at a stated rate, in its own PR.**
+
 ## What this is
 
 The folder holds one Python tool, **Scope2429**, written for the 2026 season (REBUILT) and kept in the 2429 robot repo (`FRC2429_2026`) as `gui/scope2429/`, so it uses only libraries that repo's GUI already needs (numpy, opencv, pyntcore) plus Tkinter; `yt-dlp` and `imageio-ffmpeg` are optional and imported lazily. Season-specific things (field, dashboard replica, topic names, scoring model) are 2026's; the next season starts from a copy. The robot `.wpilog` match logs it was developed on (`WPILIB_<date>_<time>_<event>_<P|Q|E><n>.wpilog`, event `CAEL`, 2026) are not kept in the repo (`.gitignore`). Scope2429 (was LogScope, earlier `match_video/`) LogScope shows the team's dashboard layout (field, indicators, telemetry panels) from a `.wpilog` or from a live NetworkTables 4 connection (roboRIO `10.24.29.2`, a simulator, any address). The top-right slot is the YouTube match video, or scrolling trend plots when there is no video. It can render an MP4. A log without a match (shop practice) or without a video is fine: FMS-only info shows defaults. It is part of the `FRC2429_2026` git repo (the root `.gitignore` already ignores `*.wpilog` and `*.hoot`), and the repo-wide CI lint covers it, but it has no test suite or build step of its own. See [README.md](README.md) for the user-facing workflow.
