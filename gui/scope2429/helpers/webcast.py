@@ -431,16 +431,27 @@ def clock_starts(video, ml=None, lo=0.0, hi=1e9, progress=None):
     """Every moment in [lo, hi] of the video at which the broadcast's match clock starts counting (0:20 -> 0:19), found from
     the picture alone, and for a qualification only those with 2429 on the scoreboard.  Fast: only the key frames (one per 5 s)
     are decoded to find where the clock stands at 0:20 before a match; the exact start is then found frame by frame.  Returns
-    start times, no particular order."""
+    start times, no particular order; none when the key-frame pass takes longer than KEYFRAME_TIMEOUT_S."""
     import cv2
     import numpy as np
     t2, t1, o0, o9 = _clock_glyphs()
     x0, y0, x1, y1 = CLOCK_MIN[0], CLOCK_MIN[1], CLOCK_ONES[2], CLOCK_ONES[3]
     w, h = x1 - x0, y1 - y0
-    args = [core.ffmpeg_exe(), "-hide_banner", "-nostats", "-skip_frame", "nokey", "-i", str(video), "-vf",
+    # A range is given to ffmpeg as an input seek and a duration, as in `_starts_by_nineteen`: it then counts time from the seek
+    # point, so `ss` is added back.  Every caller today asks for the whole video, and for those the command is what it always was.
+    ss = max(0.0, float(lo))
+    seek = (["-ss", f"{ss:.3f}"] if ss > 0 else []) + (["-t", f"{max(0.0, hi - ss):.3f}"] if hi < 1e8 else [])
+    args = [core.ffmpeg_exe(), "-hide_banner", "-nostats", "-skip_frame", "nokey", *seek, "-i", str(video), "-vf",
             f"crop={w}:{h}:{x0}:{y0},showinfo", "-vsync", "0", "-f", "rawvideo", "-pix_fmt", "gray", "-"]
-    r = subprocess.run(args, capture_output=True, creationflags=core.NO_WINDOW)
-    times = [float(m) for m in re.findall(rb"pts_time:([\d.]+)", r.stderr)]
+    try:
+        r = subprocess.run(args, capture_output=True, creationflags=core.NO_WINDOW, timeout=KEYFRAME_TIMEOUT_S)
+    except subprocess.TimeoutExpired:
+        # An ffmpeg that hangs (a damaged download, a file on a drive that went away) used to hang the worker for good, and with it
+        # the batch.  It is reported as "no clock found", which every caller already has an answer for: calibrate and clip_match go
+        # on to `_visual_starts_near` and then the sound, sync_video keeps the sound and the arrows.  Not handed to
+        # `_starts_by_nineteen`: that decodes every frame of the same file, so it would only wait out a second, longer timeout.
+        return []
+    times = [ss + float(m) for m in re.findall(rb"pts_time:([\d.]+)", r.stderr)]
     n = min(len(times), len(r.stdout) // (w * h))
     if n == 0:
         return _starts_by_nineteen(video, ml, lo, hi)
@@ -488,6 +499,7 @@ NINETEEN_TOL_S = 2.5
 NINE_MIN = 0.93
 NINETEEN_MAX_S = 1800.0   # the most video `_starts_by_nineteen` decodes (every frame, so slow): more than the longest clip cut from a day video
 NINETEEN_TIMEOUT_S = 600.0
+KEYFRAME_TIMEOUT_S = 300.0   # `clock_starts`' key-frame pass: seconds for a match clip, a minute or two for a whole-day video on a slow disk
 
 
 def _starts_by_nineteen(video, ml=None, lo=0.0, hi=1e9):

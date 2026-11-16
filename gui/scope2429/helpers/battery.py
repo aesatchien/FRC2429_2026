@@ -35,8 +35,34 @@ STEP_A = 45.0              # an internal-resistance step must change the current
 STEP_S = 0.02              # ... within this time (two 10 ms Kraken frames)
 FAST_DT = 0.025            # median sample spacing that is fast enough for the step method
 DRIVE_KRAKENS = ("TalonFX-21", "TalonFX-23", "TalonFX-25", "TalonFX-27")
-# keep the same as RobotStateConstants.k_batteries in comp_bot/constants.py and comp_system_core/constants.py (the robot's list)
-DEFAULT_BATTERIES = tuple(f"2026-{c}" for c in "ABCDEFGHI")
+
+
+def _robot_batteries(fallback, repo=None):
+    """The robot's own battery list: `k_batteries = [...]` in `class RobotStateConstants` of comp_system_core/constants.py (the
+    competition robot), else of comp_bot/constants.py, in the repo this folder is part of.  That list is the only place a battery
+    is added or renamed, so it is read from there instead of being kept as a second copy here.  The file is read as text and only
+    the list literal is evaluated (ast): importing it would import wpilib, which this tool's environment need not have.  `fallback`
+    when no file is there or the list cannot be read: Scope2429 is sometimes copied out of the repo."""
+    import ast
+    from pathlib import Path
+    for project in ("comp_system_core", "comp_bot"):
+        try:
+            repo = Path(repo) if repo is not None else Path(__file__).resolve().parents[3]   # helpers -> scope2429 -> gui -> repo
+            tree = ast.parse((repo / project / "constants.py").read_text(encoding="utf-8-sig"))
+            for cls in tree.body:
+                if isinstance(cls, ast.ClassDef) and cls.name == "RobotStateConstants":
+                    for node in cls.body:
+                        if isinstance(node, ast.Assign) and any(getattr(t, "id", "") == "k_batteries" for t in node.targets):
+                            ids = ast.literal_eval(node.value)
+                            if ids and isinstance(ids, (list, tuple)) and all(isinstance(b, str) and b.strip() for b in ids):
+                                return tuple(b.strip() for b in ids)
+        except (OSError, SyntaxError, ValueError, IndexError):     # not there (or no such folder above), not Python, not a plain list of strings
+            pass
+    return tuple(fallback)
+
+
+# The fallback is the robot's list as it was on 2026-11-16; inside the repo the robot's constants.py decides (_robot_batteries).
+DEFAULT_BATTERIES = _robot_batteries(f"2026-{c}" for c in "ABCDEFGHI")
 R_NEW_BATTERY = (11, 15)   # mOhm, a new battery by itself
 R_ROBOT_PATH = (20, 25)    # mOhm, battery + breaker + leads + connectors, typical
 
