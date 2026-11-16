@@ -245,6 +245,12 @@ class App(tk.Tk):
         ttk.Button(bf, text="No video", command=self._clear_video).pack(side="left")
         self.video_var = tk.StringVar(value="No video loaded")
         ttk.Label(v, textvariable=self.video_var, foreground="#555").grid(row=2, column=1, columnspan=4, sticky="w")
+        ttk.Label(v, text="match13 key (optional)").grid(row=3, column=0, sticky="e")
+        self.m13key_var = tk.StringVar(value=self.settings.get("match13_key", ""))
+        ttk.Entry(v, textvariable=self.m13key_var, width=34, show="•").grid(row=3, column=1, columnspan=3, sticky="we", **pad)
+        ttk.Button(v, text="Match odds", command=self._fetch_odds).grid(row=3, column=4, **pad)
+        self.odds_var = tk.StringVar(value="")
+        ttk.Label(v, textvariable=self.odds_var, foreground="#555").grid(row=4, column=1, columnspan=4, sticky="w")
         v.columnconfigure(3, weight=1)
 
         # whole-day event videos: used for matches that have no video of their own
@@ -324,6 +330,20 @@ class App(tk.Tk):
         self.render_btn = ttk.Button(ob, text="Render MP4", command=self._render)
         self.render_btn.pack(side="left", padx=2)
         ttk.Button(ob, text="Open folder", command=self._open_out_folder).pack(side="left")
+        ttk.Label(o, text="Battery").grid(row=2, column=0, sticky="e")
+        bf = ttk.Frame(o); bf.grid(row=2, column=1, columnspan=5, sticky="w")
+        self.battery_var = tk.StringVar()
+        self.battery_cb = ttk.Combobox(bf, textvariable=self.battery_var, width=12, values=self._batteries())
+        self.battery_cb.pack(side="left", **pad)
+        self.battery_var.trace_add("write", lambda *a: self._schedule_preview(400))
+        self.battery_var.trace_add("write", lambda *a: self._battery_source_check())
+        # where the battery came from: the robot's console log (picked on the driver dashboard), until someone changes it here
+        self.battery_src_var = tk.StringVar()
+        self._battery_from_robot = ""
+        self.battery_src_lbl = ttk.Label(bf, textvariable=self.battery_src_var, foreground="#1a7f37")
+        self.battery_src_lbl.pack(side="left")
+        ttk.Label(bf, text="which battery was in the robot for this log (type a new id to add one)", foreground="#666").pack(side="left")
+        ttk.Button(bf, text="Battery report…", command=self._battery_report).pack(side="left", padx=8)
         o.columnconfigure(1, weight=1)
 
         st = ttk.Frame(self); st.pack(fill="x", side="bottom", before=body, **pad)
@@ -454,6 +474,7 @@ class App(tk.Tk):
             p["tba"], p["day"] = self.event_var.get().strip(), self.day_query.get().strip()
         s.update(log_folder=self.folder_var.get(),
                  event_key=self.event_var.get().strip(), tba_key=self.tbakey_var.get().strip(),
+                 match13_key=self.m13key_var.get().strip(),
                  size=self.size_var.get(), quality=self.qual_var.get(), red_left=self.redleft_var.get(),
                  field=self.field_var.get(), mode=self.mode, host=self.host_var.get(), trends=self.trends,
                  thresholds=self._thr())
@@ -462,8 +483,27 @@ class App(tk.Tk):
             per = s.setdefault("per_log", {})
             rec = per.setdefault(Path(self.ml.path).name, {})
             rec.update(url=self.url_var.get(), offset=self._offset(), video=self.video_path, title=self.title_var.get(),
-                       hoot=list(self.hoot_paths), clip_ver=self._clip_ver(self.video_path))
+                       hoot=list(self.hoot_paths), clip_ver=self._clip_ver(self.video_path), battery=self.battery_var.get().strip())
+            b = self.battery_var.get().strip()
+            if b and b not in self._batteries():           # a new battery id typed in: offer it for the next logs too
+                s["batteries"] = sorted(set(self._batteries()) | {b})
+                self.battery_cb["values"] = self._batteries()
         core.save_settings(s)
+
+    def _battery_source_check(self):
+        """'from the robot' beside the Battery box while it still shows what the robot logged; gone once it is changed here."""
+        src = getattr(self, "_battery_from_robot", "")
+        here = self.battery_var.get().strip()
+        if not here:
+            self.battery_src_var.set("?  not picked for this log  ")
+            self.battery_src_lbl.configure(foreground="#c0392b")
+        else:
+            self.battery_src_var.set("✓ from the robot (dashboard pick)  " if src and here.upper() == src.upper() else "")
+            self.battery_src_lbl.configure(foreground="#1a7f37")
+
+    def _batteries(self):
+        import battery
+        return list(self.settings.get("batteries") or battery.DEFAULT_BATTERIES)
 
     # ---------------------------------------------------------------- logs
     def _browse_folder(self):
@@ -494,7 +534,8 @@ class App(tk.Tk):
         per = self.settings.get("per_log", {})
         for f in self.log_files:
             mark = "✓ " if per.get(f.name, {}).get("rendered") else "   "
-            self.logs.insert("end", mark + f.name)
+            bat = per.get(f.name, {}).get("battery")
+            self.logs.insert("end", mark + f.name + (f"   [{bat}]" if bat else ""))
         self._save()
 
     def _select_log(self):
@@ -543,6 +584,17 @@ class App(tk.Tk):
         self.url_cb["values"] = []
         self.offset_var.set(round(per.get("offset", 0.0), 3))
         self.title_var.set(per.get("title") or self._default_title(ml))
+        bat = per.get("battery", "")
+        from_robot = ""
+        if not bat:                                  # not picked here yet: the one picked on the driver dashboard, from the console log
+            try:
+                import console_file
+                bat = from_robot = console_file.battery_for_log(ml.path)
+            except Exception:  # noqa - a console log that cannot be read just means no battery from it
+                bat = ""
+        self._battery_from_robot = from_robot
+        self.battery_var.set(bat)
+        self._battery_source_check()
         self._event_for_log(ml)
         vp = per.get("video")
         self.video_path = vp if vp and os.path.exists(vp) else None
@@ -558,8 +610,11 @@ class App(tk.Tk):
         self._set_default_out()
         self._viewer_controls_refresh()
         self._schedule_preview(50)
+        self.odds_var.set("")
         if not self.url_var.get() and ml.match_type in (2, 3) and ml.has_match:
             self._find_tba(auto=True)
+        elif self.m13key_var.get().strip() and ml.match_type in (2, 3):
+            self._fetch_odds(auto=True)
 
     def _event_prefs(self, code):
         return self.settings.setdefault("event_prefs", {}).setdefault(code, {})
@@ -726,6 +781,28 @@ class App(tk.Tk):
         api = self.tbakey_var.get().strip()                 # read here: Tk variables belong to the UI thread
         self._run(lambda: core.tba_find_video(key, api), done, f"Looking up {key} on TBA…")
 
+    def _fetch_odds(self, auto=False):
+        """match13.com's forecast for this match (predicted score, win chance) and, once played, the final score from TBA."""
+        if not self.ml:
+            return
+        key = core.tba_match_key(self.event_var.get().strip(), self.ml)
+        if not key:
+            if not auto:
+                messagebox.showinfo("Match odds", "This log is not a qualification / playoff match, so match13 has no forecast for it.")
+            return
+        if auto and self.busy:                               # a background lookup must not interrupt or refuse (the user did not ask)
+            return
+        import match13
+        m13, tba, ours = self.m13key_var.get().strip(), self.tbakey_var.get().strip(), str(self.ml.alliance[0] or "").lower()
+        if not m13:
+            return messagebox.showinfo("Match odds", "Enter a match13 API key (match13.com) to get the forecast.")
+
+        def done(odds):
+            self.odds_var.set(match13.summary(odds))
+            if odds.get("status") == "ready":
+                self._save()
+        self._run(lambda: match13.fetch(key, m13, ours, match13.tba_result(key, tba)), done, f"Looking up {key} on match13…")
+
     def _download(self):
         url = self.url_var.get().strip()
         if not url:
@@ -798,7 +875,9 @@ class App(tk.Tk):
             off, conf, det = res
             self.offset_var.set(round(off, 3))
             q = "good" if conf > 6 and det["ratio"] > 1.15 else ("fair" if conf > 4 else "LOW — check preview")
-            if det.get("picture"):
+            if det.get("text"):                         # what webcast.sync_video used: the hub arrows and / or the match clock, or the sound alone
+                self.conf_var.set(det["text"])
+            elif det.get("picture"):
                 self.conf_var.set("synced to the match clock in the picture"
                                   + (f" (the sound said {det['sound_off']:.1f} s)" if abs(det["sound_off"] - off) > 1.0 else ""))
             else:
@@ -807,7 +886,7 @@ class App(tk.Tk):
             self._schedule_preview(50)
         import webcast
         self._run(lambda: webcast.sync_video(self.video_path, self.ml, progress=self._progress_cb), done,
-                  "Auto-syncing from the match clock and the sound…")
+                  "Auto-syncing from the hub arrows, the match clock and the sound…")
 
     def _jump(self, label, tv):
         if self.ml and self.ml.has_match:
@@ -829,7 +908,7 @@ class App(tk.Tk):
         self._preview_after = self.after(ms, self._update_preview)
 
     def _job(self, out=None):
-        st = core.RenderStyle(red_left=self.redleft_var.get(), title=self.title_var.get())
+        st = core.RenderStyle(red_left=self.redleft_var.get(), title=self.title_var.get(), battery=self.battery_var.get().strip())
         return core.RenderJob(log=self.ml, video=self.video_path, offset=self._offset(),
                               out_path=out or self.out_var.get(), field=self.field_obj or core.synthetic_field(),
                               quest_name=self.quest_var.get(), drive_name=self.drive_var.get(),
@@ -1341,6 +1420,50 @@ class App(tk.Tk):
         self.t_var.set(max(-5.0, min(float(t), float(self._scrub_max))))
         self._schedule_preview(10)
 
+    def _battery_report(self):
+        """Every log in the folder: its battery numbers side by side (battery_report.py), opened in the browser.  A log with no battery picked
+        is listed as '?' (never guessed): its match numbers still count, and it joins its battery's row once someone picks it."""
+        if self.ml:
+            self._save()
+        picked = list(getattr(self, "log_files", []) or [])
+        per = self.settings.setdefault("per_log", {})
+        if not picked:
+            return messagebox.showinfo("Battery report", "There are no logs in this folder.")
+        folder = self.folder_var.get()
+
+        def work():
+            import battery_report as br
+            recs = []
+            for n, f in enumerate(picked):
+                if self.cancel_flag:
+                    break
+                rec = per.setdefault(f.name, {})
+                bat = rec.get("battery", "")
+                self._progress_cb(n / len(picked), f"[{n + 1}/{len(picked)}] {f.name}: battery numbers")
+                cache = rec.get("battery_stats") or {}
+                if cache.get("ver") == br.STATS_VER and cache.get("mtime") == f.stat().st_mtime and cache.get("record"):
+                    r = dict(cache["record"])
+                else:
+                    try:
+                        ml, st = br.analyze_log(f, bat, folder)
+                    except Exception:  # noqa - a log that cannot be read is left out, not the whole report
+                        continue
+                    r = br.record(ml, st)
+                    rec["battery_stats"] = {"ver": br.STATS_VER, "mtime": f.stat().st_mtime, "record": r}
+                r["battery"] = bat                              # the pick may have changed since the numbers were cached
+                r["stats"] = {**r["stats"], "battery": bat}
+                recs.append(r)
+            core.save_settings(self.settings)
+            out = Path(folder) / "Battery_Report.html"
+            out.write_text(br.render(recs, f"Battery report: {Path(folder).name}"), encoding="utf-8")
+            return out
+
+        def done(out):
+            import webbrowser
+            webbrowser.open(Path(out).as_uri())
+            self.status_var.set(f"Battery report: {out}")
+        self._run(work, done, "Battery report…")
+
     def _report(self):
         if not self.ml:
             return messagebox.showinfo("Match report", "Load a log first.")
@@ -1349,12 +1472,18 @@ class App(tk.Tk):
         thr = self._thr()
         hoots = list(self.hoot_paths)
         owlet = self.settings.get("owlet_path") or None
+        bat = self.battery_var.get().strip()
+        video, offset, red_left = self.video_path, self._offset(), self.redleft_var.get()
+        self._save()
 
         def work():
             import hoot
             import report
             import telemetry
             tel = telemetry.Telemetry(path, ml, poses)
+            # the fuel counter in the match video (shooting accuracy, feeding): read once (~1.5 min), then cached for renders too
+            flux = core.cached_flux(ml, video, offset, red_left, compute=True,
+                                    progress=lambda f, m: self._progress_cb(0.1 + 0.2 * f, m))
             h, problem = None, None
             if hoots:
                 try:
@@ -1365,7 +1494,7 @@ class App(tk.Tk):
                     problem = str(e)
                 except Exception as e:  # noqa
                     problem = f"{type(e).__name__}: {e}"
-            rep = report.build_report(tel, ml, thr, h)
+            rep = report.build_report(tel, ml, thr, h, battery=bat, flux=flux)
             if problem:
                 rep.sections.append(report.Section("CTRE hoot", [report.Item(None, "warn", "the hoot was not used: " + problem)]))
             return rep, problem
@@ -1505,7 +1634,7 @@ class App(tk.Tk):
                             rl = seen
                     job = core.RenderJob(ml, vp, off, str(out_dir / (f.stem + ("_sidebyside.mp4" if vp else "_dashboard.mp4"))), field_obj,
                                          quest, drive, height, crf=crf, trends=trends, thresholds=thr, hoot=hl,
-                                         style=core.RenderStyle(red_left=rl, title=title))
+                                         style=core.RenderStyle(red_left=rl, title=title, battery=rec.get("battery", "")))
                     core.render(job, lambda fr, msg: pf(0.35 + 0.65 * fr, msg), lambda: self.cancel_flag)
                     rec.update(url=url or "", video=vp, offset=off, title=title, rendered=True, clip_ver=self._clip_ver(vp))
                     core.save_settings(self.settings)
@@ -1533,7 +1662,10 @@ class App(tk.Tk):
                         hl = hoot.load_many([w for w, _ in conv], str(f))
                 except Exception:  # noqa
                     hl = None
-                r = rp.build_report(tel, ml, thr, hl)
+                rec = self.settings.get("per_log", {}).get(f.name, {})
+                flux = core.cached_flux(ml, rec.get("video"), float(rec.get("offset") or 0.0), bool(self.settings.get("red_left")),
+                                        compute=True)          # usually cached by the render just before; else read once (~1.5 min)
+                r = rp.build_report(tel, ml, thr, hl, battery=rec.get("battery", ""), flux=flux)
                 out_dir.mkdir(parents=True, exist_ok=True)
                 cv2.imwrite(str(png), report_image.render_image(r))
                 (out_dir / (f.stem + "_report.html")).write_text(r.to_html(), encoding="utf-8")

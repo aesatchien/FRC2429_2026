@@ -528,7 +528,7 @@ def list_pose_entries(path):
 # --------------------------------------------------------------------------
 # FMS event code -> (name used in video titles, TBA event key).  Codes that are not listed are shown by their code and
 # looked up on TBA as "2026" + the code in lower case; add the events of your season here.
-EVENT_INFO = {"CAEL": ("SoCal Showdown", "2026cass"), "CAPOH": ("Port Hueneme", "2026capoh")}
+EVENT_INFO = {"CAEL": ("SoCal Showdown", "2026cass"), "CAPOH": ("Port Hueneme", "2026capoh"), "DALY": ("Daly Division", "2026dal")}
 
 
 def event_title(code: str) -> str:
@@ -604,12 +604,63 @@ def js_runtime_opts() -> dict:
     return {}
 
 
-def download_youtube(url: str, progress=None, max_height=720) -> str:
+def _decodable(path) -> bool:
+    """OpenCV can read a first frame of the video (the match-clock and hub-arrow readers rely on it)."""
+    cap = cv2.VideoCapture(str(path))
+    try:
+        ok, _ = cap.read()
+        return bool(ok)
+    finally:
+        cap.release()
+
+
+def ensure_decodable(path: str, progress=None) -> str:
+    """Some OpenCV builds (the website's container among them) cannot decode AV1, which YouTube often serves: the sync then finds no match clock
+    and no arrows and falls back to the sound alone.  Such a video is converted to H.264 once, in place.  Returns the path to use."""
+    if _decodable(path):
+        return str(path)
+    p = Path(path)
+    out, tmp = p.with_suffix(".mp4"), p.with_name(p.stem + ".h264.tmp.mp4")
+    if progress:
+        progress(1.0, "Converting the video to H.264 (this computer cannot decode AV1): a minute or two")
+    try:
+        run_ff(["-y", "-i", str(p), "-c:v", "libx264", "-preset", "ultrafast", "-crf", "28", "-pix_fmt", "yuv420p", "-threads", "0",
+                "-c:a", "aac", "-b:a", "96k", "-movflags", "+faststart", str(tmp)], timeout=1200)
+    except subprocess.TimeoutExpired:
+        tmp.unlink(missing_ok=True)
+        raise RuntimeError("converting the video to H.264 took more than 20 minutes and was stopped")
+    if not tmp.exists() or tmp.stat().st_size < 100_000:
+        tmp.unlink(missing_ok=True)
+        raise RuntimeError("the video is in a format this computer cannot decode (probably AV1) and ffmpeg could not convert it")
+    if out != p:
+        p.unlink(missing_ok=True)
+    tmp.replace(out)
+    return str(out)
+
+
+MAX_VIDEO_HOURS = 14.0          # the longest video download_youtube fetches: a whole day of an event's stream (8 am - 8 pm) and some room
+
+
+class VideoRefused(RuntimeError):
+    """The video is not one to download (too long, or still being streamed).  Updating yt-dlp would not help."""
+
+
+def check_video_length(info: dict, max_hours: float = MAX_VIDEO_HOURS) -> None:
+    """Raise VideoRefused for a video (yt-dlp's info) that is still live or longer than max_hours (0 or None = any length)."""
+    if info.get("is_live"):
+        raise VideoRefused("this video is still being streamed live: wait until the stream has ended")
+    dur = info.get("duration")
+    if max_hours and dur and dur > max_hours * 3600:
+        raise VideoRefused(f"this video is {dur / 3600:.1f} hours long; the longest that is downloaded is {max_hours:g} hours "
+                           "(a whole day of an event). Cut the match out and use the clip instead.")
+
+
+def download_youtube(url: str, progress=None, max_height=720, max_hours=MAX_VIDEO_HOURS) -> str:
     vid = youtube_id(url) or "video"
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     for f in CACHE_DIR.glob(f"{vid}.*"):
-        if f.suffix in (".mp4", ".mkv", ".webm") and f.stat().st_size > 100_000:
-            return str(f)
+        if f.suffix in (".mp4", ".mkv", ".webm") and f.stat().st_size > 100_000 and ".tmp." not in f.name:       # not a conversion that was cut short
+            return ensure_decodable(str(f), progress)
     try:
         import yt_dlp
     except ImportError:
@@ -622,7 +673,9 @@ def download_youtube(url: str, progress=None, max_height=720) -> str:
                 progress(d.get("downloaded_bytes", 0) / tot, "Downloading video…")
 
     opts = {
-        "format": (f"bv*[height<={max_height}][ext=mp4]+ba[ext=m4a]/"
+        # H.264 first (every player and OpenCV build decodes it; YouTube's default pick is often AV1), then anything
+        "format": (f"bv*[height<={max_height}][vcodec^=avc1][ext=mp4]+ba[ext=m4a]/bv*[height<={max_height}][vcodec^=avc1]+ba/"
+                   f"bv*[height<={max_height}][ext=mp4]+ba[ext=m4a]/"
                    f"bv*[height<={max_height}]+ba/b[height<={max_height}]/b"),
         "outtmpl": str(CACHE_DIR / "%(id)s.%(ext)s"),
         "merge_output_format": "mp4",
@@ -633,7 +686,10 @@ def download_youtube(url: str, progress=None, max_height=720) -> str:
     }
     try:
         with yt_dlp.YoutubeDL(opts) as ydl:
+            check_video_length(ydl.extract_info(url, download=False) or {}, max_hours)     # asked first: nothing is downloaded yet
             ydl.download([url])
+    except VideoRefused:
+        raise
     except Exception as e:
         raise RuntimeError(
             f"YouTube download failed: {e}\n\nTry updating yt-dlp:  pip install -U \"yt-dlp[default]\"\n"
@@ -641,8 +697,8 @@ def download_youtube(url: str, progress=None, max_height=720) -> str:
             "(Windows: winget install DenoLand.Deno, Mac: brew install deno) and restart.\n"
             "Or download the video yourself and use 'Local file…'.")
     for f in sorted(CACHE_DIR.glob(f"{vid}.*"), key=lambda p: -p.stat().st_size):
-        if f.suffix in (".mp4", ".mkv", ".webm"):
-            return str(f)
+        if f.suffix in (".mp4", ".mkv", ".webm") and ".tmp." not in f.name:
+            return ensure_decodable(str(f), progress)
     raise RuntimeError("Download finished but no video file was found.")
 
 
@@ -899,6 +955,7 @@ class RenderStyle:
     trail_s: float = 2.0
     red_left: bool = True        # rotate 180° so red alliance is on the left
     title: str = ""
+    battery: str = ""            # the battery id picked for the log (e.g. 2026-C): shown with its numbers in the PDH panel
     show_status: bool = True     # QuestNav status bar under the field (classic layout only)
     dashboard: bool = True       # 1920x1080 layout: 2429-dashboard replica + telemetry panels (see dash.py)
 
@@ -1236,10 +1293,24 @@ def _fuel_flux(job: RenderJob, compute: bool, progress=None):
     if not compute and not cache.exists():
         return None
     try:
-        return balls.measure(job.video, job.offset, alliance, cache_path=cache, progress=progress, compute=compute)
+        # which corner holds this alliance's counter: the video's own score bar, else the layout the user set (red_left), never a silent
+        # "red is on the left" (2026dal Q59: blue 2429 read the red counter, so every burst of its shots saw no ticks and scored 0)
+        left = detect_red_left(job.video)
+        if left is None:
+            left = job.style.red_left
+        return balls.measure(job.video, job.offset, alliance, cache_path=cache, progress=progress, compute=compute, left_is_red=bool(left))
     except Exception as e:  # noqa - the estimate then falls back to the log-only model
         print(f"fuel counting failed: {e}", file=sys.stderr)
         return None
+
+
+def cached_flux(log: MatchLog, video: str | None, offset: float, red_left: bool = False, compute: bool = False, progress=None):
+    """The fuel counter read from this log's match video (balls.py, cached on disk), or None.  With compute=False it never reads
+    the video (only a cache from a render or an earlier report); with compute=True it reads it when there is no cache (~1.5 min)."""
+    if not video or not log.has_match or not os.path.exists(video):
+        return None
+    return _fuel_flux(RenderJob(log=log, video=video, offset=offset, out_path="", field=synthetic_field(),
+                                style=RenderStyle(red_left=red_left)), compute=compute, progress=progress)
 
 
 def get_dash(job: RenderJob, compute_flux: bool = False, progress=None):
@@ -1256,6 +1327,7 @@ def get_dash(job: RenderJob, compute_flux: bool = False, progress=None):
         _DASH_CACHE.clear()
         _DASH_CACHE[key] = d
     d.title = job.style.title            # editable without rebuilding
+    d.battery = job.style.battery
     if job.thresholds:
         d.thr = {**d.thr, **job.thresholds}
     return d
@@ -1348,7 +1420,10 @@ def render(job: RenderJob, progress=None, cancel=None):
     err = proc.stderr.read().decode("utf-8", "replace")
     proc.wait()
     if proc.returncode != 0:
-        raise RuntimeError("ffmpeg failed:\n" + err[-2000:])
+        hint = ""
+        if proc.returncode < 0 and not err.strip():      # no message and a signal: the system stopped ffmpeg (on a server, usually out of memory)
+            hint = f"ffmpeg was stopped by the system (signal {-proc.returncode}); out of memory?"
+        raise RuntimeError(f"ffmpeg failed (exit code {proc.returncode}):\n" + (err[-2000:] or hint))
     if progress:
         progress(1.0, "Done")
     return job.out_path

@@ -289,7 +289,7 @@ def main(argv=None):
     a = ap.parse_args(argv)
     if not os.path.isdir(a.folder):
         sys.exit("folder not found: " + a.folder + " - give the folder that holds your .wpilog files, "
-                 "e.g.  python season_report.py C:/Users/rtoda/Documents/WPILOG_2026")
+                 "e.g.  python season_report.py C:/Users/<you>/Documents/WPILOG_2026")
     out = a.out or a.folder
     os.makedirs(out, exist_ok=True)
     disp = dict(x.split("=", 1) for x in a.names.split(",") if "=" in x)
