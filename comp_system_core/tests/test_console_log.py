@@ -11,6 +11,14 @@ import re
 import sys
 
 from helpers.console_log import ConsoleLog
+import pytest
+
+# The fd-level mode redirects the process's stdout / stderr descriptors: what the robot (Linux) does.  On Windows with a real
+# console attached (a developer's terminal, e.g. during `robotpy deploy`) that breaks the console's handle - WinError 1 / 6 -
+# which is exactly why console_log.py never uses that mode on Windows.  CI's Windows runner has pipes, not a console, so these
+# still run there; only a console-attached Windows run skips them.
+fd_mode_only = pytest.mark.skipif(os.name == 'nt' and sys.__stdout__ is not None and sys.__stdout__.isatty(),
+                                  reason='fd-level redirect breaks a real Windows console; the robot is Linux')
 
 def say(text, err=False):
     """print() the way the robot does: through the process's real stdout / stderr (fd 1 / 2).  Under pytest, sys.stdout is
@@ -30,6 +38,7 @@ def _records(path):
     return [LINE.match(ln).groups() for ln in _lines(path) if not ln.startswith('#')]
 
 
+@fd_mode_only
 def test_python_and_native_output_are_saved_with_timestamps_and_streams(tmp_path, capfd):
     log = ConsoleLog(fd_level=True)
     assert log.start()
@@ -61,6 +70,7 @@ def test_python_and_native_output_are_saved_with_timestamps_and_streams(tmp_path
     assert 'native stderr line' in out.err and 'python stderr' in out.err
 
 
+@fd_mode_only
 def test_console_is_given_back_on_stop(tmp_path, capfd):
     log = ConsoleLog(fd_level=True)
     assert log.start()
@@ -71,6 +81,7 @@ def test_console_is_given_back_on_stop(tmp_path, capfd):
     assert 'after stop' in capfd.readouterr().out, "stdout must work normally again once stopped"
 
 
+@fd_mode_only
 def test_long_waits_keep_the_newest_lines_and_say_how_many_were_dropped(tmp_path, monkeypatch):
     import helpers.console_log as cl
     monkeypatch.setattr(cl, 'MAX_HELD_LINES', 5)
@@ -92,6 +103,7 @@ def test_long_waits_keep_the_newest_lines_and_say_how_many_were_dropped(tmp_path
     assert 'line 11' in ''.join(lines) and 'line 0' not in ''.join(lines)
 
 
+@fd_mode_only
 def test_an_unwritable_folder_does_not_break_the_robot(tmp_path, capfd):
     blocker = tmp_path / 'a_file'
     blocker.write_text('x')
