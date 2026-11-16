@@ -443,7 +443,7 @@ def clock_starts(video, ml=None, lo=0.0, hi=1e9, progress=None):
     times = [float(m) for m in re.findall(rb"pts_time:([\d.]+)", r.stderr)]
     n = min(len(times), len(r.stdout) // (w * h))
     if n == 0:
-        return []
+        return _starts_by_nineteen(video, ml, lo, hi)
     frames = np.frombuffer(r.stdout[:n * w * h], np.uint8).reshape(n, h, w).astype(np.float32)
 
     def ncc(a, b):
@@ -480,7 +480,106 @@ def clock_starts(video, ml=None, lo=0.0, hi=1e9, progress=None):
                 continue
         if all(abs(v - x) > 2.0 for x in out):
             out.append(v)
+    return out or _starts_by_nineteen(video, ml, lo, hi)
+
+
+NINETEEN_GAP_S = 23.0     # auto 20 s + 3 s between the periods: the clock shows 0:19 at S + 1 and 2:19 at S + 24
+NINETEEN_TOL_S = 2.5
+NINE_MIN = 0.93
+
+
+def _starts_by_nineteen(video, ml=None, lo=0.0, hi=1e9):
+    """Match starts found from the clock's two 'nineteens', for when `clock_starts` cannot use 0:20 (the video begins too close to the
+    start for two key frames at 0:20).  The clock shows 0:19 one second into autonomous and 2:19 one second into teleop, 23 s later
+    (20 s of auto + the 3 s between the periods + 1 s), so a 0:19 that is followed by a 2:19 23 s later is the start of a match.  That
+    tells it from the 0:19 near the end of teleop (nothing 23 s later) and from 0:20 held during the pre-match break.  The whole video
+    is sampled at 4 Hz (only the clock is cropped), then the first 0:19 frame is found frame by frame.  Returns start times."""
+    import cv2
+    import numpy as np
+    t2, t1, o0, o9 = _clock_glyphs()
+    x0, y0, x1, y1 = CLOCK_MIN[0], CLOCK_MIN[1], CLOCK_ONES[2], CLOCK_ONES[3]
+    w, h = x1 - x0, y1 - y0
+    args = [core.ffmpeg_exe(), "-hide_banner", "-nostats", "-i", str(video), "-vf",
+            f"fps=4,scale=1280:720,crop={w}:{h}:{x0}:{y0},showinfo", "-vsync", "0", "-f", "rawvideo", "-pix_fmt", "gray", "-"]
+    r = subprocess.run(args, capture_output=True, creationflags=core.NO_WINDOW)
+    times = [float(m) for m in re.findall(rb"pts_time:([\d.]+)", r.stderr)]
+    n = min(len(times), len(r.stdout) // (w * h))
+    if n == 0:
+        return []
+    frames = np.frombuffer(r.stdout[:n * w * h], np.uint8).reshape(n, h, w).astype(np.float32)
+
+    def ncc(a, b):
+        d = float(np.sqrt((a * a).sum() * (b * b).sum()))
+        return float((a * b).sum() / d) if d > 1e-6 else 0.0
+    zero_nineteen, two_nineteen = [], []
+    for i in range(n):
+        if not (lo <= times[i] <= hi):
+            continue
+        ink = np.clip((200.0 - frames[i]) / 150.0, 0, 1)
+        gm = cv2.resize(ink[:, :CLOCK_MIN[2] - CLOCK_MIN[0]], (18, 30), interpolation=cv2.INTER_AREA)
+        gt = cv2.resize(ink[:, CLOCK_TENS[0] - x0:CLOCK_TENS[2] - x0], (18, 30), interpolation=cv2.INTER_AREA)
+        go = cv2.resize(ink[:, CLOCK_ONES[0] - x0:], (18, 30), interpolation=cv2.INTER_AREA)
+        if ncc(gt, t1) > 0.9 and ncc(go, o9) > NINE_MIN:             # :19 (a '9' reads 0.99; the 5s, 0s and 8s of the other seconds stay under 0.86)
+            if ncc(gm, o0) > 0.75:
+                zero_nineteen.append(times[i])
+            elif ncc(gm, t2) > 0.75:
+                two_nineteen.append(times[i])
+    out = []
+    runs = []
+    for t in zero_nineteen:                                           # one run per second the clock stands at 0:19
+        if runs and t - runs[-1][-1] < 0.6:
+            runs[-1].append(t)
+        else:
+            runs.append([t])
+    for run in runs:
+        a = run[0]
+        if not any(abs(p - (a + NINETEEN_GAP_S)) <= NINETEEN_TOL_S for p in two_nineteen):
+            continue
+        v = _first_nineteen(video, a)
+        if v is None:
+            continue
+        if ml is not None and ml.match_type == 2:                    # a qualification: 2429 must be on the scoreboard
+            sc = team_visible(video, v + 4.0)
+            if sc is not None and sc < TEAM_MIN:
+                continue
+        if all(abs(v - x) > 2.0 for x in out):
+            out.append(v)
     return out
+
+
+def _first_nineteen(video, approx, span=0.8):
+    """Video time of the first frame at which the clock reads 0:19 near `approx` (a 4 Hz sample), minus the 1 s it shows after the start;
+    None when it is not found."""
+    import cv2
+    import numpy as np
+    t2, t1, o0, o9 = _clock_glyphs()
+    cap = cv2.VideoCapture(str(video))
+    if not cap.isOpened():
+        return None
+    fps = cap.get(cv2.CAP_PROP_FPS) or 60.0
+    sx, sy = cap.get(cv2.CAP_PROP_FRAME_WIDTH) / 1280.0, cap.get(cv2.CAP_PROP_FRAME_HEIGHT) / 720.0
+    sc = lambda box: (int(box[0] * sx), int(box[1] * sy), int(box[2] * sx), int(box[3] * sy))
+    bt, bo, bm = sc(CLOCK_TENS), sc(CLOCK_ONES), sc(CLOCK_MIN)
+
+    def glyph(f, box):
+        g = cv2.cvtColor(f[box[1]:box[3], box[0]:box[2]], cv2.COLOR_BGR2GRAY)
+        return np.clip((200.0 - cv2.resize(g, (18, 30), interpolation=cv2.INTER_AREA).astype(np.float32)) / 150.0, 0, 1)
+
+    def ncc(a, b):
+        d = float(np.sqrt((a * a).sum() * (b * b).sum()))
+        return float((a * b).sum() / d) if d > 1e-6 else 0.0
+    cap.set(cv2.CAP_PROP_POS_MSEC, max(0.0, approx - span) * 1000.0)
+    result = None
+    for _ in range(int((2 * span + 0.5) * fps)):
+        ok, f = cap.read()
+        if not ok:
+            break
+        t = cap.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
+        if ncc(glyph(f, bm), o0) > 0.75 and ncc(glyph(f, bt), t1) > 0.9 and ncc(glyph(f, bo), o9) > NINE_MIN:
+            result = t - 1.0
+            break
+    cap.release()
+    return result
 
 
 def _visual_starts_near(path, cands, exp, span=25.0, tries=6, ml=None):
@@ -745,18 +844,64 @@ def clip_matches(items, days, cal=None, progress=None, workers=3, cancel=None, c
     return out
 
 
+AGREE_S = 0.15          # the match clock and the hub arrows are said to agree when they are this close
+
+
+def resolve_sync(offset, conf, det, arrow_time):
+    """Combine the sound + match-clock sync with the lit hub arrows (arrows.py).  Returns (offset, quality, text, arrow_offset).
+
+    The arrows are frame-exact where they can be seen.  They confirm the match clock when the two agree, and stand in for it when the clock could
+    not be read (then the sound alone is the only other evidence).  Where the clock was read and the arrows disagree with it, the clock is kept
+    and the difference is reported: the broadcast's arrows and clock are not tied together the same way at every event."""
+    import arrows
+    arrow = None if arrow_time is None else arrow_time - arrows.LATENCY_S
+    sound = det.get("sound_off")
+    note = f" (the sound said {sound:.1f} s)" if sound is not None and abs(sound - offset) > 1.0 else ""
+    if det.get("picture"):
+        if arrow is None:
+            return offset, "good", "synced to the match clock in the picture" + note, None
+        if abs(arrow - offset) <= AGREE_S:
+            return arrow, "good", "synced to the hub arrows and the match clock in the picture, which agree" + note, arrow
+        return offset, "good", (f"synced to the match clock in the picture{note}; the hub arrows say {arrow:.2f} s "
+                                f"({abs(arrow - offset):.2f} s {'earlier' if arrow < offset else 'later'}), so nudge it if the video looks off"), arrow
+    if arrow is not None:
+        return arrow, "good", "synced to the hub arrows in the picture (the match clock was not readable)" + note, arrow
+    q = "good" if conf > 6 and det.get("ratio", 0) > 1.15 else ("fair" if conf > 4 else "LOW - check it against the video")
+    return offset, q, f"auto-sync confidence {conf:.1f} ({q}); match clock and arrows not readable, sound only", None
+
+
 def sync_video(video, ml, progress=None):
-    """core.auto_sync (field sounds), corrected by the picture: when the broadcast's match clock can be read, the video time at
-    which it starts counting is the sync, whatever the sound says.  The sound alone can lock on the wrong crowd / field noise
-    (DALY Q13 was 35 s off).  Returns (offset, confidence, details) like core.auto_sync; details['picture'] says which was used."""
+    """core.auto_sync (field sounds), corrected by the picture, twice over:
+      * the broadcast's match clock: the video time at which it starts counting is the sync, whatever the sound says.  The sound alone can
+        lock on the wrong crowd / field noise (DALY Q13 was 35 s off).  The clock reader first looks for the clock standing at 0:20 for
+        several seconds; in a video that starts just before the match it falls back to `_starts_by_nineteen`: a 0:19 with a 2:19 23 s
+        later (CAGLE Q4);
+      * the two yellow hub arrows the broadcast lights at the start of the match (arrows.py): frame-exact, wherever the event puts them, and
+        found even when the video starts a second before the match.  They confirm the clock when they agree and replace the sound where the
+        clock cannot be read.
+    Returns (offset, confidence, details) like core.auto_sync.  details: picture (the clock was read), arrows (the arrows were used),
+    arrow_offset, quality, text (what to tell the person), sound_off."""
     off, conf, det = core.auto_sync(video, ml, progress=progress)
     try:
         starts = clock_starts(video, ml)
     except Exception:  # noqa - no ffmpeg / unreadable overlay: keep the sound's answer
         starts = []
-    if not starts:
-        return off, conf, dict(det, picture=False)
-    cands = [float(p[0]) for p in det.get("peaks", [])][:8] or [float(off)]
-    v = min(starts, key=lambda x: min(abs(x - c) for c in cands))
-    return v, max(float(conf), 6.5), dict(det, picture=True, sound_off=float(off), ratio=max(det.get("ratio", 0), 1.2))
+    if starts:
+        cands = [float(p[0]) for p in det.get("peaks", [])][:8] or [float(off)]
+        v = min(starts, key=lambda x: min(abs(x - c) for c in cands))
+        det = dict(det, picture=True, sound_off=float(off), ratio=max(det.get("ratio", 0), 1.2))
+        off, conf = v, max(float(conf), 6.5)
+    else:
+        det = dict(det, picture=False)
+    if progress:
+        progress(0.9, "Looking for the hub arrows…")
+    try:
+        import arrows
+        lit = arrows.find_start(video, estimate=float(off))
+    except Exception:  # noqa - an unreadable video just means no arrows
+        lit = None
+    final, quality, text, arrow = resolve_sync(float(off), float(conf), det, lit["time"] if lit else None)
+    if arrow is not None and (not det["picture"] or abs(arrow - off) <= AGREE_S):      # the arrows carried the answer: as sure as the clock
+        conf, det = max(float(conf), 6.5), dict(det, ratio=max(det.get("ratio", 0), 1.2))
+    return final, conf, dict(det, arrows=arrow is not None, arrow_offset=arrow, quality=quality, text=text)
 

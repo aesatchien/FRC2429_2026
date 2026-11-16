@@ -20,6 +20,8 @@ import numpy as np
 # (Champs), so which box belongs to an alliance depends on the layout: see red_left().
 BOX_LEFT, BOX_RIGHT = (55, 44, 152, 76), (1157, 44, 1256, 76)
 # The score bar at the top centre has the same order: its left score box is the alliance on the left.  Used to find the layout.
+# Playoff broadcasts show only the alliance's SCORE in the corner box (no "/ tier"), e.g. "125" next to the alliance icon
+PLAIN_LEFT, PLAIN_RIGHT = (84, 46, 130, 74), (1184, 46, 1232, 74)
 BAR_LEFT, BAR_RIGHT = (520, 600, 45, 85), (680, 760, 45, 85)     # x0, x1, y0, y1
 BAR_MARGIN = 100         # |left (R-B) - right (R-B)| needed to call it: measured +-255..310 with a bar, ~0 without
 GLYPH = (14, 18)                       # w, h of the canvas every glyph is drawn on
@@ -131,19 +133,21 @@ def detect_red_left(video, fractions=(0.15, 0.35, 0.55, 0.75)):
         cap.release()
 
 
-def box_for(alliance, left_is_red):
+def box_for(alliance, left_is_red, plain=False):
     """The counter box of `alliance` ("Red" / "Blue") given which alliance is on the left (None: assume red, SoCal's layout)."""
     on_left = (alliance == "Red") == (True if left_is_red is None else bool(left_is_red))
+    if plain:
+        return PLAIN_LEFT if on_left else PLAIN_RIGHT
     return BOX_LEFT if on_left else BOX_RIGHT
 
 
-def glyphs(frame, alliance="Red", left_is_red=None):
+def glyphs(frame, alliance="Red", left_is_red=None, plain=False):
     """The glyph images (GLYPH-sized float arrays, left to right) of the counter text, or [].
     left_is_red: True / False if the layout is known, None to read it from this frame's score bar."""
     if left_is_red is None:
         left_is_red = red_left(frame)
     sx, sy = frame.shape[1] / 1280.0, frame.shape[0] / 720.0
-    x0, y0, x1, y1 = box_for(alliance, left_is_red)
+    x0, y0, x1, y1 = box_for(alliance, left_is_red, plain)
     crop = frame[int(y0 * sy):int(y1 * sy), int(x0 * sx):int(x1 * sx)]
     if crop.size == 0:
         return []
@@ -152,7 +156,7 @@ def glyphs(frame, alliance="Red", left_is_red=None):
     mask = (big.min(axis=2) > WHITE_MIN).astype(np.uint8)
     n, _lab, st, _c = cv2.connectedComponentsWithStats(mask)
     comps = [st[i] for i in range(1, n) if st[i, 4] >= 12]
-    if len(comps) < 5:
+    if len(comps) < (2 if plain else 5):
         return []
     hmax = max(c[3] for c in comps)
     comps = sorted((c for c in comps if c[3] >= 0.6 * hmax), key=lambda c: c[0])
@@ -227,3 +231,17 @@ def clean(v, small=5):
                 pend = x
         out[i] = cur
     return out
+
+
+def read_plain(frame, alliance="Red", left_is_red=None):
+    """The alliance score shown alone in a playoff broadcast's corner box ("125"), or None when it is not readable."""
+    gl = glyphs(frame, alliance, left_is_red, plain=True)
+    if not 2 <= len(gl) <= 3:
+        return None
+    labs = []
+    for g in gl:
+        s, d = _classify(g)
+        if d > MAX_DIST or not s.isdigit():
+            return None
+        labs.append(s)
+    return int("".join(labs))

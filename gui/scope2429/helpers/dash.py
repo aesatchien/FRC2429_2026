@@ -260,7 +260,7 @@ class Plot:
 class DashRenderer:
     LIVE_WIN = 60.0                    # seconds shown by the live (scrolling) plots
     PDH_WIN = 180.0                    # ... and by the live PDH plot: the last 3 minutes of running
-    STRIP_Y = (414, 431, 448, 465)          # the camera / Quest / Wi-Fi strips under the PDH plots (canvas rows of the lower half)
+    STRIP_Y = (414, 431, 448, 465, 482)     # the camera / Quest / Wi-Fi / motor strips under the PDH plots (canvas rows of the lower half)
     STRIP_H = 15
     CAN_AXES = (5, 10, 25, 50, 100)        # the CAN plot's top, the smallest of these that fits the data: a healthy bus is a few percent
 
@@ -285,11 +285,15 @@ class DashRenderer:
         self.hoot = hoot
         self.live = tel is not None
         self.tel = tel or T.Telemetry(ml.path, ml, pose_names, extra=trends)
-        self.shots = T.ShotModel(self.tel)
+        # hub shifts: balls fired into the inactive hub are feeding, not shots (from the fuel counter when it shows them)
+        self.hub_active, self.hub_from = T.hub_windows(self.tel, ml, flux, not ml.is_blue)
+        self.shots = T.ShotModel(self.tel, self.hub_active)
         self.vshots = (T.VideoShotModel(self.tel, self.shots, flux, not ml.is_blue)
                        if flux and ml.has_match else None)
         self.score = self.vshots if (self.vshots is not None and self.vshots.available) else self.shots   # only a video-based one scores
         self.title = title
+        self.battery = ""                  # the battery id picked for this log (set like the title; shown in the PDH panel)
+        self._bat = False                  # battery.BatteryStats, worked out on first use (False = not yet)
         self.thr = dict(DEFAULT_THR)       # deviation thresholds (set by the GUI)
         self.t_lo = -6.0                                           # plots start a bit before time zero
         self.t_hi = (ml.match_len or 160.0) + 6.0
@@ -310,16 +314,28 @@ class DashRenderer:
 
     @thr.setter
     def thr(self, v):
-        """The low-battery levels are drawn into the cached lower base (log mode), so a change of them rebuilds it."""
+        """The low-battery levels are drawn into the cached bases (log mode), so a change of them rebuilds them."""
         old = getattr(self, "_thr", None)
         self._thr = v
         if old is not None and hasattr(self, "low_base") and not self.live \
                 and any(old.get(k) != v.get(k) for k in ("warn_v", "brown_v")):
+            self._failure_data = None
+            self.corr_base = self._make_corr()
             self.low_base, self.plots = self._make_lower_base()
 
     @property
     def a0(self):
         return self.tel.a0
+
+    def battery_stats(self):
+        """battery.BatteryStats of the log (once; None if it cannot be worked out)."""
+        if self._bat is False:
+            try:
+                import battery
+                self._bat = battery.analyze(self.tel, self.ml, self.hoot)
+            except Exception:  # noqa - the video must render without it
+                self._bat = None
+        return self._bat
 
     def _every(self, key, t, period):
         """True when `period` seconds have passed since this was last true (used to refresh live state)."""
@@ -336,7 +352,8 @@ class DashRenderer:
         if self._every("driver", t, 2.0):
             self._update_driver_view(t)
         if self._every("shots", t, 1.5):
-            self.shots = T.ShotModel(self.tel)
+            self.hub_active, self.hub_from = T.hub_windows(self.tel, self.ml)
+            self.shots = T.ShotModel(self.tel, self.hub_active)
             self.score = self.shots
 
     # ------------------------------------------------------------- driver view
@@ -380,7 +397,11 @@ class DashRenderer:
 
     # ------------------------------------------- Quest accuracy vs shot accuracy
     MOTOR_Y, MOTOR_H = 436, 104               # motor-rpm strip at the bottom of the top-left quadrant
-    CORR2_H = 170                             # Quest-vs-shot-accuracy plot at the top of the lower-left quadrant
+    PLOT_H = 70                               # height of the Quest-error, PDH volts and PDH amps plots (all three the same)
+    LOG_PLOT_W = 640                          # width of those plots from a log: the column to their right is FAILURES vs VOLTS
+    FAIL_X = 730                              # that column's left edge
+    LOW_V = 9.0                               # "below this" in the failure table
+    CORR2_H = 34 + PLOT_H + 36                # Quest-vs-shot-accuracy plot at the top of the lower-left quadrant: title, plot, margin
 
     def _burst_points(self):
         """Per indexer burst: (start, end, Quest-vs-drive error m, shot accuracy 0..1, shots fired, QuestNav synced)."""
@@ -412,11 +433,12 @@ class DashRenderer:
         dl = self.tel.by_key.get("delta")
         if self.live:                       # scrolling Quest-vs-drive error; drawn per frame in _draw_corr
             put(im, "QUESTNAV vs DRIVE ERROR (live)", 12, 22, 0.55, CYAN)
-            self.corr_live = Plot((50, 34, 860, 100), -self.PDH_WIN, 0, 0, 2.5, [0, 1, 2], "{:g}",
+            self.corr_live = Plot((50, 34, 860, self.PLOT_H), -self.PDH_WIN, 0, 0, 2.5, [0, 1, 2], "{:g}",
                                   xticks=[(-150, "-150s"), (-120, "-120s"), (-90, "-90s"), (-60, "-60s"), (-30, "-30s")])
             return im
         put(im, "QUESTNAV vs SHOT ACCURACY" if pts else "QUESTNAV vs DRIVE ERROR", 12, 22, 0.55, CYAN)
-        tp = Plot((50, 34, 860, 100), self.t_lo, self.t_hi, 0, 2.5, [0, 1, 2], "{:g}")
+        self._draw_fail_table(im)
+        tp = Plot((50, 34, self.LOG_PLOT_W, self.PLOT_H), self.t_lo, self.t_hi, 0, 2.5, [0, 1, 2], "{:g}")
         have_err = dl is not None and len(dl) > 0
         if not have_err:
             put(im, "no Quest / drive pose in this data", 12, 60, 0.45, DIM)
@@ -432,13 +454,12 @@ class DashRenderer:
             im[:] = cv2.addWeighted(ov, 0.55, im, 0.45, 0)
         err = np.array([math.hypot(v[0], v[1]) for v in dl.v])
         tp.line(im, dl.t - self.a0, err, (255, 220, 60), 1)
-        put(im, "Quest-vs-drive error (m)", 400, 20, 0.42, (255, 220, 60))
+        put(im, "Quest-vs-drive error (m)", 312, 20, 0.42, (255, 220, 60))
         if pts:
             n_uns = sum(1 for p in pts if not p[5])
-            put(im, "accuracy per burst (right axis)", 600, 20, 0.42, DOT_SYN)
+            put(im, "accuracy per burst", 492, 20, 0.42, DOT_SYN)
             if n_uns:
-                put(im, "| Quest UNSYNCED", 600 + cv2.getTextSize("accuracy per burst (right axis) ", F, 0.42, 1)[0][0], 20,
-                    0.42, DOT_UNS)
+                put(im, "| UNSYNCED", 492 + cv2.getTextSize("accuracy per burst ", F, 0.42, 1)[0][0], 20, 0.42, DOT_UNS)
             for frac, lab in ((0, "0%"), (0.5, "50%"), (1, "100%")):
                 put(im, lab, tp.x + tp.w + 4, tp.y + tp.h - frac * tp.h + 4, 0.32, (0, 170, 255))
         self.corr = (tp, None)
@@ -543,7 +564,8 @@ class DashRenderer:
         im = np.full((PH, W, 3), BG, np.uint8)
         a0, tl, th_ = self.a0, self.t_lo, self.t_hi
         plots = {}
-        panels = [(0, 170, 960, 370, "PDH POWER"),
+        top = self.CORR2_H                      # the PDH panel starts under the Quest-error plot and runs to the bottom
+        panels = [(0, top, 960, PH - top, "PDH POWER"),
                   (960, 0, 320, 270, "MECHANISM 2D"), (1280, 0, 320, 270, "SWERVE MODULES"), (1600, 0, 320, 270, "SWERVE MOTOR TEMPERATURE"),
                   (960, 270, 320, 270, "2429 SCORING (estimate)"), (1280, 270, 320, 270, "DRIVER CONTROLLER"),
                   (1600, 270, 320, 270, "BUTTON BOX")]
@@ -564,10 +586,11 @@ class DashRenderer:
         def rel(sig):
             return sig.t - a0
 
-        pv = Plot((50, 204, 860, 56), tl, th_, 5, 13, [6, 9, 12], "{:g}", xticks=xt)
-        pa = Plot((50, 278, 860, 56), tl, th_, 0, 240, [0, 100, 200], "{:g}", xticks=xt)
+        pw = 860 if live else self.LOG_PLOT_W
+        pv = Plot((50, top + 34, pw, self.PLOT_H), tl, th_, 5, 13, [6, 9, 12], "{:g}", xticks=xt)
+        pa = Plot((50, top + 34 + self.PLOT_H + 20, pw, self.PLOT_H), tl, th_, 0, 240, [0, 100, 200], "{:g}", xticks=xt)
         cy1, cgrid = self._can_axis(tel, T.can_util_scale(tel))
-        pc = Plot((50, 354, 860, 40), tl, th_, 0, cy1, cgrid, "{:g}", xticks=xt)      # CAN bus utilization, percent
+        pc = Plot((50, 354, pw, 40), tl, th_, 0, cy1, cgrid, "{:g}", xticks=xt)      # CAN bus utilization, percent
         pt = Plot((1634, 38, 270, 192), tlt, th_, 20, 80, [20, 40, 60, 80], "{:g}", xticks=xtt)
         if not live:                                  # live plots are redrawn every frame (see _live_plots)
             pv.frame(im), pa.frame(im), pc.frame(im), pt.frame(im)
@@ -615,32 +638,42 @@ class DashRenderer:
         self._pdh_strip_frames(im, pa)
         if not live:
             self._pdh_marks(im, pv, pa, a0, a0 + tl, a0 + th_)
+            self._draw_fail_plot(im)
         plots["pdh_v"], plots["pdh_a"], plots["pdh_can"], plots["temp"] = pv, pa, pc, pt
         return im, plots
 
     # ------------------------------------------------- brownouts, camera / Quest / Wi-Fi under the PDH plots
-    STRIPS = (("ARDU R", "ArduCam right"), ("ARDU B", "ArduCam back"), ("QUEST", "Quest"), ("NET", "Wi-Fi / NT link"))
+    STRIPS = (("ARDU R", "ArduCam right"), ("ARDU B", "ArduCam back"), ("QUEST", "Quest"), ("NET", "Wi-Fi / NT link"), ("MOTOR", "motor off speed"))
+    C_MOTOR = (230, 170, 70)
+    # The strip's own limits, stricter than the GUI's tile limits (500 rpm, 0.3 m/s): measured on 2026 CASS matches, the worst wheel is
+    # normally about 0.8 m/s from its command just following the driver, and the hopper runs 650-1000 rpm under its command in normal use.
+    STRIP_RPM, STRIP_WHEEL = 1000.0, 1.5
+    MOTOR_MIN_S, MOTOR_JOIN_S = 1.0, 0.4                  # off for at least this long; gaps up to this do not end it
     C_LINK, C_STALL, C_REBOOT, C_QUEST, C_WIFI, C_BROWN = (52, 104, 235), (0, 175, 235), (70, 70, 235), (235, 140, 150), (80, 80, 255), (60, 60, 255)
     C_NODATA = (90, 60, 140)
     C_WARN = (0, 130, 255)                                # battery under warn_v (orange, so it stands out from the yellow volts line); under brown_v it is C_BROWN (red)
 
     def _pdh_strip_frames(self, im, pa):
         x0, x1 = pa.x, pa.x + pa.w
-        for row, (lab, _long) in enumerate(self.STRIPS):
+        rows = self.STRIPS[:4] if self.live else self.STRIPS    # live: the motor row needs the whole log
+        for row, (lab, _long) in enumerate(rows):
             y = self.STRIP_Y[row]
             cv2.rectangle(im, (x0, y), (x1, y + self.STRIP_H), (20, 20, 20), -1)
             cv2.rectangle(im, (x0, y), (x1, y + self.STRIP_H), (58, 58, 58), 1)
             put(im, lab, x0 - 4, y + 12, 0.34, DIM, anchor="r")
         x = x0
-        ly = self.STRIP_Y[-1] + self.STRIP_H + 18
-        for txt, col in (("brownout", self.C_BROWN), ("battery low", self.C_WARN), ("camera lost + coprocessor link drop", self.C_LINK),
-                         ("camera lost, link up", self.C_STALL), ("camera restart", self.C_REBOOT), ("no camera data", self.C_NODATA),
-                         ("Quest off", self.C_QUEST), ("Wi-Fi gap", self.C_WIFI)):
+        ly = self.STRIP_Y[len(rows) - 1] + self.STRIP_H + 16
+        items = [("brownout", self.C_BROWN), ("low battery", self.C_WARN), ("camera + link lost", self.C_LINK),
+                 ("camera lost, link up", self.C_STALL), ("restart", self.C_REBOOT), ("no data", self.C_NODATA),
+                 ("Quest off", self.C_QUEST), ("Wi-Fi gap", self.C_WIFI)]
+        if not self.live:
+            items.append(("motor off speed", self.C_MOTOR))
+        for txt, col in items:
             cv2.rectangle(im, (int(x), ly - 8), (int(x) + 9, ly + 1), col, -1)
             put(im, txt, x + 14, ly, 0.4, DIM)
-            x += 14 + len(txt) * 6.4 + 12
-        put(im, "brownout = the supply sagged and a motor controller (Kraken) or the roboRIO cut its output.  Dots = battery under %g V (orange) / %g V (red)." % (self.thr["warn_v"], self.thr["brown_v"]),
-            x0, ly + 18, 0.36, DIM)
+            x += 14 + len(txt) * 6.4 + 8
+        put(im, "brownout = a controller cut output on a sag.  Dots = under %g V (orange) / %g V (red)." % (self.thr["warn_v"], self.thr["brown_v"])
+            + ("" if self.live else "  Motor = %g+ rpm or %g+ m/s off command, %g+ s." % (self.STRIP_RPM, self.STRIP_WHEEL, self.MOTOR_MIN_S)), x0, ly + 16, 0.36, DIM)
 
     def _brownout_events(self, t0, t1):
         """[(time, who)] of brownouts in [t0, t1]: the roboRIO flag, and a CTRE Kraken's bridge-brownout fault (hoot).
@@ -734,6 +767,181 @@ class DashRenderer:
         wifi = tel.net_intervals("self", t0, t1) + tel.net_intervals("other", t0, t1) + T.data_gaps(sv, t0, t1)
         for a, b in wifi:
             block(3, a, b, self.C_WIFI)
+        if not self.live:
+            if not self._logged("MOTOR"):
+                put(im, "motor speeds: not in this log", x0 + 6, self.STRIP_Y[4] + 12, 0.36, DIM)
+            for a, b, who in self._motor_intervals(t0, t1):
+                block(4, a, b, self.C_MOTOR, who if X(b) - X(a) > 12 + 7 * len(who) else "")
+
+    # ------------------------------------------------- failures against the battery voltage
+    def _motor_intervals(self, t0, t1):
+        """[(a, b, names)] in [t0, t1] while a mechanism motor was over STRIP_RPM from its command (not while off or ramping to a
+        new command), or a drive wheel over STRIP_WHEEL from its command, for at least MOTOR_MIN_S."""
+        out = []
+        ts = np.arange(t0, t1, 0.1)
+        for label, set_key, act_key in MOTORS:
+            dev = [self._rpm_dev(set_key, act_key, float(t)) for t in ts]
+            bad = [st in ("over", "under", "ok") and abs(d) > self.STRIP_RPM for st, d in dev]
+            out += [(a, b, label) for a, b in self._runs(ts, bad, self.MOTOR_MIN_S)]
+        act, des = self.tel.by_key.get("mod"), self.tel.by_key.get("mod_des")
+        if act is not None and des is not None and len(act) and len(des):
+            keep = [i for i in range(len(act)) if t0 <= act.t[i] <= t1 and np.shape(act.v[i]) == (4, 2)]
+            if keep:
+                ta = np.array([act.t[i] for i in keep])
+                A = np.array([act.v[i] for i in keep], float)
+                j = np.clip(np.searchsorted(des.t, ta, side="right") - 1, 0, len(des) - 1)
+                D = np.array([des.v[k] if np.shape(des.v[k]) == (4, 2) else np.full((4, 2), np.nan) for k in j], float)
+                ang = np.arctan2(np.sin(A[:, :, 1] - D[:, :, 1]), np.cos(A[:, :, 1] - D[:, :, 1]))
+                want = np.where(np.abs(ang) > np.pi / 2, -D[:, :, 0], D[:, :, 0])     # a module may run the wheel the other way round
+                with np.errstate(invalid="ignore"):
+                    bad = np.nanmax(np.abs(A[:, :, 0] - want), axis=1) > self.STRIP_WHEEL
+                out += [(a, b, "WHEEL") for a, b in self._runs(ta, list(bad), self.MOTOR_MIN_S)]
+        out.sort()
+        merged = []
+        for a, b, who in out:
+            if merged and a <= merged[-1][1] + self.MOTOR_JOIN_S:
+                merged[-1][1] = max(merged[-1][1], b)
+                merged[-1][2].add(who)
+            else:
+                merged.append([a, b, {who}])
+        return [(a, b, "+".join(sorted(w))) for a, b, w in merged]
+
+    def _logged(self, label):
+        """Is what a failure row needs in this log at all?  (An empty row must not read as "no failures" when it was not recorded.)"""
+        has = lambda k: self.tel.by_key.get(k) is not None and len(self.tel.by_key[k]) > 0
+        if label == "MOTOR":
+            return any(has(a) and has(b) for _, a, b in MOTORS) or (has("mod") and has("mod_des"))
+        key = {"ARDU R": "cam_right_frames", "ARDU B": "cam_back_frames", "QUEST": "q_connected"}.get(label)
+        return key is None or has(key)
+
+    def _runs(self, ts, bad, min_s):
+        """Runs of True in `bad` that last at least min_s (gaps up to MOTOR_JOIN_S do not end a run)."""
+        runs, start, last = [], None, None
+        for t, b in zip(ts, bad):
+            if b:
+                start = t if start is None else start
+                last = t
+            elif start is not None and t - last > self.MOTOR_JOIN_S:
+                runs.append((float(start), float(last)))
+                start = None
+        if start is not None:
+            runs.append((float(start), float(last)))
+        return [(a, b) for a, b in runs if b - a >= min_s]
+
+    def _failures(self):
+        """What FAILURES vs VOLTS shows, worked out once: [(strip label, [(onset, volts there, colour)])], the voltage of every
+        moment of the match, and the bins of time spent at each voltage.  The voltage of a moment is the lowest within 1 s either
+        side (the frame counter says when a camera stopped only to 0.5 s).  None when the log has no battery voltage."""
+        if getattr(self, "_failure_data", None) is not None:
+            return self._failure_data or None
+        self._failure_data = False
+        tel, ml = self.tel, self.ml
+        sv = tel.by_key.get("pdh_v")
+        if sv is None or len(sv) < 10:
+            return None
+        w0 = ml.t_ref
+        w1 = max(w0 + ml.match_len if ml.has_match else ml.t_last, w0 + 1.0)
+        tv, vv = np.asarray(sv.t, float), np.asarray(sv.v, float)
+
+        def lowest(t):
+            i0 = max(int(np.searchsorted(tv, t - 1.0, side="right")) - 1, 0)
+            i1 = int(np.searchsorted(tv, t + 1.0, side="right"))
+            return float(vv[i0:i1].min()) if i1 > i0 else float("nan")
+        grid = np.arange(w0 + 1.0, w1 - 1.0, 0.25)
+        if not len(grid):
+            return None
+        cv = np.array([lowest(t) for t in grid])
+        cv = cv[np.isfinite(cv)]
+        rows = []
+        link = tel.net_intervals("coproc", w0, w1)
+        for label, key in (("ARDU R", "cam_right_frames"), ("ARDU B", "cam_back_frames")):
+            s = tel.by_key.get(key)
+            ev = []
+            restarts = T.restart_times(s, w0, w1)
+            for a, b in T.stall_intervals(s, w0, w1):
+                col = self.C_REBOOT if any(a <= r <= b + 1 for r in restarts) else \
+                    self.C_LINK if any(la - 3 <= b and lb + 3 >= a for la, lb in link) else self.C_STALL
+                ev.append((a, col))
+            rows.append((label, ev))
+        rows.append(("QUEST", [(a, self.C_QUEST) for a, _ in T.false_intervals(tel.by_key.get("q_connected"), w0, w1)]))
+        net = sorted(a for a, _ in tel.net_intervals("self", w0, w1) + tel.net_intervals("other", w0, w1) + T.data_gaps(sv, w0, w1))
+        rows.append(("NET", [(a, self.C_WIFI) for i, a in enumerate(net) if not i or a - net[i - 1] > 2.5]))
+        rows.append(("MOTOR", [(a, self.C_MOTOR) for a, _, _ in self._motor_intervals(w0, w1)]))
+        # one that was already going when the match started has no onset to compare
+        rows = [(lab, [(t, lowest(t), c) for t, c in ev if t >= w0 + 1.5 and np.isfinite(lowest(t))]) for lab, ev in rows]
+        self._failure_data = (rows, cv, np.histogram(np.clip(cv, 6.0, 12.99), np.arange(6.0, 13.01, 0.5))[0])
+        return self._failure_data
+
+    def _draw_fail_table(self, im):
+        """Top of the FAILURES vs VOLTS column (in the Quest panel): per kind, how many, how many below LOW_V, and how many
+        that would be by chance, from the share of this match spent below LOW_V."""
+        x = self.FAIL_X
+        cv2.line(im, (x - 8, 8), (x - 8, self.CORR2_H - 8), EDGE, 1)
+        put(im, "FAILURES vs VOLTS", x, 22, 0.5, CYAN)
+        data = self._failures()
+        if data is None:
+            put(im, "no battery voltage in this log", x, 44, 0.36, DIM)
+            return
+        rows, cv, _ = data
+        share = float(np.mean(cv < self.LOW_V))
+        for txt, cx in (("n", 815), (f"<{self.LOW_V:g} V", 868), ("chance", 932)):
+            put(im, txt, cx, 38, 0.34, DIM, anchor="r")
+        y = 52
+        allev = sorted(e[:2] for _, ev in rows for e in ev)
+        for lab, ev in rows:
+            n, low = len(ev), sum(e[1] < self.LOW_V for e in ev)
+            put(im, lab, x, y, 0.36, TXT)
+            cells = ((n, 815), (low if n else "-", 868), (f"{n * share:.1f}" if n else "-", 932))
+            if not self._logged(lab):
+                cells = (("not logged", 932),)
+            for txt, cx in cells:
+                put(im, str(txt), cx, y, 0.36, TXT if self._logged(lab) else DIM, anchor="r")
+            y += 14
+        inc = [e for i, e in enumerate(allev) if not i or e[0] - allev[i - 1][0] > 2.5]   # at the same moment: one incident
+        n, low = len(inc), sum(e[1] < self.LOW_V for e in inc)
+        put(im, "incidents", x, y + 1, 0.36, WHITE)
+        for txt, cx in ((n, 815), (low if n else "-", 868), (f"{n * share:.1f}" if n else "-", 932)):
+            put(im, str(txt), cx, y + 1, 0.36, WHITE, anchor="r")
+
+    def _draw_fail_plot(self, im):
+        """The column right of the PDH plots: time spent at each voltage (grey), and under it one row per kind of failure with a
+        dot at the voltage it started at.  Dots piling up left of where the grey is = failures at unusually low voltage."""
+        x0, x1 = self.FAIL_X + 6, 946
+        top = self.CORR2_H + 34
+        cv2.line(im, (self.FAIL_X - 8, top), (self.FAIL_X - 8, self.STRIP_Y[-1] + self.STRIP_H), EDGE, 1)
+        data = self._failures()
+        if data is None:
+            return
+        rows, cv, hist = data
+        X = lambda v: x0 + (x1 - x0) * (min(max(v, 6.0), 13.0) - 6.0) / 7.0
+        h_top, h_bot, r0, rh = top + 16, top + 54, top + 66, 44
+        put(im, "time at each voltage", x0, top + 9, 0.34, DIM)
+        peak = max(int(hist.max()), 1)
+        for i, c in enumerate(hist):
+            if c:
+                xa, xb = int(X(6.0 + i * 0.5)) + 1, int(X(6.5 + i * 0.5)) - 1
+                cv2.rectangle(im, (xa, int(h_bot - (h_bot - h_top) * c / peak)), (xb, h_bot), (95, 95, 95), -1)
+        cv2.line(im, (x0, h_bot), (x1, h_bot), EDGE, 1)
+        bot = r0 + rh * len(rows)
+        for v in range(6, 14):
+            cv2.line(im, (int(X(v)), h_bot), (int(X(v)), bot), (48, 48, 48), 1)
+            put(im, str(v), X(v), bot + 12, 0.34, DIM, anchor="c")
+        for volts, col in ((self.thr["warn_v"], self.C_WARN), (self.thr["brown_v"], self.C_BROWN)):
+            for yy in range(h_top, bot, 6):
+                cv2.line(im, (int(X(volts)), yy), (int(X(volts)), yy + 3), col, 1)
+        for r, (lab, ev) in enumerate(rows):
+            y = r0 + r * rh
+            cv2.line(im, (x0, y + rh - 1), (x1, y + rh - 1), (48, 48, 48), 1)
+            put(im, lab + ("" if self._logged(lab) else ": not logged"), x0 + 1, y + 10, 0.34, DIM)
+            stack = {}
+            for t, v, col in sorted(ev, key=lambda e: e[1]):            # dots at the same voltage stack upward
+                k = round(v * 4)
+                n = stack.get(k, 0)
+                stack[k] = n + 1
+                cy = y + rh - 7 - min(n, 3) * 8
+                cv2.circle(im, (int(X(v)), cy), 4, col, -1, cv2.LINE_AA)
+                cv2.circle(im, (int(X(v)), cy), 4, (20, 20, 20), 1, cv2.LINE_AA)
+        put(im, "volts when it started", (x0 + x1) / 2, bot + 25, 0.34, DIM, anchor="c")
 
     def _live_plots(self, im, t, keys):
         """Live: draw the scrolling PDH / temperature plots (a log has them in the static base instead)."""
@@ -789,7 +997,13 @@ class DashRenderer:
             cx = int(pa.px(tr, 0)[0])
             cv2.line(im, (cx, self.STRIP_Y[0]), (cx, self.STRIP_Y[-1] + self.STRIP_H), (255, 255, 255), 1)
         wh = g("pdh_wh")
-        put(im, "" if wh is None else f"{wh:.1f} Wh used", 910, 202, 0.42, DIM, anchor="r")
+        pv_ = self.plots["pdh_v"]
+        put(im, "" if wh is None else f"{wh:.1f} Wh used", pv_.x + pv_.w, 202, 0.42, DIM, anchor="r")
+        if not self.live:                                   # the battery and its match numbers, next to the panel title
+            st = self.battery_stats()
+            if st is not None:
+                st.battery = self.battery
+                put(im, st.overlay_text(), 128, self.CORR2_H + 22, 0.4, AMBER if self.battery else TXT)
         # ======================= right half: two rows of three 320 x 270 panels
         self._draw_mech(im[0:270, 960:1280], t)
         self._draw_swerve(im[0:270, 1280:1600], g("mod"), g("mod_des"), t)
@@ -813,20 +1027,27 @@ class DashRenderer:
     def _draw_scoring(self, im, t):
         tr = t - self.a0
         g = lambda k, d=None: self.tel.get(k, t, d)
-        # points come only from the official fuel counter in the match video; without it the score is 0
+        # points come from the official fuel counter in the match video; without a video the score is 0.  With a video whose broadcast shows
+        # no fuel counter (playoff graphics show the alliance score instead) the rough flywheel-dip estimate is shown, labelled as one
         sm = self.score
         from_video = sm is self.vshots
-        put(im, "points (from video fuel counter)" if from_video else "points (needs match video: 0)", 14, 50, 0.42, DIM)
-        pts = sm.points(tr) if (from_video and tr >= 0) else 0
-        put(im, f"{pts}", 14, 128, 3.0, AMBER if from_video else DIM, 5, font=FD)
+        estimate = not from_video and self.vshots is not None and self.shots.available
+        score_mode = from_video and getattr(sm, "mode", "") == "score"
+        # when there is no score, say what is missing: the video (not measured), or the flywheel speed in the log (no shots to credit)
+        why = "no match video" if self.vshots is None else "no flywheel speed in the log"
+        put(im, "points (from video corner score)" if score_mode else "points (from video fuel counter)" if from_video else "points (estimate from shots, no fuel counter)" if estimate
+            else f"points ({why}: 0)", 14, 50, 0.42, DIM)
+        pts = sm.points(tr) if (from_video and tr >= 0) else self.shots.points(tr) if (estimate and tr >= 0) else 0
+        put(im, f"{pts}", 14, 128, 3.0, AMBER if from_video else (0, 170, 220) if estimate else DIM, 5, font=FD)
         k = self.shots.fired(tr) if tr >= 0 else 0
-        acc = sm.accuracy(tr) if (from_video and tr >= 0) else None
+        acc = sm.accuracy(tr) if ((from_video or estimate) and tr >= 0) else None
         put(im, "shots fired", 14, 160, 0.45, DIM)
         put(im, f"{k}", 130, 160, 0.7, TXT, 2)
         npass = self.shots.passed(tr) if tr >= 0 else 0
-        if npass:
-            s_ = f"+ {npass} passes (G407)"
-            put(im, s_, 175, 160, fit_scale(s_, 138, 0.38), DIM)
+        nfeed = self.shots.fed(tr) if tr >= 0 else 0
+        extra = "  ".join(x for x in (f"+ {nfeed} fed" if nfeed else "", f"+ {npass} passes" if npass else "") if x)
+        if extra:
+            put(im, extra, 175, 160, fit_scale(extra, 138, 0.38), DIM)
         put(im, "accuracy", 14, 192, 0.45, DIM)
         put(im, "--" if acc is None else f"{acc * 100:.0f}%", 130, 192, 0.7, TXT, 2)
         bar_h(im, 14, 202, 292, 12, 0 if acc is None else acc, (0, 200, 90))
@@ -837,8 +1058,11 @@ class DashRenderer:
             col = (0, 200, 90) if err < 0.3 else ((0, 190, 255) if err < 1.0 else (60, 60, 230))
             put(im, f"{err:.2f} m", 306, 232, 0.5, col, 1, anchor="r")
         put(im, f"rpm {g('shooter_rpm', 0):.0f}  /  target {g('shooter_target', 0):.0f}", 14, 248, 0.4, TXT)
-        foot = ("official fuel counter, only while 2429 shoots from its zone (partners incl.)" if from_video
-                else "shots are counted from flywheel dips; scoring needs the match video")
+        foot = (("alliance fuel score in the corner box, only while 2429 shoots from its zone (partners incl.)" if score_mode else
+                 "official fuel counter while 2429 shoots, shared with partners scoring then; fed = into inactive hub") if from_video
+                else "rough: assumed hit rates on the shots counted from flywheel dips" if estimate
+                else "scoring needs the match video" if self.vshots is None
+                else "shots are counted from flywheel dips; this log has no flywheel speed")
         put(im, foot, 14, 264, fit_scale(foot, 296, 0.34), DIM)
 
     # ----------------------------------------------------------------- swerve
