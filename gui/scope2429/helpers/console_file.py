@@ -93,7 +93,7 @@ BATTERY_LINE = re.compile(r"^BATTERY: ([A-Za-z0-9][A-Za-z0-9 _.-]{0,23})(?:\s{2,
 
 def battery(lines) -> str:
     """The battery picked on the driver dashboard for this boot ('2026-C'), from the robot's 'BATTERY: <id>' lines
-    (comp_system_core/helpers/battery_id.py), or ''.  The last one counts: a wrong pick corrected before the match wins."""
+    (subsystems/robot_state.py: _check_battery), or ''.  The last one counts: a wrong pick corrected before the match wins."""
     found = ""
     for ln in lines:
         m = BATTERY_LINE.match(ln.text.strip())
