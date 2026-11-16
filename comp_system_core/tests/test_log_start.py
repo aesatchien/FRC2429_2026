@@ -45,3 +45,22 @@ def test_nothing_starts_logging_during_construction():
             if re.search(r'DataLogManager\.(start|get_log)\b|SignalLogger\.(start|set_path)\b', code):
                 offenders.append(f'{rel}:{n}: {line.strip()}')
     assert not offenders, "start the logs only in helpers/log_start.py:\n  " + "\n  ".join(offenders)
+
+
+# ---- one folder per boot for the .hoot, the .wpilog and the console log
+def test_session_folder_name_is_local_date_and_time():
+    import time
+    from helpers.log_start import session_name
+    t = time.mktime((2026, 11, 15, 14, 3, 27, 0, 0, -1))
+    assert session_name(t) == '2026-11-15_14-03-27'
+
+
+def test_finds_the_folder_phoenix_just_made(tmp_path):
+    from helpers.log_start import new_session_dir, subdirs
+    (tmp_path / '2026-11-14_10-00-00').mkdir()
+    (tmp_path / 'stray.wpilog').write_text('')
+    before = subdirs(str(tmp_path))
+    assert new_session_dir(str(tmp_path), before) == '', 'nothing new yet: keep waiting'
+    (tmp_path / '2026-11-15_14-03-27').mkdir()
+    assert new_session_dir(str(tmp_path), before) == str(tmp_path / '2026-11-15_14-03-27')
+    assert new_session_dir(str(tmp_path / 'missing'), set()) == '', 'a folder that is gone is not an error'
